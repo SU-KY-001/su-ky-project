@@ -44,7 +44,7 @@
 
 ## 4. Database & Persistence Layer (`packages/db`)
 | **ORM & Query Builder** | Prisma ORM | `^6.4.0` | Production-grade schema modeling, type-safe query client, migrations (`prisma migrate`), and introspection. |
-| **Database Driver** | PostgreSQL client | Native | Prisma native query engine connected to PostgreSQL 17 container. |
+| **Database Driver** | PostgreSQL 18 container | `postgres:18-alpine` | PostgreSQL 18 Alpine containerized via `compose.yaml` with healthcheck. |
 | **Migration Tool** | Prisma CLI | `^6.4.0` | `prisma migrate dev`, `prisma db push`, `prisma generate`. |
 
 ---

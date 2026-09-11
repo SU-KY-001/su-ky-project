@@ -7,7 +7,7 @@ Nền tảng Podcast Kể Chuyện Lịch Sử Việt Nam (Đồ án WDP301).
 - **Monorepo Engine**: [Turborepo](https://turbo.build) `2.x`
 - **Backend API**: [Hono](https://hono.dev) `v4` with end-to-end typed RPC Client
 - **Frontend App**: [React](https://react.dev) `19` + [Vite](https://vite.dev) `6` + [Tailwind CSS](https://tailwindcss.com) `v4` + [TanStack Query](https://tanstack.com/query) `v5`
-- **Database & ORM**: PostgreSQL 17 ([Docker Compose](./compose.yaml)) + [Prisma ORM](https://www.prisma.io) `v6`
+- **Database & ORM**: PostgreSQL 18 ([Docker Compose](./compose.yaml) image `postgres:18-alpine`) + [Prisma ORM](https://www.prisma.io) `v6`
 - **Contracts**: [Zod](https://zod.dev) schemas in `@repo/shared`
 
 ---
