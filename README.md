@@ -59,15 +59,24 @@ bun run dev
 
 ---
 
-## Các Lệnh Thường Dùng
+## Các Lệnh Thường Dùng (Makefile & Bun)
 
-```bash
-bun run dev           # Chạy song song cả api và web
-bun run build         # Build production toàn bộ monorepo
-bun run check-types   # Kiểm tra type TypeScript
-bun test              # Chạy automated test suite
-bun run clean         # Dọn dẹp cache và node_modules
-```
+Bạn có thể sử dụng `make` hoặc gọi trực tiếp bằng `bun`:
+
+| Tác vụ | Lệnh `make` | Lệnh tương đương với `bun` |
+| :--- | :--- | :--- |
+| **Cài đặt dependencies** | `make install` | `bun install` |
+| **Chạy dev (API & Web)** | `make dev` | `bun run dev` |
+| **Build production** | `make build` | `bun run build` |
+| **Kiểm tra kiểu dữ liệu** | `make check-types` | `bun run check-types` |
+| **Chạy automated tests** | `make test` | `bun test` |
+| **Bật PostgreSQL Docker** | `make db-up` | `docker compose up -d` |
+| **Tắt PostgreSQL Docker** | `make db-down` | `docker compose down` |
+| **Sinh Prisma Client** | `make db-generate` | `bun run db:generate` |
+| **Đồng bộ DB Schema** | `make db-push` | `bun run db:push` |
+| **Nạp dữ liệu mẫu (Seed)** | `make db-seed` | `bun run db:seed` |
+| **Mở Prisma Studio UI** | `make db-studio` | `cd packages/db && bun run prisma studio` |
+| **Dọn dẹp cache & build** | `make clean` | `bun run clean` |
 
 ---
 
