@@ -1,0 +1,1404 @@
+<!DOCTYPE html>
+<html lang="vi" class="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Su-Ky (Sử Ký) — Nền Tảng Podcast Lịch Sử Việt Nam | Interactive Wireframe</title>
+  
+  <!-- Google Fonts: Playfair Display, Plus Jakarta Sans, JetBrains Mono -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Playfair+Display:ital,wght@0,500;0,600;0,700;0,800;1,400;1,600&family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          colors: {
+            obsidian: '#0B0F17',
+            lacquer: '#101726',
+            surface: '#162032',
+            surfaceHover: '#1E293B',
+            gold: {
+              400: '#FBBF24',
+              500: '#F59E0B',
+              600: '#D97706',
+              light: '#FDE68A',
+            },
+            vermilion: {
+              500: '#EF4444',
+              600: '#DC2626',
+              900: '#7F1D1D',
+            },
+            jade: {
+              400: '#34D399',
+              500: '#10B981',
+              900: '#064E3B',
+            }
+          },
+          fontFamily: {
+            serif: ['"Playfair Display"', 'serif'],
+            sans: ['"Plus Jakarta Sans"', 'sans-serif'],
+            mono: ['"JetBrains Mono"', 'monospace'],
+          },
+          boxShadow: {
+            'gold-glow': '0 0 25px -5px rgba(245, 158, 11, 0.35)',
+            'vermilion-glow': '0 0 25px -5px rgba(220, 38, 38, 0.35)',
+            'card-lacquer': '0 10px 30px -10px rgba(0, 0, 0, 0.7)',
+          }
+        }
+      }
+    }
+  </script>
+
+  <style>
+    /* Custom Scrollbar for Dynasty Track */
+    .scrollbar-none::-webkit-scrollbar {
+      display: none;
+    }
+    .scrollbar-none {
+      -ms-overflow-style: none;
+      scrollbar-width: none;
+    }
+    
+    /* Subtle paper texture overlay */
+    .bg-lacquer-pattern {
+      background-color: #0B0F17;
+      background-image: radial-gradient(rgba(245, 158, 11, 0.04) 1px, transparent 0);
+      background-size: 24px 24px;
+    }
+
+    /* Waveform animation bars */
+    @keyframes soundwave {
+      0%, 100% { height: 4px; }
+      50% { height: 18px; }
+    }
+    .wave-bar:nth-child(1) { animation: soundwave 1.1s ease-in-out infinite 0.1s; }
+    .wave-bar:nth-child(2) { animation: soundwave 0.9s ease-in-out infinite 0.3s; }
+    .wave-bar:nth-child(3) { animation: soundwave 1.3s ease-in-out infinite 0.2s; }
+    .wave-bar:nth-child(4) { animation: soundwave 1.0s ease-in-out infinite 0.4s; }
+    .wave-bar:nth-child(5) { animation: soundwave 0.8s ease-in-out infinite 0.25s; }
+    
+    .wave-playing .wave-bar {
+      display: inline-block;
+    }
+    .wave-paused .wave-bar {
+      animation-play-state: paused;
+      height: 4px !important;
+    }
+  </style>
+</head>
+<body class="bg-lacquer-pattern text-slate-100 font-sans min-h-screen pb-36 antialiased selection:bg-amber-500 selection:text-slate-950">
+
+  <!-- ==================== 1. TOP BAR & NAVIGATION ==================== -->
+  <header class="sticky top-0 z-30 bg-lacquer/90 backdrop-blur-md border-b border-amber-500/20 px-4 lg:px-8 py-3.5 transition-all">
+    <div class="max-w-7xl mx-auto flex items-center justify-between gap-4">
+      
+      <!-- Brand Logo -->
+      <div class="flex items-center gap-3 cursor-pointer group" onclick="resetFilters()">
+        <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-amber-500 to-amber-700 flex items-center justify-center shadow-gold-glow group-hover:scale-105 transition-transform">
+          <!-- Imperial Drum SVG Icon -->
+          <svg class="w-6 h-6 text-slate-950" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 2v20M2 12h20M4.93 4.93l14.14 14.14M4.93 19.07l14.14-14.14"/>
+            <circle cx="12" cy="12" r="9"/>
+          </svg>
+        </div>
+        <div>
+          <div class="flex items-center gap-1.5">
+            <span class="font-serif text-2xl font-bold tracking-tight text-white group-hover:text-amber-400 transition-colors">SỬ KÝ</span>
+            <span class="text-xs font-mono px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-300 border border-amber-500/30">SU-KY</span>
+          </div>
+          <p class="text-[11px] text-slate-400 font-medium tracking-wide">Nền Tảng Podcast Lịch Sử Việt Nam</p>
+        </div>
+      </div>
+
+      <!-- Navigation Links -->
+      <nav class="hidden md:flex items-center gap-1 bg-surface/80 p-1 rounded-full border border-white/10 text-sm font-medium">
+        <button onclick="scrollToSection('catalog-section')" class="px-4 py-1.5 rounded-full text-amber-400 bg-amber-500/10 font-semibold transition-all">Khám Phá</button>
+        <button onclick="scrollToSection('timeline-section')" class="px-4 py-1.5 rounded-full text-slate-300 hover:text-white hover:bg-white/5 transition-all">Dòng Thời Gian</button>
+        <button onclick="scrollToSection('flagship-section')" class="px-4 py-1.5 rounded-full text-slate-300 hover:text-white hover:bg-white/5 transition-all">Series Nổi Bật</button>
+        <button onclick="openDrawer('glossary')" class="px-4 py-1.5 rounded-full text-slate-300 hover:text-white hover:bg-white/5 transition-all">Từ Điển Cổ Học</button>
+        <button onclick="openDrawer('citations')" class="px-4 py-1.5 rounded-full text-slate-300 hover:text-white hover:bg-white/5 transition-all">Kho Sử Liệu</button>
+      </nav>
+
+      <!-- System Health Indicator & Search -->
+      <div class="flex items-center gap-3">
+        <!-- Live System Status Badge (WDP301 Specs: Bun 1.4.0, Hono RPC, Postgres 17) -->
+        <div class="hidden lg:flex items-center gap-2 px-3 py-1.5 rounded-full bg-slate-900/90 border border-emerald-500/30 text-xs">
+          <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+          <span class="font-mono text-emerald-400 text-[11px]">Bun v1.4.0</span>
+          <span class="text-slate-600">|</span>
+          <span class="font-mono text-amber-300 text-[11px]">Hono RPC</span>
+          <span class="text-slate-600">|</span>
+          <span class="font-mono text-cyan-400 text-[11px]">PG17: 1.1ms</span>
+        </div>
+
+        <!-- Quick Search -->
+        <div class="relative">
+          <input 
+            type="text" 
+            id="searchInput"
+            placeholder="Tìm nhân vật, trận đánh, triều đại..." 
+            oninput="handleSearch(this.value)"
+            class="w-48 sm:w-64 bg-surface/90 border border-white/10 rounded-full pl-9 pr-4 py-1.5 text-xs text-white placeholder-slate-400 focus:outline-none focus:border-amber-500 focus:ring-1 focus:ring-amber-500 transition-all"
+          >
+          <svg class="w-4 h-4 text-slate-400 absolute left-3 top-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+          </svg>
+        </div>
+      </div>
+
+    </div>
+  </header>
+
+  <main class="max-w-7xl mx-auto px-4 lg:px-8 pt-6 space-y-10">
+
+    <!-- ==================== 2. FLAGSHIP HERO SHOWCASE ==================== -->
+    <section id="flagship-section" class="relative rounded-3xl overflow-hidden border border-amber-500/25 bg-gradient-to-br from-lacquer via-surface to-[#0d1522] shadow-card-lacquer p-6 sm:p-8 lg:p-10">
+      
+      <!-- Subtle Golden Halo Background -->
+      <div class="absolute -right-20 -top-20 w-96 h-96 bg-amber-500/10 rounded-full blur-3xl pointer-events-none"></div>
+      <div class="absolute -left-20 -bottom-20 w-80 h-80 bg-red-600/10 rounded-full blur-3xl pointer-events-none"></div>
+
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center relative z-10">
+        
+        <!-- Left Column: Narrative Content -->
+        <div class="lg:col-span-7 space-y-5">
+          
+          <div class="flex flex-wrap items-center gap-2">
+            <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-500/15 text-amber-300 border border-amber-500/30 text-xs font-semibold uppercase tracking-wider">
+              <span class="w-1.5 h-1.5 rounded-full bg-amber-400"></span>
+              Flagship Series Mùa 1
+            </span>
+            <span class="px-2.5 py-0.5 rounded-full bg-red-900/40 text-red-300 border border-red-500/30 text-xs font-mono font-medium">
+              Cổ Đại & Trung Đại
+            </span>
+            <span class="px-2.5 py-0.5 rounded-full bg-emerald-900/40 text-emerald-300 border border-emerald-500/30 text-xs font-mono font-medium">
+              48 Trích Dẫn Sử Liệu
+            </span>
+          </div>
+
+          <h1 class="font-serif text-3xl sm:text-4xl lg:text-5xl font-bold text-white leading-tight">
+            Hành Trình Dựng Nước: <br>
+            <span class="text-transparent bg-clip-text bg-gradient-to-r from-amber-300 via-amber-400 to-amber-600">
+              Từ Văn Lang Đến Kỷ Nguyên Độc Lập
+            </span>
+          </h1>
+
+          <p class="text-slate-300 text-sm sm:text-base leading-relaxed max-w-2xl">
+            Tái hiện hơn 2.000 năm lịch sử dân tộc qua lăng kính âm thanh điện ảnh sống động. Từ thuở Hùng Vương khai sơn lập quốc, nỏ thần Kim Quy thành Ốc, đến trận quyết chiến cọc ngầm Bạch Đằng giang chấm dứt nghìn năm Bắc thuộc. Mỗi tập đều được phối âm đa tầng cùng trích dẫn nguyên tác từ <em class="text-amber-300 font-serif">Đại Việt Sử Ký Toàn Thư</em> và <em class="text-amber-300 font-serif">Cương Mục</em>.
+          </p>
+
+          <!-- Series Quick Stats -->
+          <div class="grid grid-cols-3 gap-4 pt-2 border-t border-white/10 max-w-lg">
+            <div>
+              <div class="text-xl sm:text-2xl font-bold font-mono text-amber-400">12</div>
+              <div class="text-xs text-slate-400">Tập Podcast</div>
+            </div>
+            <div>
+              <div class="text-xl sm:text-2xl font-bold font-mono text-amber-400">6h 45m</div>
+              <div class="text-xs text-slate-400">Tổng Thời Lượng</div>
+            </div>
+            <div>
+              <div class="text-xl sm:text-2xl font-bold font-mono text-amber-400">100%</div>
+              <div class="text-xs text-slate-400">Đã Khảo Chứng</div>
+            </div>
+          </div>
+
+          <!-- CTAs -->
+          <div class="flex flex-wrap items-center gap-3 pt-2">
+            <button 
+              onclick="playEpisode(1)" 
+              class="inline-flex items-center gap-2.5 px-6 py-3 rounded-full bg-gradient-to-r from-amber-500 to-amber-600 text-slate-950 font-bold text-sm hover:from-amber-400 hover:to-amber-500 transition-all shadow-gold-glow cursor-pointer transform active:scale-95"
+            >
+              <svg class="w-5 h-5 fill-current" viewBox="0 0 24 24">
+                <path d="M8 5v14l11-7z"/>
+              </svg>
+              Nghe Tập Mở Màn (Tập 1)
+            </button>
+
+            <button 
+              onclick="openDrawer('citations')" 
+              class="inline-flex items-center gap-2 px-5 py-3 rounded-full bg-surface hover:bg-surfaceHover text-slate-200 border border-white/15 font-semibold text-sm transition-all cursor-pointer"
+            >
+              <svg class="w-4 h-4 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/>
+              </svg>
+              Xem Thư Tịch & Trích Dẫn
+            </button>
+          </div>
+
+        </div>
+
+        <!-- Right Column: Visual Artwork & Audio Teaser Card -->
+        <div class="lg:col-span-5">
+          <div class="relative group rounded-2xl overflow-hidden border border-amber-500/30 bg-lacquer shadow-2xl">
+            <!-- Simulated Artwork -->
+            <div class="h-64 sm:h-72 w-full bg-gradient-to-tr from-[#1a0f0a] via-[#2a1708] to-[#121c2e] relative flex items-center justify-center p-6 text-center overflow-hidden">
+              <div class="absolute inset-0 opacity-20 bg-[radial-gradient(#f59e0b_1px,transparent_1px)] [background-size:16px_16px]"></div>
+              
+              <div class="relative z-10 space-y-2">
+                <div class="w-16 h-16 mx-auto rounded-full bg-amber-500/20 border border-amber-500/40 flex items-center justify-center">
+                  <svg class="w-8 h-8 text-amber-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75">
+                    <circle cx="12" cy="12" r="10"/>
+                    <path d="m10 8 6 4-6 4V8z"/>
+                  </svg>
+                </div>
+                <div class="font-serif text-amber-200 text-lg font-semibold tracking-wider">HÀNH TRÌNH DỰNG NƯỚC</div>
+                <div class="text-xs font-mono text-slate-400">Trích lục: ĐVSKTT & Cương Mục</div>
+              </div>
+
+              <!-- Animated Sound Wave Pill -->
+              <div class="absolute bottom-3 left-4 right-4 bg-slate-950/80 backdrop-blur-md rounded-xl p-2.5 border border-white/10 flex items-center justify-between">
+                <div class="flex items-center gap-2">
+                  <span class="w-2 h-2 rounded-full bg-red-500 animate-ping"></span>
+                  <span class="text-[11px] text-slate-300 font-medium">Đang phát: Bạch Đằng 938</span>
+                </div>
+                <div class="flex items-end gap-1 h-5 wave-playing" id="heroWaveform">
+                  <span class="wave-bar w-1 bg-amber-400 rounded-full"></span>
+                  <span class="wave-bar w-1 bg-amber-400 rounded-full"></span>
+                  <span class="wave-bar w-1 bg-amber-400 rounded-full"></span>
+                  <span class="wave-bar w-1 bg-amber-400 rounded-full"></span>
+                  <span class="wave-bar w-1 bg-amber-400 rounded-full"></span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Card Bottom Bar -->
+            <div class="p-4 bg-surface flex items-center justify-between text-xs">
+              <span class="text-slate-400">Người dẫn: <strong class="text-slate-200">Sử Quán Su-Ky</strong></span>
+              <button onclick="playEpisode(1)" class="text-amber-400 hover:text-amber-300 font-semibold flex items-center gap-1 cursor-pointer">
+                Phát ngay
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+                </svg>
+              </button>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- ==================== 3. INTERACTIVE DYNASTY TIMELINE BAR ==================== -->
+    <section id="timeline-section" class="space-y-3">
+      <div class="flex items-center justify-between">
+        <div>
+          <h2 class="font-serif text-xl sm:text-2xl font-bold text-white flex items-center gap-2">
+            <svg class="w-5 h-5 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+            </svg>
+            Dòng Thời Gian Lịch Sử (Interactive Chronology)
+          </h2>
+          <p class="text-xs text-slate-400">Chọn triều đại để lọc nhanh các tập podcast và hồ sơ tư liệu tương ứng</p>
+        </div>
+        <button 
+          id="btnResetDynasty" 
+          onclick="filterDynasty('all')" 
+          class="text-xs font-semibold text-amber-400 hover:underline cursor-pointer hidden"
+        >
+          Xóa lọc triều đại
+        </button>
+      </div>
+
+      <!-- Dynasty Scrollable Track -->
+      <div class="relative">
+        <div id="dynastyTrack" class="flex items-center gap-2.5 overflow-x-auto pb-2 scrollbar-none snap-x">
+          <!-- Dynasties injected by JavaScript -->
+        </div>
+      </div>
+    </section>
+
+    <!-- ==================== 4. DUAL-AXIS THEMATIC FILTERS ==================== -->
+    <section class="flex flex-wrap items-center justify-between gap-3 pt-2 border-t border-white/5">
+      
+      <!-- Category Pills -->
+      <div class="flex flex-wrap items-center gap-2" id="categoryFilterGroup">
+        <span class="text-xs font-semibold text-slate-400 mr-1">Chủ đề:</span>
+        <button onclick="filterCategory('all')" data-cat="all" class="cat-pill px-3.5 py-1.5 rounded-full text-xs font-semibold bg-amber-500 text-slate-950 shadow-gold-glow cursor-pointer transition-all">
+          Tất Cả Lĩnh Vực
+        </button>
+        <button onclick="filterCategory('military')" data-cat="military" class="cat-pill px-3.5 py-1.5 rounded-full text-xs font-semibold bg-surface hover:bg-surfaceHover text-slate-300 border border-white/10 cursor-pointer transition-all">
+          ⚔️ Quân Sự & Chiến Trận
+        </button>
+        <button onclick="filterCategory('culture')" data-cat="culture" class="cat-pill px-3.5 py-1.5 rounded-full text-xs font-semibold bg-surface hover:bg-surfaceHover text-slate-300 border border-white/10 cursor-pointer transition-all">
+          📜 Văn Hóa & Tư Tưởng
+        </button>
+        <button onclick="filterCategory('figure')" data-cat="figure" class="cat-pill px-3.5 py-1.5 rounded-full text-xs font-semibold bg-surface hover:bg-surfaceHover text-slate-300 border border-white/10 cursor-pointer transition-all">
+          👑 Nhân Vật & Giai Thoại
+        </button>
+      </div>
+
+      <!-- Episode Counter -->
+      <div class="text-xs font-mono text-slate-400" id="episodeCountBadge">
+        Đang hiển thị <span class="text-amber-400 font-bold">8</span> / 8 tập podcast
+      </div>
+
+    </section>
+
+    <!-- ==================== 5. PODCAST EPISODES GRID ==================== -->
+    <section id="catalog-section" class="space-y-4">
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5" id="episodeGrid">
+        <!-- Episodes injected by JavaScript -->
+      </div>
+
+      <!-- Empty State (hidden by default) -->
+      <div id="emptyState" class="hidden text-center py-16 space-y-4 bg-surface/50 rounded-2xl border border-white/5">
+        <div class="w-16 h-16 mx-auto rounded-full bg-slate-800 flex items-center justify-center text-slate-400">
+          <svg class="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+          </svg>
+        </div>
+        <div class="space-y-1">
+          <p class="font-serif text-lg font-bold text-white">Không tìm thấy tập podcast phù hợp</p>
+          <p class="text-xs text-slate-400">Vui lòng thử chọn triều đại khác hoặc xóa bộ lọc từ khóa tìm kiếm.</p>
+        </div>
+        <button onclick="resetFilters()" class="px-4 py-2 rounded-full bg-amber-500 text-slate-950 text-xs font-bold hover:bg-amber-400 cursor-pointer">
+          Đặt Lại Bộ Lọc
+        </button>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- ==================== 6. STICKY AUDIO PLAYER BAR ==================== -->
+  <footer class="fixed bottom-0 left-0 right-0 z-40 bg-lacquer/95 backdrop-blur-xl border-t border-amber-500/20 shadow-2xl transition-transform duration-300" id="stickyPlayer">
+    <div class="max-w-7xl mx-auto px-4 lg:px-8 py-3 flex flex-col gap-2">
+      
+      <!-- Scrubber Bar (Interactive Progress) -->
+      <div class="flex items-center gap-3 w-full">
+        <span class="text-[11px] font-mono text-slate-400 w-10 text-right" id="playerCurrentTime">00:00</span>
+        <div class="relative flex-1 group cursor-pointer py-1" onclick="seekAudio(event)" id="scrubberTrack">
+          <div class="h-1.5 w-full bg-slate-800 rounded-full overflow-hidden">
+            <div class="h-full bg-gradient-to-r from-amber-500 to-amber-400 rounded-full w-0 transition-all duration-100" id="playerProgressBar"></div>
+          </div>
+          <!-- Scrubber Thumb -->
+          <div class="absolute top-1/2 -mt-1.5 w-3 h-3 bg-amber-300 rounded-full shadow -ml-1.5 opacity-0 group-hover:opacity-100 transition-opacity" id="playerThumb" style="left: 0%;"></div>
+        </div>
+        <span class="text-[11px] font-mono text-slate-400 w-10" id="playerDuration">32:40</span>
+      </div>
+
+      <!-- Player Controls & Meta Info -->
+      <div class="flex items-center justify-between gap-4">
+        
+        <!-- Left: Now Playing Info -->
+        <div class="flex items-center gap-3 min-w-0 max-w-xs sm:max-w-sm">
+          <div class="w-12 h-12 rounded-xl bg-surface border border-white/10 flex-shrink-0 relative overflow-hidden flex items-center justify-center">
+            <div id="playerArtwork" class="w-full h-full bg-gradient-to-br from-amber-700 to-slate-900 flex items-center justify-center font-serif text-amber-200 font-bold text-xs">
+              SK
+            </div>
+          </div>
+          <div class="min-w-0">
+            <h4 class="font-serif text-sm font-semibold text-white truncate hover:text-amber-300 cursor-pointer" id="playerTitle" onclick="openDrawer('transcript')">
+              Bạch Đằng 938: Trận Thủy Chiến Định Đoạt Vận Mệnh
+            </h4>
+            <div class="flex items-center gap-2 text-[11px] text-slate-400">
+              <span id="playerDynasty" class="text-amber-400 font-mono">Ngô Quyền</span>
+              <span>•</span>
+              <span id="playerCitationsCount" class="text-slate-400">3 trích dẫn</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Center: Playback Controls -->
+        <div class="flex items-center gap-3 sm:gap-4">
+          <!-- Skip -15s -->
+          <button onclick="skipTime(-15)" class="p-2 rounded-full text-slate-300 hover:text-white hover:bg-white/5 transition-all cursor-pointer" title="Lùi 15 giây">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12.066 11.2a1 1 0 000 1.6l5.334 4A1 1 0 0019 16V8a1 1 0 00-1.6-.8l-5.334 4zM4.066 11.2a1 1 0 000 1.6l5.334 4A1 1 0 0011 16V8a1 1 0 00-1.6-.8l-5.334 4z"/>
+            </svg>
+          </button>
+
+          <!-- Play / Pause Main Button -->
+          <button 
+            id="btnPlayPause" 
+            onclick="togglePlayPause()" 
+            class="w-11 h-11 rounded-full bg-amber-500 hover:bg-amber-400 text-slate-950 flex items-center justify-center shadow-gold-glow transition-all transform active:scale-95 cursor-pointer"
+          >
+            <!-- Play SVG -->
+            <svg id="iconPlay" class="w-5 h-5 fill-current ml-0.5" viewBox="0 0 24 24">
+              <path d="M8 5v14l11-7z"/>
+            </svg>
+            <!-- Pause SVG (hidden initially) -->
+            <svg id="iconPause" class="w-5 h-5 fill-current hidden" viewBox="0 0 24 24">
+              <path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/>
+            </svg>
+          </button>
+
+          <!-- Skip +15s -->
+          <button onclick="skipTime(15)" class="p-2 rounded-full text-slate-300 hover:text-white hover:bg-white/5 transition-all cursor-pointer" title="Tiến 15 giây">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11.933 12.8a1 1 0 000-1.6L6.6 7.2A1 1 0 005 8v8a1 1 0 001.6.8l5.333-4zM19.933 12.8a1 1 0 000-1.6l-5.333-4A1 1 0 0013 8v8a1 1 0 001.6.8l5.333-4z"/>
+            </svg>
+          </button>
+        </div>
+
+        <!-- Right: Speed, Sleep Timer, Volume & Learning Drawer Button -->
+        <div class="flex items-center gap-2 sm:gap-3">
+          
+          <!-- Playback Speed -->
+          <button 
+            id="btnPlaybackSpeed" 
+            onclick="cyclePlaybackSpeed()" 
+            class="px-2 py-1 rounded bg-surface hover:bg-surfaceHover border border-white/10 text-[11px] font-mono text-amber-300 font-semibold cursor-pointer"
+            title="Tốc độ phát"
+          >
+            1.0x
+          </button>
+
+          <!-- Sleep Timer -->
+          <button 
+            id="btnSleepTimer" 
+            onclick="cycleSleepTimer()" 
+            class="hidden sm:inline-flex items-center gap-1 px-2 py-1 rounded bg-surface hover:bg-surfaceHover border border-white/10 text-[11px] font-mono text-slate-300 cursor-pointer"
+            title="Hẹn giờ tắt"
+          >
+            <svg class="w-3.5 h-3.5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+            </svg>
+            <span id="sleepTimerLabel">Tắt</span>
+          </button>
+
+          <!-- Volume Slider (Desktop) -->
+          <div class="hidden md:flex items-center gap-1.5 text-slate-400">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z"/>
+            </svg>
+            <input type="range" min="0" max="100" value="85" class="w-16 accent-amber-500 cursor-pointer">
+          </div>
+
+          <!-- Open Light-Learning Drawer Button -->
+          <button 
+            onclick="openDrawer('transcript')" 
+            class="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-amber-500/15 hover:bg-amber-500/25 border border-amber-500/40 text-amber-300 font-semibold text-xs transition-all shadow-gold-glow cursor-pointer"
+          >
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+            </svg>
+            <span class="hidden sm:inline">Sử Liệu & Transcript</span>
+            <span class="sm:hidden">Sử Liệu</span>
+          </button>
+
+        </div>
+
+      </div>
+    </div>
+  </footer>
+
+  <!-- ==================== 7. EPISODE LIGHT-LEARNING DRAWER & MODAL ==================== -->
+  <div id="learningDrawerBackdrop" class="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm hidden opacity-0 transition-opacity duration-300" onclick="closeDrawer()"></div>
+
+  <aside id="learningDrawer" class="fixed top-0 right-0 bottom-0 w-full sm:w-[540px] z-50 bg-lacquer border-l border-amber-500/25 shadow-2xl transform translate-x-full transition-transform duration-300 flex flex-col">
+    
+    <!-- Drawer Header -->
+    <div class="p-5 border-b border-white/10 flex items-center justify-between bg-surface/80">
+      <div class="flex items-center gap-2.5">
+        <div class="w-8 h-8 rounded-lg bg-amber-500/20 text-amber-400 flex items-center justify-center font-serif font-bold text-sm">
+          SK
+        </div>
+        <div>
+          <h3 class="font-serif text-base font-bold text-white leading-tight" id="drawerEpisodeTitle">
+            Hồ Sơ Sử Liệu & Chú Giải
+          </h3>
+          <p class="text-[11px] text-slate-400">Khảo chứng thư tịch chính thống & Transcript</p>
+        </div>
+      </div>
+      <button onclick="closeDrawer()" class="p-2 rounded-full text-slate-400 hover:text-white hover:bg-white/10 cursor-pointer">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+        </svg>
+      </button>
+    </div>
+
+    <!-- Drawer Navigation Tabs -->
+    <div class="grid grid-cols-4 border-b border-white/10 text-xs font-semibold bg-surface/40">
+      <button onclick="switchDrawerTab('transcript')" id="tabBtnTranscript" class="py-3 text-center border-b-2 border-amber-500 text-amber-400 cursor-pointer transition-colors">
+        Transcript
+      </button>
+      <button onclick="switchDrawerTab('glossary')" id="tabBtnGlossary" class="py-3 text-center border-b-2 border-transparent text-slate-400 hover:text-slate-200 cursor-pointer transition-colors">
+        Thuật Ngữ
+      </button>
+      <button onclick="switchDrawerTab('citations')" id="tabBtnCitations" class="py-3 text-center border-b-2 border-transparent text-slate-400 hover:text-slate-200 cursor-pointer transition-colors">
+        Trích Dẫn
+      </button>
+      <button onclick="switchDrawerTab('entities')" id="tabBtnEntities" class="py-3 text-center border-b-2 border-transparent text-slate-400 hover:text-slate-200 cursor-pointer transition-colors">
+        Thực Thể
+      </button>
+    </div>
+
+    <!-- Drawer Content Body (Scrollable) -->
+    <div class="flex-1 overflow-y-auto p-5 space-y-6 text-sm text-slate-300" id="drawerContentBody">
+      <!-- Tabs content dynamically injected / toggled -->
+    </div>
+
+    <!-- Drawer Footer Actions -->
+    <div class="p-4 border-t border-white/10 bg-surface/60 flex items-center justify-between text-xs">
+      <div class="flex items-center gap-1.5 text-slate-400">
+        <svg class="w-4 h-4 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+        </svg>
+        <span>Đã chuẩn hóa danh xưng & cổ từ</span>
+      </div>
+      <button onclick="playEpisode(currentEpisodeId)" class="px-3.5 py-1.5 rounded-full bg-amber-500 text-slate-950 font-bold hover:bg-amber-400 cursor-pointer">
+        Tiếp tục nghe
+      </button>
+    </div>
+
+  </aside>
+
+  <!-- ==================== JAVASCRIPT LOGIC & STATE ==================== -->
+  <script>
+    // -------------------------------------------------------------
+    // 1. DATA REPOSITORY: DYNASTIES & HISTORICAL PODCAST EPISODES
+    // -------------------------------------------------------------
+    const dynasties = [
+      { id: 'all', name: 'Toàn Thư', period: '2879 TCN – 1945' },
+      { id: 'hong-bang', name: 'Hồng Bàng', period: '2879 – 258 TCN' },
+      { id: 'au-lac', name: 'Âu Lạc (An Dương Vương)', period: '257 – 179 TCN' },
+      { id: 'bac-thuoc', name: 'Thời Kỳ Bắc Thuộc', period: '179 TCN – 938' },
+      { id: 'ngo-dinh-le', name: 'Ngô - Đinh - Tiền Lê', period: '939 – 1009' },
+      { id: 'ly', name: 'Nhà Lý', period: '1009 – 1225' },
+      { id: 'tran', name: 'Nhà Trần', period: '1225 – 1400' },
+      { id: 'hau-le', name: 'Nhà Hậu Lê', period: '1428 – 1789' },
+      { id: 'tay-son', name: 'Nhà Tây Sơn', period: '1778 – 1802' },
+      { id: 'nguyen', name: 'Nhà Nguyễn', period: '1802 – 1945' }
+    ];
+
+    const episodes = [
+      {
+        id: 1,
+        title: "Bạch Đằng 938: Trận Thủy Chiến Định Đoạt Vận Mệnh Nghìn Năm",
+        dynastyId: "ngo-dinh-le",
+        dynastyName: "Thời Tiền Ngô Vương",
+        category: "military",
+        categoryName: "Quân Sự & Chiến Trận",
+        categoryBadgeClass: "bg-red-900/40 text-red-300 border-red-500/30",
+        duration: "32:40",
+        durationSeconds: 1960,
+        historicalFigure: "Ngô Quyền",
+        synopsis: "Phân tích chiến thuật lợi dụng thủy triều và bãi cọc nhọn bịt sắt tại cửa biển Bạch Đằng tiêu diệt quân Nam Hán, chấm dứt hơn 1.000 năm Bắc thuộc, mở ra kỷ nguyên độc lập tự chủ bền vững.",
+        citationsCount: 4,
+        citations: [
+          {
+            book: "Đại Việt Sử Ký Toàn Thư",
+            volume: "Quyển 1, Ngoại Kỷ",
+            quote: "Tiền Ngô Vương giết Kiều Công Hãn, phá Lưu Hoằng Tháo trên sông Bạch Đằng, xưng vương dựng nước, định đô ở Cổ Loa.",
+            reliability: "Chính sử khắc in thời Hậu Lê (1697)"
+          },
+          {
+            book: "Khâm Định Việt Sử Thông Giám Cương Mục",
+            volume: "Tiền Biên, Quyển 5",
+            quote: "Quyền nghe tin Hoằng Tháo sắp đến, bảo các tướng rằng: Hoằng Tháo là đứa trẻ dại, đem quân từ xa đến... Ta trước hết cho cọc lớn vạt nhọn, cắm ngầm ở cửa biển.",
+            reliability: "Quốc Sử Quán Triều Nguyễn (1884)"
+          },
+          {
+            book: "Việt Nam Sử Lược",
+            volume: "Chương V: Ngô Quyền",
+            quote: "Trận Bạch Đằng là một trận đại thắng của nước ta, tỏ rõ tài thao lược của Ngô Quyền và tinh thần quyết chiến của dân tộc.",
+            reliability: "Trần Trọng Kim (1920)"
+          }
+        ],
+        glossary: [
+          { term: "Tiết Độ Sứ", meaning: "Chức quan võ cai trị biên trấn thời Đường du nhập sang nước ta; Tiền Ngô Vương về sau đã bãi bỏ chức này để xưng vương." },
+          { term: "Cọc Vạt Nhọn", meaning: "Gỗ lim, sến dài 2-3m, đóng xiên ngược dòng triều cản phá thuyền chiến đáy mỏng của đối phương." },
+          { term: "Lưu Hoằng Tháo", meaning: "Hoàng tử Vạn Vương Nam Hán, chỉ huy đạo quân thủy xâm lược, đền mạng tại trận Bạch Đằng." }
+        ],
+        transcript: [
+          { time: "00:00", text: "Lời hiệu triệu: Mùa đông năm 938, gió mùa đông bắc rít liên hồi trên cửa sông Bạch Đằng..." },
+          { time: "04:15", text: "Hoàn cảnh: Sau khi dẹp trừ phản thần Kiều Công Tiễn, Ngô Quyền chuẩn bị nghênh chiến thủy quân Nam Hán." },
+          { time: "11:30", text: "Chiến thuật: Bố trí bãi cọc ngầm kết hợp thuyền nhỏ nhử địch lúc thủy triều lên cao." },
+          { time: "21:45", text: "Tổng công kích: Thủy triều rút nhanh, cọc ngầm nhô lên đâm thủng chiến thuyền địch. Lưu Hoằng Tháo tử trận." },
+          { time: "29:10", text: "Ý nghĩa lịch sử: Lời bình của Lê Văn Hưu về tư thế phục hưng quốc gia của Tiền Ngô Vương." }
+        ],
+        entities: [
+          { name: "Ngô Quyền", role: "Anh hùng dân tộc, Tiền Ngô Vương", era: "897 – 944" },
+          { name: "Dương Đình Nghệ", role: "Tiết độ sứ, thân phụ Dương Như Ngọc", era: "Thế kỷ X" },
+          { name: "Lưu Cung", role: "Vua Nam Hán (Cao Tổ)", era: "874 – 942" }
+        ]
+      },
+      {
+        id: 2,
+        title: "Như Nguyệt 1077: Bản Tuyên Ngôn Độc Lập Đầu Tiên Trên Dòng Sông",
+        dynastyId: "ly",
+        dynastyName: "Nhà Lý (Thái Ninh)",
+        category: "military",
+        categoryName: "Quân Sự & Chiến Trận",
+        categoryBadgeClass: "bg-red-900/40 text-red-300 border-red-500/30",
+        duration: "28:15",
+        durationSeconds: 1695,
+        historicalFigure: "Lý Thường Kiệt",
+        synopsis: "Chiến tuyến phòng ngự kiên cố bờ nam sông Cầu và bài thơ thần 'Nam Quốc Sơn Hà' làm tiêu hao ý chí xâm lăng của đại quân Quách Quỳ, bảo vệ trọn vẹn bờ cõi Đại Việt.",
+        citationsCount: 3,
+        citations: [
+          {
+            book: "Đại Việt Sử Ký Toàn Thư",
+            volume: "Bản Kỷ Quyển 3",
+            quote: "Đêm nghe trong đền Trương tướng quân có tiếng ngâm lớn: 'Nam quốc sơn hà Nam đế cư...'. Quân Tống kinh hoàng tan rã.",
+            reliability: "Chính sử Hậu Lê"
+          },
+          {
+            book: "Khâm Định Việt Sử Thông Giám Cương Mục",
+            volume: "Chính Biên Quyển 3",
+            quote: "Lý Thường Kiệt đắp lũy tre dày, cắm chông giữ vững bờ nam, ban đêm cho quân gõ trống hò reo vang dội.",
+            reliability: "Chính sử Triều Nguyễn"
+          }
+        ],
+        glossary: [
+          { term: "Sông Như Nguyệt", meaning: "Đoạn sông Cầu chảy qua địa phận Yên Phong (Bắc Ninh) ngày nay." },
+          { term: "Thơ Thần", meaning: "Bài thơ tứ tuyệt 'Nam quốc sơn hà' tương truyền đọc trong đền thờ thần Trương Hống, Trương Hát." }
+        ],
+        transcript: [
+          { time: "00:00", text: "Khúc mở đầu: Tiếng ngâm thơ vang vọng giữa đêm sương bờ nam Như Nguyệt giang..." },
+          { time: "05:20", text: "Bối cảnh: Quân Tống do Quách Quỳ, Triệu Tiết chỉ huy 10 vạn bộ binh, 1 vạn kỵ binh ồ ạt tràn qua biên giới." },
+          { time: "14:40", text: "Hệ thống chiến lũy: Bờ đất cao kiên cố lợp tre đực ken dày hàng chục dặm." },
+          { time: "22:10", text: "Nghệ thuật tâm lý chiến: Tiếng thơ thần vang lên trong đền thờ hai vị thần sông." },
+          { time: "26:30", text: "Hòa hiếu khôn khéo: Lý Thường Kiệt chủ động nghị hòa, cho quân Tống rút lui trong danh dự." }
+        ],
+        entities: [
+          { name: "Lý Thường Kiệt", role: "Thái úy Đại Việt", era: "1019 – 1105" },
+          { name: "Lý Nhân Tông", role: "Hoàng đế thứ 4 triều Lý", era: "1066 – 1127" },
+          { name: "Quách Quỳ", role: "Tuyên phủ sứ Tống triều", era: "1022 – 1088" }
+        ]
+      },
+      {
+        id: 3,
+        title: "Hội Nghị Diên Hồng 1284: Khí Phách Muôn Dân Trước Cơn Bão Thát Đát",
+        dynastyId: "tran",
+        dynastyName: "Nhà Trần (Thiệu Bảo)",
+        category: "figure",
+        categoryName: "Nhân Vật & Giai Thoại",
+        categoryBadgeClass: "bg-amber-900/40 text-amber-300 border-amber-500/30",
+        duration: "35:10",
+        durationSeconds: 2110,
+        historicalFigure: "Trần Thánh Tông & Bô Lão",
+        synopsis: "Khi 50 vạn quân Nguyên Mông áp sát biên ải, Thượng hoàng Trần Thánh Tông triệu tập bô lão cả nước hỏi kế đánh hay hòa. Tiếng hô 'ĐÁNH!' đồng thanh làm rúng động kinh thành.",
+        citationsCount: 5,
+        citations: [
+          {
+            book: "Đại Việt Sử Ký Toàn Thư",
+            volume: "Bản Kỷ Quyển 5",
+            quote: "Thượng hoàng triệu phụ lão trong nước họp ở thềm điện Diên Hồng, ban yến và hỏi kế đánh hay hòa. Các phụ lão đều đồng thanh nói: 'Đánh!'. Muôn người cùng tiếng vang như sấm dậy.",
+            reliability: "Chính sử thời Trần - Lê"
+          }
+        ],
+        glossary: [
+          { term: "Thượng Hoàng", meaning: "Vua cha nhường ngôi cho con nhưng vẫn nắm thực quyền quân chính tối cao thời Trần." },
+          { term: "Điện Diên Hồng", meaning: "Cung điện trong hoàng thành Thăng Long, nơi tổ chức hội nghị dân chủ quân sự đầu tiên." }
+        ],
+        transcript: [
+          { time: "00:00", text: "Mở đầu: Mùa đông giá lạnh năm Giáp Thân 1284, mây đen Thát Đát bao phủ toàn cõi Á - Âu..." },
+          { time: "06:10", text: "Áp lực phương Bắc: Thoát Hoan mượn đường đánh Chiêm Thành hòng nuốt chửng Đại Việt." },
+          { time: "16:00", text: "Điện Diên Hồng: Các bô lão từ khắp bốn phương tụ hội về sân rồng." },
+          { time: "24:30", text: "Tiếng hô thiên cổ: 'Đánh hay hòa?' - Lời đáp ngàn đời của nòi giống Tiên Rồng." }
+        ],
+        entities: [
+          { name: "Trần Thánh Tông", role: "Thái Thượng Hoàng", era: "1240 – 1290" },
+          { name: "Trần Hưng Đạo", role: "Quốc công Tiết chế", era: "1228 – 1300" },
+          { name: "Trần Nhân Tông", role: "Hoàng đế thứ 3 triều Trần", era: "1258 – 1308" }
+        ]
+      },
+      {
+        id: 4,
+        title: "Bình Ngô Đại Cáo 1428: Áng Thiên Cổ Hùng Văn Của Nguyễn Trãi",
+        dynastyId: "hau-le",
+        dynastyName: "Nhà Hậu Lê (Thuận Thiên)",
+        category: "culture",
+        categoryName: "Văn Hóa & Tư Tưởng",
+        categoryBadgeClass: "bg-emerald-900/40 text-emerald-300 border-emerald-500/30",
+        duration: "25:50",
+        durationSeconds: 1550,
+        historicalFigure: "Nguyễn Trãi",
+        synopsis: "Tuyên ngôn bất hủ khẳng định nền văn hiến Đại Việt, tư tưởng nhân nghĩa 'việc nhân nghĩa cốt ở yên dân', tổng kết 10 năm gian lao nếm mật nằm gai của nghĩa quân Lam Sơn.",
+        citationsCount: 3,
+        citations: [
+          {
+            book: "Đại Việt Sử Ký Toàn Thư",
+            volume: "Bản Kỷ Quyển 10",
+            quote: "Vua sai Nguyễn Trãi viết bài cáo để bố cáo cho khắp thiên hạ biết bình định được giặc Ngô.",
+            reliability: "Sử quan Ngô Sĩ Liên"
+          }
+        ],
+        glossary: [
+          { term: "Giặc Ngô", meaning: "Cách gọi quân xâm lược nhà Minh (bắt nguồn từ vùng đất Ngô của Chu Nguyên Chương)." },
+          { term: "Độc Thần Khởi Nghĩa", meaning: "Tác chiến từ bàn tay trắng, nếm mật nằm gai nơi núi rừng Lam Sơn." }
+        ],
+        transcript: [
+          { time: "00:00", text: "Nguyên âm: 'Từng nghe, việc nhân nghĩa cốt ở yên dân, quân điếu phạt trước lo trừ bạo...'" },
+          { time: "07:15", text: "Tư tưởng nhân nghĩa: Khái niệm quốc gia độc lập có bờ cõi, phong tục, triều đại sánh vai cùng Hán Đường Tống Nguyên." },
+          { time: "18:00", text: "Bức tranh chiến trận: Chi Lăng, Xương Giang, Mã Yên khiến Liễu Thăng cụt đầu, Mộc Thạnh tháo chạy." }
+        ],
+        entities: [
+          { name: "Nguyễn Trãi", role: "Khai quốc công thần, Danh nhân văn hóa", era: "1380 – 1442" },
+          { name: "Lê Lợi", role: "Thái Tổ Cao Hoàng Đế", era: "1385 – 1433" }
+        ]
+      },
+      {
+        id: 5,
+        title: "Đại Phá Quân Thanh 1789: Cuộc Hành Quân Thần Tốc Của Quang Trung",
+        dynastyId: "tay-son",
+        dynastyName: "Nhà Tây Sơn (Quang Trung)",
+        category: "military",
+        categoryName: "Quân Sự & Chiến Trận",
+        categoryBadgeClass: "bg-red-900/40 text-red-300 border-red-500/30",
+        duration: "38:20",
+        durationSeconds: 2300,
+        historicalFigure: "Nguyễn Huệ (Quang Trung)",
+        synopsis: "Hành quân vượt ngàn cây số từ Phú Xuân ra Thăng Long trong dịp Tết Kỷ Dậu, đánh tan 29 vạn quân Mãn Thanh do Tôn Sĩ Nghị chỉ huy bằng thế trận liên hoàn Ngọc Hồi - Đống Đa.",
+        citationsCount: 4,
+        citations: [
+          {
+            book: "Hoàng Lê Nhất Thống Chí",
+            volume: "Hồi thứ 14",
+            quote: "Vua Quang Trung cỡi voi đốc chiến, áo bào sạm đen khói súng. Tôn Sĩ Nghị sợ mất mật, không kịp đóng yên ngựa rẽ nước sang sông trốn chạy.",
+            reliability: "Ngô Gia Văn Phái"
+          }
+        ],
+        glossary: [
+          { term: "Rơm Độn Đất", meaning: "Khiên chắn bằng rơm tẩm nước ghép đất dày ngăn đạn súng đại bác công thành của quân Thanh." },
+          { term: "Gò Đống Đa", meaning: "Nơi diễn ra trận tập kích tiêu diệt tướng giặc Sầm Nghi Đống rạng sáng mùng 5 Tết." }
+        ],
+        transcript: [
+          { time: "00:00", text: "Hịch xuất quân: 'Đánh cho để dài tóc, đánh cho để đen răng, đánh cho nó chích luân bất phản...'" },
+          { time: "08:45", text: "Cuộc hành quân không tưởng: Cáng võng hai người khiêng một người ngủ dọc đường hành tiến." },
+          { time: "23:10", text: "Mùng 5 Tết Kỷ Dậu: Khói lửa Ngọc Hồi - Đống Đa rực sáng một góc trời Thăng Long." }
+        ],
+        entities: [
+          { name: "Quang Trung (Nguyễn Huệ)", role: "Anh hùng áo vải, Hoàng đế Tây Sơn", era: "1753 – 1792" },
+          { name: "Ngô Thì Nhậm", role: "Mưu sĩ hàng đầu triều Tây Sơn", era: "1746 – 1803" },
+          { name: "Tôn Sĩ Nghị", role: "Tổng đốc Lưỡng Quảng", era: "1720 – 1796" }
+        ]
+      },
+      {
+        id: 6,
+        title: "Bí Ẩn Thành Ốc & Nỏ Thần Kim Quy: Kỹ Nghệ Quân Sự Thời Âu Lạc",
+        dynastyId: "au-lac",
+        dynastyName: "Nước Âu Lạc",
+        category: "culture",
+        categoryName: "Văn Hóa & Tư Tưởng",
+        categoryBadgeClass: "bg-emerald-900/40 text-emerald-300 border-emerald-500/30",
+        duration: "26:40",
+        durationSeconds: 1600,
+        historicalFigure: "An Dương Vương & Cao Lỗ",
+        synopsis: "Khám phá kiến trúc thành Ốc 9 vòng xoáy trôn ốc và nỏ Liên Châu bắn một phát nhiều mũi tên đồng Cầu Vực - đỉnh cao của kỹ nghệ luyện kim đúc đồng Việt cổ thời tiền sử.",
+        citationsCount: 2,
+        citations: [
+          {
+            book: "Đại Việt Sử Ký Toàn Thư",
+            volume: "Ngoại Kỷ Quyển 2",
+            quote: "Vua xây thành rộng ngàn trượng, xoắn như hình con ốc, cho nên gọi là Loa Thành. Lại sai Cao Lỗ chế nỏ thần, mỗi phát bắn vạn mũi tên.",
+            reliability: "Chính sử Hậu Lê"
+          }
+        ],
+        glossary: [
+          { term: "Loa Thành", meaning: "Kinh đô Âu Lạc cổ tại Đông Anh (Hà Nội), kiến trúc phòng thủ đa tầng bằng hào nước và lũy đất." },
+          { term: "Nỏ Liên Châu", meaning: "Sáng chế quân sự của tướng Cao Lỗ cho phép lẫy nỏ phóng liên tiếp hàng loạt mũi tên đồng ba cạnh." }
+        ],
+        transcript: [
+          { time: "00:00", text: "Khảo cổ học: Vạn mũi tên đồng phát lộ tại Cầu Vực vén màn huyền thoại nỏ thần..." },
+          { time: "09:30", text: "Kỳ tích đắp thành: Địa thế sông Hoàng Giang và kết cấu đất đắp vỏ sò hóa thạch." },
+          { time: "18:20", text: "Bi kịch Lẫy Nỏ: Mối tình Trọng Thủy - Mỵ Châu và bài học cảnh giác ngàn đời." }
+        ],
+        entities: [
+          { name: "Thục Phán An Dương Vương", role: "Vua nước Âu Lạc", era: "Thế kỷ III TCN" },
+          { name: "Cao Lỗ", role: "Đại tướng, công trình sư nỏ thần", era: "Thế kỷ III TCN" }
+        ]
+      },
+      {
+        id: 7,
+        title: "Lời Thề Sông Hát: Tiếng Trống Mê Linh Quật Khởi Phục Thù",
+        dynastyId: "bac-thuoc",
+        dynastyName: "Khởi Nghĩa Hai Bà Trưng",
+        category: "figure",
+        categoryName: "Nhân Vật & Giai Thoại",
+        categoryBadgeClass: "bg-amber-900/40 text-amber-300 border-amber-500/30",
+        duration: "30:15",
+        durationSeconds: 1815,
+        historicalFigure: "Trưng Trắc & Trưng Nhị",
+        synopsis: "Năm 40 SCN, trước ách thống trị bạo tàn của thái thú Tô Định, hai chị em Trưng Nữ Vương dựng cờ khởi nghĩa tại cửa sông Hát, thu hồi 65 thành trì Lĩnh Nam trong chớp mắt.",
+        citationsCount: 3,
+        citations: [
+          {
+            book: "Đại Việt Sử Ký Toàn Thư",
+            volume: "Ngoại Kỷ Quyển 3",
+            quote: "Trưng Trắc, Trưng Nhị là phụ nữ, hô một tiếng mà các quận Cửu Chân, Nhật Nam, Hợp Phố đều hưởng ứng, thu lại 65 thành trì... Đủ biết hình thế đất Việt ta có thể dựng được nghiệp bá vương.",
+            reliability: "Chính sử Ngô Sĩ Liên"
+          }
+        ],
+        glossary: [
+          { term: "Lạc Tướng", meaning: "Thủ lĩnh quân sự, quý tộc đứng đầu các bộ lạc người Lạc Việt cha truyền con nối." },
+          { term: "Sông Hát", meaning: "Cửa sông Đáy tiếp giáp sông Hồng tại Phúc Thọ (Hà Nội), nơi làm lễ tế cờ xuất quân." }
+        ],
+        transcript: [
+          { time: "00:00", text: "Lời thề 4 câu: 'Một xin rửa sạch nước thù, Hai xin đem lại nghiệp xưa họ Hùng...'" },
+          { time: "11:15", text: "Tội ác Tô Định: Chém giết Thi Sách, bóp nghẹt quyền tự chủ của tầng lớp Lạc tướng." },
+          { time: "22:40", text: "Tiếng trống đồng Mê Linh: Khí thế bừng bừng của các nữ tướng Thánh Thiên, Bát Nàn, Lê Chân..." }
+        ],
+        entities: [
+          { name: "Trưng Trắc", role: "Trưng Nữ Vương", era: "14 – 43 SCN" },
+          { name: "Trưng Nhị", role: "Nữ vương đồng trị", era: "14 – 43 SCN" },
+          { name: "Tô Định", role: "Thái thú Giao Chỉ nhà Đông Hán", era: "Thế kỷ I SCN" }
+        ]
+      },
+      {
+        id: 8,
+        title: "Trống Đồng Đông Sơn: Bản Khắc Huyền Sử Thời Khai Sơn Lập Quốc",
+        dynastyId: "hong-bang",
+        dynastyName: "Thời Đại Hồng Bàng",
+        category: "culture",
+        categoryName: "Văn Hóa & Tư Tưởng",
+        categoryBadgeClass: "bg-emerald-900/40 text-emerald-300 border-emerald-500/30",
+        duration: "24:50",
+        durationSeconds: 1490,
+        historicalFigure: "Các Đời Vua Hùng",
+        synopsis: "Giải mã hoa văn chim Lạc, thuyền chiến, mặt trời 14 tia sáng và đời sống lúa nước sông Hồng của người Việt cổ được đúc kết trên mặt trống đồng Ngọc Lũ, Hoàng Hạ.",
+        citationsCount: 2,
+        citations: [
+          {
+            book: "Lĩnh Nam Chích Quái",
+            volume: "Hồng Bàng Thị Truyện",
+            quote: "Đất nước tên là Văn Lang, phong tục thuần hậu, chia nước làm 15 bộ, đặt các tướng coi sóc việc dân.",
+            reliability: "Trần Thế Pháp (Thế kỷ XIV)"
+          }
+        ],
+        glossary: [
+          { term: "Chim Lạc", meaning: "Biểu tượng vật tổ (totem) của người Lạc Việt, hình dáng chim nước mỏ dài dang cánh bay ngược chiều kim đồng hồ." },
+          { term: "Bồ Chính", meaning: "Người già cả có uy tín được cử đứng đầu một công xã nông thôn làng xóm thời cổ đại." }
+        ],
+        transcript: [
+          { time: "00:00", text: "Tiếng ngân của đồng thiếc: Trống đồng không chỉ là nhạc khí mà là quyền trượng vương quyền..." },
+          { time: "08:10", text: "Hoa văn Ngọc Lũ: Cảnh giã gạo đôi, người hóa trang lông chim nhảy múa và thuyền chiến vượt sóng." },
+          { time: "19:00", text: "Khái niệm Văn hiến sơ khai: Trật tự xã hội bền chặt kết tinh nền móng nhà nước Văn Lang." }
+        ],
+        entities: [
+          { name: "Kinh Dương Vương", role: "Thủy tổ lập quốc", era: "2879 TCN" },
+          { name: "Lạc Long Quân", role: "Vua Rồng truyền thuyết", era: "Huyền sử" }
+        ]
+      }
+    ];
+
+    // -------------------------------------------------------------
+    // 2. STATE MANAGEMENT
+    // -------------------------------------------------------------
+    let currentDynastyFilter = 'all';
+    let currentCategoryFilter = 'all';
+    let currentSearchQuery = '';
+
+    let currentEpisodeId = 1;
+    let isPlaying = false;
+    let currentAudioTime = 0;
+    let audioTimerInterval = null;
+    let currentPlaybackSpeed = 1.0;
+    const playbackSpeeds = [0.75, 1.0, 1.25, 1.5, 2.0];
+    let sleepTimerMinutes = 0;
+    const sleepTimerOptions = [0, 15, 30, 45];
+
+    let currentActiveTab = 'transcript';
+
+    // -------------------------------------------------------------
+    // 3. INITIALIZATION & RENDERING
+    // -------------------------------------------------------------
+    document.addEventListener('DOMContentLoaded', () => {
+      renderDynastyTimeline();
+      renderEpisodes();
+      updatePlayerUI(episodes[0], false);
+    });
+
+    // Render Dynasty Track
+    function renderDynastyTimeline() {
+      const track = document.getElementById('dynastyTrack');
+      track.innerHTML = dynasties.map(d => {
+        const isActive = d.id === currentDynastyFilter;
+        return `
+          <button 
+            onclick="filterDynasty('${d.id}')"
+            class="dynasty-btn flex-shrink-0 px-4 py-2 rounded-2xl border text-left transition-all cursor-pointer ${
+              isActive 
+                ? 'bg-amber-500/20 border-amber-500 text-amber-300 shadow-gold-glow' 
+                : 'bg-surface/80 hover:bg-surfaceHover border-white/10 text-slate-300'
+            }"
+            id="dynasty-btn-${d.id}"
+          >
+            <div class="font-serif text-sm font-bold tracking-tight">${d.name}</div>
+            <div class="font-mono text-[10px] text-slate-400 opacity-80">${d.period}</div>
+          </button>
+        `;
+      }).join('');
+    }
+
+    // Render Episodes Grid
+    function renderEpisodes() {
+      const grid = document.getElementById('episodeGrid');
+      const emptyState = document.getElementById('emptyState');
+      const counter = document.getElementById('episodeCountBadge');
+
+      const filtered = episodes.filter(ep => {
+        const matchDynasty = (currentDynastyFilter === 'all') || (ep.dynastyId === currentDynastyFilter);
+        const matchCategory = (currentCategoryFilter === 'all') || (ep.category === currentCategoryFilter);
+        const matchSearch = currentSearchQuery === '' || 
+          ep.title.toLowerCase().includes(currentSearchQuery.toLowerCase()) ||
+          ep.synopsis.toLowerCase().includes(currentSearchQuery.toLowerCase()) ||
+          ep.historicalFigure.toLowerCase().includes(currentSearchQuery.toLowerCase());
+        return matchDynasty && matchCategory && matchSearch;
+      });
+
+      counter.innerHTML = `Đang hiển thị <span class="text-amber-400 font-bold">${filtered.length}</span> / ${episodes.length} tập podcast`;
+
+      if (filtered.length === 0) {
+        grid.innerHTML = '';
+        emptyState.classList.remove('hidden');
+        return;
+      }
+
+      emptyState.classList.add('hidden');
+      grid.innerHTML = filtered.map(ep => {
+        const isCurrentPlaying = (ep.id === currentEpisodeId && isPlaying);
+        return `
+          <article class="group rounded-2xl bg-surface/90 hover:bg-surfaceHover border border-white/10 hover:border-amber-500/40 p-4 flex flex-col justify-between transition-all duration-200 shadow-card-lacquer hover:-translate-y-1">
+            
+            <!-- Card Top: Thumbnail & Badges -->
+            <div class="space-y-3">
+              <div class="relative h-44 rounded-xl overflow-hidden bg-gradient-to-tr from-slate-950 via-slate-900 to-amber-950/40 flex items-center justify-center border border-white/5">
+                
+                <!-- Stylized Watermark Motif -->
+                <div class="absolute inset-0 opacity-15 bg-[radial-gradient(#f59e0b_1px,transparent_1px)] [background-size:12px_12px]"></div>
+                
+                <!-- Center Avatar/Initials -->
+                <div class="w-14 h-14 rounded-full bg-amber-500/10 border border-amber-500/30 flex items-center justify-center font-serif text-amber-300 font-bold text-xl group-hover:scale-110 transition-transform">
+                  ${ep.historicalFigure.charAt(0)}
+                </div>
+
+                <!-- Top Left: Category Badge -->
+                <span class="absolute top-2.5 left-2.5 px-2.5 py-1 rounded-full text-[11px] font-semibold border ${ep.categoryBadgeClass}">
+                  ${ep.categoryName.split('&')[0]}
+                </span>
+
+                <!-- Top Right: Duration -->
+                <span class="absolute top-2.5 right-2.5 px-2 py-0.5 rounded bg-slate-950/80 backdrop-blur-md text-[11px] font-mono text-slate-300 border border-white/10">
+                  ${ep.duration}
+                </span>
+
+                <!-- Hover Play Button Overlay -->
+                <button 
+                  onclick="playEpisode(${ep.id})"
+                  class="absolute inset-0 bg-black/40 backdrop-blur-[2px] opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity cursor-pointer"
+                  title="Phát tập này"
+                >
+                  <div class="w-12 h-12 rounded-full bg-amber-500 text-slate-950 flex items-center justify-center shadow-gold-glow transform group-hover:scale-105 transition-transform">
+                    <svg class="w-6 h-6 fill-current ml-0.5" viewBox="0 0 24 24">
+                      <path d="M8 5v14l11-7z"/>
+                    </svg>
+                  </div>
+                </button>
+
+              </div>
+
+              <!-- Meta Row: Dynasty & Figure -->
+              <div class="flex items-center justify-between text-xs pt-1">
+                <span class="font-mono text-amber-400/90 font-medium">${ep.dynastyName}</span>
+                <span class="text-slate-400 font-medium">Nhân vật: <strong class="text-slate-200">${ep.historicalFigure}</strong></span>
+              </div>
+
+              <!-- Title -->
+              <h3 
+                onclick="openDrawerWithEpisode(${ep.id}, 'transcript')"
+                class="font-serif text-base font-bold text-white group-hover:text-amber-300 transition-colors line-clamp-2 leading-snug cursor-pointer"
+              >
+                ${ep.title}
+              </h3>
+
+              <!-- Synopsis -->
+              <p class="text-xs text-slate-400 line-clamp-2 leading-relaxed">
+                ${ep.synopsis}
+              </p>
+            </div>
+
+            <!-- Card Bottom: Citations Badge & Quick Action -->
+            <div class="pt-4 mt-3 border-t border-white/10 flex items-center justify-between">
+              <!-- Citations pill -->
+              <button 
+                onclick="openDrawerWithEpisode(${ep.id}, 'citations')" 
+                class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-white/5 hover:bg-amber-500/10 text-slate-300 hover:text-amber-300 text-[11px] font-medium border border-white/10 transition-colors cursor-pointer"
+              >
+                <svg class="w-3.5 h-3.5 text-amber-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/>
+                </svg>
+                <span>${ep.citationsCount} trích dẫn sử liệu</span>
+              </button>
+
+              <!-- Play / Active Trigger -->
+              <button 
+                onclick="playEpisode(${ep.id})"
+                class="p-2 rounded-full text-slate-300 hover:text-amber-400 hover:bg-white/5 transition-colors cursor-pointer"
+                title="Phát podcast"
+              >
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z"/>
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                </svg>
+              </button>
+            </div>
+
+          </article>
+        `;
+      }).join('');
+    }
+
+    // -------------------------------------------------------------
+    // 4. FILTERING & SEARCH HANDLERS
+    // -------------------------------------------------------------
+    function filterDynasty(id) {
+      currentDynastyFilter = id;
+      renderDynastyTimeline();
+      renderEpisodes();
+      
+      const resetBtn = document.getElementById('btnResetDynasty');
+      if (id !== 'all') {
+        resetBtn.classList.remove('hidden');
+      } else {
+        resetBtn.classList.add('hidden');
+      }
+    }
+
+    function filterCategory(cat) {
+      currentCategoryFilter = cat;
+      const buttons = document.querySelectorAll('.cat-pill');
+      buttons.forEach(btn => {
+        if (btn.getAttribute('data-cat') === cat) {
+          btn.className = 'cat-pill px-3.5 py-1.5 rounded-full text-xs font-semibold bg-amber-500 text-slate-950 shadow-gold-glow cursor-pointer transition-all';
+        } else {
+          btn.className = 'cat-pill px-3.5 py-1.5 rounded-full text-xs font-semibold bg-surface hover:bg-surfaceHover text-slate-300 border border-white/10 cursor-pointer transition-all';
+        }
+      });
+      renderEpisodes();
+    }
+
+    function handleSearch(query) {
+      currentSearchQuery = query.trim();
+      renderEpisodes();
+    }
+
+    function resetFilters() {
+      currentDynastyFilter = 'all';
+      currentCategoryFilter = 'all';
+      currentSearchQuery = '';
+      document.getElementById('searchInput').value = '';
+      filterCategory('all');
+      filterDynasty('all');
+    }
+
+    function scrollToSection(id) {
+      const el = document.getElementById(id);
+      if (el) {
+        el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+    }
+
+    // -------------------------------------------------------------
+    // 5. AUDIO PLAYER SIMULATOR & CONTROLS
+    // -------------------------------------------------------------
+    function playEpisode(id) {
+      const ep = episodes.find(e => e.id === id);
+      if (!ep) return;
+
+      currentEpisodeId = id;
+      currentAudioTime = 0;
+      isPlaying = true;
+
+      updatePlayerUI(ep, true);
+      startAudioTimer(ep.durationSeconds);
+      renderEpisodes(); // Update any active indicator in cards
+    }
+
+    function togglePlayPause() {
+      const ep = episodes.find(e => e.id === currentEpisodeId);
+      if (!ep) return;
+
+      isPlaying = !isPlaying;
+      if (isPlaying) {
+        startAudioTimer(ep.durationSeconds);
+      } else {
+        stopAudioTimer();
+      }
+      updatePlayPauseButtonUI();
+      toggleHeroWaveform();
+    }
+
+    function startAudioTimer(maxSeconds) {
+      stopAudioTimer();
+      audioTimerInterval = setInterval(() => {
+        currentAudioTime += (1 * currentPlaybackSpeed);
+        if (currentAudioTime >= maxSeconds) {
+          currentAudioTime = maxSeconds;
+          stopAudioTimer();
+          isPlaying = false;
+          updatePlayPauseButtonUI();
+        }
+        updateProgressBar(maxSeconds);
+      }, 1000);
+      updatePlayPauseButtonUI();
+      toggleHeroWaveform();
+    }
+
+    function stopAudioTimer() {
+      if (audioTimerInterval) {
+        clearInterval(audioTimerInterval);
+        audioTimerInterval = null;
+      }
+    }
+
+    function updateProgressBar(maxSeconds) {
+      const pct = (currentAudioTime / maxSeconds) * 100;
+      document.getElementById('playerProgressBar').style.width = pct + '%';
+      document.getElementById('playerThumb').style.left = pct + '%';
+      document.getElementById('playerCurrentTime').textContent = formatSeconds(currentAudioTime);
+    }
+
+    function seekAudio(event) {
+      const track = document.getElementById('scrubberTrack');
+      const rect = track.getBoundingClientRect();
+      const clickX = event.clientX - rect.left;
+      const width = rect.width;
+      const pct = Math.max(0, Math.min(1, clickX / width));
+      
+      const ep = episodes.find(e => e.id === currentEpisodeId);
+      if (!ep) return;
+
+      currentAudioTime = pct * ep.durationSeconds;
+      updateProgressBar(ep.durationSeconds);
+    }
+
+    function seekToTime(seconds) {
+      const ep = episodes.find(e => e.id === currentEpisodeId);
+      if (!ep) return;
+
+      currentAudioTime = seconds;
+      updateProgressBar(ep.durationSeconds);
+      if (!isPlaying) {
+        togglePlayPause();
+      }
+    }
+
+    function skipTime(delta) {
+      const ep = episodes.find(e => e.id === currentEpisodeId);
+      if (!ep) return;
+
+      currentAudioTime = Math.max(0, Math.min(ep.durationSeconds, currentAudioTime + delta));
+      updateProgressBar(ep.durationSeconds);
+    }
+
+    function cyclePlaybackSpeed() {
+      const idx = playbackSpeeds.indexOf(currentPlaybackSpeed);
+      const nextIdx = (idx + 1) % playbackSpeeds.length;
+      currentPlaybackSpeed = playbackSpeeds[nextIdx];
+      document.getElementById('btnPlaybackSpeed').textContent = currentPlaybackSpeed.toFixed(2).replace('.00', '.0') + 'x';
+    }
+
+    function cycleSleepTimer() {
+      const idx = sleepTimerOptions.indexOf(sleepTimerMinutes);
+      const nextIdx = (idx + 1) % sleepTimerOptions.length;
+      sleepTimerMinutes = sleepTimerOptions[nextIdx];
+      const label = document.getElementById('sleepTimerLabel');
+      label.textContent = sleepTimerMinutes === 0 ? 'Tắt' : `${sleepTimerMinutes}m`;
+    }
+
+    function updatePlayerUI(ep, autoPlay) {
+      document.getElementById('playerTitle').textContent = ep.title;
+      document.getElementById('playerDynasty').textContent = `${ep.dynastyName} • ${ep.historicalFigure}`;
+      document.getElementById('playerCitationsCount').textContent = `${ep.citationsCount} trích dẫn`;
+      document.getElementById('playerDuration').textContent = ep.duration;
+      document.getElementById('playerCurrentTime').textContent = "00:00";
+      document.getElementById('playerArtwork').textContent = ep.historicalFigure.slice(0, 2).toUpperCase();
+      
+      updateProgressBar(ep.durationSeconds);
+      updatePlayPauseButtonUI();
+    }
+
+    function updatePlayPauseButtonUI() {
+      const iconPlay = document.getElementById('iconPlay');
+      const iconPause = document.getElementById('iconPause');
+      if (isPlaying) {
+        iconPlay.classList.add('hidden');
+        iconPause.classList.remove('hidden');
+      } else {
+        iconPlay.classList.remove('hidden');
+        iconPause.classList.add('hidden');
+      }
+    }
+
+    function toggleHeroWaveform() {
+      const wave = document.getElementById('heroWaveform');
+      if (wave) {
+        if (isPlaying) {
+          wave.className = 'flex items-end gap-1 h-5 wave-playing';
+        } else {
+          wave.className = 'flex items-end gap-1 h-5 wave-paused';
+        }
+      }
+    }
+
+    function formatSeconds(sec) {
+      const m = Math.floor(sec / 60);
+      const s = Math.floor(sec % 60);
+      return `${m < 10 ? '0' + m : m}:${s < 10 ? '0' + s : s}`;
+    }
+
+    function parseTimestampToSeconds(ts) {
+      const parts = ts.split(':');
+      if (parts.length === 2) {
+        return parseInt(parts[0]) * 60 + parseInt(parts[1]);
+      }
+      return 0;
+    }
+
+    // -------------------------------------------------------------
+    // 6. LIGHT-LEARNING DRAWER LOGIC
+    // -------------------------------------------------------------
+    function openDrawer(tabName) {
+      currentActiveTab = tabName || 'transcript';
+      const backdrop = document.getElementById('learningDrawerBackdrop');
+      const drawer = document.getElementById('learningDrawer');
+
+      backdrop.classList.remove('hidden');
+      setTimeout(() => {
+        backdrop.classList.remove('opacity-0');
+        drawer.classList.remove('translate-x-full');
+      }, 10);
+
+      renderDrawerContent();
+    }
+
+    function openDrawerWithEpisode(id, tabName) {
+      currentEpisodeId = id;
+      openDrawer(tabName);
+    }
+
+    function closeDrawer() {
+      const backdrop = document.getElementById('learningDrawerBackdrop');
+      const drawer = document.getElementById('learningDrawer');
+
+      backdrop.classList.add('opacity-0');
+      drawer.classList.add('translate-x-full');
+      setTimeout(() => {
+        backdrop.classList.add('hidden');
+      }, 300);
+    }
+
+    function switchDrawerTab(tab) {
+      currentActiveTab = tab;
+      const tabs = ['transcript', 'glossary', 'citations', 'entities'];
+      tabs.forEach(t => {
+        const btn = document.getElementById(`tabBtn${capitalize(t)}`);
+        if (t === tab) {
+          btn.className = 'py-3 text-center border-b-2 border-amber-500 text-amber-400 cursor-pointer font-bold';
+        } else {
+          btn.className = 'py-3 text-center border-b-2 border-transparent text-slate-400 hover:text-slate-200 cursor-pointer transition-colors';
+        }
+      });
+      renderDrawerContent();
+    }
+
+    function renderDrawerContent() {
+      const ep = episodes.find(e => e.id === currentEpisodeId) || episodes[0];
+      document.getElementById('drawerEpisodeTitle').textContent = ep.title;
+      const body = document.getElementById('drawerContentBody');
+
+      if (currentActiveTab === 'transcript') {
+        body.innerHTML = `
+          <div class="space-y-4">
+            <div class="p-3.5 rounded-xl bg-amber-500/10 border border-amber-500/20 text-xs text-amber-200 flex items-center justify-between">
+              <span>💡 Bấm vào mốc thời gian [mm:ss] để chuyển đoạn nghe tức thì</span>
+              <span class="font-mono font-bold">${ep.duration}</span>
+            </div>
+            <div class="space-y-3">
+              ${ep.transcript.map(item => {
+                const sec = parseTimestampToSeconds(item.time);
+                return `
+                  <div class="p-3 rounded-xl bg-surface/80 border border-white/5 hover:border-amber-500/30 transition-colors">
+                    <button 
+                      onclick="seekToTime(${sec})" 
+                      class="inline-block font-mono text-xs font-bold text-amber-400 hover:underline cursor-pointer bg-amber-500/15 px-2 py-0.5 rounded mr-2"
+                    >
+                      [${item.time}]
+                    </button>
+                    <span class="text-slate-300 text-xs leading-relaxed">${item.text}</span>
+                  </div>
+                `;
+              }).join('')}
+            </div>
+          </div>
+        `;
+      } else if (currentActiveTab === 'glossary') {
+        body.innerHTML = `
+          <div class="space-y-4">
+            <p class="text-xs text-slate-400">Giải thích danh từ riêng, quan chế và thuật ngữ cổ xuất hiện trong tập:</p>
+            <div class="space-y-3">
+              ${ep.glossary.map(item => `
+                <div class="p-4 rounded-xl bg-surface/80 border border-white/5 space-y-1.5">
+                  <div class="font-serif text-sm font-bold text-amber-300">${item.term}</div>
+                  <div class="text-xs text-slate-300 leading-relaxed">${item.meaning}</div>
+                </div>
+              `).join('')}
+            </div>
+          </div>
+        `;
+      } else if (currentActiveTab === 'citations') {
+        body.innerHTML = `
+          <div class="space-y-4">
+            <div class="p-3.5 rounded-xl bg-emerald-950/40 border border-emerald-500/30 text-xs text-emerald-300 flex items-center gap-2">
+              <svg class="w-4 h-4 text-emerald-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+              </svg>
+              <span>Nguồn sử liệu chính thống đã đối chiếu qua thư tịch cổ</span>
+            </div>
+            <div class="space-y-4">
+              ${ep.citations.map(c => `
+                <div class="p-4 rounded-xl bg-surface/80 border border-amber-500/20 space-y-2">
+                  <div class="flex items-center justify-between">
+                    <span class="font-serif text-sm font-bold text-amber-300">${c.book}</span>
+                    <span class="font-mono text-[11px] text-slate-400">${c.volume}</span>
+                  </div>
+                  <blockquote class="italic text-xs text-slate-200 border-l-2 border-amber-500 pl-3 py-1 font-serif leading-relaxed">
+                    "${c.quote}"
+                  </blockquote>
+                  <div class="text-[11px] text-slate-400 flex items-center justify-between pt-1">
+                    <span>Độ tin cậy: <strong class="text-emerald-400 font-normal">${c.reliability}</strong></span>
+                    <span class="text-amber-400 font-mono text-[10px]">ĐÃ KHẢO CHỨNG</span>
+                  </div>
+                </div>
+              `).join('')}
+            </div>
+          </div>
+        `;
+      } else if (currentActiveTab === 'entities') {
+        body.innerHTML = `
+          <div class="space-y-4">
+            <p class="text-xs text-slate-400">Mạng lưới nhân vật và sự kiện liên quan cùng thời kỳ:</p>
+            <div class="grid grid-cols-1 gap-3">
+              ${ep.entities.map(ent => `
+                <div class="p-3.5 rounded-xl bg-surface/80 border border-white/5 flex items-center gap-3">
+                  <div class="w-10 h-10 rounded-full bg-amber-500/20 text-amber-300 flex items-center justify-center font-serif font-bold text-sm">
+                    ${ent.name.charAt(0)}
+                  </div>
+                  <div class="min-w-0 flex-1">
+                    <h5 class="font-serif text-sm font-bold text-white">${ent.name}</h5>
+                    <p class="text-xs text-slate-400">${ent.role}</p>
+                  </div>
+                  <span class="font-mono text-[11px] text-amber-400/90">${ent.era}</span>
+                </div>
+              `).join('')}
+            </div>
+          </div>
+        `;
+      }
+    }
+
+    function capitalize(s) {
+      return s.charAt(0).toUpperCase() + s.slice(1);
+    }
+  </script>
+
+</body>
+</html>

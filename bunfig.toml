@@ -1,0 +1,5 @@
+[install]
+# Strict isolated linker to prevent phantom dependencies
+linker = "isolated"
+linkWorkspacePackages = true
+publicHoistPattern = ["@repo/*"]

@@ -1,0 +1,95 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model Period {
+  id          String    @id @default(uuid())
+  name        String
+  slug        String    @unique
+  startYear   Int
+  endYear     Int?
+  description String    @default("")
+  orderIndex  Int       @default(0)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  series      Series[]
+  episodes    Episode[]
+
+  @@map("periods")
+}
+
+model Series {
+  id          String    @id @default(uuid())
+  title       String
+  slug        String    @unique
+  description String    @default("")
+  coverImage  String    @default("")
+  category    String    @default("dung-nuoc")
+  periodId    String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  period      Period?   @relation(fields: [periodId], references: [id], onDelete: SetNull)
+  episodes    Episode[]
+
+  @@map("series")
+}
+
+model Episode {
+  id              String     @id @default(uuid())
+  seriesId        String
+  periodId        String?
+  title           String
+  slug            String     @unique
+  audioUrl        String
+  durationSeconds Int        @default(600)
+  transcript      String     @default("")
+  summary         String     @default("")
+  orderNumber     Int        @default(1)
+  playCount       Int        @default(0)
+  publishedAt     DateTime   @default(now())
+  createdAt       DateTime   @default(now())
+  updatedAt       DateTime   @updatedAt
+
+  series          Series     @relation(fields: [seriesId], references: [id], onDelete: Cascade)
+  period          Period?    @relation(fields: [periodId], references: [id], onDelete: SetNull)
+  citations       Citation[]
+
+  @@map("episodes")
+}
+
+model Figure {
+  id        String   @id @default(uuid())
+  name      String
+  dynasty   String
+  birthYear Int?
+  deathYear Int?
+  biography String   @default("")
+  avatarUrl String   @default("")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("figures")
+}
+
+model Citation {
+  id        String   @id @default(uuid())
+  episodeId String
+  bookTitle String   // e.g. "Đại Việt Sử Ký Toàn Thư"
+  volume    String   @default("")
+  chapter   String   @default("")
+  passage   String   @default("")
+  quote     String   @default("")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  episode   Episode  @relation(fields: [episodeId], references: [id], onDelete: Cascade)
+
+  @@map("citations")
+}

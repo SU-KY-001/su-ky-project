@@ -1,0 +1,25 @@
+{
+  "name": "su-ky-monorepo",
+  "private": true,
+  "packageManager": "bun@1.4.0",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev": "turbo dev",
+    "build": "turbo build",
+    "check-types": "turbo check-types",
+    "test": "turbo test",
+    "clean": "turbo clean && rm -rf node_modules apps/*/node_modules packages/*/node_modules dist apps/*/dist packages/*/dist",
+    "db:generate": "turbo db:generate",
+    "db:migrate": "turbo db:migrate",
+    "db:push": "turbo db:push",
+    "db:seed": "turbo db:seed"
+  },
+  "devDependencies": {
+    "bun-types": "^1.4.2",
+    "turbo": "^2.4.4",
+    "typescript": "^5.8.2"
+  }
+}
