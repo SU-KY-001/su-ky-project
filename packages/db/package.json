@@ -15,14 +15,14 @@
     "check-types": "tsc --noEmit"
   },
   "dependencies": {
-    "@prisma/client": "^6.4.1",
+    "@prisma/client": "catalog:",
     "@repo/shared": "workspace:*"
   },
   "devDependencies": {
     "@repo/tsconfig": "workspace:*",
-    "@types/node": "^22.20.2",
-    "bun-types": "^1.4.2",
-    "prisma": "^6.4.1",
-    "typescript": "^5.8.2"
+    "@types/node": "catalog:",
+    "bun-types": "catalog:",
+    "prisma": "catalog:",
+    "typescript": "catalog:"
   }
 }
