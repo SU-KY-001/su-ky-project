@@ -13,8 +13,8 @@ model User {
   email         String    @unique
   emailVerified Boolean   @default(false)
   image         String?
-  role          String    @default("customer")
-  banned        Boolean   @default(false)
+  role          String?   @default("user")
+  banned        Boolean?  @default(false)
   banReason     String?
   banExpires    DateTime?
   createdAt     DateTime  @default(now())

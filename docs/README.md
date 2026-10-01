@@ -134,12 +134,12 @@ The API uses Better Auth with PostgreSQL/Prisma sessions:
 - Email/password: `POST /api/auth/sign-up/email` and `POST /api/auth/sign-in/email`
 - Google OAuth: `POST /api/auth/sign-in/social` with `{ "provider": "google" }`
 - Sign out and session lookup: `POST /api/auth/sign-out` and `GET /api/auth/get-session`
-- Current user: `GET /api/me` (requires a valid session cookie)
-- Role checks: `GET /api/moderator` (Moderator only) and `GET /api/admin` (Admin only)
+- Current user: `GET /api/me` (requires a valid session cookie or Bearer token)
+- Admin check: `GET /api/admin` (Admin only)
 
 Set `BETTER_AUTH_SECRET` to a persistent random secret in all environments. Google sign-in is enabled when both Google credentials are configured; set the Google OAuth callback URL to `http://localhost:3000/api/auth/callback/google` for local development. `CORS_ORIGIN` accepts a comma-separated list of frontend origins.
 
-New registrations receive the `customer` role. Only admins can change roles through Better Auth's `/api/auth/admin/set-role` endpoint. Bootstrap the first admin using Better Auth's CLI after applying the schema, for example:
+New registrations receive the default `user` role. Only admins can change roles or manage users through Better Auth's `/api/auth/admin/*` endpoints. Bootstrap the first admin using Better Auth's CLI after applying the schema, for example:
 
 ```bash
 bun x auth@latest create-admin --email admin@example.com --name "Su-Ky Admin" --role admin

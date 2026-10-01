@@ -10,7 +10,7 @@ import { episodesRoute } from "./routes/episodes";
 import { figuresRoute } from "./routes/figures";
 import { auth } from "./auth";
 import { currentUserRoute } from "./routes/auth";
-import { adminRoute, moderatorRoute } from "./routes/authorization";
+import { adminRoute } from "./routes/authorization";
 import type { AppEnv } from "./types";
 
 export const app = new Hono<AppEnv>()
@@ -39,7 +39,6 @@ export const app = new Hono<AppEnv>()
 export const routes = app
   .all("/api/auth/*", (c) => auth.handler(c.req.raw))
   .route("/api/me", currentUserRoute)
-  .route("/api/moderator", moderatorRoute)
   .route("/api/admin", adminRoute)
   .route("/health", healthRoute)
   .route("/api/timeline", timelineRoute)

@@ -1,8 +1,8 @@
-import type { AuthSession } from "./auth";
+import type { Session } from "./auth";
 
 export type AppEnv = {
   Variables: {
     requestId: string;
-    session: AuthSession | null;
+    session: Session | null;
   };
 };

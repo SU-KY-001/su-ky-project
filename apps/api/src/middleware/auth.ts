@@ -1,14 +1,20 @@
 import { createMiddleware } from "hono/factory";
 import { HTTPException } from "hono/http-exception";
-import { auth, type AuthSession, type UserRole } from "../auth";
+import type { UserRole } from "@repo/shared";
+import { auth, type Session } from "../auth";
 import type { AppEnv } from "../types";
 
-type SessionResolver = (headers: Headers) => Promise<AuthSession | null>;
+type SessionResolver = (headers: Headers) => Promise<Session | null>;
 
-const resolveSession: SessionResolver = (headers) =>
+const defaultGetSession: SessionResolver = (headers) =>
   auth.api.getSession({ headers });
 
-export function createAuthGuards(getSession: SessionResolver = resolveSession) {
+const hasRole = (userRole: string | null | undefined, targetRole: UserRole) => {
+  if (!userRole) return false;
+  return userRole.split(",").map((r) => r.trim()).includes(targetRole);
+};
+
+export function createAuthGuards(getSession: SessionResolver = defaultGetSession) {
   const requireAuth = createMiddleware<AppEnv>(async (c, next) => {
     const session = await getSession(c.req.raw.headers);
     if (!session) {
@@ -21,20 +27,17 @@ export function createAuthGuards(getSession: SessionResolver = resolveSession) {
 
   const requireRole = (...roles: UserRole[]) =>
     createMiddleware<AppEnv>(async (c, next) => {
-      const session = c.get("session");
+      const session = c.get("session") ?? (await getSession(c.req.raw.headers));
       if (!session) {
         throw new HTTPException(401, { message: "Authentication required" });
       }
 
-      const userRole = session.user.role;
-      const hasRequiredRole = Array.isArray(userRole)
-        ? roles.some((role) => userRole.includes(role))
-        : roles.some((role) => role === userRole);
-
+      const hasRequiredRole = roles.some((role) => hasRole(session.user.role, role));
       if (!hasRequiredRole) {
         throw new HTTPException(403, { message: "Insufficient permissions" });
       }
 
+      c.set("session", session);
       await next();
     });
 
@@ -42,3 +45,4 @@ export function createAuthGuards(getSession: SessionResolver = resolveSession) {
 }
 
 export const { requireAuth, requireRole } = createAuthGuards();
+export const requireAdmin = requireRole("admin");

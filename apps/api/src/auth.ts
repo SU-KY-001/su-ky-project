@@ -1,9 +1,8 @@
 import { randomBytes } from "node:crypto";
 import { prisma } from "@repo/db";
-import { prismaAdapter } from "@better-auth/prisma-adapter";
 import { betterAuth } from "better-auth";
-import { admin as adminPlugin, createAccessControl } from "better-auth/plugins";
-import { defaultStatements } from "better-auth/plugins/admin/access";
+import { prismaAdapter } from "better-auth/adapters/prisma";
+import { admin, bearer } from "better-auth/plugins";
 
 const secret =
   process.env.BETTER_AUTH_SECRET ??
@@ -27,31 +26,7 @@ const trustedOrigins = (process.env.CORS_ORIGIN ?? "http://localhost:5173")
   .map((origin) => origin.trim())
   .filter(Boolean);
 
-const accessControl = createAccessControl(defaultStatements);
-const roles = {
-  customer: accessControl.newRole({}),
-  moderator: accessControl.newRole({}),
-  admin: accessControl.newRole({
-    user: [
-      "create",
-      "list",
-      "set-role",
-      "ban",
-      "impersonate",
-      "delete",
-      "set-password",
-      "set-email",
-      "get",
-      "update",
-    ],
-    session: ["list", "revoke", "delete"],
-  }),
-};
-
-export const USER_ROLES = ["customer", "moderator", "admin"] as const;
-export type UserRole = (typeof USER_ROLES)[number];
-
-const authInstance = betterAuth({
+export const auth = betterAuth({
   appName: "Su-Ky",
   baseURL: process.env.BETTER_AUTH_URL ?? `http://localhost:${process.env.PORT ?? "3000"}`,
   secret,
@@ -73,49 +48,11 @@ const authInstance = betterAuth({
       }
     : {}),
   plugins: [
-    adminPlugin({
-      ac: accessControl,
-      roles,
-      defaultRole: "customer",
-      adminRoles: ["admin"],
-    }),
+    admin(),
+    bearer(),
   ],
 });
 
-export type AuthSession = {
-  session: {
-    expiresAt: Date;
-  };
-  user: {
-    id: string;
-    name: string;
-    email: string;
-    emailVerified: boolean;
-    image?: string | null;
-    role?: string | string[] | null;
-  };
-};
-
-export const auth = {
-  handler(request: Request): Promise<Response> {
-    return authInstance.handler(request);
-  },
-  api: {
-    async getSession({ headers }: { headers: Headers }): Promise<AuthSession | null> {
-      const result = await authInstance.api.getSession({ headers });
-      if (!result) return null;
-
-      return {
-        session: { expiresAt: result.session.expiresAt },
-        user: {
-          id: result.user.id,
-          name: result.user.name,
-          email: result.user.email,
-          emailVerified: result.user.emailVerified,
-          image: result.user.image,
-          role: result.user.role,
-        },
-      };
-    },
-  },
-};
+export type Auth = typeof auth;
+export type Session = typeof auth.$Infer.Session;
+export type User = Session["user"];
