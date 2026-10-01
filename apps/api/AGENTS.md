@@ -23,6 +23,13 @@ Tài liệu này quy định cấu trúc thư mục, kiến trúc phân tầng (
    - Sử dụng Better Auth với plugin `admin` và `bearer`.
    - Roles chuẩn: `"user"` và `"admin"` (không dùng `"customer"`).
 
+5. **Chuẩn hóa Logging (Pino & `logs/error.log`):**
+   - Không sử dụng `console.log` / `console.error` tùy tiện trong mã nguồn production.
+   - Sử dụng thư viện `pino` tập trung tại `src/core/logger.ts` với cơ chế multi-stream:
+     - Toàn bộ log (info, warn, error) được định dạng structured JSON ghi ra `stdout`.
+     - Tất cả các log lỗi (`level >= error` / level 50) được tự động nối vào file `apps/api/logs/error.log`.
+   - Thư mục `logs/` được giữ bằng `.gitkeep` và file `*.log` được loại trừ khỏi git qua `.gitignore`.
+
 ---
 
 ## 2. Template Cấu Trúc Thư Mục (Folder Structure Template)
@@ -49,9 +56,14 @@ su-ky-monorepo/
         ├── package.json
         ├── tsconfig.json                # include: ["src/**/*", "tests/**/*"]
         │
+        ├── logs/                        # Thư mục chứa log runtime
+        │   ├── .gitkeep                 # Tracked by git
+        │   └── error.log                # Chứa log lỗi (level >= error), ignored by git
+        │
         ├── tests/                       # 🌟 TOÀN BỘ TEST TẬP TRUNG TẠI ĐÂY (KHÔNG ĐẶT TRONG src/)
         │   ├── api.test.ts              # Global endpoints & middleware boundaries (/health, 404, CORS)
         │   ├── auth.test.ts             # Authentication & role-based guard tests
+        │   ├── logger.test.ts           # Kiểm thử Pino logger và ghi file error.log
         │   └── [feature].test.ts        # Tests cho từng module tính năng
         │
         └── src/                         # MÃ NGUỒN BACKEND
@@ -60,6 +72,8 @@ su-ky-monorepo/
             ├── types.ts                 # Hono AppEnv (Variables: requestId, session, user)
             │
             ├── core/                    # Hạ tầng cross-cutting dùng chung toàn bộ app
+            │   ├── logger.ts            # Pino logger instance (stdout + logs/error.log)
+            │   ├── index.ts             # Barrel export logger và middlewares
             │   ├── middleware/          # requestId, logger, cors, errorHandler
             │   │   ├── requestId.ts
             │   │   ├── logger.ts
