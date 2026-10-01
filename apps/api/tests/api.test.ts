@@ -224,4 +224,41 @@ describe("Su-Ky API Test Suite", () => {
       expect(body.error?.details).toBeDefined();
     });
   });
+
+  describe("Security Headers & Production Middlewares", () => {
+    it("attaches secureHeaders on responses", async () => {
+      const res = await app.request("/health");
+      expect(res.headers.get("x-content-type-options")).toBe("nosniff");
+      expect(res.headers.get("x-frame-options")).toBe("SAMEORIGIN");
+      expect(res.headers.get("strict-transport-security")).toBeDefined();
+    });
+
+    it("attaches ETag header on successful 200 GET requests", async () => {
+      const res = await app.request("/openapi.json");
+      expect(res.status).toBe(200);
+      const etag = res.headers.get("etag");
+      expect(etag).toBeDefined();
+      expect(typeof etag).toBe("string");
+      expect(etag!.length).toBeGreaterThan(0);
+    });
+  });
+
+  describe("API Documentation & OpenAPI Endpoints", () => {
+    it("serves OpenAPI 3.1 specification at /openapi.json", async () => {
+      const res = await app.request("/openapi.json");
+      expect(res.status).toBe(200);
+
+      const spec = (await res.json()) as { openapi: string; info: { title: string } };
+      expect(spec.openapi).toBe("3.1.0");
+      expect(spec.info.title).toContain("Su-Ky");
+    });
+
+    it("serves interactive Scalar documentation UI at /docs", async () => {
+      const res = await app.request("/docs");
+      expect(res.status).toBe(200);
+      expect(res.headers.get("content-type")).toContain("text/html");
+      const html = await res.text();
+      expect(html).toContain("Su-Ky");
+    });
+  });
 });

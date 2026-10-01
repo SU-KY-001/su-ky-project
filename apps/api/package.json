@@ -14,10 +14,12 @@
     "test": "bun test"
   },
   "dependencies": {
+    "@hono/zod-openapi": "^1.6.3",
     "@hono/zod-validator": "^0.4.3",
     "@prisma/client": "^6.4.1",
     "@repo/db": "workspace:*",
     "@repo/shared": "workspace:*",
+    "@scalar/hono-api-reference": "^0.12.8",
     "better-auth": "^1.7.6",
     "hono": "^4.7.2",
     "pino": "^10.3.1",

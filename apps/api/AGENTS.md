@@ -30,6 +30,24 @@ Tài liệu này quy định cấu trúc thư mục, kiến trúc phân tầng (
      - Tất cả các log lỗi (`level >= error` / level 50) được tự động nối vào file `apps/api/logs/error.log`.
    - Thư mục `logs/` được giữ bằng `.gitkeep` và file `*.log` được loại trừ khỏi git qua `.gitignore`.
 
+6. **Quản lý & Kiểm định Biến Môi Trường (Type-Safe Env Validation):**
+   - Bun tự động đọc các file `.env` mà không cần thư viện `dotenv`.
+   - Toàn bộ biến môi trường bắt buộc được parse & validate qua Zod tại `src/core/env.ts` (Fail-Fast ngay khi khởi động nếu thiếu biến hoặc sai format ở production).
+
+7. **Production Middlewares & Bảo Mật:**
+   - `secureHeaders()`: Bảo vệ HTTP headers (HSTS, nosniff, frameguard, CSP-ready).
+   - `compress()`: Tự động nén gzip/deflate response.
+   - `etag()`: Tự động sinh ETag cho caching chuẩn RFC 7232.
+   - `bodyLimit()`: Giới hạn payload request tối đa 10MB, trả về 413 nếu vượt quá.
+
+8. **Tài liệu API & OpenAPI (Scalar API Reference):**
+   - OpenAPI 3.1 JSON spec tại `GET /openapi.json`.
+   - Giao diện tra cứu API tương tác tại `GET /docs` sử dụng `@scalar/hono-api-reference`.
+
+9. **Graceful Shutdown:**
+   - Xử lý các tín hiệu `SIGINT` và `SIGTERM` tại `src/index.ts`.
+   - Tự động ngắt kết nối `prisma.$disconnect()` và giải phóng cổng mạng an toàn trước khi tắt process.
+
 ---
 
 ## 2. Template Cấu Trúc Thư Mục (Folder Structure Template)
@@ -61,19 +79,21 @@ su-ky-monorepo/
         │   └── error.log                # Chứa log lỗi (level >= error), ignored by git
         │
         ├── tests/                       # 🌟 TOÀN BỘ TEST TẬP TRUNG TẠI ĐÂY (KHÔNG ĐẶT TRONG src/)
-        │   ├── api.test.ts              # Global endpoints & middleware boundaries (/health, 404, CORS)
+        │   ├── api.test.ts              # Global endpoints & middleware boundaries (/health, docs, etag, 404, CORS)
         │   ├── auth.test.ts             # Authentication & role-based guard tests
+        │   ├── env.test.ts              # Kiểm thử parse & validate biến môi trường Zod
         │   ├── logger.test.ts           # Kiểm thử Pino logger và ghi file error.log
         │   └── [feature].test.ts        # Tests cho từng module tính năng
         │
         └── src/                         # MÃ NGUỒN BACKEND
-            ├── index.ts                 # Server entrypoint (Bun.serve, load env)
-            ├── app.ts                   # Hono app instance, global middlewares & router mounting
+            ├── index.ts                 # Server entrypoint (Bun.serve, graceful shutdown)
+            ├── app.ts                   # Hono app instance, security/perf middlewares & router mounting
             ├── types.ts                 # Hono AppEnv (Variables: requestId, session, user)
             │
             ├── core/                    # Hạ tầng cross-cutting dùng chung toàn bộ app
+            │   ├── env.ts               # Type-safe environment validation với Zod
             │   ├── logger.ts            # Pino logger instance (stdout + logs/error.log)
-            │   ├── index.ts             # Barrel export logger và middlewares
+            │   ├── index.ts             # Barrel export env, logger và middlewares
             │   ├── middleware/          # requestId, logger, cors, errorHandler
             │   │   ├── requestId.ts
             │   │   ├── logger.ts
@@ -81,6 +101,11 @@ su-ky-monorepo/
             │   │   ├── errorHandler.ts
             │   │   └── index.ts         # Barrel export
             │   └── errors/              # Custom application exceptions (nếu có)
+            │
+            ├── routes/                  # Global routes (docs, health, placeholder resources)
+            │   ├── docs.ts              # OpenAPI 3.1 & Scalar API Reference (/docs)
+            │   ├── health.ts            # Hệ thống health check & DB ping
+            │   └── ...
             │
             └── modules/                 # Cấu trúc Clean Architecture / Vertical Slice theo Domain
                 │
