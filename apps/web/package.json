@@ -7,27 +7,35 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "preview": "vite preview",
+    "test": "bun test",
     "check-types": "tsc --noEmit"
   },
   "dependencies": {
     "@repo/shared": "workspace:*",
-    "@tanstack/react-query": "^5.66.0",
+    "@tanstack/react-query": "catalog:",
     "@tanstack/react-query-devtools": "^5.102.8",
-    "hono": "^4.7.2",
+    "@hookform/resolvers": "catalog:",
+    "axios": "catalog:",
+    "hono": "catalog:",
     "lucide-react": "^0.475.0",
-    "react": "^19.0.0",
-    "react-dom": "^19.0.0"
+    "react-hook-form": "catalog:",
+    "react-router": "^7.0.0",
+    "react": "catalog:",
+    "react-dom": "catalog:",
+    "yup": "catalog:",
+    "zod": "catalog:",
+    "zustand": "catalog:"
   },
   "devDependencies": {
     "@repo/api": "workspace:*",
     "@repo/tsconfig": "workspace:*",
     "@tailwindcss/vite": "^4.0.9",
-    "@types/node": "^22.20.2",
+    "@types/node": "catalog:",
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",
     "@vitejs/plugin-react": "^4.3.4",
     "tailwindcss": "^4.0.9",
-    "typescript": "^5.8.2",
+    "typescript": "catalog:",
     "vite": "^6.2.0"
   }
 }
