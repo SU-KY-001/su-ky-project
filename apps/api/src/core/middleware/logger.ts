@@ -1,4 +1,5 @@
 import type { MiddlewareHandler } from "hono";
+import { logger } from "../logger";
 
 export function requestLogger(): MiddlewareHandler {
   return async (c, next) => {
@@ -12,9 +13,7 @@ export function requestLogger(): MiddlewareHandler {
     const duration = Math.round((performance.now() - start) * 100) / 100;
     const status = c.res.status;
 
-    // Structured logging format
-    const logData = {
-      timestamp: new Date().toISOString(),
+    const meta = {
       reqId,
       method,
       path,
@@ -23,11 +22,11 @@ export function requestLogger(): MiddlewareHandler {
     };
 
     if (status >= 500) {
-      console.error(JSON.stringify({ level: "ERROR", ...logData }));
+      logger.error(meta, "HTTP request failed with server error");
     } else if (status >= 400) {
-      console.warn(JSON.stringify({ level: "WARN", ...logData }));
+      logger.warn(meta, "HTTP request warning or client error");
     } else {
-      console.log(JSON.stringify({ level: "INFO", ...logData }));
+      logger.info(meta, "HTTP request completed");
     }
   };
 }

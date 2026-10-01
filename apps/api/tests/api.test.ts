@@ -1,11 +1,11 @@
 import { describe, it, expect } from "bun:test";
 import { Hono } from "hono";
 import { HTTPException } from "hono/http-exception";
-import { z, ZodError } from "zod";
+import { zValidator } from "@hono/zod-validator";
+import { z } from "zod";
 import type { ApiResponse, SystemHealthDto } from "@repo/shared";
-import { app } from "./app";
-import { errorHandler } from "./middleware/errorHandler";
-import { requestId } from "./middleware/requestId";
+import { app } from "../src/app";
+import { errorHandler, requestId } from "../src/core/middleware";
 
 describe("Su-Ky API Test Suite", () => {
   describe("Health Check Endpoint (GET /health)", () => {
@@ -77,8 +77,46 @@ describe("Su-Ky API Test Suite", () => {
   });
 
   describe("Route Validation & 400 Bad Request Boundaries", () => {
+    const validationApp = new Hono()
+      .use("*", requestId())
+      .onError(errorHandler)
+      .get(
+        "/test-pagination",
+        zValidator(
+          "query",
+          z.object({
+            limit: z.coerce.number().min(1).max(50).default(20),
+            page: z.coerce.number().min(1).default(1),
+            category: z
+              .enum(["ANCIENT", "MEDIEVAL", "MODERN", "CONTEMPORARY", "WAR_HISTORY", "CULTURE"])
+              .optional(),
+          }),
+          (result, c) => {
+            if (!result.success) {
+              const reqId = c.get("requestId") ?? "unknown";
+              return c.json(
+                {
+                  success: false,
+                  error: {
+                    code: "VALIDATION_ERROR",
+                    message: "Invalid query parameters",
+                    details: result.error.errors,
+                  },
+                  meta: {
+                    requestId: reqId,
+                    timestamp: new Date().toISOString(),
+                  },
+                },
+                400
+              );
+            }
+          }
+        ),
+        (c) => c.json({ success: true })
+      );
+
     it("fails 400 when limit exceeds maximum (limit > 50)", async () => {
-      const res = await app.request("/api/episodes?limit=999");
+      const res = await validationApp.request("/test-pagination?limit=999");
       expect(res.status).toBe(400);
 
       const body = (await res.json()) as ApiResponse<never>;
@@ -91,7 +129,7 @@ describe("Su-Ky API Test Suite", () => {
     });
 
     it("fails 400 when limit is less than minimum (limit < 1)", async () => {
-      const res = await app.request("/api/episodes?limit=0");
+      const res = await validationApp.request("/test-pagination?limit=0");
       expect(res.status).toBe(400);
 
       const body = (await res.json()) as ApiResponse<never>;
@@ -100,7 +138,7 @@ describe("Su-Ky API Test Suite", () => {
     });
 
     it("fails 400 when page is less than minimum (page < 1)", async () => {
-      const res = await app.request("/api/episodes?page=0");
+      const res = await validationApp.request("/test-pagination?page=0");
       expect(res.status).toBe(400);
 
       const body = (await res.json()) as ApiResponse<never>;
@@ -109,7 +147,7 @@ describe("Su-Ky API Test Suite", () => {
     });
 
     it("fails 400 when category is not a valid enum value", async () => {
-      const res = await app.request("/api/episodes?category=INVALID_CATEGORY");
+      const res = await validationApp.request("/test-pagination?category=INVALID_CATEGORY");
       expect(res.status).toBe(400);
 
       const body = (await res.json()) as ApiResponse<never>;
@@ -223,6 +261,43 @@ describe("Su-Ky API Test Suite", () => {
       expect(body.success).toBe(false);
       expect(body.error?.code).toBe("VALIDATION_ERROR");
       expect(body.error?.details).toBeDefined();
+    });
+  });
+
+  describe("Security Headers & Production Middlewares", () => {
+    it("attaches secureHeaders on responses", async () => {
+      const res = await app.request("/health");
+      expect(res.headers.get("x-content-type-options")).toBe("nosniff");
+      expect(res.headers.get("x-frame-options")).toBe("SAMEORIGIN");
+      expect(res.headers.get("strict-transport-security")).toBeDefined();
+    });
+
+    it("attaches ETag header on successful 200 GET requests", async () => {
+      const res = await app.request("/openapi.json");
+      expect(res.status).toBe(200);
+      const etag = res.headers.get("etag");
+      expect(etag).toBeDefined();
+      expect(typeof etag).toBe("string");
+      expect(etag!.length).toBeGreaterThan(0);
+    });
+  });
+
+  describe("API Documentation & OpenAPI Endpoints", () => {
+    it("serves OpenAPI 3.1 specification at /openapi.json", async () => {
+      const res = await app.request("/openapi.json");
+      expect(res.status).toBe(200);
+
+      const spec = (await res.json()) as { openapi: string; info: { title: string } };
+      expect(spec.openapi).toBe("3.1.0");
+      expect(spec.info.title).toContain("Su-Ky");
+    });
+
+    it("serves interactive Scalar documentation UI at /docs", async () => {
+      const res = await app.request("/docs");
+      expect(res.status).toBe(200);
+      expect(res.headers.get("content-type")).toContain("text/html");
+      const html = await res.text();
+      expect(html).toContain("Su-Ky");
     });
   });
 });

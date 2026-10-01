@@ -1,6 +1,7 @@
 import type { ErrorHandler } from "hono";
 import { HTTPException } from "hono/http-exception";
 import { ZodError } from "zod";
+import { logger } from "../logger";
 
 export const errorHandler: ErrorHandler = (err, c) => {
   const reqId = c.get("requestId") ?? "unknown";
@@ -52,7 +53,7 @@ export const errorHandler: ErrorHandler = (err, c) => {
     );
   }
 
-  console.error(`[${reqId}] Unhandled exception:`, err);
+  logger.error({ err, reqId }, `[${reqId}] Unhandled exception: ${err.message || String(err)}`);
 
   return c.json(
     {

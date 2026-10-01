@@ -7,89 +7,71 @@ generator client {
   provider = "prisma-client-js"
 }
 
-model Period {
-  id          String    @id @default(uuid())
-  name        String
-  slug        String    @unique
-  startYear   Int
-  endYear     Int?
-  description String    @default("")
-  orderIndex  Int       @default(0)
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
+model User {
+  id            String    @id
+  name          String
+  email         String    @unique
+  emailVerified Boolean   @default(false)
+  image         String?
+  role          String?   @default("user")
+  banned        Boolean?  @default(false)
+  banReason     String?
+  banExpires    DateTime?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
 
-  series      Series[]
-  episodes    Episode[]
+  accounts      Account[]
+  sessions      Session[]
 
-  @@map("periods")
+  @@map("users")
 }
 
-model Series {
-  id          String    @id @default(uuid())
-  title       String
-  slug        String    @unique
-  description String    @default("")
-  coverImage  String    @default("")
-  category    String    @default("dung-nuoc")
-  periodId    String?
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
+model Session {
+  id             String   @id
+  expiresAt      DateTime
+  token          String   @unique
+  ipAddress      String?
+  userAgent      String?
+  userId         String
+  impersonatedBy String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
 
-  period      Period?   @relation(fields: [periodId], references: [id], onDelete: SetNull)
-  episodes    Episode[]
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  @@map("series")
+  @@index([userId])
+  @@map("sessions")
 }
 
-model Episode {
-  id              String     @id @default(uuid())
-  seriesId        String
-  periodId        String?
-  title           String
-  slug            String     @unique
-  audioUrl        String
-  durationSeconds Int        @default(600)
-  transcript      String     @default("")
-  summary         String     @default("")
-  orderNumber     Int        @default(1)
-  playCount       Int        @default(0)
-  publishedAt     DateTime   @default(now())
-  createdAt       DateTime   @default(now())
-  updatedAt       DateTime   @updatedAt
+model Account {
+  id                    String    @id
+  accountId             String
+  providerId            String
+  userId                String
+  accessToken           String?   @db.Text
+  refreshToken          String?   @db.Text
+  idToken               String?   @db.Text
+  accessTokenExpiresAt  DateTime?
+  refreshTokenExpiresAt DateTime?
+  scope                 String?
+  password              String?   @db.Text
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
 
-  series          Series     @relation(fields: [seriesId], references: [id], onDelete: Cascade)
-  period          Period?    @relation(fields: [periodId], references: [id], onDelete: SetNull)
-  citations       Citation[]
+  user                  User      @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  @@map("episodes")
+  @@index([userId])
+  @@map("accounts")
 }
 
-model Figure {
-  id        String   @id @default(uuid())
-  name      String
-  dynasty   String
-  birthYear Int?
-  deathYear Int?
-  biography String   @default("")
-  avatarUrl String   @default("")
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+model Verification {
+  id         String   @id
+  identifier String
+  value      String   @db.Text
+  expiresAt  DateTime
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
 
-  @@map("figures")
-}
-
-model Citation {
-  id        String   @id @default(uuid())
-  episodeId String
-  bookTitle String   // e.g. "Đại Việt Sử Ký Toàn Thư"
-  volume    String   @default("")
-  chapter   String   @default("")
-  passage   String   @default("")
-  quote     String   @default("")
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  episode   Episode  @relation(fields: [episodeId], references: [id], onDelete: Cascade)
-
-  @@map("citations")
+  @@index([identifier])
+  @@map("verifications")
 }

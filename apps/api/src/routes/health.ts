@@ -1,6 +1,7 @@
 import { Hono } from "hono";
 import { prisma } from "@repo/db";
 import type { SystemHealthDto } from "@repo/shared";
+import { logger } from "../core/logger";
 
 export const healthRoute = new Hono().get("/", async (c) => {
   let dbStatus: "connected" | "disconnected" = "disconnected";
@@ -14,7 +15,10 @@ export const healthRoute = new Hono().get("/", async (c) => {
     ]).finally(() => clearTimeout(timer));
     dbStatus = "connected";
   } catch (error) {
-    console.warn("Healthcheck: PostgreSQL connection failed or unavailable:", (error as Error).message);
+    logger.warn(
+      { err: error },
+      `Healthcheck: PostgreSQL connection failed or unavailable: ${(error as Error).message}`
+    );
     dbStatus = "disconnected";
   }
   const isHealthy = dbStatus === "connected";
