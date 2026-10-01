@@ -4,6 +4,7 @@ node_modules/
 
 # Bun
 bun.lockb
+.tools/bun/
 
 # Turbo
 .turbo/

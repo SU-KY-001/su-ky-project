@@ -15,16 +15,19 @@
   },
   "dependencies": {
     "@hono/zod-validator": "^0.4.3",
-    "@prisma/client": "^6.4.1",
+    "@prisma/client": "catalog:",
     "@repo/db": "workspace:*",
     "@repo/shared": "workspace:*",
-    "hono": "^4.7.2",
-    "zod": "^3.24.2"
+    "@scalar/hono-api-reference": "^0.12.8",
+    "better-auth": "^1.7.6",
+    "hono": "catalog:",
+    "pino": "^10.3.1",
+    "zod": "catalog:"
   },
   "devDependencies": {
     "@repo/tsconfig": "workspace:*",
-    "@types/node": "^22.20.2",
-    "bun-types": "^1.4.2",
-    "typescript": "^5.8.2"
+    "@types/node": "catalog:",
+    "bun-types": "catalog:",
+    "typescript": "catalog:"
   }
 }

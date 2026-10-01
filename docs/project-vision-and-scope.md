@@ -3,7 +3,7 @@
 
 - **Tên dự án**: **Su-Ky** (Sử Ký — Historical Podcast & Interactive Chronicle)
 - **Môn học**: WDP301 (Web Development Project)
-- **Nguồn tài liệu gốc**: `E:\FPT\Semester_8\WDP301\wdp301-document\brainstorm\raw-from-kimi\260910.md`
+- **Nguồn tài liệu gốc**: `E:\FPT\Semester_8\WDP301\su-ky-document\brainstorm\raw-from-kimi\260910.md`
 - **Ngày lập**: 2026-09-11
 - **Trạng thái**: Đã phê duyệt phạm vi & định hướng
 
