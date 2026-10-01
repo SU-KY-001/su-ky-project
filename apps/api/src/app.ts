@@ -11,10 +11,6 @@ import {
 } from "./core/middleware";
 import { docsRoute } from "./routes/docs";
 import { healthRoute } from "./routes/health";
-import { timelineRoute } from "./routes/timeline";
-import { seriesRoute } from "./routes/series";
-import { episodesRoute } from "./routes/episodes";
-import { figuresRoute } from "./routes/figures";
 import { adminRoute, auth, currentUserRoute } from "./modules/auth";
 import type { AppEnv } from "./types";
 
@@ -65,16 +61,30 @@ export const app = new Hono<AppEnv>()
     );
   });
 
+// Backward-compatibility stub for frontend until timeline module is defined
+const timelineRoute = new Hono().get("/", (c) =>
+  c.json({
+    success: true,
+    data: [] as Array<{
+      id: string;
+      slug: string;
+      name: string;
+      startYear: number;
+      endYear?: number | null;
+      description: string;
+      episodesCount?: number;
+      seriesCount?: number;
+    }>,
+  })
+);
+
 export const routes = app
   .route("/", docsRoute)
   .all("/api/auth/*", (c) => auth.handler(c.req.raw))
   .route("/api/me", currentUserRoute)
   .route("/api/admin", adminRoute)
   .route("/health", healthRoute)
-  .route("/api/timeline", timelineRoute)
-  .route("/api/series", seriesRoute)
-  .route("/api/episodes", episodesRoute)
-  .route("/api/figures", figuresRoute);
+  .route("/api/timeline", timelineRoute);
 
 export type AppType = typeof routes;
 export default app;

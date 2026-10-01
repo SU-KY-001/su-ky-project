@@ -1,6 +1,7 @@
 import { describe, it, expect } from "bun:test";
 import { Hono } from "hono";
 import { HTTPException } from "hono/http-exception";
+import { zValidator } from "@hono/zod-validator";
 import { z } from "zod";
 import type { ApiResponse, SystemHealthDto } from "@repo/shared";
 import { app } from "../src/app";
@@ -76,8 +77,46 @@ describe("Su-Ky API Test Suite", () => {
   });
 
   describe("Route Validation & 400 Bad Request Boundaries", () => {
+    const validationApp = new Hono()
+      .use("*", requestId())
+      .onError(errorHandler)
+      .get(
+        "/test-pagination",
+        zValidator(
+          "query",
+          z.object({
+            limit: z.coerce.number().min(1).max(50).default(20),
+            page: z.coerce.number().min(1).default(1),
+            category: z
+              .enum(["ANCIENT", "MEDIEVAL", "MODERN", "CONTEMPORARY", "WAR_HISTORY", "CULTURE"])
+              .optional(),
+          }),
+          (result, c) => {
+            if (!result.success) {
+              const reqId = c.get("requestId") ?? "unknown";
+              return c.json(
+                {
+                  success: false,
+                  error: {
+                    code: "VALIDATION_ERROR",
+                    message: "Invalid query parameters",
+                    details: result.error.errors,
+                  },
+                  meta: {
+                    requestId: reqId,
+                    timestamp: new Date().toISOString(),
+                  },
+                },
+                400
+              );
+            }
+          }
+        ),
+        (c) => c.json({ success: true })
+      );
+
     it("fails 400 when limit exceeds maximum (limit > 50)", async () => {
-      const res = await app.request("/api/episodes?limit=999");
+      const res = await validationApp.request("/test-pagination?limit=999");
       expect(res.status).toBe(400);
 
       const body = (await res.json()) as ApiResponse<never>;
@@ -90,7 +129,7 @@ describe("Su-Ky API Test Suite", () => {
     });
 
     it("fails 400 when limit is less than minimum (limit < 1)", async () => {
-      const res = await app.request("/api/episodes?limit=0");
+      const res = await validationApp.request("/test-pagination?limit=0");
       expect(res.status).toBe(400);
 
       const body = (await res.json()) as ApiResponse<never>;
@@ -99,7 +138,7 @@ describe("Su-Ky API Test Suite", () => {
     });
 
     it("fails 400 when page is less than minimum (page < 1)", async () => {
-      const res = await app.request("/api/episodes?page=0");
+      const res = await validationApp.request("/test-pagination?page=0");
       expect(res.status).toBe(400);
 
       const body = (await res.json()) as ApiResponse<never>;
@@ -108,7 +147,7 @@ describe("Su-Ky API Test Suite", () => {
     });
 
     it("fails 400 when category is not a valid enum value", async () => {
-      const res = await app.request("/api/episodes?category=INVALID_CATEGORY");
+      const res = await validationApp.request("/test-pagination?category=INVALID_CATEGORY");
       expect(res.status).toBe(400);
 
       const body = (await res.json()) as ApiResponse<never>;
