@@ -1,11 +1,10 @@
 import { describe, it, expect } from "bun:test";
 import { Hono } from "hono";
 import { HTTPException } from "hono/http-exception";
-import { z, ZodError } from "zod";
+import { z } from "zod";
 import type { ApiResponse, SystemHealthDto } from "@repo/shared";
-import { app } from "./app";
-import { errorHandler } from "./middleware/errorHandler";
-import { requestId } from "./middleware/requestId";
+import { app } from "../src/app";
+import { errorHandler, requestId } from "../src/core/middleware";
 
 describe("Su-Ky API Test Suite", () => {
   describe("Health Check Endpoint (GET /health)", () => {

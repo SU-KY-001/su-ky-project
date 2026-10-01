@@ -1,16 +1,16 @@
 import { Hono } from "hono";
-import { requestId } from "./middleware/requestId";
-import { requestLogger } from "./middleware/logger";
-import { corsConfig } from "./middleware/cors";
-import { errorHandler } from "./middleware/errorHandler";
+import {
+  corsConfig,
+  errorHandler,
+  requestId,
+  requestLogger,
+} from "./core/middleware";
 import { healthRoute } from "./routes/health";
 import { timelineRoute } from "./routes/timeline";
 import { seriesRoute } from "./routes/series";
 import { episodesRoute } from "./routes/episodes";
 import { figuresRoute } from "./routes/figures";
-import { auth } from "./auth";
-import { currentUserRoute } from "./routes/auth";
-import { adminRoute } from "./routes/authorization";
+import { adminRoute, auth, currentUserRoute } from "./modules/auth";
 import type { AppEnv } from "./types";
 
 export const app = new Hono<AppEnv>()

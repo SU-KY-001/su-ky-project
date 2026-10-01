@@ -1,6 +1,6 @@
 import { Hono } from "hono";
-import { requireAuth } from "../middleware/auth";
-import type { AppEnv } from "../types";
+import { requireAdmin, requireAuth } from "./auth.middleware";
+import type { AppEnv } from "../../types";
 
 export const currentUserRoute = new Hono<AppEnv>().get("/", requireAuth, (c) => {
   const { user, session } = c.get("session")!;
@@ -22,3 +22,12 @@ export const currentUserRoute = new Hono<AppEnv>().get("/", requireAuth, (c) => 
     },
   });
 });
+
+export const adminRoute = new Hono<AppEnv>()
+  .use("*", requireAdmin)
+  .get("/", (c) =>
+    c.json({
+      success: true,
+      data: { message: "Admin access granted" },
+    })
+  );

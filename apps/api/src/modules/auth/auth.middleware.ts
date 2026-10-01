@@ -1,13 +1,13 @@
 import { createMiddleware } from "hono/factory";
 import { HTTPException } from "hono/http-exception";
 import type { UserRole } from "@repo/shared";
-import { auth, type Session } from "../auth";
-import type { AppEnv } from "../types";
+import { auth, type Session } from "./auth";
+import type { AppEnv } from "../../types";
 
 type SessionResolver = (headers: Headers) => Promise<Session | null>;
 
 const defaultGetSession: SessionResolver = (headers) =>
-  auth.api.getSession({ headers });
+  auth.api.getSession({ headers }) as Promise<Session | null>;
 
 const hasRole = (userRole: string | null | undefined, targetRole: UserRole) => {
   if (!userRole) return false;
@@ -41,8 +41,14 @@ export function createAuthGuards(getSession: SessionResolver = defaultGetSession
       await next();
     });
 
-  return { requireAuth, requireRole };
+  return {
+    requireAuth,
+    requireRole,
+    requireAdmin: requireRole("admin"),
+  };
 }
 
-export const { requireAuth, requireRole } = createAuthGuards();
-export const requireAdmin = requireRole("admin");
+const defaultGuards = createAuthGuards();
+export const requireAuth = defaultGuards.requireAuth;
+export const requireRole = defaultGuards.requireRole;
+export const requireAdmin = defaultGuards.requireAdmin;

@@ -1,11 +1,10 @@
 import { describe, expect, it } from "bun:test";
 import { Hono } from "hono";
 import type { UserRole } from "@repo/shared";
-import { errorHandler } from "./middleware/errorHandler";
-import { createAuthGuards } from "./middleware/auth";
-import { app } from "./app";
-import type { Session } from "./auth";
-import type { AppEnv } from "./types";
+import { errorHandler } from "../src/core/middleware";
+import { app } from "../src/app";
+import { createAuthGuards, type Session } from "../src/modules/auth";
+import type { AppEnv } from "../src/types";
 
 function makeSession(role: UserRole): Session {
   const now = new Date();
