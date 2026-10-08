@@ -21,7 +21,17 @@
     "prisma": "^6.4.1",
     "typescript": "^5.8.2",
     "@types/node": "^22.20.2",
-    "bun-types": "^1.4.2"
+    "bun-types": "^1.4.2",
+    "@tamagui/config": "^2.7.7",
+    "@tamagui/animations-css": "^2.7.7",
+    "@tamagui/cli": "^2.7.7",
+    "@tamagui/core": "^2.7.7",
+    "@tamagui/web": "^2.7.7",
+    "tamagui": "^2.7.7",
+    "@tamagui/metro-plugin": "^2.7.7",
+    "@fontsource/be-vietnam-pro": "^5.2.8",
+    "@phosphor-icons/react": "^2.1.10",
+    "gsap": "^3.13.0"
   },
   "scripts": {
     "dev": "turbo dev",
@@ -35,8 +45,17 @@
     "db:seed": "turbo db:seed"
   },
   "devDependencies": {
+    "@tamagui/cli": "catalog:",
     "bun-types": "^1.4.2",
     "turbo": "^2.4.4",
     "typescript": "^5.8.2"
+  },
+  "dependencies": {
+    "@tamagui/config": "catalog:",
+    "@tamagui/core": "catalog:",
+    "@tamagui/web": "catalog:",
+    "react": "catalog:",
+    "react-dom": "catalog:",
+    "tamagui": "catalog:"
   }
 }

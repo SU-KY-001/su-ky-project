@@ -29,13 +29,14 @@
 
 ---
 
-## 3. Frontend Application (`apps/web`)
+## 3. Frontend Applications (`apps/web`, `apps/mobile`)
 
 | Component | Technology | Version | Purpose & Justification |
 | :--- | :--- | :--- | :--- |
 | **UI Library** | React | `^19.0.0` | Modern React with Server Actions / Client hooks, concurrent features. |
-| **Bundler & HMR** | Vite | `^6.2.0` | Instant server start, lightning-fast ESM Hot Module Replacement. |
-| **Styling** | Tailwind CSS | `^4.0.0` | CSS-first configuration via `@tailwindcss/vite`, zero legacy config file, optimized modern color system. |
+| **Web styling** | Tailwind CSS + shadcn/ui + Magic UI | Tailwind `^4.1.14`; source-owned components | Tailwind v4 CSS-first styling, shadcn/ui source components, and selected Magic UI registry components in `apps/web`. |
+| **Mobile UI & Styling** | Tamagui | `^2.7.7` | Native component and styling system for mobile; root tokens and Metro configuration remain for Expo. |
+| **Mobile Runtime** | Expo + React Native | Expo `~57.0.0`, RN `0.86.0` | Expo Router navigation and native runtime, styled through Tamagui and configured with Metro. |
 | **Icons** | Lucide React | `^0.475.0` | Consistent, accessible icon set. |
 | **Data Fetching** | TanStack Query | `^5.66.0` | Asynchronous cache management, deduplication, optimistic updates, query status management. |
 | **API Client** | Hono Client (`hc<AppType>`) | `^4.7.0` | End-to-end typed fetch client connected to backend `AppType`. |
@@ -61,7 +62,8 @@ su-ky-project/
 │   │   │   ├── app.ts          # Hono app instance & route chaining
 │   │   │   └── index.ts        # Bun server entrypoint
 │   │   └── package.json        # Exports "./types": "./src/app.ts"
-│   └── web/                    # React 19 frontend
+│   ├── web/                    # React 19 + Vite + Tailwind CSS + shadcn/ui + Magic UI
+│   └── mobile/                 # Expo + React Native + Tamagui frontend
 │       ├── src/
 │       │   ├── lib/            # Hono RPC client (`api`) & Query client
 │       │   ├── components/     # Reusable UI components

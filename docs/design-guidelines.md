@@ -4,7 +4,7 @@
 > **Phiên bản:** 1.0.0  
 > **Ngày phê duyệt:** 2026-09-11  
 > **Trạng thái:** Chuẩn sản phẩm (Production Standard)  
-> **Công nghệ áp dụng:** React 19, Tailwind CSS v4, Hono RPC, PostgreSQL 17, Bun v1.4.0
+> **Công nghệ áp dụng:** React 19 + Vite + Tailwind CSS v4 + shadcn/ui + Magic UI, Expo + React Native + Tamagui, Hono RPC, PostgreSQL, Bun
 
 ---
 
@@ -33,25 +33,24 @@ Thiết kế giao diện của Sử Ký tuân thủ 5 nguyên tắc cốt lõi:
 
 ## 2. Hệ Thống Màu Sắc & Tokens (Color Tokens System)
 
-Bảng màu Sử Ký lấy cảm hứng từ nghệ thuật cung đình Thăng Long - Huế kết hợp với nền giao diện Dark Mode cao cấp (OLED Obsidian Palette), tạo chiều sâu huyền bí và cảm giác tôn nghiêm.
+Bảng màu web giữ sắc giấy, mực, son và đồng đang dùng trên giao diện Sử Ký; nền sáng dành cho nội dung đọc, còn night dùng cho hero và các vùng nhấn.
 
 ### 2.1. Bảng Màu Cốt Lõi (Core Palette)
 
 | Token Name | CSS Variable | Hex Code | Ý nghĩa văn hóa & Công năng giao diện |
 | :--- | :--- | :--- | :--- |
-| **Lacquer Obsidian 950** | `--color-bg-base` | `#0B0D13` | Nền chính sâu thẳm như phiến sơn mài cổ, giảm phát xạ sáng màn hình OLED. |
-| **Lacquer Obsidian 900** | `--color-bg-surface` | `#11141E` | Nền các khối container, header, sidebar và thanh điều hướng chính. |
-| **Lacquer Slate 800** | `--color-bg-card` | `#181C2B` | Bề mặt card nhân vật, card sự kiện, modal, popover nổi. |
-| **Lacquer Slate 700** | `--color-bg-elevated` | `#22283C` | Bề mặt khi tương tác hover, dropdown menu, active state. |
-| **Border Muted** | `--color-border-subtle`| `#252B40` | Đường viền ngăn cách phân khu nhẹ nhàng, không gây phân tâm. |
-| **Border Accent Gold** | `--color-border-gold` | `#78531D` | Đường viền nhấn quý phái cho các khối triều đại, huân huy chương. |
-| **Imperial Gold 500** | `--color-gold-primary` | `#F59E0B` | Sắc vàng hoàng gia rực rỡ, sử dụng cho điểm sáng chính, mốc lịch sử tối thượng. |
-| **Imperial Amber 600** | `--color-gold-deep` | `#D97706` | Sắc vàng thau cung đình thâm trầm cho nút hành động chính (Primary CTA). |
-| **Vermilion Crimson 600**| `--color-vermilion` | `#DC2626` | Sắc son triện đỏ (Ấn tín ngọc tỷ), dùng cho sự kiện chiến tranh, chiến công oanh liệt. |
-| **Imperial Jade 500** | `--color-jade` | `#059669` | Màu ngọc bích, tượng trưng cho thái bình thịnh trị, di sản, văn hóa tư liệu và trạng thái trực tuyến. |
-| **Parchment White** | `--color-text-primary` | `#FAF5EE` | Màu giấy dó ngà cao cấp, đảm bảo đọc lâu không mỏi mắt (Contrast 14.8:1). |
-| **Silk Mist 400** | `--color-text-secondary`| `#CBD5E1` | Màu lụa tro nhạt cho văn bản mô tả phụ, trích dẫn ngắn. |
-| **Ink Stone 500** | `--color-text-muted` | `#94A3B8` | Màu mực mờ cho niên đại, nguồn tư liệu, metadata kỹ thuật. |
+| **Paper** | `--paper` | `#F4ECDC` | Nền chính của các vùng nội dung đọc. |
+| **Paper Soft** | `--paper-soft` | `#FAF6ED` | Bề mặt card và nội dung đặt trên nền night. |
+| **Paper Deep** | `--paper-deep` | `#E9DCC2` | Nền section xen kẽ và panel. |
+| **Night** | `--night` | `#14110F` | Nền hero, header và nội dung ngôi kể nhân vật. |
+| **Night Soft** | `--night-soft` | `#29221E` | Bề mặt phụ trên nền night. |
+| **Ink** | `--ink` | `#1C1714` | Chữ chính trên nền giấy. |
+| **Ink Soft** | `--ink-soft` | `#5B4E44` | Mô tả, metadata và chữ phụ trên nền sáng. |
+| **Vermilion** | `--vermilion` | `#B8322A` | CTA, lựa chọn đang hoạt động và điểm nhấn. |
+| **Bronze** | `--bronze` | `#B58A3C` | Viền mảnh, divider, node và điểm nhấn. |
+| **Bronze Dark** | `--bronze-dark` | `#7A5A26` | Viền và chữ đồng cần độ tương phản cao hơn. |
+| **Line** | `--line` | `#D9CDB7` | Đường viền và phân cách trên nền giấy. |
+| **Focus** | `--focus` | `#2866A1` | Viền focus-visible có độ tương phản rõ. |
 
 ### 2.2. Trạng Thái Hệ Thống (System Status Indicators)
 
@@ -62,40 +61,14 @@ Bảng màu Sử Ký lấy cảm hứng từ nghệ thuật cung đình Thăng L
 | **Danger / Conflict** | `#EF4444` (Rose) | Trận đánh đẫm máu / Lỗi kết nối máy chủ |
 | **Informational** | `#3B82F6` (Cobalt) | Văn bản thông tư, chiếu chỉ, chú thích học thuật |
 
-### 2.3. Tích Hợp Tailwind CSS v4 (`@theme`)
+### 2.3. Hệ Thống Styling Theo Nền Tảng
 
-```css
-@theme {
-  --color-lacquer-950: #0B0D13;
-  --color-lacquer-900: #11141E;
-  --color-lacquer-800: #181C2B;
-  --color-lacquer-700: #22283C;
-  --color-lacquer-border: #252B40;
-  
-  --color-gold-400: #FBBF24;
-  --color-gold-500: #F59E0B;
-  --color-gold-600: #D97706;
-  --color-gold-700: #B45309;
+`apps/web` và `apps/mobile` dùng hệ thống UI riêng theo runtime.
 
-  --color-vermilion-500: #EF4444;
-  --color-vermilion-600: #DC2626;
-  --color-vermilion-700: #B91C1C;
-
-  --color-jade-500: #10B981;
-  --color-jade-600: #059669;
-
-  --color-parchment-50: #FAF5EE;
-  --color-parchment-100: #F3EBDD;
-  --color-parchment-200: #E5D7C2;
-
-  --font-serif-title: "Playfair Display", "Cinzel", Georgia, serif;
-  --font-sans-ui: "Plus Jakarta Sans", system-ui, -apple-system, sans-serif;
-  --font-mono-chrono: "JetBrains Mono", Menlo, Consolas, monospace;
-
-  --ease-editorial: cubic-bezier(0.16, 1, 0.3, 1);
-  --duration-normal: 250ms;
-}
-```
+- **Web:** Tailwind CSS v4 qua Vite, một global stylesheet tại `apps/web/src/styles/globals.css`, CSS-first semantic tokens, component shadcn/ui được lưu trong source và các component Magic UI được chọn từ registry.
+- **Mobile:** Tamagui dùng cùng `tamagui.config.ts`, Expo và Metro. Không đưa Tailwind CSS, DOM component hoặc shadcn/ui vào ứng dụng native.
+- Bảng màu web tiếp tục dùng giấy, mực, son và đồng hiện có. Be Vietnam Pro dùng toàn site; Manrope chỉ áp dụng cho moderator.
+- Breakpoint web dùng CSS/Tailwind; responsive mobile tiếp tục theo cấu hình Tamagui native.
 
 ---
 
@@ -103,31 +76,22 @@ Bảng màu Sử Ký lấy cảm hứng từ nghệ thuật cung đình Thăng L
 
 ### 3.1. Phân Lớp Phông Chữ (Font Stack Architecture)
 
-1. **Phông Tiêu Đề Sử Thi (Historical & Editorial Display):**
-   - **`Playfair Display`** (weights: 600, 700, 900)
-   - Kết hợp nét thanh đậm tương phản cổ điển, thể hiện khí phách hùng tráng của tên triều đại, danh xưng hoàng đế, tên sự kiện lịch sử trọng đại.
-   - Hỗ trợ trọn vẹn toàn bộ hệ thống ký tự tiếng Việt Unicode.
-
-2. **Phông Giao Diện & Nội Dung Chính (Interface & Reading Sans):**
-   - **`Plus Jakarta Sans`** (weights: 400, 500, 600, 700)
-   - Thiết kế hình học hiện đại, độ cao chữ x-height thoáng đãng, hỗ trợ đọc văn bản dài, tiểu sử nhân vật với độ rõ nét cao trên màn hình retina.
-
-3. **Phông Niên Biểu & Siêu Dữ Liệu Kỹ Thuật (Chronology & Technical Monospace):**
-   - **`JetBrains Mono`** (weights: 500, 600)
-   - Sử dụng cho niên đại (`938 SCN`, `1009 - 1225`), số liệu thống kê, mã văn tự, thời lượng audio podcast, thời gian thực thi Hono RPC và Bun runtime telemetry.
+1. **Web interface and editorial content:** Be Vietnam Pro (weights: 400, 500, 600, 700) is loaded globally and supports Vietnamese text throughout the site.
+2. **Moderator dashboard:** Manrope (weights: 400–800, including Latin, Latin Extended, and Vietnamese glyph subsets) is loaded with the lazy moderator screen and scoped to that dashboard.
+3. **Editorial headings:** Use the existing serif fallback stack for section and story headings; do not introduce a third font family without updating the web design system.
 
 ### 3.2. Bảng Thang Đo Kiểu Chữ (Type Scale)
 
 | Phân Cấp (Level) | Cỡ chữ / Line Height | Phông Chữ & Độ đậm | Ví dụ Ứng Dụng |
 | :--- | :--- | :--- | :--- |
-| **Hero Title (Display 1)** | `clamp(2.5rem, 5vw, 4rem)` / 1.15 | Playfair Display 900 | "SỬ KÝ TOÀN THƯ", "ĐẠI VIỆT SỬ KÝ" |
-| **Era Heading (H1)** | `2.25rem (36px)` / 1.25 | Playfair Display 700 | Tên Triều đại: "Nhà Lý (1009 - 1225)" |
-| **Section Title (H2)** | `1.75rem (28px)` / 1.3 | Playfair Display 600 | "Chiến dịch Bạch Đằng", "Danh Tướng & Hiền Thần" |
-| **Card Header (H3)** | `1.25rem (20px)` / 1.4 | Plus Jakarta Sans 700 | "Trần Hưng Đạo - Tiết chế Quốc công" |
-| **Body Reading (Lớn)** | `1.0625rem (17px)` / 1.65 | Plus Jakarta Sans 400 | Trích đoạn chiếu chỉ, đoạn mở đầu biên niên sử |
-| **Body UI (Tiêu chuẩn)** | `0.9375rem (15px)` / 1.55 | Plus Jakarta Sans 400 | Văn bản mô tả trên thẻ, nội dung danh sách |
-| **Caption / Badge** | `0.75rem (12px)` / 1.4 | Plus Jakarta Sans 600 (Caps)| Thẻ phân loại: `CHIẾN DỊCH QUÂN SỰ`, `DI TÍCH` |
-| **Chronological Mono** | `0.8125rem (13px)` / 1.4 | JetBrains Mono 500 | `NĂM 1288 SCN`, `LATENCY: 0.8ms`, `v1.4.0` |
+| **Hero Title (Display 1)** | `clamp(2.5rem, 5vw, 4rem)` / 1.15 | Be Vietnam Pro 700 + serif fallback | Tiêu đề series nổi bật |
+| **Era Heading (H1)** | `2.25rem (36px)` / 1.25 | Be Vietnam Pro 700 + serif fallback | Tên triều đại và sự kiện |
+| **Section Title (H2)** | `1.75rem (28px)` / 1.3 | Be Vietnam Pro 700 + serif fallback | Tiêu đề các vùng nội dung |
+| **Card Header (H3)** | `1.25rem (20px)` / 1.4 | Be Vietnam Pro 700 | Tiêu đề trên thẻ |
+| **Body Reading (Lớn)** | `1.0625rem (17px)` / 1.65 | Be Vietnam Pro 400 | Trích đoạn và mô tả dài |
+| **Body UI (Tiêu chuẩn)** | `0.9375rem (15px)` / 1.55 | Be Vietnam Pro 400 | Văn bản mô tả và danh sách |
+| **Moderator UI** | `0.875rem (14px)` / 1.5 | Manrope 400–800 | Bảng điều khiển moderator |
+| **Caption / Badge** | `0.75rem (12px)` / 1.4 | Be Vietnam Pro 600 | Nhãn và metadata |
 
 ---
 

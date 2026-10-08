@@ -1,0 +1,11 @@
+{
+  "version": 1,
+  "skills": {
+    "tamagui": {
+      "source": "tamagui/tamagui",
+      "sourceType": "github",
+      "skillPath": "plans/tamagui-skill/skills/tamagui/SKILL.md",
+      "computedHash": "66b41d06adf4fe495111ca86007a693ee906e3251e454f4624fc8ff0b54ec5bf"
+    }
+  }
+}
