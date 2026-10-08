@@ -10,7 +10,7 @@ export const openApiSpec = {
       "Hệ thống API Authentication & Core Service cho nền tảng Su-Ky (Sử Ký).",
   },
   servers: [
-    { url: "http://localhost:3000", description: "Development server" },
+    { url: "http://localhost:3005", description: "Development server" },
   ],
   tags: [
     { name: "System", description: "Kiểm tra trạng thái & sức khỏe hệ thống" },

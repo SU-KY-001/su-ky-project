@@ -5,11 +5,11 @@
 
 help: ## Hiển thị danh sách các lệnh hỗ trợ
 	@echo ""
-	@echo "🏯 Su-Ky (Sử Ký) — Monorepo Commands:"
+	@echo "Su-Ky (Sử Ký) — Monorepo Commands:"
 	@echo ""
 	@echo "  Môi trường & Cài đặt:"
 	@echo "    make install       - Cài đặt toàn bộ dependencies bằng Bun v1.4"
-	@echo "    make dev           - Khởi động môi trường dev (API :3000 + Web :5173)"
+	@echo "    make dev           - Khởi động môi trường dev (API :3005 + Web :5173)"
 	@echo "    make build         - Build production toàn bộ monorepo bằng Turborepo"
 	@echo "    make check-types   - Kiểm tra kiểu dữ liệu TypeScript toàn bộ workspace"
 	@echo "    make test          - Chạy toàn bộ automated test suite với Bun test"

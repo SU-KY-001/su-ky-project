@@ -38,7 +38,7 @@ graph TD
     end
 
     subgraph Server ["Backend Layer (Bun v1.4.0)"]
-        HONO["Hono v4 Web Server (apps/api)<br/>app.ts / index.ts (Port 3000)"]
+        HONO["Hono v4 Web Server (apps/api)<br/>app.ts / index.ts (Port 3005)"]
         MW["Middleware Pipeline<br/>RequestId -> Logger -> CORS -> ErrorHandler"]
         VAL["Validation Layer<br/>@hono/zod-validator"]
         ROUTES["Modular Route Controllers<br/>/health, /timeline, /series, /episodes, /figures"]
@@ -175,7 +175,7 @@ sequenceDiagram
   import { hc } from "hono/client";
   import type { AppType } from "@repo/api/types";
 
-  export const client = hc<AppType>(import.meta.env.VITE_API_URL || "http://localhost:3000");
+  export const client = hc<AppType>(import.meta.env.VITE_API_URL || "http://localhost:3005");
   ```
 - **Autocomplete & Type Safety:** Calling `client.api.episodes.$get({ query: ... })` provides complete compile-time validation of query fields and return shapes without manual DTO maintenance.
 

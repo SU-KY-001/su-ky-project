@@ -33,7 +33,7 @@ export function SystemHealthGrid() {
         </div>
         <p className="text-2xl font-bold font-mono" aria-live="polite">{apiStatus}</p>
         <div className="space-y-1 text-xs font-mono text-slate-400">
-          <p>Port: :3000</p>
+          <p>Port: :3005</p>
           <p>Runtime: Bun {health?.bunVersion ?? "1.4.0"}</p>
           <p>Endpoint: /health</p>
         </div>

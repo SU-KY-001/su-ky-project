@@ -8,7 +8,7 @@ describe("Environment Configuration & Validation", () => {
     });
 
     expect(parsed.NODE_ENV).toBe("development");
-    expect(parsed.PORT).toBe(3000);
+    expect(parsed.PORT).toBe(3005);
     expect(parsed.BETTER_AUTH_SECRET).toBe("su-ky-auth-secret-development-key");
     expect(parsed.CORS_ORIGIN).toBe("http://localhost:5173");
     expect(parsed.LOG_LEVEL).toBe("info");

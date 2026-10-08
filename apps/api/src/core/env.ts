@@ -5,12 +5,12 @@ const envSchema = z
     NODE_ENV: z
       .enum(["development", "production", "test"])
       .default("development"),
-    PORT: z.coerce.number().default(3000),
+    PORT: z.coerce.number().default(3005),
     DATABASE_URL: z.string().optional(),
     BETTER_AUTH_SECRET: z
       .string()
       .default("su-ky-auth-secret-development-key"),
-    BETTER_AUTH_URL: z.string().default("http://localhost:3000"),
+    BETTER_AUTH_URL: z.string().default("http://localhost:3005"),
     CORS_ORIGIN: z.string().default("http://localhost:5173"),
     LOG_LEVEL: z
       .enum(["fatal", "error", "warn", "info", "debug", "trace"])
