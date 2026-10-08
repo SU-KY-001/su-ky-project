@@ -1,5 +1,6 @@
 import { LockKey, MicrophoneStage } from "@phosphor-icons/react";
 import { Button } from "@/components/ui/button";
+import { Link } from "react-router";
 import type { TimelineEvent } from "../types";
 
 interface TimelineDetailPanelProps {
@@ -24,8 +25,8 @@ export function TimelineDetailPanel({ event }: TimelineDetailPanelProps) {
           <p className="text-sm text-ink-soft">{event.character}</p>
           <h4 className="text-sm font-bold text-ink">Series liên quan</h4>
           <p className="text-sm text-ink-soft">{event.series}</p>
-          <Button className="mt-1 rounded-md bg-vermilion text-paper-soft hover:bg-vermilion-dark">
-            <LockKey size={16} />Đăng nhập để nghe
+          <Button asChild className="mt-1 rounded-md bg-vermilion text-paper-soft hover:bg-vermilion-dark">
+            <Link to="/login"><LockKey size={16} />Đăng nhập để nghe</Link>
           </Button>
         </aside>
       </div>

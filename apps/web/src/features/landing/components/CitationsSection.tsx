@@ -4,7 +4,7 @@ import { SectionFrame, SectionHeading } from "./SectionFrame";
 
 export function CitationsSection() {
   return (
-    <SectionFrame tone="deep" labelledBy="citations-heading">
+    <SectionFrame labelledBy="citations-heading">
       <div className="flex flex-col items-start gap-8 md:flex-row">
         <div className="flex flex-[.72] flex-col gap-5">
           <SectionHeading id="citations-heading" eyebrow="Nguồn tham khảo" title="Mỗi tập đều có đường trở về sử liệu" description="Chúng tôi ghi rõ tài liệu, tác giả và tập podcast đã sử dụng nguồn." />

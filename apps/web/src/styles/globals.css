@@ -3,7 +3,7 @@
 
 @theme inline {
   --font-sans: "Be Vietnam Pro", ui-sans-serif, system-ui, sans-serif;
-  --font-serif: Georgia, "Times New Roman", serif;
+  --font-serif: "Be Vietnam Pro", ui-sans-serif, system-ui, sans-serif;
   --font-moderator: "Manrope", ui-sans-serif, system-ui, sans-serif;
 
   --color-background: var(--background);
@@ -128,6 +128,37 @@
 
 *::-webkit-scrollbar-thumb:hover {
   background: var(--bronze-dark);
+}
+
+[data-navbar-scrolled="false"] .landing-nav-hover:hover,
+[data-navbar-scrolled="false"] .landing-nav-hover:hover * {
+  color: #e9dcc2 !important;
+}
+
+.landing-nav-hover {
+  border-radius: var(--radius-md) !important;
+}
+
+[data-navbar-scrolled="false"] .landing-nav-hover:hover {
+  background-color: rgb(190 190 190 / 10%) !important;
+}
+
+[data-navbar-scrolled="true"] .landing-nav-hover:hover,
+[data-navbar-scrolled="true"] .landing-nav-hover:hover * {
+  color: #7a5a26 !important;
+}
+
+[data-navbar-scrolled="true"] .landing-nav-hover:hover {
+  background-color: rgb(70 70 70 / 6%) !important;
+}
+
+.hero-action-segment {
+  border-radius: 0 !important;
+  transition: background-color 180ms ease, color 180ms ease;
+}
+
+.hero-action-segment:hover {
+  background-color: rgb(255 255 255 / 9%) !important;
 }
 
 .mod-layout-root,
@@ -416,4 +447,41 @@ img {
     left: 16px;
     max-width: none;
   }
+}
+
+/* Simple authentication dialog */
+.auth-dialog-content { max-height: calc(100dvh - 2rem); overflow-y: auto; }
+.auth-dialog-inner { display: flex; flex-direction: column; gap: 18px; }
+.auth-dialog-header { gap: 7px; margin-bottom: 0; }
+.auth-dialog-logo { width: 112px; height: auto; margin-bottom: 8px; }
+.auth-dialog-header [data-slot="dialog-title"] { font-size: 24px; line-height: 1.25; }
+.auth-dialog-header [data-slot="dialog-description"] { max-width: 340px; }
+.auth-mode-tabs { display: grid; grid-template-columns: 1fr 1fr; border-bottom: 1px solid var(--border); }
+.auth-mode-tabs button { min-height: 42px; border-bottom: 2px solid transparent; color: var(--muted-foreground); font-size: 13px; transition: color 150ms ease, border-color 150ms ease; }
+.auth-mode-tabs button:hover { color: var(--foreground); }
+.auth-mode-tabs button.is-active { border-bottom-color: var(--primary); color: var(--foreground); font-weight: 600; }
+.auth-mode-tabs button:focus-visible, .auth-text-button:focus-visible, .auth-back-button:focus-visible { outline: 2px solid var(--primary); outline-offset: 3px; }
+.auth-form { display: flex; flex-direction: column; gap: 15px; }
+.auth-field { display: flex; flex-direction: column; gap: 7px; }
+.auth-field label { color: var(--foreground); font-size: 13px; font-weight: 500; }
+.auth-field input:not([type="checkbox"]) { height: 44px; border-radius: 7px; background: var(--background); font-size: 14px; }
+.auth-field input[aria-invalid="true"] { border-color: var(--destructive); }
+.auth-password-wrap { position: relative; }
+.auth-password-wrap input { padding-right: 48px; }
+.auth-password-toggle { position: absolute; top: 3px; right: 3px; height: 38px; width: 38px; color: var(--muted-foreground); }
+.auth-password-toggle:hover { color: var(--foreground); }
+.auth-field-error, .auth-submit-error { color: var(--destructive); font-size: 12px; line-height: 1.5; }
+.auth-submit-error { margin: 0; }
+.auth-form-options { display: flex; min-height: 28px; align-items: center; justify-content: space-between; gap: 12px; margin-top: -3px; }
+.auth-remember { display: inline-flex; align-items: center; gap: 8px; color: var(--muted-foreground); font-size: 12px; cursor: pointer; }
+.auth-remember input { width: 15px; height: 15px; accent-color: var(--primary); }
+.auth-text-button { color: var(--primary); font-size: 12px; }
+.auth-text-button:hover, .auth-back-button:hover { text-decoration: underline; text-underline-offset: 3px; }
+.auth-submit { width: 100%; min-height: 44px; border-radius: 7px; font-size: 14px; }
+.auth-reset-success { margin: 0; border-radius: 6px; background: var(--muted); padding: 11px 12px; color: var(--foreground); font-size: 12px; line-height: 1.6; }
+.auth-back-button { display: inline-flex; min-height: 36px; align-items: center; justify-content: center; gap: 7px; color: var(--muted-foreground); font-size: 13px; }
+
+@media (max-width: 480px) {
+  .auth-dialog-content { padding: 22px; }
+  .auth-dialog-logo { width: 96px; }
 }
