@@ -1,5 +1,6 @@
 export * from "./schemas/timeline";
 export * from "./schemas/auth";
+export * from "./schemas/health";
 export * from "./schemas/script-workflow";
 export * from "./schemas/common";
 export * from "./schemas/problem";
