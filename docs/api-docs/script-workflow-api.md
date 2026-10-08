@@ -4,7 +4,7 @@ Moderator tạo kịch bản podcast lịch sử 3 tập bằng AI. Hệ thống
 
 - Nguồn schema: `packages/shared/src/schemas/script-workflow/*` (Zod, export từ `@repo/shared`).
 - Mã nguồn: `apps/api/src/modules/script-workflow/`.
-- OpenAPI/Scalar: tag **Script Workflow** trong `apps/api/src/routes/docs.ts`.
+- OpenAPI/Scalar: tag **Script Workflow** trong `apps/api/src/routes/docs/paths/script-workflow.ts` (UI tại `/docs`, JSON tại `/openapi.json`).
 
 ## 1. Quy ước chung
 

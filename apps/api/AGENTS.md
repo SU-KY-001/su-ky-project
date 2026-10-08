@@ -43,6 +43,7 @@ Tài liệu này quy định cấu trúc thư mục, kiến trúc phân tầng (
 8. **Tài liệu API & OpenAPI (Scalar API Reference):**
    - OpenAPI 3.1 JSON spec tại `GET /openapi.json`.
    - Giao diện tra cứu API tương tác tại `GET /docs` sử dụng `@scalar/hono-api-reference`.
+   - Đổi API (thêm, sửa, xoá route, đổi response hoặc mã lỗi) phải cập nhật spec trong `src/routes/docs/` theo `src/routes/docs/AGENTS.md`; `tests/openapi.test.ts` fail nếu spec lệch route.
 
 9. **Graceful Shutdown:**
    - Xử lý các tín hiệu `SIGINT` và `SIGTERM` tại `src/index.ts`.
@@ -103,7 +104,7 @@ su-ky-monorepo/
             │   └── errors/              # Custom application exceptions (nếu có)
             │
             ├── routes/                  # Global routes (docs, health, placeholder resources)
-            │   ├── docs.ts              # OpenAPI 3.1 & Scalar API Reference (/docs)
+            │   ├── docs/                # OpenAPI 3.1 & Scalar (/docs); xem docs/AGENTS.md
             │   ├── health.ts            # Hệ thống health check & DB ping
             │   └── ...
             │
@@ -161,6 +162,10 @@ Khi bổ sung một module tính năng mới (ví dụ `podcast`):
 7. **Bước 7: Viết Test tại `apps/api/tests/`**
    - Tạo `apps/api/tests/[feature].test.ts`.
    - Kiểm thử các use-case và endpoint HTTP bằng `bun:test`.
+
+8. **Bước 8: Cập nhật OpenAPI spec**
+   - Thêm operation cho mọi route mới vào `src/routes/docs/paths/` theo `src/routes/docs/AGENTS.md`.
+   - `tests/openapi.test.ts` sẽ fail cho đến khi route được ghi trong spec.
 
 ---
 
