@@ -1,6 +1,6 @@
 # Script Workflow: Đặc tả UX / màn hình (Moderator)
 
-Tài liệu cho FE (`apps/web`) và designer: cần làm những màn hình nào, mỗi màn có gì, hành vi và trạng thái ra sao. Đọc cùng [script-workflow-api.md](./script-workflow-api.md) (schema, mã lỗi) và [design-guidelines.md](./design-guidelines.md) (token màu, font, a11y).
+Tài liệu cho FE (`apps/web`) và designer: cần làm những màn hình nào, mỗi màn có gì, hành vi và trạng thái ra sao. Đọc cùng [script-workflow-api.md](../api-docs/script-workflow-api.md) (schema, mã lỗi) và [design-guidelines.md](../design-guidelines.md) (token màu, font, a11y).
 
 Phạm vi: chỉ phần **tạo kịch bản văn bản** (3 tập). Không có audio trong hệ thống. Moderator copy kịch bản sang ElevenLabs. Chưa có upload PDF/DOC, chưa có liên kết Series/Episode.
 
@@ -357,7 +357,7 @@ Dùng kiểu và Zod schema từ `@repo/shared` để parse response (`GetWorkfl
 
 ## 8. Trợ năng và đáp ứng thiết bị
 
-- Tuân thủ WCAG 2.1 AA của [design-guidelines.md](./design-guidelines.md): độ tương phản chữ tối thiểu 4.5:1, mọi trạng thái có chữ hoặc biểu tượng đi kèm màu.
+- Tuân thủ WCAG 2.1 AA của [design-guidelines.md](../design-guidelines.md): độ tương phản chữ tối thiểu 4.5:1, mọi trạng thái có chữ hoặc biểu tượng đi kèm màu.
 - Stepper là danh sách có nhãn (`aria-current="step"` cho bước đang xem). Thay đổi trạng thái chạy nền thông báo qua `aria-live="polite"` (ví dụ "Bước Dàn ý đã sẵn sàng để duyệt").
 - Hộp thoại có bẫy focus, đóng bằng `Esc`, trả focus về nút gọi. Nút nguy hiểm/không thể hoàn tác có xác nhận.
 - Hoạt ảnh nhấp nháy của trạng thái chờ tắt khi `prefers-reduced-motion`.

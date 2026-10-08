@@ -10,13 +10,13 @@ Moderator tạo kịch bản podcast lịch sử 3 tập bằng AI. Hệ thống
 
 ### 1.1 Base và xác thực
 
-| Mục | Giá trị |
-|---|---|
-| Base path | `/api/script-workflows` |
-| Xác thực | Cookie session của Better Auth (đăng nhập qua `/api/auth/sign-in/email`) |
-| Role | `moderator` (chỉ role này; `admin` bị loại, BR-22) |
-| Content-Type | `application/json` cho body |
-| Cấp role | `POST /api/auth/admin/set-role` với `{ "userId": "...", "role": "moderator" }` |
+| Mục          | Giá trị                                                                        |
+| ------------ | ------------------------------------------------------------------------------ |
+| Base path    | `/api/script-workflows`                                                        |
+| Xác thực     | Cookie session của Better Auth (đăng nhập qua `/api/auth/sign-in/email`)       |
+| Role         | `moderator` (chỉ role này; `admin` bị loại, BR-22)                             |
+| Content-Type | `application/json` cho body                                                    |
+| Cấp role     | `POST /api/auth/admin/set-role` với `{ "userId": "...", "role": "moderator" }` |
 
 - Mọi route đều qua `requireAuth` rồi `requireRole("moderator")`.
 - Gọi từ trình duyệt khác origin phải gửi cookie (`credentials: "include"`). Với `EventSource` dùng `withCredentials: true`.
@@ -30,7 +30,13 @@ Thành công:
 {
   "success": true,
   "data": {},
-  "meta": { "requestId": "string", "timestamp": "ISO-8601", "page": 1, "limit": 20, "total": 0 }
+  "meta": {
+    "requestId": "string",
+    "timestamp": "ISO-8601",
+    "page": 1,
+    "limit": 20,
+    "total": 0
+  }
 }
 ```
 
@@ -48,16 +54,16 @@ Lỗi:
 
 ### 1.3 Bảng mã lỗi
 
-| HTTP | `error.code` | Khi nào |
-|---|---|---|
-| 400 | `VALIDATION_ERROR` | Body/query/param sai schema. `details` = `{ formErrors: string[], fieldErrors: { [field]: string[] } }` (kết quả `ZodError.flatten()`) |
-| 400 | `BAD_REQUEST` | Lỗi nghiệp vụ không phải schema (vd: publish node không hợp lệ, `RERUN` khi bước chưa có version). `message` giải thích |
-| 401 | `UNAUTHORIZED` | Chưa đăng nhập |
-| 403 | `FORBIDDEN` | Đã đăng nhập nhưng role không phải `moderator` |
-| 404 | `NOT_FOUND` | Workflow không tồn tại, không thuộc người gọi, hoặc step/node không tồn tại |
-| 409 | `CONFLICT` | `baseVersion` cũ, hoặc bước không ở `WAITING_FOR_HUMAN` |
-| 503 | `SERVICE_UNAVAILABLE` | `POST /` khi AI runtime chưa sẵn sàng (thiếu khoá/mô hình) |
-| 500 | `INTERNAL_SERVER_ERROR` | Lỗi không xử lý |
+| HTTP | `error.code`            | Khi nào                                                                                                                                |
+| ---- | ----------------------- | -------------------------------------------------------------------------------------------------------------------------------------- |
+| 400  | `VALIDATION_ERROR`      | Body/query/param sai schema. `details` = `{ formErrors: string[], fieldErrors: { [field]: string[] } }` (kết quả `ZodError.flatten()`) |
+| 400  | `BAD_REQUEST`           | Lỗi nghiệp vụ không phải schema (vd: publish node không hợp lệ, `RERUN` khi bước chưa có version). `message` giải thích                |
+| 401  | `UNAUTHORIZED`          | Chưa đăng nhập                                                                                                                         |
+| 403  | `FORBIDDEN`             | Đã đăng nhập nhưng role không phải `moderator`                                                                                         |
+| 404  | `NOT_FOUND`             | Workflow không tồn tại, không thuộc người gọi, hoặc step/node không tồn tại                                                            |
+| 409  | `CONFLICT`              | `baseVersion` cũ, hoặc bước không ở `WAITING_FOR_HUMAN`                                                                                |
+| 503  | `SERVICE_UNAVAILABLE`   | `POST /` khi AI runtime chưa sẵn sàng (thiếu khoá/mô hình)                                                                             |
+| 500  | `INTERNAL_SERVER_ERROR` | Lỗi không xử lý                                                                                                                        |
 
 ### 1.4 Kiểu dữ liệu dùng chung
 
@@ -67,15 +73,15 @@ Lỗi:
 
 #### `StepType` (thứ tự thực thi cố định)
 
-| # | Giá trị | Cổng duyệt | Mô tả |
-|---|---|---|---|
-| 0 | `RESEARCHER` | **Gate 0** (`REVIEW_REQUIRED`) | Tìm nguồn, đề xuất menu trọng tâm kể |
-| 1 | `SOURCE_EVALUATOR` | Tự động | Thẩm định nguồn |
-| 2 | `FACT_EXTRACTOR` | Tự động | Trích fact card, timeline |
-| 3 | `STORY_PLANNER` | **Gate 1** (`REVIEW_REQUIRED`) | Dàn ý 3 tập theo SPDC |
-| 4 | `SCRIPT_WRITER` | Tự động | Viết kịch bản |
-| 5 | `ORALIZER` | Tự động | Chuyển văn nói (có linter dấu câu tự chạy lại 1 lần) |
-| 6 | `FACT_CHECKER` | **Gate 2** (`REVIEW_REQUIRED`) | Đối chiếu sự thật, Moderator phê duyệt xuất bản |
+| #   | Giá trị            | Cổng duyệt                     | Mô tả                                                |
+| --- | ------------------ | ------------------------------ | ---------------------------------------------------- |
+| 0   | `RESEARCHER`       | **Gate 0** (`REVIEW_REQUIRED`) | Tìm nguồn, đề xuất menu trọng tâm kể                 |
+| 1   | `SOURCE_EVALUATOR` | Tự động                        | Thẩm định nguồn                                      |
+| 2   | `FACT_EXTRACTOR`   | Tự động                        | Trích fact card, timeline                            |
+| 3   | `STORY_PLANNER`    | **Gate 1** (`REVIEW_REQUIRED`) | Dàn ý 3 tập theo SPDC                                |
+| 4   | `SCRIPT_WRITER`    | Tự động                        | Viết kịch bản                                        |
+| 5   | `ORALIZER`         | Tự động                        | Chuyển văn nói (có linter dấu câu tự chạy lại 1 lần) |
+| 6   | `FACT_CHECKER`     | **Gate 2** (`REVIEW_REQUIRED`) | Đối chiếu sự thật, Moderator phê duyệt xuất bản      |
 
 #### `WorkflowStatus`
 
@@ -111,17 +117,17 @@ flowchart LR
 
 ## 3. Endpoint
 
-| # | Method | Path | Mục đích |
-|---|---|---|---|
-| 1 | POST | `/` | Tạo workflow |
-| 2 | GET | `/` | Danh sách workflow của tôi |
-| 3 | GET | `/:id` | Chi tiết (7 bước + mọi version) |
-| 4 | GET | `/:id/tree` | Cây node bất biến + publications |
-| 5 | POST | `/:id/step-decisions` | Quyết định của Moderator (CONTINUE/RERUN/DIRECT_EDIT) |
-| 6 | GET | `/:id/publications` | Bản xuất bản kèm `finalScript` |
-| 7 | POST | `/:id/publications` | Xuất bản tường minh một node đã duyệt |
-| 8 | GET | `/:id/events` | Nhật ký sự kiện |
-| 9 | GET | `/:id/events/stream` | Luồng sự kiện realtime (SSE) |
+| #   | Method | Path                  | Mục đích                                              |
+| --- | ------ | --------------------- | ----------------------------------------------------- |
+| 1   | POST   | `/`                   | Tạo workflow                                          |
+| 2   | GET    | `/`                   | Danh sách workflow của tôi                            |
+| 3   | GET    | `/:id`                | Chi tiết (7 bước + mọi version)                       |
+| 4   | GET    | `/:id/tree`           | Cây node bất biến + publications                      |
+| 5   | POST   | `/:id/step-decisions` | Quyết định của Moderator (CONTINUE/RERUN/DIRECT_EDIT) |
+| 6   | GET    | `/:id/publications`   | Bản xuất bản kèm `finalScript`                        |
+| 7   | POST   | `/:id/publications`   | Xuất bản tường minh một node đã duyệt                 |
+| 8   | GET    | `/:id/events`         | Nhật ký sự kiện                                       |
+| 9   | GET    | `/:id/events/stream`  | Luồng sự kiện realtime (SSE)                          |
 
 Path param `:id` ở mọi route: `ScriptWorkflowIdParamSchema` → `{ id: integer ≥ 1 }` (chuỗi số được ép kiểu). Sai định dạng → `400 VALIDATION_ERROR`.
 
@@ -133,9 +139,9 @@ Khởi chạy bước `RESEARCHER` ngay.
 
 **Body** (`CreateScriptWorkflowRequestSchema`)
 
-| Field | Kiểu | Bắt buộc | Ràng buộc |
-|---|---|---|---|
-| `topic` | string | có | Tự `trim()`, độ dài 3 đến 10000 ký tự |
+| Field   | Kiểu   | Bắt buộc | Ràng buộc                             |
+| ------- | ------ | -------- | ------------------------------------- |
+| `topic` | string | có       | Tự `trim()`, độ dài 3 đến 10000 ký tự |
 
 ```json
 { "topic": "Chiến thắng Bạch Đằng năm 1288" }
@@ -161,10 +167,10 @@ Sau khi tạo, theo dõi bằng `GET /:id` (poll) hoặc SSE (mục 3.9).
 
 **Query** (`ListScriptWorkflowsQuerySchema`)
 
-| Param | Kiểu | Mặc định | Ràng buộc |
-|---|---|---|---|
-| `page` | integer | `1` | ≥ 1 |
-| `limit` | integer | `20` | 1 đến 100 |
+| Param   | Kiểu    | Mặc định | Ràng buộc |
+| ------- | ------- | -------- | --------- |
+| `page`  | integer | `1`      | ≥ 1       |
+| `limit` | integer | `20`     | 1 đến 100 |
 
 Sắp xếp `createdAt` giảm dần. Ví dụ `GET /api/script-workflows?page=1&limit=20`.
 
@@ -172,15 +178,15 @@ Sắp xếp `createdAt` giảm dần. Ví dụ `GET /api/script-workflows?page=1
 
 `ScriptWorkflowSummary`
 
-| Field | Kiểu | Ghi chú |
-|---|---|---|
-| `id` | integer | |
-| `topic` | string | |
-| `status` | `WorkflowStatus` | |
+| Field         | Kiểu                   | Ghi chú                   |
+| ------------- | ---------------------- | ------------------------- |
+| `id`          | integer                |                           |
+| `topic`       | string                 |                           |
+| `status`      | `WorkflowStatus`       |                           |
 | `currentStep` | `StepType` hoặc `null` | `null` khi đã `COMPLETED` |
-| `createdAt` | string | |
-| `updatedAt` | string | |
-| `completedAt` | string hoặc `null` | |
+| `createdAt`   | string                 |                           |
+| `updatedAt`   | string                 |                           |
+| `completedAt` | string hoặc `null`     |                           |
 
 ```json
 {
@@ -196,7 +202,13 @@ Sắp xếp `createdAt` giảm dần. Ví dụ `GET /api/script-workflows?page=1
       "completedAt": null
     }
   ],
-  "meta": { "requestId": "…", "timestamp": "…", "page": 1, "limit": 20, "total": 1 }
+  "meta": {
+    "requestId": "…",
+    "timestamp": "…",
+    "page": 1,
+    "limit": 20,
+    "total": 1
+  }
 }
 ```
 
@@ -210,41 +222,41 @@ Luôn trả đủ 7 bước theo thứ tự `STEP_ORDER`. Bước chưa chạy c
 
 **Response `200`** (`GetWorkflowResponseSchema`)
 
-| Field | Kiểu | Ghi chú |
-|---|---|---|
-| `id` | integer | |
-| `status` | `WorkflowStatus` | |
-| `topic` | string | |
-| `currentStep` | `StepType` hoặc `null` | |
-| `steps` | `WorkflowStep[]` | Đúng 7 phần tử |
+| Field         | Kiểu                   | Ghi chú        |
+| ------------- | ---------------------- | -------------- |
+| `id`          | integer                |                |
+| `status`      | `WorkflowStatus`       |                |
+| `topic`       | string                 |                |
+| `currentStep` | `StepType` hoặc `null` |                |
+| `steps`       | `WorkflowStep[]`       | Đúng 7 phần tử |
 
 `WorkflowStep`
 
-| Field | Kiểu | Ghi chú |
-|---|---|---|
-| `type` | `StepType` | |
-| `status` | `StepStatus` | |
-| `reviewPolicy` | `"AUTO_CONTINUE"` hoặc `"REVIEW_REQUIRED"` | `REVIEW_REQUIRED` ở 3 cổng |
-| `reviewer` | string | Nhãn hiển thị (vd `Moderator · Biên tập dàn ý SPDC (Gate 1)`) |
-| `sortOrder` | integer | 0 đến 6 |
-| `currentVersion` | integer hoặc `null` | Version mới nhất. Dùng làm `baseVersion` |
-| `approvedVersion` | integer hoặc `null` | Version đã duyệt |
-| `errorMessage` | string hoặc `null` | Có khi `FAILED` |
-| `incomingGuidance` | string, `null` hoặc vắng | Chỉ dẫn Moderator gửi kèm khi chạy bước này |
-| `versions` | `StepVersion[]` | |
+| Field              | Kiểu                                       | Ghi chú                                                       |
+| ------------------ | ------------------------------------------ | ------------------------------------------------------------- |
+| `type`             | `StepType`                                 |                                                               |
+| `status`           | `StepStatus`                               |                                                               |
+| `reviewPolicy`     | `"AUTO_CONTINUE"` hoặc `"REVIEW_REQUIRED"` | `REVIEW_REQUIRED` ở 3 cổng                                    |
+| `reviewer`         | string                                     | Nhãn hiển thị (vd `Moderator · Biên tập dàn ý SPDC (Gate 1)`) |
+| `sortOrder`        | integer                                    | 0 đến 6                                                       |
+| `currentVersion`   | integer hoặc `null`                        | Version mới nhất. Dùng làm `baseVersion`                      |
+| `approvedVersion`  | integer hoặc `null`                        | Version đã duyệt                                              |
+| `errorMessage`     | string hoặc `null`                         | Có khi `FAILED`                                               |
+| `incomingGuidance` | string, `null` hoặc vắng                   | Chỉ dẫn Moderator gửi kèm khi chạy bước này                   |
+| `versions`         | `StepVersion[]`                            |                                                               |
 
 `StepVersion` (một node)
 
-| Field | Kiểu | Ghi chú |
-|---|---|---|
-| `id` | integer | Id node, dùng cho `approvedVersionId` |
-| `version` | integer | Số thứ tự trong step |
-| `parentVersionId` | integer hoặc `null` | Node cha trong cây |
-| `inputJson` | object/null | Con trỏ ngữ cảnh: `{ parentVersionId, guidance, narrativeSelection, predecessorSteps }`; với `DIRECT_EDIT`: `{ directEdit: true, baseVersion, note }` |
-| `outputJson` | object | Output của agent, schema theo `StepType` (mục 5) |
-| `humanFeedback` | string hoặc `null` | Feedback `RERUN`, hoặc `[Direct Edit] <note>` |
-| `validationStatus` | `"valid"` hoặc `"invalid"` | |
-| `createdAt` | string | |
+| Field              | Kiểu                       | Ghi chú                                                                                                                                               |
+| ------------------ | -------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `id`               | integer                    | Id node, dùng cho `approvedVersionId`                                                                                                                 |
+| `version`          | integer                    | Số thứ tự trong step                                                                                                                                  |
+| `parentVersionId`  | integer hoặc `null`        | Node cha trong cây                                                                                                                                    |
+| `inputJson`        | object/null                | Con trỏ ngữ cảnh: `{ parentVersionId, guidance, narrativeSelection, predecessorSteps }`; với `DIRECT_EDIT`: `{ directEdit: true, baseVersion, note }` |
+| `outputJson`       | object                     | Output của agent, schema theo `StepType` (mục 5)                                                                                                      |
+| `humanFeedback`    | string hoặc `null`         | Feedback `RERUN`, hoặc `[Direct Edit] <note>`                                                                                                         |
+| `validationStatus` | `"valid"` hoặc `"invalid"` |                                                                                                                                                       |
+| `createdAt`        | string                     |                                                                                                                                                       |
 
 **Lỗi**: `400`, `401`, `403`, `404`.
 
@@ -254,24 +266,24 @@ Luôn trả đủ 7 bước theo thứ tự `STEP_ORDER`. Bước chưa chạy c
 
 **Response `200`** (`WorkflowTreeResponseSchema`)
 
-| Field | Kiểu | Ghi chú |
-|---|---|---|
-| `workflowRunId` | integer | |
-| `nodes[]` | object | Mọi node của run, `id` tăng dần |
-| `nodes[].id` | integer | |
-| `nodes[].stepType` | `StepType` | |
-| `nodes[].version` | integer | |
-| `nodes[].parentVersionId` | integer hoặc `null` | Dựng cây từ trường này |
-| `nodes[].status` | `StepStatus` | Trạng thái hiện tại của **step** chứa node, không phải riêng node |
-| `nodes[].approved` | boolean | `true` nếu `version` đúng bằng `approvedVersion` của step |
-| `nodes[].createdAt` | string | |
-| `publications[]` | object | |
-| `publications[].id` | integer | |
-| `publications[].approvedVersionId` | integer | |
-| `publications[].approvedById` | string | |
-| `publications[].totalWords` | integer | |
-| `publications[].estimatedDurationSeconds` | integer | |
-| `publications[].publishedAt` | string | |
+| Field                                     | Kiểu                | Ghi chú                                                           |
+| ----------------------------------------- | ------------------- | ----------------------------------------------------------------- |
+| `workflowRunId`                           | integer             |                                                                   |
+| `nodes[]`                                 | object              | Mọi node của run, `id` tăng dần                                   |
+| `nodes[].id`                              | integer             |                                                                   |
+| `nodes[].stepType`                        | `StepType`          |                                                                   |
+| `nodes[].version`                         | integer             |                                                                   |
+| `nodes[].parentVersionId`                 | integer hoặc `null` | Dựng cây từ trường này                                            |
+| `nodes[].status`                          | `StepStatus`        | Trạng thái hiện tại của **step** chứa node, không phải riêng node |
+| `nodes[].approved`                        | boolean             | `true` nếu `version` đúng bằng `approvedVersion` của step         |
+| `nodes[].createdAt`                       | string              |                                                                   |
+| `publications[]`                          | object              |                                                                   |
+| `publications[].id`                       | integer             |                                                                   |
+| `publications[].approvedVersionId`        | integer             |                                                                   |
+| `publications[].approvedById`             | string              |                                                                   |
+| `publications[].totalWords`               | integer             |                                                                   |
+| `publications[].estimatedDurationSeconds` | integer             |                                                                   |
+| `publications[].publishedAt`              | string              |                                                                   |
 
 Danh sách này không chứa `finalScript`. Lấy văn bản qua mục 3.6.
 
@@ -285,22 +297,22 @@ Một endpoint, ba hành động, phân biệt bằng `action` (discriminated un
 
 #### a) `action: "CONTINUE"` — duyệt node, chạy tiếp
 
-| Field | Kiểu | Bắt buộc | Ghi chú |
-|---|---|---|---|
-| `action` | `"CONTINUE"` | có | |
-| `stepType` | `StepType` | có | Bước đang chờ duyệt |
-| `baseVersion` | integer ≥ 1 | có | Phải bằng `currentVersion` của step. Khoá lạc quan |
-| `incomingGuidance` | string | không | Chỉ dẫn đưa cho bước kế tiếp |
-| `narrativeSelection` | `NarrativeFocusSelection` | không | **Gate 0 nên gửi**: trọng tâm kể đã chọn |
+| Field                | Kiểu                      | Bắt buộc | Ghi chú                                            |
+| -------------------- | ------------------------- | -------- | -------------------------------------------------- |
+| `action`             | `"CONTINUE"`              | có       |                                                    |
+| `stepType`           | `StepType`                | có       | Bước đang chờ duyệt                                |
+| `baseVersion`        | integer ≥ 1               | có       | Phải bằng `currentVersion` của step. Khoá lạc quan |
+| `incomingGuidance`   | string                    | không    | Chỉ dẫn đưa cho bước kế tiếp                       |
+| `narrativeSelection` | `NarrativeFocusSelection` | không    | **Gate 0 nên gửi**: trọng tâm kể đã chọn           |
 
 `NarrativeFocusSelection`
 
-| Field | Kiểu | Ghi chú |
-|---|---|---|
-| `selectedFocusType` | `"DIEN_BIEN"`, `"NGUYEN_NHAN"`, `"NHAN_VAT"`, `"CO_CHE_DIA_LOI"`, `"Y_NGHIA_LICH_SU"` hoặc `"CUSTOM"` | |
-| `seriesTitle` | string | |
-| `episodeTitles` | `[string, string, string]` | Đúng 3 tên tập |
-| `editorialNotes` | string | Tuỳ chọn |
+| Field               | Kiểu                                                                                                  | Ghi chú        |
+| ------------------- | ----------------------------------------------------------------------------------------------------- | -------------- |
+| `selectedFocusType` | `"DIEN_BIEN"`, `"NGUYEN_NHAN"`, `"NHAN_VAT"`, `"CO_CHE_DIA_LOI"`, `"Y_NGHIA_LICH_SU"` hoặc `"CUSTOM"` |                |
+| `seriesTitle`       | string                                                                                                |                |
+| `episodeTitles`     | `[string, string, string]`                                                                            | Đúng 3 tên tập |
+| `editorialNotes`    | string                                                                                                | Tuỳ chọn       |
 
 Gate 0, lấy một phần tử của `RESEARCHER.outputJson.narrativeMenu` để dựng `narrativeSelection`:
 
@@ -320,27 +332,32 @@ Gate 0, lấy một phần tử của `RESEARCHER.outputJson.narrativeMenu` đ�
 
 **Response `200`** `data`:
 
-| Field | Kiểu | Ghi chú |
-|---|---|---|
-| `stepType` | `StepType` | Echo |
-| `action` | `"CONTINUE"` | Echo |
-| `nextStep` | `StepType` hoặc `null` | `null` ở Gate 2 |
-| `publicationId` | integer | Chỉ có ở Gate 2 (`stepType = FACT_CHECKER`) |
+| Field           | Kiểu                   | Ghi chú                                     |
+| --------------- | ---------------------- | ------------------------------------------- |
+| `stepType`      | `StepType`             | Echo                                        |
+| `action`        | `"CONTINUE"`           | Echo                                        |
+| `nextStep`      | `StepType` hoặc `null` | `null` ở Gate 2                             |
+| `publicationId` | integer                | Chỉ có ở Gate 2 (`stepType = FACT_CHECKER`) |
 
 Hiệu ứng:
+
 - Gate 0 và Gate 1: step `COMPLETED`, bước kế tiếp `QUEUED`, run `RUNNING`.
 - Gate 2 (`FACT_CHECKER`): tạo publication, run `COMPLETED`, `currentStep = null`, `completedAt` được điền.
 
 #### b) `action: "RERUN"` — fork, cho agent chạy lại kèm feedback
 
-| Field | Kiểu | Bắt buộc | Ghi chú |
-|---|---|---|---|
-| `action` | `"RERUN"` | có | |
-| `stepType` | `StepType` | có | |
-| `feedback` | string | có | Tối thiểu 1 ký tự. Không có `baseVersion` |
+| Field      | Kiểu       | Bắt buộc | Ghi chú                                   |
+| ---------- | ---------- | -------- | ----------------------------------------- |
+| `action`   | `"RERUN"`  | có       |                                           |
+| `stepType` | `StepType` | có       |                                           |
+| `feedback` | string     | có       | Tối thiểu 1 ký tự. Không có `baseVersion` |
 
 ```json
-{ "action": "RERUN", "stepType": "STORY_PLANNER", "feedback": "Ngắn gọn hơn, nhấn mạnh địa lợi." }
+{
+  "action": "RERUN",
+  "stepType": "STORY_PLANNER",
+  "feedback": "Ngắn gọn hơn, nhấn mạnh địa lợi."
+}
 ```
 
 Hiệu ứng: tạo node mới là anh em của node hiện hành (cùng `parentVersionId`), các bước phía sau chuyển `STALE`, step `QUEUED`, run `RUNNING`. Bước phải đã có ít nhất một version, nếu không `400 BAD_REQUEST`.
@@ -349,32 +366,32 @@ Hiệu ứng: tạo node mới là anh em của node hiện hành (cùng `parent
 
 #### c) `action: "DIRECT_EDIT"` — Moderator sửa tay output
 
-| Field | Kiểu | Bắt buộc | Ghi chú |
-|---|---|---|---|
-| `action` | `"DIRECT_EDIT"` | có | |
-| `stepType` | `StepType` | có | |
-| `baseVersion` | integer ≥ 1 | có | Phải bằng `currentVersion` |
-| `editedOutputJson` | object | có | Phải khớp đúng schema output của `stepType` (mục 5) |
-| `note` | string | không | Lưu vào `humanFeedback` dạng `[Direct Edit] <note>` |
+| Field              | Kiểu            | Bắt buộc | Ghi chú                                             |
+| ------------------ | --------------- | -------- | --------------------------------------------------- |
+| `action`           | `"DIRECT_EDIT"` | có       |                                                     |
+| `stepType`         | `StepType`      | có       |                                                     |
+| `baseVersion`      | integer ≥ 1     | có       | Phải bằng `currentVersion`                          |
+| `editedOutputJson` | object          | có       | Phải khớp đúng schema output của `stepType` (mục 5) |
+| `note`             | string          | không    | Lưu vào `humanFeedback` dạng `[Direct Edit] <note>` |
 
 **Response `200`** `data`:
 
-| Field | Kiểu | Ghi chú |
-|---|---|---|
-| `stepType` | `StepType` | |
-| `action` | `"DIRECT_EDIT"` | |
-| `newVersion` | integer | `baseVersion + 1` |
-| `output` | object | Output đã validate |
+| Field        | Kiểu            | Ghi chú            |
+| ------------ | --------------- | ------------------ |
+| `stepType`   | `StepType`      |                    |
+| `action`     | `"DIRECT_EDIT"` |                    |
+| `newVersion` | integer         | `baseVersion + 1`  |
+| `output`     | object          | Output đã validate |
 
 Step vẫn ở `WAITING_FOR_HUMAN` sau khi sửa. Moderator tiếp tục `CONTINUE` với `baseVersion = newVersion`.
 
 #### Lỗi của `step-decisions`
 
-| HTTP | Điều kiện |
-|---|---|
-| 400 `VALIDATION_ERROR` | Thiếu field, sai `action`, `feedback` rỗng, `DIRECT_EDIT.editedOutputJson` sai schema output (`details.fieldErrors`) |
-| 404 | Workflow không thuộc người gọi, step chưa tồn tại, hoặc không có node ở `baseVersion` (`CONTINUE`) |
-| 409 `CONFLICT` | `CONTINUE`: step không ở `WAITING_FOR_HUMAN` tại đúng `baseVersion`. `DIRECT_EDIT`: step không `WAITING_FOR_HUMAN` hoặc `baseVersion` khác `currentVersion` |
+| HTTP                   | Điều kiện                                                                                                                                                   |
+| ---------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 400 `VALIDATION_ERROR` | Thiếu field, sai `action`, `feedback` rỗng, `DIRECT_EDIT.editedOutputJson` sai schema output (`details.fieldErrors`)                                        |
+| 404                    | Workflow không thuộc người gọi, step chưa tồn tại, hoặc không có node ở `baseVersion` (`CONTINUE`)                                                          |
+| 409 `CONFLICT`         | `CONTINUE`: step không ở `WAITING_FOR_HUMAN` tại đúng `baseVersion`. `DIRECT_EDIT`: step không `WAITING_FOR_HUMAN` hoặc `baseVersion` khác `currentVersion` |
 
 Nhận `409` thì tải lại `GET /:id`, lấy `currentVersion` mới rồi gửi lại.
 
@@ -386,15 +403,15 @@ Sắp xếp `id` giảm dần. Mảng rỗng khi chưa xuất bản.
 
 **Response `200`**: `data` là `ScriptPublication[]` (`ScriptPublicationSchema`)
 
-| Field | Kiểu | Ghi chú |
-|---|---|---|
-| `id` | integer | |
-| `approvedVersionId` | integer | Id node FACT_CHECKER đã duyệt |
-| `approvedById` | string | Id Moderator duyệt |
-| `finalScript` | string | 3 tập nối nhau, mỗi tập mở đầu `# <episodeTitle>` rồi hai xuống dòng rồi lời đọc; các tập cách nhau `\n\n---\n\n` |
-| `totalWords` | integer | |
-| `estimatedDurationSeconds` | integer | Tổng thời lượng 3 tập |
-| `publishedAt` | string | |
+| Field                      | Kiểu    | Ghi chú                                                                                                           |
+| -------------------------- | ------- | ----------------------------------------------------------------------------------------------------------------- |
+| `id`                       | integer |                                                                                                                   |
+| `approvedVersionId`        | integer | Id node FACT_CHECKER đã duyệt                                                                                     |
+| `approvedById`             | string  | Id Moderator duyệt                                                                                                |
+| `finalScript`              | string  | 3 tập nối nhau, mỗi tập mở đầu `# <episodeTitle>` rồi hai xuống dòng rồi lời đọc; các tập cách nhau `\n\n---\n\n` |
+| `totalWords`               | integer |                                                                                                                   |
+| `estimatedDurationSeconds` | integer | Tổng thời lượng 3 tập                                                                                             |
+| `publishedAt`              | string  |                                                                                                                   |
 
 ```json
 {
@@ -418,13 +435,14 @@ Thường không cần gọi: Gate 2 (`CONTINUE` trên `FACT_CHECKER`) đã tự
 
 **Body** (`CreatePublicationRequestSchema`)
 
-| Field | Kiểu | Bắt buộc | Ghi chú |
-|---|---|---|---|
-| `approvedVersionId` | integer ≥ 1 | có | Id node (`StepVersion.id`) |
+| Field               | Kiểu        | Bắt buộc | Ghi chú                    |
+| ------------------- | ----------- | -------- | -------------------------- |
+| `approvedVersionId` | integer ≥ 1 | có       | Id node (`StepVersion.id`) |
 
 **Response `201`**: `{ "success": true, "data": { "publicationId": 1 }, "meta": {…} }`
 
 **Lỗi `400 BAD_REQUEST`** (`message` tiếng Việt) khi:
+
 - Node không tồn tại, hoặc thuộc workflow khác.
 - Node không phải `FACT_CHECKER`.
 - Node chưa được Moderator duyệt ở Gate 2 (`approvedVersion` của step khác version của node).
@@ -438,24 +456,24 @@ Khác: `400 VALIDATION_ERROR`, `401`, `403`, `404`.
 
 **Query** (`WorkflowEventsQuerySchema`)
 
-| Param | Kiểu | Mặc định | Ràng buộc |
-|---|---|---|---|
-| `type` | string | không | Lọc theo **tiền tố** của `type` (vd `step.oralizer`, `pi.`) |
-| `limit` | integer | `50` | 1 đến 200 |
+| Param   | Kiểu    | Mặc định | Ràng buộc                                                   |
+| ------- | ------- | -------- | ----------------------------------------------------------- |
+| `type`  | string  | không    | Lọc theo **tiền tố** của `type` (vd `step.oralizer`, `pi.`) |
+| `limit` | integer | `50`     | 1 đến 200                                                   |
 
 Trả `limit` sự kiện mới nhất, sắp xếp cũ đến mới.
 
 **Response `200`** `data` (`GetWorkflowEventsResponseSchema`)
 
-| Field | Kiểu | Ghi chú |
-|---|---|---|
-| `workflowRunId` | integer | |
-| `count` | integer | Số phần tử trong `events` |
-| `events[].id` | integer | Tăng đơn điệu, dùng làm con trỏ |
-| `events[].type` | string | Xem 6.1 |
-| `events[].message` | string | |
-| `events[].metadataJson` | any hoặc `null` | Tuỳ loại sự kiện |
-| `events[].createdAt` | string | |
+| Field                   | Kiểu            | Ghi chú                         |
+| ----------------------- | --------------- | ------------------------------- |
+| `workflowRunId`         | integer         |                                 |
+| `count`                 | integer         | Số phần tử trong `events`       |
+| `events[].id`           | integer         | Tăng đơn điệu, dùng làm con trỏ |
+| `events[].type`         | string          | Xem 6.1                         |
+| `events[].message`      | string          |                                 |
+| `events[].metadataJson` | any hoặc `null` | Tuỳ loại sự kiện                |
+| `events[].createdAt`    | string          |                                 |
 
 **Lỗi**: `400`, `401`, `403`, `404`.
 
@@ -467,19 +485,20 @@ Trả `limit` sự kiện mới nhất, sắp xếp cũ đến mới.
 
 **Query** (`WorkflowEventStreamQuerySchema`)
 
-| Param | Kiểu | Ghi chú |
-|---|---|---|
+| Param     | Kiểu        | Ghi chú                                                                                                   |
+| --------- | ----------- | --------------------------------------------------------------------------------------------------------- |
 | `afterId` | integer ≥ 0 | Chỉ nhận sự kiện có `id > afterId`. Mặc định lấy từ header `Last-Event-ID`, nếu không có thì `0` (từ đầu) |
 
 **Các event SSE**
 
-| `event` | `id` | `data` | Khi nào |
-|---|---|---|---|
-| `workflow-event` | id sự kiện | JSON `{ id, type, message, metadataJson, createdAt }` (không có `workflowRunId`, giống phần tử của `GET /:id/events`) | Có sự kiện mới |
-| `ping` | không | `keepalive` | Mỗi 8 giây để giữ kết nối |
-| `workflow-done` | không | `{ "workflowRunId": 12, "status": "COMPLETED" }` hoặc `"FAILED"` | Run kết thúc, sau đó server đóng stream |
+| `event`          | `id`       | `data`                                                                                                                | Khi nào                                 |
+| ---------------- | ---------- | --------------------------------------------------------------------------------------------------------------------- | --------------------------------------- |
+| `workflow-event` | id sự kiện | JSON `{ id, type, message, metadataJson, createdAt }` (không có `workflowRunId`, giống phần tử của `GET /:id/events`) | Có sự kiện mới                          |
+| `ping`           | không      | `keepalive`                                                                                                           | Mỗi 8 giây để giữ kết nối               |
+| `workflow-done`  | không      | `{ "workflowRunId": 12, "status": "COMPLETED" }` hoặc `"FAILED"`                                                      | Run kết thúc, sau đó server đóng stream |
 
 Lưu ý khi dùng:
+
 - Xác thực bằng cookie: `new EventSource(url, { withCredentials: true })`. `EventSource` không gửi được header tuỳ biến.
 - Trình duyệt tự kết nối lại kèm `Last-Event-ID`, nên không mất sự kiện. Sau `workflow-done` phải gọi `eventSource.close()`, nếu không trình duyệt sẽ kết nối lại liên tục.
 - Run đã kết thúc: kết nối lại vẫn phát lại các sự kiện còn lại rồi gửi `workflow-done` ngay.
@@ -503,14 +522,14 @@ Lưu ý khi dùng:
 
 ### 5.1 `RESEARCHER` — `ResearchConsultation` (Gate 0)
 
-| Field | Kiểu |
-|---|---|
-| `topic` | string |
-| `historicalTimeframe` | string |
-| `geographicScope` | string |
-| `sourcesCatalogue[]` | `SourceItem` |
-| `narrativeMenu[]` | `NarrativeMenuOption` |
-| `initialResearchQuestions[]` | string |
+| Field                        | Kiểu                  |
+| ---------------------------- | --------------------- |
+| `topic`                      | string                |
+| `historicalTimeframe`        | string                |
+| `geographicScope`            | string                |
+| `sourcesCatalogue[]`         | `SourceItem`          |
+| `narrativeMenu[]`            | `NarrativeMenuOption` |
+| `initialResearchQuestions[]` | string                |
 
 `SourceItem`: `id` string, `name` string, `authorOrOrigin` string, `tier` (`TIER_1_CHINH_SU` | `TIER_2_KHAO_CO` | `TIER_3_KHOA_HOC` | `TIER_4_DA_SU`), `tierDescription` string, `reliabilityScore` number 1 đến 10, `crossVerificationNotes` string, `isPrimaryAssertionSource` boolean, `url?` string, `locationInSource?` string.
 
@@ -518,36 +537,36 @@ Lưu ý khi dùng:
 
 ### 5.2 `SOURCE_EVALUATOR` — `EvaluatedCorpus`
 
-| Field | Kiểu |
-|---|---|
-| `topic` | string |
-| `selectedFocusType` | string |
-| `evaluatedSources[]` | `EvaluatedSource` |
-| `crossVerificationSummary` | string |
-| `singleSidedSourceWarnings[]` | string |
-| `flaggedInsufficientSources[]` | string |
+| Field                          | Kiểu              |
+| ------------------------------ | ----------------- |
+| `topic`                        | string            |
+| `selectedFocusType`            | string            |
+| `evaluatedSources[]`           | `EvaluatedSource` |
+| `crossVerificationSummary`     | string            |
+| `singleSidedSourceWarnings[]`  | string            |
+| `flaggedInsufficientSources[]` | string            |
 
 `EvaluatedSource`: `id`, `name`, `tier` (như trên), `reliabilityScore` number 1 đến 10, `crossVerificationRole` (`DISCOVERY` | `CLAIM_SUPPORT`), `echoChamberFlag` boolean, `debatedDetails[]` string, `notes` string, `url?`, `locationInSource?`.
 
 ### 5.3 `FACT_EXTRACTOR` — `ResearchPack`
 
-| Field | Kiểu |
-|---|---|
-| `topic`, `selectedNarrativeFocus` | string |
-| `factCards[]` | `FactCard` |
-| `chronologicalTimeline[]` | `{ time: string, event: string, factCardId: string }` |
-| `keyEntities[]` | `{ name: string, role: string, historicalStance: string }` |
-| `identifiedResearchGaps[]` | string |
+| Field                             | Kiểu                                                       |
+| --------------------------------- | ---------------------------------------------------------- |
+| `topic`, `selectedNarrativeFocus` | string                                                     |
+| `factCards[]`                     | `FactCard`                                                 |
+| `chronologicalTimeline[]`         | `{ time: string, event: string, factCardId: string }`      |
+| `keyEntities[]`                   | `{ name: string, role: string, historicalStance: string }` |
+| `identifiedResearchGaps[]`        | string                                                     |
 
 `FactCard`: `id`, `claim`, `timePoint?`, `location?`, `entitiesInvolved[]`, `sourceReference`, `citationSnippet`, `confidence` (`CONFIRMED` | `DEBATED` | `INSUFFICIENT`), `potentialRelations[]`, `narrativeRelevance`.
 
 ### 5.4 `STORY_PLANNER` — `StoryOutline` (Gate 1)
 
-| Field | Kiểu |
-|---|---|
-| `seriesTitle`, `narrativeFocus` | string |
-| `scale` | literal `"3_EPISODES"` |
-| `episodes` | tuple đúng 3 `StoryEpisodeOutline` |
+| Field                           | Kiểu                               |
+| ------------------------------- | ---------------------------------- |
+| `seriesTitle`, `narrativeFocus` | string                             |
+| `scale`                         | literal `"3_EPISODES"`             |
+| `episodes`                      | tuple đúng 3 `StoryEpisodeOutline` |
 
 `StoryEpisodeOutline`: `episodeNumber` (1, 2 hoặc 3), `episodeTitle`, `centralQuestion`, `spdcCycle` `{ situation, problem, decision, consequence }` (string), `narrativeBeats[]` string, `pacingPlan` `{ summaryMoments[], detailedSceneMoments[] }`, `hookEnd` string.
 
@@ -565,33 +584,33 @@ Lưu ý khi dùng:
 
 ### 5.7 `FACT_CHECKER` — `ReviewReport` (Gate 2)
 
-| Field | Kiểu |
-|---|---|
-| `passed` | boolean |
-| `overallScore` | number 0 đến 100 |
-| `oralLinter` | `{ hasForbiddenHyphens, hasForbiddenColons, hasForbiddenParentheses, hasFragmentedSentences: boolean, errorDetails: string[] }` |
-| `claimVerification[]` | `{ scriptSentence: string, matchedFactCardId?: string, status: "VERIFIED" \| "UNSUPPORTED_SPECULATION" \| "CONTRADICTION", explanation: string }` |
-| `moderatorSummaryFeedback` | string |
+| Field                      | Kiểu                                                                                                                                              |
+| -------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `passed`                   | boolean                                                                                                                                           |
+| `overallScore`             | number 0 đến 100                                                                                                                                  |
+| `oralLinter`               | `{ hasForbiddenHyphens, hasForbiddenColons, hasForbiddenParentheses, hasFragmentedSentences: boolean, errorDetails: string[] }`                   |
+| `claimVerification[]`      | `{ scriptSentence: string, matchedFactCardId?: string, status: "VERIFIED" \| "UNSUPPORTED_SPECULATION" \| "CONTRADICTION", explanation: string }` |
+| `moderatorSummaryFeedback` | string                                                                                                                                            |
 
 ## 6. Phụ lục
 
 ### 6.1 Các `event.type` thường gặp
 
-| `type` | Ý nghĩa |
-|---|---|
-| `workflow.created` | Tạo run. `metadataJson.createdById` |
-| `step.<step>.started` | Agent bắt đầu. `<step>` là `StepType` viết thường (vd `story_planner`) |
-| `step.<step>.queued` | Bước vào hàng đợi |
-| `step.<step>.waiting_for_human` | Dừng ở cổng |
-| `step.<step>.approved` | Moderator duyệt |
-| `step.<step>.forked` | Moderator `RERUN` |
-| `step.<step>.direct_edited` | Moderator `DIRECT_EDIT` |
-| `step.<step>.retrying` | Lỗi tạm thời, chờ pg-boss thử lại |
-| `step.<step>.failed` | Thất bại. `message` là nguyên nhân |
-| `step.oralizer.lint_failed` / `step.oralizer.lint_passed` | Kết quả linter văn nói |
-| `workflow.downstream_invalidated` | Các bước sau chuyển `STALE` |
-| `workflow.completed` | Xuất bản xong |
-| `pi.<step>.<event>` | Vòng đời phiên agent (Pi SDK), `metadataJson` giới hạn 4 KB |
+| `type`                                                    | Ý nghĩa                                                                |
+| --------------------------------------------------------- | ---------------------------------------------------------------------- |
+| `workflow.created`                                        | Tạo run. `metadataJson.createdById`                                    |
+| `step.<step>.started`                                     | Agent bắt đầu. `<step>` là `StepType` viết thường (vd `story_planner`) |
+| `step.<step>.queued`                                      | Bước vào hàng đợi                                                      |
+| `step.<step>.waiting_for_human`                           | Dừng ở cổng                                                            |
+| `step.<step>.approved`                                    | Moderator duyệt                                                        |
+| `step.<step>.forked`                                      | Moderator `RERUN`                                                      |
+| `step.<step>.direct_edited`                               | Moderator `DIRECT_EDIT`                                                |
+| `step.<step>.retrying`                                    | Lỗi tạm thời, chờ pg-boss thử lại                                      |
+| `step.<step>.failed`                                      | Thất bại. `message` là nguyên nhân                                     |
+| `step.oralizer.lint_failed` / `step.oralizer.lint_passed` | Kết quả linter văn nói                                                 |
+| `workflow.downstream_invalidated`                         | Các bước sau chuyển `STALE`                                            |
+| `workflow.completed`                                      | Xuất bản xong                                                          |
+| `pi.<step>.<event>`                                       | Vòng đời phiên agent (Pi SDK), `metadataJson` giới hạn 4 KB            |
 
 ### 6.2 Cấu hình vận hành
 
