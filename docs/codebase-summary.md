@@ -70,13 +70,13 @@ su-ky-project/
 │   │
 │   └── web/                             # Frontend Single-Page Application
 │       ├── index.html                   # HTML entrypoint with font preconnects
-│       ├── package.json                 # Dependencies: React 19, TanStack Query, Lucide, Tailwind v4
+│       ├── package.json                 # Dependencies: React 19, TanStack Query, Tailwind, shadcn/ui, Magic UI
 │       ├── tsconfig.json                # Extends @repo/tsconfig/react.json
-│       ├── vite.config.ts               # Vite 6 config with React & Tailwind CSS v4 plugins
+│       ├── vite.config.ts               # Vite 8 config with React & Tailwind CSS v4 plugin
 │       └── src/
 │           ├── main.tsx                 # React 19 DOM bootstrap with QueryClientProvider
 │           ├── App.tsx                  # Dashboard with real-time health checks & timeline demo
-│           ├── globals.css              # Global styles & Tailwind CSS v4 imports
+│           ├── styles/globals.css       # Tailwind v4 import, design tokens, and global reset
 │           └── lib/
 │               ├── api.ts               # Type-safe Hono RPC client (`client = hc<AppType>(...)`)
 │               └── queryClient.ts       # TanStack Query client configuration with sensible defaults
@@ -228,7 +228,7 @@ Lightweight, zero-cold-start web service built natively on Bun using Hono v4.
 ---
 
 ### 3.6 `@repo/web` (`apps/web`)
-React 19 single-page application bundled with Vite 6 and styled with Tailwind CSS v4.
+React 19 single-page application bundled with Vite 8 and styled with Tailwind CSS v4, source-owned shadcn/ui components, and selected Magic UI components. The root Tamagui config remains for the Expo mobile app through Metro.
 
 - **RPC Client (`src/lib/api.ts`)**:
   - Creates type-safe client: `client = hc<AppType>(import.meta.env.VITE_API_URL || "http://localhost:3000")`.
@@ -252,7 +252,7 @@ The matrix below illustrates dependencies and consumption boundaries:
 | **`packages/shared`** | Extends `base.json` | — | — | — | `zod` |
 | **`packages/db`** | Extends `bun.json` | Imports DTOs/enums | — | — | `@prisma/client`, `prisma` |
 | **`apps/api`** | Extends `bun.json` | Imports schemas & DTOs | Imports `prisma` | — | `hono`, `@hono/zod-validator`, `zod` |
-| **`apps/web`** | Extends `react.json`| Imports DTOs/enums | — | Imports `AppType` (dev) | `react`, `react-dom`, `@tanstack/react-query`, `lucide-react`, `tailwindcss` |
+| **`apps/web`** | Extends `react.json`| Imports DTOs/enums | — | Imports `AppType` (dev) | `react`, `react-dom`, `@tanstack/react-query`, `tailwindcss`, shadcn/ui source components |
 
 ---
 

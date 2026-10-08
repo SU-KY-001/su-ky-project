@@ -1,8 +1,12 @@
 {
   "extends": "@repo/tsconfig/react.json",
   "compilerOptions": {
-    "rootDir": "src",
+    "rootDir": "../..",
     "outDir": "dist",
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["src/*"]
+    },
     "types": ["vite/client", "node"]
   },
   "include": ["src/**/*"]
