@@ -81,23 +81,28 @@ function ClaimGroup({
         <StatusIconComponent size={18} weight="fill" aria-hidden={true} />
         {meta.label} ({claims.length})
       </summary>
-      <ul className="flex flex-col gap-3 px-3.5 pb-3.5">
-        {claims.map((claim, index) => (
-          <li key={`${index}-${claim.scriptSentence}`} className="flex flex-col gap-1 border-t border-mod-border pt-3">
-            <ModeratorText as="p" className="text-sm font-bold text-mod-text">
-              “{claim.scriptSentence}”
-            </ModeratorText>
-            <ModeratorText as="p" className="text-sm text-mod-text-muted">
-              {claim.explanation}
-            </ModeratorText>
-            {claim.matchedFactCardId ? (
-              <ModeratorText as="p" className="text-xs text-mod-text-secondary">
-                Thẻ sự kiện khớp: <span className="font-mono">{claim.matchedFactCardId}</span>
-              </ModeratorText>
-            ) : null}
-          </li>
-        ))}
-      </ul>
+      <div className="overflow-x-auto border-t border-mod-border">
+        <table className="w-full border-collapse text-left font-moderator text-sm">
+          <thead className="border-b border-slate-700 bg-slate-800 text-xs font-extrabold uppercase tracking-wider text-white">
+            <tr>
+              <th scope="col" className="px-3.5 py-2.5">Câu trong kịch bản</th>
+              <th scope="col" className="px-3.5 py-2.5">Giải thích kiểm chứng</th>
+              <th scope="col" className="px-3.5 py-2.5">Thẻ sự kiện khớp</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-slate-200">
+            {claims.map((claim, index) => (
+              <tr key={`${index}-${claim.scriptSentence}`} className="align-top even:bg-slate-50/80 hover:bg-sky-50/60">
+                <td className="px-3.5 py-3 font-bold text-mod-text">“{claim.scriptSentence}”</td>
+                <td className="px-3.5 py-3 text-mod-text-muted">{claim.explanation}</td>
+                <td className="whitespace-nowrap px-3.5 py-3 font-mono text-xs text-mod-text-secondary">
+                  {claim.matchedFactCardId ?? "—"}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
     </details>
   );
 }

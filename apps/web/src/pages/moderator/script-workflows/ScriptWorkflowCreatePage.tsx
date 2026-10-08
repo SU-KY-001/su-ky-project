@@ -8,7 +8,7 @@ import { CreateWorkflowForm } from "@/features/script-workflow/components/create
 export function ScriptWorkflowCreatePage() {
   return (
     <ModeratorShell nav={scriptWorkflowPageNav()} breadcrumb="Tạo kịch bản" subtitle="Tạo kịch bản podcast mới">
-      <div className="mx-auto flex w-full max-w-[640px] flex-col gap-5">
+      <div className="flex w-full flex-col gap-5">
         <Link
           to={SCRIPT_WORKFLOWS_PATH}
           className="inline-flex min-h-11 w-fit items-center gap-2 text-sm font-bold text-mod-primary-hover no-underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-mod-primary"

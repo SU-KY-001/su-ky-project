@@ -8,8 +8,7 @@ import { EpisodeScriptTabs } from "./EpisodeScriptTabs";
 import { Chip, ParsedOutput, Section } from "./stepUi";
 
 const TAB_ID_PREFIX = "oralizer";
-/** ~70 characters per line keeps long reading comfortable. */
-const TEXT_CLASS = "max-w-[70ch] whitespace-pre-line text-lg leading-8 text-mod-text";
+const TEXT_CLASS = "whitespace-pre-line text-lg leading-8 text-mod-text";
 
 /** Automatic step, read-only: the spoken narration for each episode and the breathing notes. */
 export function OralizerPanel({ output }: { output: unknown }) {
@@ -46,7 +45,7 @@ export function OralizerPanel({ output }: { output: unknown }) {
             wordCount: episode.wordCount,
             estimatedDurationSeconds: episode.estimatedDurationSeconds,
             extra: episode.breathAndPacingNotes ? (
-              <Section title="Ghi chú ngắt hơi và nhịp đọc" className="max-w-[70ch]">
+              <Section title="Ghi chú ngắt hơi và nhịp đọc">
                 <ModeratorText as="p" className="whitespace-pre-line rounded-[10px] bg-mod-canvas px-3.5 py-3 text-sm text-mod-text-muted">
                   {episode.breathAndPacingNotes}
                 </ModeratorText>

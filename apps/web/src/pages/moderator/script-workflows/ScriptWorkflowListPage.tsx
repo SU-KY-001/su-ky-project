@@ -39,7 +39,7 @@ export function ScriptWorkflowListPage() {
 
   return (
     <ModeratorShell nav={scriptWorkflowPageNav()} breadcrumb="Kịch bản podcast" subtitle="Danh sách kịch bản của bạn">
-      <div className="mx-auto flex w-full max-w-[960px] flex-col gap-5">
+      <div className="flex w-full flex-col gap-5">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <ModeratorText as="h1" className="text-2xl font-extrabold tracking-tight text-mod-text">Kịch bản của tôi</ModeratorText>
           <Link

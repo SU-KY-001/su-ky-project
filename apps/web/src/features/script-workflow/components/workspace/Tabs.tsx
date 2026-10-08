@@ -35,7 +35,11 @@ export function TabList<T extends string>({ label, idPrefix, tabs, value, onChan
   };
 
   return (
-    <div role="tablist" aria-label={label} className="flex gap-1 overflow-x-auto border-b border-mod-border">
+    <div
+      role="tablist"
+      aria-label={label}
+      className="inline-flex w-fit max-w-full gap-1.5 overflow-x-auto rounded-[12px] border border-mod-border bg-mod-canvas-accent p-1.5"
+    >
       {tabs.map((tab, index) => {
         const selected = tab.id === value;
         return (
@@ -54,15 +58,22 @@ export function TabList<T extends string>({ label, idPrefix, tabs, value, onChan
             onClick={() => onChange(tab.id)}
             onKeyDown={(event) => move(event, index)}
             className={cn(
-              "-mb-px min-h-11 shrink-0 border-b-2 px-4 text-sm font-bold transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-mod-primary",
+              "min-h-10 shrink-0 rounded-[9px] px-4 text-sm font-extrabold transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-mod-primary",
               selected
-                ? "border-mod-primary text-mod-primary-hover"
-                : "border-transparent text-mod-text-muted hover:text-mod-text",
+                ? "bg-mod-primary text-white shadow-[0_4px_12px_rgba(2,132,199,.25)]"
+                : "text-mod-text-muted hover:bg-mod-surface hover:text-mod-text",
             )}
           >
             <ModeratorText>{tab.label}</ModeratorText>
             {tab.count === undefined ? null : (
-              <ModeratorText className="ml-1.5 rounded-full bg-mod-canvas-accent px-1.5 text-xs">{tab.count}</ModeratorText>
+              <ModeratorText
+                className={cn(
+                  "ml-1.5 rounded-full px-1.5 py-0.5 text-xs font-extrabold",
+                  selected ? "bg-white/20 text-white" : "bg-mod-surface text-mod-text-muted",
+                )}
+              >
+                {tab.count}
+              </ModeratorText>
             )}
           </button>
         );

@@ -9,38 +9,66 @@ const ROLE_LABELS: Record<EvaluatedSource["crossVerificationRole"], string> = {
   CLAIM_SUPPORT: "Nguồn khẳng định",
 };
 
-function EvaluatedSourceCard({ source }: { source: EvaluatedSource }) {
+function EvaluatedSourcesTable({ sources }: { sources: readonly EvaluatedSource[] }) {
   return (
-    <li className="flex flex-col gap-2 rounded-[12px] border border-mod-border bg-mod-surface p-4">
-      <div className="flex flex-wrap items-start justify-between gap-2">
-        <ModeratorText as="h4" className="min-w-0 text-base font-extrabold text-mod-text">{source.name}</ModeratorText>
-        <ReliabilityScore score={source.reliabilityScore} />
-      </div>
-      <div className="flex flex-wrap gap-2">
-        <Chip tone="info">{SOURCE_TIER_LABELS[source.tier]}</Chip>
-        <Chip>{ROLE_LABELS[source.crossVerificationRole]}</Chip>
-        {source.echoChamberFlag ? (
-          <Chip tone="attention" icon={<Repeat size={13} weight="bold" aria-hidden={true} />}>
-            Có thể là vòng lặp trích dẫn
-          </Chip>
-        ) : null}
-      </div>
-      {source.notes ? <ModeratorText as="p" className="text-sm text-mod-text-muted">{source.notes}</ModeratorText> : null}
-      {source.debatedDetails.length > 0 ? (
-        <div className="flex flex-col gap-1">
-          <ModeratorText className="text-xs font-bold text-mod-text-muted">Chi tiết còn tranh luận</ModeratorText>
-          <BulletList items={source.debatedDetails} />
-        </div>
-      ) : null}
-      {source.locationInSource ? (
-        <ModeratorText as="p" className="text-xs text-mod-text-secondary">Vị trí trong nguồn: {source.locationInSource}</ModeratorText>
-      ) : null}
-      {source.url ? (
-        <ModeratorText as="p" className="text-xs">
-          <ExternalLink url={source.url}>{source.url}</ExternalLink>
-        </ModeratorText>
-      ) : null}
-    </li>
+    <div className="overflow-x-auto rounded-[12px] border border-slate-300 bg-mod-surface shadow-[0_4px_16px_rgba(15,23,42,.04)]">
+      <table className="w-full border-collapse text-left font-moderator text-sm">
+        <thead className="border-b border-slate-700 bg-slate-800 text-xs font-extrabold uppercase tracking-wider text-white">
+          <tr>
+            <th scope="col" className="px-4 py-3">Nguồn tư liệu</th>
+            <th scope="col" className="px-4 py-3">Nhóm &amp; vai trò</th>
+            <th scope="col" className="px-4 py-3">Độ tin cậy</th>
+            <th scope="col" className="px-4 py-3">Ghi chú &amp; tranh luận</th>
+          </tr>
+        </thead>
+        <tbody className="divide-y divide-slate-200">
+          {sources.map((source) => (
+            <tr key={source.id} className="align-top even:bg-slate-50/80 hover:bg-sky-50/60">
+              <td className="px-4 py-3.5">
+                <div className="flex flex-col gap-0.5">
+                  <ModeratorText className="text-sm font-extrabold text-mod-text">{source.name}</ModeratorText>
+                  {source.locationInSource ? (
+                    <ModeratorText className="text-xs text-mod-text-secondary">
+                      Vị trí: {source.locationInSource}
+                    </ModeratorText>
+                  ) : null}
+                  {source.url ? (
+                    <ModeratorText className="text-xs">
+                      <ExternalLink url={source.url}>{source.url}</ExternalLink>
+                    </ModeratorText>
+                  ) : null}
+                </div>
+              </td>
+              <td className="px-4 py-3.5">
+                <div className="flex flex-wrap gap-1.5">
+                  <Chip tone="info">{SOURCE_TIER_LABELS[source.tier]}</Chip>
+                  <Chip>{ROLE_LABELS[source.crossVerificationRole]}</Chip>
+                  {source.echoChamberFlag ? (
+                    <Chip tone="attention" icon={<Repeat size={13} weight="bold" aria-hidden={true} />}>
+                      Có thể là vòng lặp trích dẫn
+                    </Chip>
+                  ) : null}
+                </div>
+              </td>
+              <td className="whitespace-nowrap px-4 py-3.5">
+                <ReliabilityScore score={source.reliabilityScore} />
+              </td>
+              <td className="px-4 py-3.5">
+                <div className="flex flex-col gap-1.5">
+                  {source.notes ? <ModeratorText as="p" className="text-sm text-mod-text-muted">{source.notes}</ModeratorText> : null}
+                  {source.debatedDetails.length > 0 ? (
+                    <div className="flex flex-col gap-1">
+                      <ModeratorText className="text-xs font-bold text-mod-text-muted">Chi tiết còn tranh luận:</ModeratorText>
+                      <BulletList items={source.debatedDetails} />
+                    </div>
+                  ) : null}
+                </div>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
   );
 }
 
@@ -71,11 +99,7 @@ export function SourceEvaluatorPanel({ output }: { output: unknown }) {
             {data.evaluatedSources.length === 0 ? (
               <EmptyNote>Chưa có nguồn nào được thẩm định.</EmptyNote>
             ) : (
-              <ul className="grid gap-3 lg:grid-cols-2">
-                {data.evaluatedSources.map((source) => (
-                  <EvaluatedSourceCard key={source.id} source={source} />
-                ))}
-              </ul>
+              <EvaluatedSourcesTable sources={data.evaluatedSources} />
             )}
           </Section>
         </div>

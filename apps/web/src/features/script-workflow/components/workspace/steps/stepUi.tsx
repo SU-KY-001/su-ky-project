@@ -7,11 +7,11 @@ import type { StatusTone } from "../../../labels";
 import { TONE_TEXT_CLASS } from "../StatusBadge";
 
 const CALLOUT_CLASS: Record<StatusTone, string> = {
-  neutral: "border-mod-border bg-mod-canvas",
-  info: "border-mod-primary/40 bg-mod-primary/10",
-  attention: "border-mod-attention/40 bg-mod-attention/10",
-  success: "border-mod-success/40 bg-mod-success/10",
-  danger: "border-mod-danger/40 bg-mod-danger/10",
+  neutral: "border-slate-300 bg-slate-100/90",
+  info: "border-sky-300 bg-sky-100/90",
+  attention: "border-amber-300 bg-amber-100/90",
+  success: "border-emerald-300 bg-emerald-100/90",
+  danger: "border-red-300 bg-red-100/90",
 };
 
 const CALLOUT_ICON: Record<StatusTone, Icon> = {
@@ -39,7 +39,12 @@ export function Callout({ tone, title, children, role }: CalloutProps) {
 }
 
 export function SectionTitle({ children }: { children: ReactNode }) {
-  return <ModeratorText as="h3" className="text-sm font-extrabold uppercase tracking-wide text-mod-text-muted">{children}</ModeratorText>;
+  return (
+    <ModeratorText as="h3" className="flex items-center gap-2 text-sm font-extrabold uppercase tracking-wider text-mod-text">
+      <span aria-hidden="true" className="h-4 w-1.5 shrink-0 rounded-full bg-mod-primary" />
+      <span>{children}</span>
+    </ModeratorText>
+  );
 }
 
 export function Section({ title, children, className }: { title: string; children: ReactNode; className?: string }) {

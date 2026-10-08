@@ -46,7 +46,7 @@ export function ScriptWorkflowWorkspacePage() {
 
   return (
     <ModeratorShell nav={scriptWorkflowPageNav()} breadcrumb="Kịch bản podcast" subtitle="Duyệt từng bước của kịch bản">
-      <div className="mx-auto flex w-full max-w-[1200px] flex-col gap-5">
+      <div className="flex w-full flex-col gap-5">
         {parsedId.success ? <WorkspaceContent id={parsedId.data.id} /> : <WorkspaceNotFound />}
       </div>
     </ModeratorShell>

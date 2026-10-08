@@ -17,52 +17,71 @@ const CONFIDENCE: Record<FactConfidence, { label: string; tone: StatusTone; icon
   INSUFFICIENT: { label: "Chưa đủ dữ liệu", tone: "danger", icon: Question },
 };
 
-function FactCardView({ card, highlighted }: { card: FactCard; highlighted: boolean }) {
-  const confidence = CONFIDENCE[card.confidence];
-  const ConfidenceIcon = confidence.icon;
-  return (
-    <li
-      ref={(node) => {
-        if (node && highlighted) node.scrollIntoView({ block: "center" });
-      }}
-      className={cn(
-        "flex flex-col gap-2 rounded-[12px] border bg-mod-surface p-4",
-        highlighted ? "border-mod-primary ring-2 ring-mod-primary/30" : "border-mod-border",
-      )}
-    >
-      <div className="flex flex-wrap items-center gap-2">
-        <Chip tone={confidence.tone} icon={<ConfidenceIcon size={13} weight="fill" aria-hidden={true} />}>
-          {confidence.label}
-        </Chip>
-        {card.timePoint ? <ModeratorText className="font-mono text-sm font-bold text-mod-text">{card.timePoint}</ModeratorText> : null}
-        {card.location ? <ModeratorText className="text-sm text-mod-text-secondary">{card.location}</ModeratorText> : null}
-      </div>
-      <ModeratorText as="p" className="text-base font-bold text-mod-text">{card.claim}</ModeratorText>
-      <blockquote className="border-l-2 border-mod-border pl-3 font-moderator text-sm text-mod-text-muted">
-        {card.citationSnippet}
-      </blockquote>
-      <ModeratorText as="p" className="text-xs text-mod-text-secondary">Nguồn: {card.sourceReference}</ModeratorText>
-      {card.entitiesInvolved.length > 0 ? (
-        <ModeratorText as="p" className="text-xs text-mod-text-secondary">
-          Liên quan: {card.entitiesInvolved.join(", ")}
-        </ModeratorText>
-      ) : null}
-      <ModeratorText as="p" className="text-sm text-mod-text-muted">
-        <span className="font-bold">Vai trò trong câu chuyện: </span>
-        {card.narrativeRelevance}
-      </ModeratorText>
-    </li>
-  );
-}
-
 function FactCardsTab({ pack, highlightId }: { pack: ResearchPack; highlightId: string | null }) {
   if (pack.factCards.length === 0) return <EmptyNote>Chưa có thẻ sự kiện nào.</EmptyNote>;
   return (
-    <ul className="grid gap-3 lg:grid-cols-2">
-      {pack.factCards.map((card) => (
-        <FactCardView key={card.id} card={card} highlighted={card.id === highlightId} />
-      ))}
-    </ul>
+    <div className="overflow-x-auto rounded-[12px] border border-slate-300 bg-mod-surface shadow-[0_4px_16px_rgba(15,23,42,.04)]">
+      <table className="w-full border-collapse text-left font-moderator text-sm">
+        <thead className="border-b border-slate-700 bg-slate-800 text-xs font-extrabold uppercase tracking-wider text-white">
+          <tr>
+            <th scope="col" className="px-4 py-3">Độ tin cậy &amp; mốc</th>
+            <th scope="col" className="px-4 py-3">Sự kiện &amp; trích dẫn</th>
+            <th scope="col" className="px-4 py-3">Nguồn &amp; nhân vật</th>
+            <th scope="col" className="px-4 py-3">Vai trò câu chuyện</th>
+          </tr>
+        </thead>
+        <tbody className="divide-y divide-slate-200">
+          {pack.factCards.map((card: FactCard) => {
+            const confidence = CONFIDENCE[card.confidence];
+            const ConfidenceIcon = confidence.icon;
+            const highlighted = card.id === highlightId;
+            return (
+              <tr
+                key={card.id}
+                ref={(node) => {
+                  if (node && highlighted) node.scrollIntoView({ block: "center" });
+                }}
+                className={cn(
+                  "align-top even:bg-slate-50/80 hover:bg-sky-50/60",
+                  highlighted ? "bg-mod-primary/15 ring-2 ring-inset ring-mod-primary" : undefined,
+                )}
+              >
+                <td className="whitespace-nowrap px-4 py-3.5">
+                  <div className="flex flex-col items-start gap-1">
+                    <Chip tone={confidence.tone} icon={<ConfidenceIcon size={13} weight="fill" aria-hidden={true} />}>
+                      {confidence.label}
+                    </Chip>
+                    {card.timePoint ? <ModeratorText className="font-mono text-xs font-bold text-mod-text">{card.timePoint}</ModeratorText> : null}
+                    {card.location ? <ModeratorText className="text-xs text-mod-text-secondary">{card.location}</ModeratorText> : null}
+                  </div>
+                </td>
+                <td className="px-4 py-3.5">
+                  <div className="flex flex-col gap-1.5">
+                    <ModeratorText as="p" className="text-sm font-bold text-mod-text">{card.claim}</ModeratorText>
+                    <blockquote className="border-l-2 border-mod-border pl-3 font-moderator text-xs text-mod-text-muted">
+                      {card.citationSnippet}
+                    </blockquote>
+                  </div>
+                </td>
+                <td className="px-4 py-3.5">
+                  <div className="flex flex-col gap-1">
+                    <ModeratorText className="text-xs font-semibold text-mod-text">{card.sourceReference}</ModeratorText>
+                    {card.entitiesInvolved.length > 0 ? (
+                      <ModeratorText className="text-xs text-mod-text-secondary">
+                        Liên quan: {card.entitiesInvolved.join(", ")}
+                      </ModeratorText>
+                    ) : null}
+                  </div>
+                </td>
+                <td className="px-4 py-3.5">
+                  <ModeratorText as="p" className="text-sm text-mod-text-muted">{card.narrativeRelevance}</ModeratorText>
+                </td>
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
+    </div>
   );
 }
 
@@ -96,15 +115,26 @@ function TimelineTab({ pack, onOpenCard }: { pack: ResearchPack; onOpenCard: (id
 function EntitiesTab({ pack }: { pack: ResearchPack }) {
   if (pack.keyEntities.length === 0) return <EmptyNote>Chưa có nhân vật nào.</EmptyNote>;
   return (
-    <ul className="grid gap-3 lg:grid-cols-2">
-      {pack.keyEntities.map((entity, index) => (
-        <li key={`${index}-${entity.name}`} className="flex flex-col gap-1 rounded-[12px] border border-mod-border bg-mod-surface p-4">
-          <ModeratorText as="h4" className="text-base font-extrabold text-mod-text">{entity.name}</ModeratorText>
-          <ModeratorText className="text-sm font-semibold text-mod-text-muted">{entity.role}</ModeratorText>
-          <ModeratorText as="p" className="text-sm text-mod-text-secondary">{entity.historicalStance}</ModeratorText>
-        </li>
-      ))}
-    </ul>
+    <div className="overflow-x-auto rounded-[12px] border border-slate-300 bg-mod-surface shadow-[0_4px_16px_rgba(15,23,42,.04)]">
+      <table className="w-full border-collapse text-left font-moderator text-sm">
+        <thead className="border-b border-slate-700 bg-slate-800 text-xs font-extrabold uppercase tracking-wider text-white">
+          <tr>
+            <th scope="col" className="px-4 py-3">Nhân vật / Thực thể</th>
+            <th scope="col" className="px-4 py-3">Vai trò</th>
+            <th scope="col" className="px-4 py-3">Lập trường lịch sử</th>
+          </tr>
+        </thead>
+        <tbody className="divide-y divide-slate-200">
+          {pack.keyEntities.map((entity, index) => (
+            <tr key={`${index}-${entity.name}`} className="align-top even:bg-slate-50/80 hover:bg-sky-50/60">
+              <td className="px-4 py-3 font-extrabold text-mod-text">{entity.name}</td>
+              <td className="px-4 py-3 font-semibold text-mod-text-muted">{entity.role}</td>
+              <td className="px-4 py-3 text-mod-text-secondary">{entity.historicalStance}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
   );
 }
 

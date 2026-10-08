@@ -84,7 +84,7 @@ export function ScriptWorkflowPublicationPage() {
       breadcrumb="Kịch bản podcast"
       subtitle="Kết quả xuất bản kịch bản"
     >
-      <div className="mx-auto flex w-full max-w-[1200px] flex-col gap-5">
+      <div className="flex w-full flex-col gap-5">
         {parsedId.success ? <PublicationContent id={parsedId.data.id} /> : <WorkspaceNotFound />}
       </div>
     </ModeratorShell>

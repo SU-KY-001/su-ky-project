@@ -22,7 +22,7 @@ import { CopyButton } from "./CopyButton";
 import { ImportResultBanner, StudioImportButton } from "./StudioImportControl";
 
 const EPISODE_TAB_PREFIX = "publication-episode";
-const SPOKEN_TEXT_CLASS = "max-w-[70ch] whitespace-pre-line text-lg leading-8 text-mod-text";
+const SPOKEN_TEXT_CLASS = "whitespace-pre-line text-lg leading-8 text-mod-text";
 const CHIP_ICON_SIZE = 13;
 const BACK_ICON_SIZE = 16;
 
@@ -37,24 +37,36 @@ function findApprovedFactCheckerVersion(
   return null;
 }
 
-function ReferenceSourceItem({ source }: { source: EvaluatedSource }) {
+function ReferenceSourcesTable({ sources }: { sources: readonly EvaluatedSource[] }) {
   return (
-    <li className="flex flex-col gap-2 rounded-[12px] border border-mod-border bg-mod-canvas p-4">
-      <div className="flex flex-wrap items-start justify-between gap-2">
-        <ModeratorText as="h4" className="min-w-0 text-sm font-extrabold text-mod-text">
-          {source.name}
-        </ModeratorText>
-        <ReliabilityScore score={source.reliabilityScore} />
-      </div>
-      <div className="flex flex-wrap items-center gap-2">
-        <Chip tone="info">{SOURCE_TIER_LABELS[source.tier]}</Chip>
-      </div>
-      {source.url ? (
-        <ModeratorText as="p" className="text-xs">
-          <ExternalLink url={source.url}>{source.url}</ExternalLink>
-        </ModeratorText>
-      ) : null}
-    </li>
+    <div className="overflow-x-auto rounded-[12px] border border-slate-300 bg-mod-surface shadow-[0_4px_16px_rgba(15,23,42,.04)]">
+      <table className="w-full border-collapse text-left font-moderator text-sm">
+        <thead className="border-b border-slate-700 bg-slate-800 text-xs font-extrabold uppercase tracking-wider text-white">
+          <tr>
+            <th scope="col" className="px-4 py-3">Nguồn tư liệu</th>
+            <th scope="col" className="px-4 py-3">Nhóm nguồn</th>
+            <th scope="col" className="px-4 py-3">Độ tin cậy</th>
+            <th scope="col" className="px-4 py-3">Liên kết</th>
+          </tr>
+        </thead>
+        <tbody className="divide-y divide-slate-200">
+          {sources.map((source) => (
+            <tr key={source.id} className="align-top even:bg-slate-50/80 hover:bg-sky-50/60">
+              <td className="px-4 py-3 font-extrabold text-mod-text">{source.name}</td>
+              <td className="whitespace-nowrap px-4 py-3">
+                <Chip tone="info">{SOURCE_TIER_LABELS[source.tier]}</Chip>
+              </td>
+              <td className="whitespace-nowrap px-4 py-3">
+                <ReliabilityScore score={source.reliabilityScore} />
+              </td>
+              <td className="px-4 py-3 text-xs">
+                {source.url ? <ExternalLink url={source.url}>{source.url}</ExternalLink> : <span className="text-mod-text-low">—</span>}
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
   );
 }
 
@@ -144,7 +156,7 @@ function PublicationEpisodesSection({
             </div>
 
             {episode.breathAndPacingNotes ? (
-              <Section title="Ghi chú nhịp đọc" className="max-w-[70ch]">
+              <Section title="Ghi chú nhịp đọc">
                 <ModeratorText
                   as="p"
                   className="whitespace-pre-line rounded-[10px] bg-mod-canvas px-3.5 py-3 text-sm text-mod-text-muted"
@@ -189,11 +201,7 @@ function PublicationSourcesSection({
       {sources.length === 0 ? (
         <EmptyNote>Chưa có nguồn tham khảo được ghi nhận.</EmptyNote>
       ) : (
-        <ul className="grid gap-3 md:grid-cols-2">
-          {sources.map((source) => (
-            <ReferenceSourceItem key={source.id} source={source} />
-          ))}
-        </ul>
+        <ReferenceSourcesTable sources={sources} />
       )}
     </Section>
   );

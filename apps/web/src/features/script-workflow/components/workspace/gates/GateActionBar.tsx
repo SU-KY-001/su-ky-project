@@ -237,7 +237,7 @@ export function GateActionBar({
             type="button"
             disabled={isBusy || rateLimit !== null}
             onClick={() => onRequestRerun(step.type)}
-            className="inline-flex min-h-11 items-center gap-2 rounded-[10px] border border-mod-border bg-mod-surface px-3.5 font-moderator text-sm font-bold text-mod-text hover:bg-mod-canvas-accent focus-visible:outline focus-visible:outline-2 focus-visible:outline-mod-primary disabled:opacity-50"
+            className="inline-flex min-h-11 items-center gap-2 rounded-[10px] border border-slate-600 bg-slate-800 px-3.5 font-moderator text-sm font-bold text-white hover:bg-slate-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-mod-primary disabled:opacity-50"
           >
             <ArrowsClockwise size={ICON_SIZE} weight="bold" aria-hidden={true} />
             Làm lại…
@@ -248,32 +248,45 @@ export function GateActionBar({
             disabled={isBusy || rateLimit !== null}
             title={editTooltip}
             onClick={onToggleEdit}
-            className="inline-flex min-h-11 items-center gap-2 rounded-[10px] border border-mod-border bg-mod-surface px-3.5 font-moderator text-sm font-bold text-mod-text hover:bg-mod-canvas-accent focus-visible:outline focus-visible:outline-2 focus-visible:outline-mod-primary disabled:opacity-50"
+            className="inline-flex min-h-11 items-center gap-2 rounded-[10px] border border-slate-600 bg-slate-800 px-3.5 font-moderator text-sm font-bold text-white hover:bg-slate-700 focus-visible:outline focus-visible:outline-2 focus-visible:outline-mod-primary disabled:opacity-50"
           >
             <PencilSimple size={ICON_SIZE} weight="bold" aria-hidden={true} />
             {editing && step.type !== "RESEARCHER" ? "Đóng sửa tay" : "Sửa tay"}
           </button>
 
           {editTooltip ? (
-            <ModeratorText className="text-xs text-mod-text-secondary">
+            <ModeratorText className="text-xs text-slate-300">
               ({editTooltip})
             </ModeratorText>
           ) : null}
         </div>
 
-        <button
-          type="button"
-          disabled={!canContinue}
-          onClick={handleContinueClick}
-          className="inline-flex min-h-11 items-center gap-2 rounded-[10px] bg-mod-primary px-4 font-moderator text-sm font-bold text-white hover:bg-mod-primary-hover focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-mod-primary disabled:opacity-50"
-        >
-          {isBusy ? (
-            <CircleNotch size={ICON_SIZE} weight="bold" className="motion-safe:animate-spin" aria-hidden={true} />
-          ) : (
-            <CheckCircle size={ICON_SIZE} weight="bold" aria-hidden={true} />
-          )}
-          <ModeratorText>{primaryLabel}</ModeratorText>
-        </button>
+        <div className="flex flex-wrap items-center gap-3">
+          {step.type === "RESEARCHER" && !focusDraft.isValid ? (
+            <button
+              type="button"
+              onClick={() => {
+                document.getElementById("gate0-focus-section")?.scrollIntoView({ behavior: "smooth", block: "start" });
+              }}
+              className="inline-flex min-h-10 items-center gap-1.5 rounded-[10px] border border-amber-400/80 bg-amber-500/20 px-3 font-moderator text-xs font-extrabold text-amber-200 hover:bg-amber-500/30 focus-visible:outline focus-visible:outline-2 focus-visible:outline-mod-primary"
+            >
+              Chưa chọn trọng tâm kể · Cuộn tới phần chọn ↓
+            </button>
+          ) : null}
+          <button
+            type="button"
+            disabled={!canContinue}
+            onClick={handleContinueClick}
+            className="inline-flex min-h-11 items-center gap-2 rounded-[10px] bg-mod-primary px-5 font-moderator text-sm font-extrabold text-white shadow-[0_4px_14px_rgba(2,132,199,.38)] hover:bg-mod-primary-hover focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-mod-primary disabled:opacity-50"
+          >
+            {isBusy ? (
+              <CircleNotch size={ICON_SIZE} weight="bold" className="motion-safe:animate-spin" aria-hidden={true} />
+            ) : (
+              <CheckCircle size={ICON_SIZE} weight="bold" aria-hidden={true} />
+            )}
+            <ModeratorText>{primaryLabel}</ModeratorText>
+          </button>
+        </div>
       </div>
 
       <ConfirmDialog

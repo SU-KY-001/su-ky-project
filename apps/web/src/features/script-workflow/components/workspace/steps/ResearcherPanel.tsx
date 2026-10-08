@@ -72,104 +72,126 @@ function applyFilterAndSort(sources: readonly SourceItem[], tier: TierFilter, or
   return filtered;
 }
 
-type SourceCardProps = {
-  source: SourceItem;
+type SourcesTableProps = {
+  sources: readonly SourceItem[];
   interactive: boolean;
-  confirmingDelete: boolean;
-  onEdit?: () => void;
-  onRequestDelete?: () => void;
-  onConfirmDelete?: () => void;
+  confirmingDeleteId: string | null;
+  onEdit?: (source: SourceItem) => void;
+  onRequestDelete?: (sourceId: string) => void;
+  onConfirmDelete?: (sourceId: string) => void;
   onCancelDelete?: () => void;
 };
 
-function SourceCard({
-  source,
+function SourcesTable({
+  sources,
   interactive,
-  confirmingDelete,
+  confirmingDeleteId,
   onEdit,
   onRequestDelete,
   onConfirmDelete,
   onCancelDelete,
-}: SourceCardProps) {
+}: SourcesTableProps) {
   return (
-    <li className="flex flex-col gap-2.5 rounded-[12px] border border-mod-border bg-mod-surface p-4">
-      <div className="flex flex-wrap items-start justify-between gap-2">
-        <div className="flex min-w-0 flex-col gap-0.5">
-          <ModeratorText as="h4" className="text-base font-extrabold text-mod-text">
-            {source.name}
-          </ModeratorText>
-          <ModeratorText className="text-sm text-mod-text-secondary">{source.authorOrOrigin}</ModeratorText>
-        </div>
-        <ReliabilityScore score={source.reliabilityScore} />
-      </div>
-      <div className="flex flex-wrap gap-2">
-        <Chip tone="info">{SOURCE_TIER_LABELS[source.tier]}</Chip>
-        {source.isPrimaryAssertionSource ? (
-          <Chip tone="success" icon={<Star size={ICON_SIZE_SM} weight="fill" aria-hidden={true} />}>
-            Nguồn khẳng định chính
-          </Chip>
-        ) : null}
-      </div>
-      <ModeratorText as="p" className="text-sm text-mod-text-muted">
-        {source.crossVerificationNotes}
-      </ModeratorText>
-      {source.locationInSource ? (
-        <ModeratorText as="p" className="text-xs text-mod-text-secondary">
-          Vị trí trong nguồn: {source.locationInSource}
-        </ModeratorText>
-      ) : null}
-      {source.url ? (
-        <ModeratorText as="p" className="text-xs">
-          <ExternalLink url={source.url}>{source.url}</ExternalLink>
-        </ModeratorText>
-      ) : null}
-
-      {interactive ? (
-        <div className="mt-1 flex flex-wrap items-center justify-end gap-2 border-t border-mod-border pt-2.5">
-          {confirmingDelete ? (
-            <>
-              <ModeratorText className="mr-auto text-xs font-bold text-mod-danger">
-                Xoá nguồn này?
-              </ModeratorText>
-              <button
-                type="button"
-                onClick={onCancelDelete}
-                className="inline-flex min-h-11 items-center rounded-[10px] border border-mod-border bg-mod-surface px-3 font-moderator text-xs font-bold text-mod-text hover:bg-mod-canvas-accent focus-visible:outline focus-visible:outline-2 focus-visible:outline-mod-primary"
-              >
-                Hủy
-              </button>
-              <button
-                type="button"
-                onClick={onConfirmDelete}
-                className="inline-flex min-h-11 items-center gap-1.5 rounded-[10px] bg-mod-danger px-3 font-moderator text-xs font-bold text-white hover:opacity-90 focus-visible:outline focus-visible:outline-2 focus-visible:outline-mod-primary"
-              >
-                <Trash size={ICON_SIZE_SM} weight="bold" aria-hidden={true} />
-                Xác nhận xoá
-              </button>
-            </>
-          ) : (
-            <>
-              <button
-                type="button"
-                onClick={onEdit}
-                className="inline-flex min-h-11 items-center gap-1.5 rounded-[10px] border border-mod-border bg-mod-surface px-3 font-moderator text-xs font-bold text-mod-text hover:bg-mod-canvas-accent focus-visible:outline focus-visible:outline-2 focus-visible:outline-mod-primary"
-              >
-                <PencilSimple size={ICON_SIZE_SM} weight="bold" aria-hidden={true} />
-                Sửa
-              </button>
-              <button
-                type="button"
-                onClick={onRequestDelete}
-                className="inline-flex min-h-11 items-center gap-1.5 rounded-[10px] border border-mod-border bg-mod-surface px-3 font-moderator text-xs font-bold text-mod-danger hover:bg-mod-danger/10 focus-visible:outline focus-visible:outline-2 focus-visible:outline-mod-primary"
-              >
-                <Trash size={ICON_SIZE_SM} weight="bold" aria-hidden={true} />
-                Xoá
-              </button>
-            </>
-          )}
-        </div>
-      ) : null}
-    </li>
+    <div className="overflow-x-auto rounded-[12px] border border-slate-300 bg-mod-surface shadow-[0_4px_16px_rgba(15,23,42,.04)]">
+      <table className="w-full border-collapse text-left font-moderator text-sm">
+        <thead className="border-b border-slate-700 bg-slate-800 text-xs font-extrabold uppercase tracking-wider text-white">
+          <tr>
+            <th scope="col" className="px-4 py-3">Nguồn tư liệu</th>
+            <th scope="col" className="px-4 py-3">Nhóm &amp; vai trò</th>
+            <th scope="col" className="px-4 py-3">Độ tin cậy</th>
+            <th scope="col" className="px-4 py-3">Ghi chú đối chiếu</th>
+            {interactive ? <th scope="col" className="px-4 py-3 text-right">Thao tác</th> : null}
+          </tr>
+        </thead>
+        <tbody className="divide-y divide-slate-200">
+          {sources.map((source) => {
+            const confirmingDelete = confirmingDeleteId === source.id;
+            return (
+              <tr key={source.id} className="align-top even:bg-slate-50/80 hover:bg-sky-50/60">
+                <td className="px-4 py-3.5">
+                  <div className="flex flex-col gap-0.5">
+                    <ModeratorText className="text-sm font-extrabold text-mod-text">{source.name}</ModeratorText>
+                    <ModeratorText className="text-xs text-mod-text-secondary">{source.authorOrOrigin}</ModeratorText>
+                    {source.locationInSource ? (
+                      <ModeratorText className="text-xs text-mod-text-secondary">
+                        Vị trí: {source.locationInSource}
+                      </ModeratorText>
+                    ) : null}
+                    {source.url ? (
+                      <ModeratorText className="text-xs">
+                        <ExternalLink url={source.url}>{source.url}</ExternalLink>
+                      </ModeratorText>
+                    ) : null}
+                  </div>
+                </td>
+                <td className="px-4 py-3.5">
+                  <div className="flex flex-wrap gap-1.5">
+                    <Chip tone="info">{SOURCE_TIER_LABELS[source.tier]}</Chip>
+                    {source.isPrimaryAssertionSource ? (
+                      <Chip tone="success" icon={<Star size={ICON_SIZE_SM} weight="fill" aria-hidden={true} />}>
+                        Nguồn khẳng định chính
+                      </Chip>
+                    ) : null}
+                  </div>
+                </td>
+                <td className="whitespace-nowrap px-4 py-3.5">
+                  <ReliabilityScore score={source.reliabilityScore} />
+                </td>
+                <td className="px-4 py-3.5">
+                  <ModeratorText as="p" className="text-sm text-mod-text-muted">
+                    {source.crossVerificationNotes}
+                  </ModeratorText>
+                </td>
+                {interactive ? (
+                  <td className="whitespace-nowrap px-4 py-3.5 text-right">
+                    <div className="inline-flex flex-wrap items-center justify-end gap-2">
+                      {confirmingDelete ? (
+                        <>
+                          <button
+                            type="button"
+                            onClick={onCancelDelete}
+                            className="inline-flex min-h-11 items-center rounded-[10px] border border-mod-border bg-mod-surface px-3 font-moderator text-xs font-bold text-mod-text hover:bg-mod-canvas-accent focus-visible:outline focus-visible:outline-2 focus-visible:outline-mod-primary"
+                          >
+                            Hủy
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => onConfirmDelete?.(source.id)}
+                            className="inline-flex min-h-11 items-center gap-1.5 rounded-[10px] bg-mod-danger px-3 font-moderator text-xs font-bold text-white hover:opacity-90 focus-visible:outline focus-visible:outline-2 focus-visible:outline-mod-primary"
+                          >
+                            <Trash size={ICON_SIZE_SM} weight="bold" aria-hidden={true} />
+                            Xác nhận xoá
+                          </button>
+                        </>
+                      ) : (
+                        <>
+                          <button
+                            type="button"
+                            onClick={() => onEdit?.(source)}
+                            className="inline-flex min-h-11 items-center gap-1.5 rounded-[10px] border border-mod-border bg-mod-surface px-3 font-moderator text-xs font-bold text-mod-text hover:bg-mod-canvas-accent focus-visible:outline focus-visible:outline-2 focus-visible:outline-mod-primary"
+                          >
+                            <PencilSimple size={ICON_SIZE_SM} weight="bold" aria-hidden={true} />
+                            Sửa
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => onRequestDelete?.(source.id)}
+                            className="inline-flex min-h-11 items-center gap-1.5 rounded-[10px] border border-mod-border bg-mod-surface px-3 font-moderator text-xs font-bold text-mod-danger hover:bg-mod-danger/10 focus-visible:outline focus-visible:outline-2 focus-visible:outline-mod-primary"
+                          >
+                            <Trash size={ICON_SIZE_SM} weight="bold" aria-hidden={true} />
+                            Xoá
+                          </button>
+                        </>
+                      )}
+                    </div>
+                  </td>
+                ) : null}
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
+    </div>
   );
 }
 
@@ -247,11 +269,7 @@ function ReadOnlySourcesCatalogue({ sources }: { sources: readonly SourceItem[] 
           {visible.length === 0 ? (
             <EmptyNote>Không có nguồn nào thuộc nhóm này.</EmptyNote>
           ) : (
-            <ul className="grid gap-3 lg:grid-cols-2">
-              {visible.map((source) => (
-                <SourceCard key={source.id} source={source} interactive={false} confirmingDelete={false} />
-              ))}
-            </ul>
+            <SourcesTable sources={visible} interactive={false} confirmingDeleteId={null} />
           )}
         </>
       )}
@@ -373,20 +391,41 @@ function InteractiveGate0Content({ workflowId, step, data, onConflict }: Interac
 
   return (
     <div className="flex flex-col gap-6">
-      <div className="flex flex-col gap-1">
-        <ModeratorText as="h2" className="text-lg font-extrabold text-mod-text">
+      <div className="flex flex-col gap-3 rounded-[14px] border border-sky-200 border-l-4 border-l-mod-primary bg-gradient-to-br from-sky-50/90 via-white to-slate-50 p-4 shadow-[0_6px_18px_rgba(2,132,199,.07)] sm:p-5">
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="rounded-md bg-mod-primary/15 px-2.5 py-0.5 text-[11px] font-extrabold uppercase tracking-wider text-mod-primary-hover">
+            Tổng quan đề tài
+          </span>
+        </div>
+        <ModeratorText as="h2" className="text-xl font-extrabold text-mod-text">
           {data.topic}
         </ModeratorText>
-        <ModeratorText as="p" className="text-sm text-mod-text-secondary">
-          {data.historicalTimeframe} · {data.geographicScope}
-        </ModeratorText>
+        <div className="grid gap-3 pt-1 lg:grid-cols-2">
+          <div className="rounded-[10px] border border-sky-200/80 bg-white/90 p-3">
+            <ModeratorText className="text-[11px] font-extrabold uppercase tracking-wider text-mod-primary-hover">
+              Khung thời gian lịch sử
+            </ModeratorText>
+            <ModeratorText as="p" className="mt-1 text-sm text-mod-text">
+              {data.historicalTimeframe}
+            </ModeratorText>
+          </div>
+          <div className="rounded-[10px] border border-sky-200/80 bg-white/90 p-3">
+            <ModeratorText className="text-[11px] font-extrabold uppercase tracking-wider text-mod-primary-hover">
+              Phạm vi địa lý &amp; chiến trường
+            </ModeratorText>
+            <ModeratorText as="p" className="mt-1 text-sm text-mod-text">
+              {data.geographicScope}
+            </ModeratorText>
+          </div>
+        </div>
       </div>
 
-      <section id="gate0-sources-section" className="flex flex-col gap-3">
+      <section id="gate0-sources-section" className="flex flex-col gap-3 rounded-[14px] border border-mod-border bg-mod-canvas/60 p-4">
         <div className="flex flex-wrap items-center justify-between gap-2">
           <div className="flex flex-wrap items-center gap-2">
-            <ModeratorText as="h3" className="text-sm font-extrabold uppercase tracking-wide text-mod-text-muted">
-              Danh mục nguồn ({sources.length})
+            <ModeratorText as="h3" className="flex items-center gap-2 text-sm font-extrabold uppercase tracking-wider text-mod-text">
+              <span aria-hidden="true" className="h-4 w-1.5 shrink-0 rounded-full bg-mod-primary" />
+              <span>Danh mục nguồn ({sources.length})</span>
             </ModeratorText>
             {isDirty ? (
               <Chip tone="attention" icon={<WarningCircle size={ICON_SIZE_SM} weight="fill" aria-hidden={true} />}>
@@ -402,13 +441,12 @@ function InteractiveGate0Content({ workflowId, step, data, onConflict }: Interac
               setEditingSource(null);
               setModalOpen(true);
             }}
-            className="inline-flex min-h-11 items-center gap-1.5 rounded-[10px] border border-mod-border bg-mod-surface px-3.5 font-moderator text-xs font-bold text-mod-text hover:bg-mod-canvas-accent focus-visible:outline focus-visible:outline-2 focus-visible:outline-mod-primary disabled:opacity-50"
+            className="inline-flex min-h-11 items-center gap-1.5 rounded-[10px] bg-mod-primary px-4 font-moderator text-xs font-extrabold text-white shadow-sm hover:bg-mod-primary-hover focus-visible:outline focus-visible:outline-2 focus-visible:outline-mod-primary disabled:opacity-50"
           >
             <Plus size={ICON_SIZE_SM} weight="bold" aria-hidden={true} />
             Thêm nguồn
           </button>
         </div>
-
         {deletedSnapshot ? (
           <div
             role="status"
@@ -525,36 +563,48 @@ function InteractiveGate0Content({ workflowId, step, data, onConflict }: Interac
             {visible.length === 0 ? (
               <EmptyNote>Không có nguồn nào thuộc nhóm này.</EmptyNote>
             ) : (
-              <ul className="grid gap-3 lg:grid-cols-2">
-                {visible.map((source) => (
-                  <SourceCard
-                    key={source.id}
-                    source={source}
-                    interactive={true}
-                    confirmingDelete={confirmingDeleteId === source.id}
-                    onEdit={() => {
-                      setEditingSource(source);
-                      setModalOpen(true);
-                    }}
-                    onRequestDelete={() => setConfirmingDeleteId(source.id)}
-                    onCancelDelete={() => setConfirmingDeleteId(null)}
-                    onConfirmDelete={() => handleDeleteSource(source.id)}
-                  />
-                ))}
-              </ul>
+              <SourcesTable
+                sources={visible}
+                interactive={true}
+                confirmingDeleteId={confirmingDeleteId}
+                onEdit={(source) => {
+                  setEditingSource(source);
+                  setModalOpen(true);
+                }}
+                onRequestDelete={(sourceId) => setConfirmingDeleteId(sourceId)}
+                onCancelDelete={() => setConfirmingDeleteId(null)}
+                onConfirmDelete={(sourceId) => handleDeleteSource(sourceId)}
+              />
             )}
           </>
         )}
       </section>
 
-      <Section title={`Chọn trọng tâm kể (${data.narrativeMenu.length})`}>
+      <section
+        id="gate0-focus-section"
+        className="flex flex-col gap-4 rounded-[16px] border-2 border-amber-300 bg-gradient-to-b from-amber-50/80 via-white to-sky-50/40 p-4 shadow-[0_8px_24px_rgba(180,83,9,.08)] sm:p-5"
+      >
+        <div className="flex flex-wrap items-center justify-between gap-2 border-b border-amber-200/80 pb-3">
+          <div className="flex flex-wrap items-center gap-2.5">
+            <span className="rounded-md bg-mod-attention px-2.5 py-1 text-[11px] font-extrabold uppercase tracking-wider text-white">
+              Bước quyết định bắt buộc
+            </span>
+            <ModeratorText as="h3" className="text-base font-extrabold uppercase tracking-wide text-mod-text">
+              Chọn trọng tâm kể ({data.narrativeMenu.length} gợi ý AI)
+            </ModeratorText>
+          </div>
+          <Chip tone={focusDraft.selectedFocusType !== null ? "success" : "attention"}>
+            {focusDraft.selectedFocusType !== null ? "Đã chọn hướng kể" : "Chưa chọn hướng kể"}
+          </Chip>
+        </div>
+
         {data.narrativeMenu.length === 0 ? (
           <Callout tone="attention" title="AI không tìm được đủ dữ liệu" role="status">
             Chưa có hướng kể nào được đề xuất. Bạn có thể bấm Làm lại hoặc chọn Tự nhập bên dưới.
           </Callout>
         ) : null}
 
-        <div role="radiogroup" aria-label="Chọn trọng tâm kể" className="grid gap-3 lg:grid-cols-2">
+        <div role="radiogroup" aria-label="Chọn trọng tâm kể" className="grid gap-3.5 lg:grid-cols-2">
           {data.narrativeMenu.map((option) => {
             const selected = focusDraft.selectedFocusType === option.focusType;
             return (
@@ -565,10 +615,10 @@ function InteractiveGate0Content({ workflowId, step, data, onConflict }: Interac
                 aria-checked={selected}
                 onClick={() => selectMenuOption(option)}
                 className={cn(
-                  "flex flex-col items-start gap-2 rounded-[12px] border p-4 text-left transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-mod-primary",
+                  "flex flex-col items-start gap-2.5 rounded-[14px] border-2 p-4 text-left transition-all focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-mod-primary",
                   selected
-                    ? "border-mod-primary bg-mod-primary/10"
-                    : "border-mod-border bg-mod-surface hover:bg-mod-canvas-accent",
+                    ? "border-mod-primary bg-sky-50/90 shadow-[0_6px_18px_rgba(2,132,199,.14)] ring-2 ring-mod-primary/20"
+                    : "border-slate-200 bg-white shadow-sm hover:border-mod-primary/60 hover:bg-sky-50/30",
                 )}
               >
                 <div className="flex w-full items-center justify-between gap-2">
@@ -582,14 +632,16 @@ function InteractiveGate0Content({ workflowId, step, data, onConflict }: Interac
                   <span className="font-bold text-mod-text-muted">Vì sao nên chọn: </span>
                   {option.recommendedBecause}
                 </ModeratorText>
-                <ModeratorText as="p" className="text-sm font-bold text-mod-text">
-                  Series: {option.seriesTitle}
-                </ModeratorText>
-                <ol className="list-decimal pl-5 text-xs text-mod-text">
-                  {option.episodeTitles.map((title, index) => (
-                    <li key={index}>{title}</li>
-                  ))}
-                </ol>
+                <div className="mt-1 w-full rounded-[10px] border border-sky-200/80 bg-mod-canvas p-3">
+                  <ModeratorText as="p" className="text-sm font-extrabold text-mod-primary-hover">
+                    Series: {option.seriesTitle}
+                  </ModeratorText>
+                  <ol className="mt-1 list-decimal pl-5 text-xs font-semibold text-mod-text">
+                    {option.episodeTitles.map((title, index) => (
+                      <li key={index}>{title}</li>
+                    ))}
+                  </ol>
+                </div>
               </button>
             );
           })}
@@ -600,10 +652,10 @@ function InteractiveGate0Content({ workflowId, step, data, onConflict }: Interac
             aria-checked={focusDraft.selectedFocusType === "CUSTOM"}
             onClick={selectCustom}
             className={cn(
-              "flex flex-col items-start gap-2 rounded-[12px] border p-4 text-left transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-mod-primary",
+              "flex flex-col items-start gap-2.5 rounded-[14px] border-2 p-4 text-left transition-all focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-mod-primary",
               focusDraft.selectedFocusType === "CUSTOM"
-                ? "border-mod-primary bg-mod-primary/10"
-                : "border-mod-border bg-mod-surface hover:bg-mod-canvas-accent",
+                ? "border-mod-primary bg-sky-50/90 shadow-[0_6px_18px_rgba(2,132,199,.14)] ring-2 ring-mod-primary/20"
+                : "border-slate-200 bg-white shadow-sm hover:border-mod-primary/60 hover:bg-sky-50/30",
             )}
           >
             <div className="flex w-full items-center justify-between gap-2">
@@ -618,13 +670,12 @@ function InteractiveGate0Content({ workflowId, step, data, onConflict }: Interac
           </button>
         </div>
 
-        <div className="mt-2 flex flex-col gap-4 rounded-[12px] border border-mod-border bg-mod-canvas p-4">
+        <div className="mt-1 flex flex-col gap-4 rounded-[12px] border border-sky-200 bg-white p-4 shadow-sm">
           <ModeratorText className="text-sm font-extrabold text-mod-text">
             {focusDraft.selectedFocusType === null
               ? "Hãy chọn một hướng kể phía trên để biên tập tiêu đề series và 3 tập"
               : "Tiêu đề series và 3 tập (bắt buộc đủ 4 ô để Duyệt & tiếp tục)"}
           </ModeratorText>
-
           <label className="flex flex-col gap-1">
             <ModeratorText className="text-xs font-bold text-mod-text-muted">Tiêu đề series *</ModeratorText>
             <input
@@ -689,7 +740,7 @@ function InteractiveGate0Content({ workflowId, step, data, onConflict }: Interac
             </label>
           </div>
         </div>
-      </Section>
+      </section>
 
       <details className="rounded-[10px] border border-mod-border bg-mod-canvas">
         <summary className="flex min-h-11 cursor-pointer items-center px-3.5 text-sm font-bold text-mod-text focus-visible:outline focus-visible:outline-2 focus-visible:outline-mod-primary">
@@ -738,8 +789,8 @@ export function ResearcherPanel({
         }
         return (
           <div className="flex flex-col gap-6">
-            <div className="flex flex-col gap-1">
-              <ModeratorText as="h2" className="text-lg font-extrabold text-mod-text">
+            <div className="flex flex-col gap-3 rounded-[14px] border border-sky-200 border-l-4 border-l-mod-primary bg-gradient-to-br from-sky-50/90 via-white to-slate-50 p-4 shadow-[0_6px_18px_rgba(2,132,199,.07)] sm:p-5">
+              <ModeratorText as="h2" className="text-xl font-extrabold text-mod-text">
                 {data.topic}
               </ModeratorText>
               <ModeratorText as="p" className="text-sm text-mod-text-secondary">
