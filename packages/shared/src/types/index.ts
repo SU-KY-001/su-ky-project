@@ -22,6 +22,8 @@ export interface SystemHealthDto {
   runtime: string;
   bunVersion: string;
   database: "connected" | "disconnected";
+  queue: "running" | "stopped";
+  ai: "ready" | "unavailable";
   uptimeSeconds: number;
   timestamp: string;
 }

@@ -23,6 +23,9 @@ model User {
   accounts      Account[]
   sessions      Session[]
 
+  workflowRuns         WorkflowRun[]
+  approvedPublications ScriptPublication[]
+
   @@map("users")
 }
 
@@ -74,4 +77,93 @@ model Verification {
 
   @@index([identifier])
   @@map("verifications")
+}
+
+model WorkflowRun {
+  id          Int       @id @default(autoincrement())
+  topic       String    @db.Text
+  status      String    @default("PENDING")
+  currentStep String?
+  createdById String
+  createdBy   User      @relation(fields: [createdById], references: [id], onDelete: Restrict)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  completedAt DateTime?
+
+  steps        WorkflowStep[]
+  events       WorkflowEvent[]
+  publications ScriptPublication[]
+
+  @@index([createdById, createdAt])
+  @@map("workflow_runs")
+}
+
+model WorkflowStep {
+  id               Int         @id @default(autoincrement())
+  workflowRunId    Int
+  workflowRun      WorkflowRun @relation(fields: [workflowRunId], references: [id], onDelete: Cascade)
+  stepType         String
+  status           String      @default("PENDING")
+  currentVersion   Int?
+  approvedVersion  Int?
+  errorMessage     String?     @db.Text
+  incomingGuidance String?     @db.Text
+  createdAt        DateTime    @default(now())
+  updatedAt        DateTime    @updatedAt
+
+  versions StepVersion[]
+
+  @@unique([workflowRunId, stepType])
+  @@map("workflow_steps")
+}
+
+model StepVersion {
+  id               Int          @id @default(autoincrement())
+  workflowStepId   Int
+  workflowStep     WorkflowStep @relation(fields: [workflowStepId], references: [id], onDelete: Cascade)
+  parentVersionId  Int?
+  parent           StepVersion? @relation("StepVersionTree", fields: [parentVersionId], references: [id], onDelete: SetNull)
+  children         StepVersion[] @relation("StepVersionTree")
+  version          Int
+  inputJson        Json?
+  outputJson       Json
+  humanFeedback    String?      @db.Text
+  validationStatus String       @default("valid")
+  createdAt        DateTime     @default(now())
+
+  publications ScriptPublication[]
+
+  @@unique([workflowStepId, version])
+  @@index([parentVersionId])
+  @@map("step_versions")
+}
+
+model WorkflowEvent {
+  id            Int         @id @default(autoincrement())
+  workflowRunId Int
+  workflowRun   WorkflowRun @relation(fields: [workflowRunId], references: [id], onDelete: Cascade)
+  type          String
+  message       String      @db.Text
+  metadataJson  Json?
+  createdAt     DateTime    @default(now())
+
+  @@index([workflowRunId, id])
+  @@map("workflow_events")
+}
+
+model ScriptPublication {
+  id                       Int         @id @default(autoincrement())
+  workflowRunId            Int
+  workflowRun              WorkflowRun @relation(fields: [workflowRunId], references: [id], onDelete: Cascade)
+  approvedVersionId        Int         @unique
+  approvedVersion          StepVersion @relation(fields: [approvedVersionId], references: [id], onDelete: Cascade)
+  approvedById             String
+  approvedBy               User        @relation(fields: [approvedById], references: [id], onDelete: Restrict)
+  finalScript              String      @db.Text
+  wordCount                Int
+  estimatedDurationSeconds Int
+  publishedAt              DateTime    @default(now())
+
+  @@index([workflowRunId])
+  @@map("script_publications")
 }

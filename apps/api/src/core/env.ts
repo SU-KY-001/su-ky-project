@@ -16,6 +16,15 @@ const envSchema = z
       .enum(["fatal", "error", "warn", "info", "debug", "trace"])
       .default("info"),
     LOG_DIR: z.string().optional(),
+    PI_PROVIDER: z.string().min(1).default("google"),
+    PI_MODEL: z.string().min(1).optional(),
+    PI_API_KEY: z.string().min(1).optional(),
+    GEMINI_API_KEY: z.string().min(1).optional(),
+    OPENCODE_API_KEY: z.string().min(1).optional(),
+    PI_THINKING_LEVEL: z
+      .enum(["off", "minimal", "low", "medium", "high", "xhigh", "max"])
+      .default("medium"),
+    PI_WEB_ACCESS_DIR: z.string().min(1).optional(),
   })
   .superRefine((data, ctx) => {
     if (data.NODE_ENV === "production") {

@@ -4,6 +4,7 @@ import { compress } from "hono/compress";
 import { etag } from "hono/etag";
 import { secureHeaders } from "hono/secure-headers";
 import {
+  bypassEventStreams,
   corsConfig,
   errorHandler,
   requestId,
@@ -12,6 +13,7 @@ import {
 import { docsRoute } from "./routes/docs";
 import { healthRoute } from "./routes/health";
 import { adminRoute, auth, currentUserRoute } from "./modules/auth";
+import { scriptWorkflowRoute } from "./modules/script-workflow";
 import type { AppEnv } from "./types";
 
 export const app = new Hono<AppEnv>()
@@ -20,7 +22,7 @@ export const app = new Hono<AppEnv>()
   .use("*", secureHeaders())
   .use("*", corsConfig())
   .use("*", compress())
-  .use("*", etag())
+  .use("*", bypassEventStreams(etag()))
   .use(
     "*",
     bodyLimit({
@@ -83,6 +85,7 @@ export const routes = app
   .all("/api/auth/*", (c) => auth.handler(c.req.raw))
   .route("/api/me", currentUserRoute)
   .route("/api/admin", adminRoute)
+  .route("/api/script-workflows", scriptWorkflowRoute)
   .route("/health", healthRoute)
   .route("/api/timeline", timelineRoute);
 

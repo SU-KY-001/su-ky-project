@@ -21,7 +21,7 @@ Tài liệu này quy định cấu trúc thư mục, kiến trúc phân tầng (
 
 4. **Chuẩn hóa Phân quyền (Authentication & Authorization):**
    - Sử dụng Better Auth với plugin `admin` và `bearer`.
-   - Roles chuẩn: `"user"` và `"admin"` (không dùng `"customer"`).
+   - Roles chuẩn: `"user"`, `"moderator"` và `"admin"` (không dùng `"customer"`). Moderator dùng module `script-workflow` (`/api/script-workflows`); Admin không sửa kịch bản (BR-22).
 
 5. **Chuẩn hóa Logging (Pino & `logs/error.log`):**
    - Không sử dụng `console.log` / `console.error` tùy tiện trong mã nguồn production.
@@ -59,7 +59,7 @@ su-ky-monorepo/
 │   ├── shared/                          # [Shared Contracts] Hợp đồng dữ liệu dùng chung FE & BE
 │   │   └── src/
 │   │       ├── schemas/
-│   │       │   ├── auth.ts              # Zod schemas: SignIn, SignUp, UserRoleEnum ("user" | "admin")
+│   │       │   ├── auth.ts              # Zod schemas: SignIn, SignUp, UserRoleEnum ("user" | "moderator" | "admin")
 │   │       │   ├── podcast.ts           # Zod schemas: Series, Episode, EpisodeFilterQuery
 │   │       │   ├── timeline.ts          # Zod schemas: Period, TimelineEvent
 │   │       │   └── figure.ts            # Zod schemas: Historical Figure

@@ -9,6 +9,7 @@ Nền tảng Podcast Kể Chuyện Lịch Sử Việt Nam (Đồ án WDP301).
 - **Frontend App**: [React](https://react.dev) `19` + [Vite](https://vite.dev) `6` + [Tailwind CSS](https://tailwindcss.com) `v4` + [TanStack Query](https://tanstack.com/query) `v5`
 - **Database & ORM**: PostgreSQL 18 ([Docker Compose](./compose.yaml) image `postgres:18-alpine`) + [Prisma ORM](https://www.prisma.io) `v6`
 - **Contracts**: [Zod](https://zod.dev) schemas in `@repo/shared`
+- **AI script workflow**: Pi SDK + pg-boss trên cùng PostgreSQL, xem [docs/script-workflow-api.md](./docs/script-workflow-api.md) (cần khoá AI trong `.env`)
 
 ---
 

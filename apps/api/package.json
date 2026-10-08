@@ -8,12 +8,13 @@
     "./types": "./src/app.ts"
   },
   "scripts": {
-    "dev": "bun --watch src/index.ts",
+    "dev": "bun --env-file=../../.env --watch src/index.ts",
     "build": "bun build src/index.ts --outdir dist --target bun",
     "check-types": "tsc --noEmit",
     "test": "bun test"
   },
   "dependencies": {
+    "@earendil-works/pi-coding-agent": "^0.87.1",
     "@hono/zod-validator": "^0.4.3",
     "@prisma/client": "catalog:",
     "@repo/db": "workspace:*",
@@ -21,8 +22,11 @@
     "@scalar/hono-api-reference": "^0.12.8",
     "better-auth": "^1.7.6",
     "hono": "catalog:",
+    "pg-boss": "^12.35.0",
+    "pi-web-access": "0.37.0",
     "pino": "^10.3.1",
-    "zod": "catalog:"
+    "zod": "catalog:",
+    "zod-to-json-schema": "^3.25.2"
   },
   "devDependencies": {
     "@repo/tsconfig": "workspace:*",

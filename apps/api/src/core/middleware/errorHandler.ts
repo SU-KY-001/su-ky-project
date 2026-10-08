@@ -35,7 +35,11 @@ export const errorHandler: ErrorHandler = (err, c) => {
             ? "FORBIDDEN"
             : status === 400
               ? "BAD_REQUEST"
-              : "HTTP_ERROR";
+              : status === 409
+                ? "CONFLICT"
+                : status === 503
+                  ? "SERVICE_UNAVAILABLE"
+                  : "HTTP_ERROR";
 
     return c.json(
       {
