@@ -61,7 +61,7 @@ API: `GET /api/script-workflows?page&limit`.
 
 - Mỗi dòng: chủ đề (cắt 2 dòng), badge trạng thái, dòng phụ "bước hiện tại", thời điểm cập nhật (tương đối).
 - Nhấn dòng để vào S3. Dòng `WAITING_FOR_HUMAN` nổi bật (viền vàng) và có nhãn "Chờ bạn duyệt" để Moderator thấy việc cần làm.
-- Phân trang theo `meta.page/limit/total`. Mặc định 20 dòng.
+- Phân trang theo `page`, `limit`, `total` ở gốc response (`{ items, page, limit, total }`, không có `meta`). Mặc định 20 dòng.
 - Trạng thái rỗng: minh hoạ + câu "Chưa có kịch bản nào" + nút **Tạo kịch bản mới**.
 - Trạng thái tải: skeleton 5 dòng. Lỗi mạng: banner + nút **Thử lại**.
 - Danh sách này không tự cập nhật realtime. Refetch khi cửa sổ lấy lại focus (react-query `refetchOnWindowFocus`).
@@ -102,7 +102,7 @@ API: `POST /api/script-workflows`. Tuỳ chọn `GET /health` để kiểm tra A
 - Một ô nhập `topic` (textarea, tự giãn). Đếm ký tự. Nút chính bị khoá khi dưới 3 ký tự (sau `trim`) hoặc vượt 10000.
 - Không có ô nguồn tự cung cấp (tính năng chưa có).
 - Khi gửi: nút chuyển sang trạng thái "Đang khởi tạo…", khoá form để tránh gửi hai lần. Thành công thì chuyển sang S3 với `id` trả về.
-- Trước khi gửi, gọi `GET /health`. Nếu `data.ai = "unavailable"` hiện cảnh báo vàng "Hệ thống AI chưa sẵn sàng, chưa thể tạo kịch bản" và khoá nút. Cách này tránh người dùng gõ xong mới nhận `503`.
+- Trước khi gửi, gọi `GET /health`. Response là object phẳng (không bọc `data`), đọc trường `ai`. Nếu `ai = "unavailable"` hiện cảnh báo vàng "Hệ thống AI chưa sẵn sàng, chưa thể tạo kịch bản" và khoá nút. `/health` trả `503` khi DB hoặc hàng đợi lỗi nhưng body vẫn có `ai`, nên đọc body ở cả `200` và `503`. Cách này tránh người dùng gõ xong mới nhận `503`.
 - Lỗi: `400` hiện `message` tại ô `topic` (body lỗi chỉ có `{ error_code, message }`, không có lỗi theo field; giới hạn 3 đến 10000 ký tự đã chặn ở client bằng schema dùng chung); `503` hiện cảnh báo như trên, cho phép thử lại; lỗi khác hiện toast kèm mã yêu cầu (header `X-Request-Id`) để báo hỗ trợ.
 
 ### S3. Workspace của một kịch bản (màn chính)
@@ -372,9 +372,13 @@ Dùng kiểu và Zod schema từ `@repo/shared` để parse response (`GetWorkfl
 - Nhập nguồn tự cung cấp, upload PDF/DOC, trình soạn thảo giàu định dạng.
 - Xác nhận metadata nhân vật/sự kiện; sửa nguồn ở bước ngoài Gate 0.
 - Huỷ run đang chạy, chạy lại run đã `FAILED` (hiện chỉ có tạo run mới hoặc `RERUN` bước đã có version).
-- Tạo audio, gắn kịch bản vào Series/Episode, xuất bản lên catalog.
+- Tạo audio, xuất bản tập lên catalog công khai (làm trong Studio, không làm ở đây).
 - Phân quyền cho Admin xem kịch bản của Moderator.
 - So sánh hai phiên bản (diff).
+
+## 9b. Nhập vào Studio (sau khi duyệt Gate 2)
+
+Ở S4, sau khi Moderator đã **Duyệt & xuất bản**, có thêm nút **Nhập vào Studio** (song song với Copy). Bấm nút, xác nhận một dòng "Sẽ tạo Series với 3 tập nháp và N nguồn", hệ thống tạo sẵn Series và 3 tập **nháp** trong Studio, điền tiêu đề, văn nói, nguồn. Không điền audio (workflow không sinh audio). Nút **không** xuất hiện trước khi duyệt, và API cũng từ chối import khi chưa duyệt (`409`), import không bao giờ tự duyệt hộ. Nguồn luôn được tạo mới, không dò trùng, không có màn chọn từng nguồn. Chi tiết: plan phase 9.
 
 ## 10. Danh sách việc cho FE (checklist)
 

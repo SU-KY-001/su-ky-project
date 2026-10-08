@@ -4,7 +4,7 @@
 
 ## S1 `/moderator/script-workflows`
 
-- `GET /api/script-workflows?page&limit` (mặc định 20), phân trang theo `meta`.
+- `GET /api/script-workflows?page&limit` (mặc định 20), response `{ items, page, limit, total }`.
 - Mỗi dòng: chủ đề (cắt 2 dòng), badge trạng thái, dòng phụ "Bước n/7 · tên bước", thời điểm tương đối. Nhấn dòng đi tới `/:id`.
 - Dòng `WAITING_FOR_HUMAN` nổi bật (viền amber) + nhãn "Chờ bạn duyệt".
 - Badge theo bảng UX §3 S1 (icon + chữ + màu, không dùng màu đơn độc). Map ở `labels.ts`.
@@ -14,7 +14,7 @@
 ## S2 `/moderator/script-workflows/new`
 
 - Một `textarea` tự giãn cho `topic`, đếm ký tự, khoá nút khi < 3 (sau `trim`) hoặc > 10000. Dùng `CreateScriptWorkflowRequestSchema` từ shared (react-hook-form + resolver) để không lệch giới hạn; hằng số 3 và 10000 lấy từ schema, không viết lại.
-- Gọi `GET /health` trước khi gửi: `data.ai = "unavailable"` thì hiện cảnh báo vàng và khoá nút. **Xác minh trước** `/health` có trường `ai`; nếu không có thì bỏ bước này và chỉ xử lý `503` khi gửi.
+- Gọi `GET /health` trước khi gửi: `ai = "unavailable"` (trường ở gốc, không có `data`) thì hiện cảnh báo vàng và khoá nút. Đọc body ở cả `200` và `503` vì `/health` trả `503` khi DB/hàng đợi lỗi.
 - Gửi: `Idempotency-Key` mới, nút "Đang khởi tạo…", khoá form. Thành công chuyển `/:id`.
 - Lỗi: `400` hiện `message` tại ô; `503` cảnh báo AI chưa sẵn sàng + thử lại; `429` đếm ngược theo `Retry-After`; lỗi khác toast kèm `X-Request-Id`.
 

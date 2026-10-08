@@ -9,9 +9,9 @@ Dữ liệu `sourcesCatalogue[]` (`SourceItem`: `id`, `name`, `authorOrOrigin`, 
 - Bảng/thẻ có lọc theo tier, sắp theo điểm; mở liên kết `url` ở tab mới (`rel="noopener noreferrer"`).
 - **Xoá** nguồn (xác nhận nhẹ, hoàn tác trong phiên bằng toast "Hoàn tác").
 - **Sửa** nguồn: drawer/hộp thoại form các trường trên (select tier từ `SOURCE_TIER_LABELS`, số điểm 1 đến 10, `url` phải hợp lệ).
-- **Thêm** nguồn: cùng form, `id` sinh phía client theo quy ước của API (xác minh: AI dùng `src-1`…; chọn dạng không đụng id hiện có).
+- **Thêm** nguồn: cùng form, `id` **bắt buộc** dạng `custom-src-<n>` (API dùng tiền tố này để đánh dấu nguồn do Moderator thêm, `origin = MODERATOR` khi import; AI dùng `src-<n>`). `<n>` không trùng id hiện có.
 - Mọi thay đổi chỉ nằm trong **nháp** (zustand) cho tới khi bấm **Lưu chỉnh sửa**: gọi `DIRECT_EDIT` với **toàn bộ** `editedOutputJson` (giữ nguyên `narrativeMenu`, câu hỏi nghiên cứu, v.v.), `baseVersion = currentVersion`, `note` tuỳ chọn. Thành công: version mới `v(n+1)`, toast "Đã lưu v(n+1). Chưa duyệt.", bước **vẫn** chờ duyệt.
-- Chỉ báo "Có thay đổi chưa lưu"; rời trang hoặc **Duyệt & tiếp tục** khi còn nháp chưa lưu thì hỏi xác nhận (hoặc tự lưu trước khi duyệt, chọn một và ghi rõ trong code).
+- Chỉ báo "Có thay đổi chưa lưu"; rời trang hoặc **Duyệt & tiếp tục** khi còn nháp chưa lưu thì hỏi xác nhận (hoặc tự lưu trước khi duyệt, chọn một và ghi rõ trong code). Nếu tự lưu: `CONTINUE` dùng `baseVersion = newVersion` lấy từ response `DIRECT_EDIT`, không chờ refetch.
 
 ## Khối 2: Menu trọng tâm kể
 

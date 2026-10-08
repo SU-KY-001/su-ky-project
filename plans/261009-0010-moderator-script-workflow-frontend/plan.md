@@ -3,7 +3,7 @@ title: "Frontend: Moderator tạo kịch bản podcast (Script Workflow UI)"
 description: "Nối apps/web với API /api/script-workflows: danh sách, tạo, workspace 7 bước + 3 cổng duyệt, SSE, xuất bản"
 status: pending
 priority: P1
-effort: 34h
+effort: 38h
 branch: feat/script-workflow
 tags: [frontend, react, moderator, script-workflow, sse, tanstack-query]
 blockedBy: []
@@ -15,7 +15,7 @@ created: 2026-10-09
 
 ## Context
 
-API workflow đã xong (26 route, spec ở `http://localhost:3005/docs`, hợp đồng ở `docs/api-docs/script-workflow-api.md`). Đặc tả màn hình đã có sẵn: **`docs/ux/script-workflow-ux.md`** (S1 danh sách, S2 tạo, S3 workspace, S4 xuất bản, S5 cây). Plan này **không thiết kế lại UX**, chỉ cụ thể hoá thành việc làm trong `apps/web`, và ghi rõ chỗ lệch với tài liệu UX.
+API workflow đã xong (26 route, spec ở `http://localhost:3005/docs`, hợp đồng ở `docs/api-docs/script-workflow-api.md`). Đặc tả màn hình đã có sẵn: **`docs/ux/script-workflow-ux.md`** (S1 danh sách, S2 tạo, S3 workspace, S4 xuất bản, S5 cây). Plan này **không thiết kế lại UX**, chỉ cụ thể hoá thành việc làm trong `apps/web`.
 
 Hiện trạng `apps/web`: chỉ có `/` (landing) và `/moderator` (dashboard dữ liệu mẫu, shell sidebar nằm thẳng trong `ModeratorDashboard.tsx`). Chưa có đăng nhập, chưa gọi API nào, `lib/client.ts` là `hc<AppType>` không gửi cookie.
 
@@ -67,18 +67,19 @@ Hiện trạng `apps/web`: chỉ có `/` (landing) và `/moderator` (dashboard d
 | 6 | [phase-06-gate1-rerun-direct-edit.md](phase-06-gate1-rerun-direct-edit.md) | Gate 1, hộp thoại Làm lại, trình Sửa tay | 4h | pending |
 | 7 | [phase-07-gate2-and-publication.md](phase-07-gate2-and-publication.md) | Gate 2 báo cáo kiểm định, S4 xuất bản | 4h | pending |
 | 8 | [phase-08-tree-and-event-log.md](phase-08-tree-and-event-log.md) | S5 cây lịch sử, tab Nhật ký | 1h+ | pending |
-| 9 | [phase-09-optional-cms-import.md](phase-09-optional-cms-import.md) | **Tuỳ chọn**: import vào CMS | — | deferred |
+| 9 | [phase-09-cms-import.md](phase-09-cms-import.md) | Nút "Nhập vào Studio": điền sẵn Series + 3 tập nháp từ kịch bản đã duyệt | 4h | pending |
 
-Thứ tự bắt buộc: 1 → 2 → (3, 4) → 5 → 6 → 7 → 8. Phase 3 và 4 chỉ cùng phụ thuộc phase 2.
+Thứ tự bắt buộc: 1 → 2 → (3, 4) → 5 → 6 → 7 → 9. Phase 8 (cây, nhật ký) độc lập sau phase 7, làm sau cùng. Phase 3 và 4 chỉ cùng phụ thuộc phase 2.
 
 ## Rủi ro chính
 
 | Rủi ro | Xử lý |
 |---|---|
 | `EventSource` khác origin (`5173` ↔ `3005`) cần `withCredentials` và CORS `credentials: true` | API đã bật (`cors.ts`). Phase 2 kiểm bằng request thật trước khi dựng UI |
+| Better Auth chặn đăng nhập từ `5173` (`403 INVALID_ORIGIN`): `trustedOrigins` mặc định chỉ có `baseURL` (`3005`) | Phase 1 thêm `trustedOrigins` vào `auth.ts`, dùng chung danh sách `CORS_ORIGIN` với `cors.ts` |
 | `baseVersion` lệch gây `409 STALE_WRITE` | Luôn lấy từ `currentVersion` của lần fetch mới nhất; zustand giữ nháp để không mất dữ liệu khi 409 |
-| `DIRECT_EDIT` phải khớp đúng schema bước (`400 VALIDATION_ERROR`) | Validate phía client bằng schema `@repo/shared` trước khi gửi; hiện lỗi theo field |
-| Chưa chắc `GET /health` trả `data.ai` | Phase 3 xác minh bằng request thật; nếu thiếu, bỏ bước kiểm AI và xử lý `503` khi tạo |
+| `DIRECT_EDIT` phải khớp đúng schema bước (`400 VALIDATION_ERROR`) | Validate phía client bằng `STEP_OUTPUT_SCHEMAS[stepType]` (`@repo/shared`) trước khi gửi; server chỉ trả `message` |
+| `GET /health` trả `503` khi DB/hàng đợi lỗi | Đọc body ở cả `200` và `503` (không đi qua `unwrap`), lấy trường `ai` ở gốc |
 | Type response từ `hc<AppType>` có thể rộng | Parse bằng schema `@repo/shared` (`GetWorkflowResponseSchema`...) thay vì cast |
 | Kịch bản AI chạy lâu (vài chục giây đến vài phút) | Trạng thái chờ rõ ràng, đồng hồ đếm, nhắc khi >5 phút (UX §3.2) |
 

@@ -15,7 +15,7 @@
    - `ScriptWriterPanel`: 3 tab tập, `narration`, số từ, thời lượng; nhãn "Bản nháp trước khi chuyển văn nói".
    - `OralizerPanel`: 3 tab tập, `spokenNarration` cỡ đọc dài (≤ ~70 ký tự/dòng), `breathAndPacingNotes`.
 7. **Cập nhật dữ liệu:** `GET /:id` là nguồn sự thật; SSE chỉ kích hoạt refetch (UX §5.1). Mở stream khi run chưa `COMPLETED/FAILED`.
-8. **Nội dung `outputJson`** parse bằng schema `@repo/shared` theo `stepType`; dữ liệu không khớp thì hiện khối "Dữ liệu bước này không đọc được" kèm JSON thô thu gọn, không crash.
+8. **Nội dung `outputJson`** parse bằng `STEP_OUTPUT_SCHEMAS[stepType]` (`@repo/shared`); dữ liệu không khớp thì hiện khối "Dữ liệu bước này không đọc được" kèm JSON thô thu gọn, không crash.
 
 ## UI/UX
 
