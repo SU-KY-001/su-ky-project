@@ -24,11 +24,13 @@
     "react-native": "0.86.0",
     "react-native-safe-area-context": "~5.7.0",
     "react-native-screens": "~4.26.0",
+    "tamagui": "catalog:",
     "zustand": "catalog:",
     "zod": "catalog:",
     "yup": "catalog:"
   },
   "devDependencies": {
+    "@tamagui/metro-plugin": "catalog:",
     "@types/react": "~19.2.0",
     "typescript": "catalog:"
   }

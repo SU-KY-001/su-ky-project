@@ -6,7 +6,8 @@ Nền tảng Podcast Kể Chuyện Lịch Sử Việt Nam (Đồ án WDP301).
 - **Runtime & Package Manager**: [Bun](https://bun.sh) `v1.4.0`
 - **Monorepo Engine**: [Turborepo](https://turbo.build) `2.x`
 - **Backend API**: [Hono](https://hono.dev) `v4` with end-to-end typed RPC Client
-- **Frontend App**: [React](https://react.dev) `19` + [Vite](https://vite.dev) `6` + [Tailwind CSS](https://tailwindcss.com) `v4` + [TanStack Query](https://tanstack.com/query) `v5`
+- **Frontend Web**: [React](https://react.dev) `19` + [Vite](https://vite.dev) `8` + [Tailwind CSS](https://tailwindcss.com) `4` + [shadcn/ui](https://ui.shadcn.com) + [Magic UI](https://magicui.design) + [TanStack Query](https://tanstack.com/query) `v5`
+- **Frontend Mobile**: [Expo](https://expo.dev) `57` + React Native `0.86` + Tamagui `2`
 - **Database & ORM**: PostgreSQL 18 ([Docker Compose](./compose.yaml) image `postgres:18-alpine`) + [Prisma ORM](https://www.prisma.io) `v6`
 - **Contracts**: [Zod](https://zod.dev) schemas in `@repo/shared`
 - **AI script workflow**: Pi SDK + pg-boss trên cùng PostgreSQL, xem [docs/api-docs/script-workflow-api.md](./docs/api-docs/script-workflow-api.md) (cần khoá AI trong `.env`)
@@ -19,7 +20,8 @@ Nền tảng Podcast Kể Chuyện Lịch Sử Việt Nam (Đồ án WDP301).
 su-ky-project/
 ├── apps/
 │   ├── api/          # Hono v4 backend (Bun runtime; exports type AppType)
-│   └── web/          # React 19 + Vite 6 + Tailwind v4 + TanStack Query
+│   ├── web/          # React 19 + Vite 8 + Tailwind CSS + shadcn/ui + Magic UI
+│   └── mobile/       # Expo 57 + React Native + Tamagui
 ├── packages/
 │   ├── db/           # Prisma schema, client, migrations & seed
 │   ├── shared/       # Zod schemas, domain types, contracts

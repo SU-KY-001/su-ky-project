@@ -11,6 +11,16 @@ This skill enforces **feature-based architecture** with modern design patterns, 
 
 ---
 
+## UI and Styling System: Tamagui
+
+Tamagui is the single UI component and styling system for both `apps/web` and `apps/mobile`.
+
+- Build app UI with Tamagui components and style it with Tamagui props, tokens, themes, and responsive/media query props.
+- Share Tamagui tokens and components through shared packages when both platforms use them. Platform-specific components are fine when behavior differs, while keeping Tamagui as their UI and styling foundation.
+- Do not use Tailwind or introduce another UI component or styling system.
+
+---
+
 ## 0. Rule of Thumb: When to Use `useEffect`
 
 Use an Effect only when the component needs to synchronize with something **outside React**.
