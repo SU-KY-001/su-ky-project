@@ -2,6 +2,7 @@ import { PgBoss } from "pg-boss";
 import { STEP_TYPES, type StepType } from "@repo/shared";
 import { logger } from "../../../core/logger";
 import type {
+  AgentJobDelivery,
   AgentJobPayload,
   AgentJobQueue,
   NarrativeSelectionPayload,
@@ -75,16 +76,19 @@ export class PgBossAgentJobQueue implements AgentJobQueue {
     log.info({ queues: STEP_TYPES.map((s) => WORKFLOW_QUEUES[s]) }, "pg-boss started");
   }
 
-  async registerWorker(handler: (payload: AgentJobPayload) => Promise<void>): Promise<void> {
+  async registerWorker(
+    handler: (payload: AgentJobPayload, delivery: AgentJobDelivery) => Promise<void>
+  ): Promise<void> {
     const boss = this.requireBoss();
     for (const stepType of STEP_TYPES) {
       const queueName = WORKFLOW_QUEUES[stepType];
-      await boss.work(queueName, async (jobs) => {
-        const payload = parseAgentPayload(jobs[0]?.data, stepType);
-        if (!payload) {
+      await boss.work(queueName, { includeMetadata: true }, async (jobs) => {
+        const job = jobs[0];
+        const payload = parseAgentPayload(job?.data, stepType);
+        if (!job || !payload) {
           throw new Error(`Invalid ${stepType} job payload: workflowRunId + stepType required`);
         }
-        await handler(payload);
+        await handler(payload, { isFinalAttempt: job.retryCount >= job.retryLimit });
       });
       log.info({ queue: queueName }, "Agent worker registered");
     }

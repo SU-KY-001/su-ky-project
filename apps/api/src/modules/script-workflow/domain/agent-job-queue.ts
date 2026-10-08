@@ -21,6 +21,12 @@ export interface AgentJobPayload {
   narrativeSelection?: NarrativeSelectionPayload;
 }
 
+/** Delivery info from the queue, separate from the business payload. */
+export interface AgentJobDelivery {
+  /** True when pg-boss will not redeliver this job after a failure. */
+  isFinalAttempt: boolean;
+}
+
 export interface AgentJobQueue {
   enqueue(payload: AgentJobPayload): Promise<void>;
 }

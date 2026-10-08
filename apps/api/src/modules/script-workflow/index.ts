@@ -32,7 +32,7 @@ export const scriptWorkflowRoute = createScriptWorkflowRoute({
 /** Starts pg-boss + workers (fatal on failure) and the Pi runtime (init swallows its own errors: create answers 503 without it). */
 export async function startScriptWorkflowRuntime(databaseUrl: string): Promise<void> {
   await queue.start(databaseUrl);
-  await queue.registerWorker((payload) => stepHandler.handle(payload));
+  await queue.registerWorker((payload, delivery) => stepHandler.handle(payload, delivery));
   await piRuntime.init();
 }
 

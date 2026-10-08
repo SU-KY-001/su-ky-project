@@ -1,6 +1,6 @@
 import { isHitlGatedStep, type StepType } from "@repo/shared";
 import { logger, type Logger } from "../../../core/logger";
-import type { AgentJobPayload, AgentJobQueue } from "../domain/agent-job-queue";
+import type { AgentJobDelivery, AgentJobPayload, AgentJobQueue } from "../domain/agent-job-queue";
 import { lintOralText, type OralLintResult } from "../domain/oral-linter";
 import type { ScriptWorkflowRepository } from "../domain/script-workflow.repository";
 import {
@@ -27,7 +27,7 @@ export class AgentStepHandler {
     private readonly agent: StepAgent
   ) {}
 
-  async handle(payload: AgentJobPayload): Promise<void> {
+  async handle(payload: AgentJobPayload, delivery: AgentJobDelivery): Promise<void> {
     const { workflowRunId, stepType, parentVersionId } = payload;
     const jobLog = logger.child({ scope: "agent-job", workflowRunId, step: stepType });
 
@@ -102,7 +102,14 @@ export class AgentStepHandler {
       jobLog.info({ nodeId: node.id, version: node.version }, "Agent step saved");
       await this.advanceOrGate({ payload, nodeId: node.id, stepId: step.id, stepType });
     } catch (err) {
-      await this.failStep({ workflowRunId, stepId: step.id, stepType, err, jobLog });
+      await this.failStep({
+        workflowRunId,
+        stepId: step.id,
+        stepType,
+        err,
+        jobLog,
+        isFinalAttempt: delivery.isFinalAttempt,
+      });
     }
   }
 
@@ -212,15 +219,16 @@ export class AgentStepHandler {
     stepType: StepType;
     err: unknown;
     jobLog: Logger;
+    isFinalAttempt: boolean;
   }): Promise<void> {
-    const { workflowRunId, stepId, stepType, err, jobLog } = params;
+    const { workflowRunId, stepId, stepType, err, jobLog, isFinalAttempt } = params;
     const message = err instanceof Error ? err.message : String(err);
     jobLog.error({ err }, `${stepType} job failed`);
 
-    const isTerminal =
+    const isContentError =
       err instanceof AgentValidationError || TERMINAL_FAILURE_PATTERN.test(message);
 
-    if (!isTerminal) {
+    if (!isContentError && !isFinalAttempt) {
       // pg-boss will redeliver: keep the run RUNNING so clients and the SSE stream
       // do not treat a transient failure as the end of the workflow.
       await this.repo.logEvent({
@@ -239,6 +247,9 @@ export class AgentStepHandler {
       type: `step.${stepType.toLowerCase()}.failed`,
       message,
     });
+
+    // Retries exhausted: surface the failure to pg-boss too (job ends failed, not completed).
+    if (!isContentError) throw err;
   }
 }
 
