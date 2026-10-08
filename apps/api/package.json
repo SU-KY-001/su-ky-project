@@ -15,7 +15,7 @@
     "seed:mod": "bun --env-file=../../.env src/scripts/seed-dev-moderator.ts"
   },
   "dependencies": {
-    "@earendil-works/pi-coding-agent": "^0.87.1",
+    "@earendil-works/pi-coding-agent": "^1.1.0",
     "@hono/zod-validator": "^0.4.3",
     "@prisma/client": "catalog:",
     "@repo/db": "workspace:*",
