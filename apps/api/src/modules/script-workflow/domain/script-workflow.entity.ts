@@ -3,6 +3,8 @@ import type { StepStatus, StepType, WorkflowStatus } from "@repo/shared";
 export interface WorkflowRunEntity {
   id: number;
   topic: string;
+  seriesId: string | null;
+  focusHint: string | null;
   status: WorkflowStatus;
   currentStep: StepType | null;
   createdById: string;

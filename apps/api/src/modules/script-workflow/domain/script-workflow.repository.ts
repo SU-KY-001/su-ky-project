@@ -52,13 +52,19 @@ export interface LogEventInput {
 }
 
 export interface ScriptWorkflowRepository {
-  createWorkflowRun(topic: string, createdById: string): Promise<WorkflowRunEntity>;
+  createWorkflowRun(input: {
+    topic: string;
+    createdById: string;
+    seriesId: string | null;
+    focusHint: string | null;
+  }): Promise<WorkflowRunEntity>;
   getWorkflowRun(id: number): Promise<WorkflowRunEntity | null>;
   getOwnedWorkflowRun(id: number, userId: string): Promise<WorkflowRunEntity | null>;
   listWorkflowRuns(
     userId: string,
     page: number,
-    limit: number
+    limit: number,
+    seriesId?: string
   ): Promise<{ items: WorkflowRunEntity[]; total: number }>;
   updateWorkflowRun(id: number, patch: WorkflowRunPatch): Promise<void>;
 

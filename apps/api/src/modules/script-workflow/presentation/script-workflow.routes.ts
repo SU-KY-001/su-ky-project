@@ -1,10 +1,12 @@
-import { Hono, type Context } from "hono";
+import { prisma } from "@repo/db";
+import { Hono } from "hono";
 import { HTTPException } from "hono/http-exception";
 import { streamSSE } from "hono/streaming";
 import { zValidator } from "@hono/zod-validator";
 import { ZodError } from "zod";
 import {
   CreatePublicationRequestSchema,
+  ImportRequestSchema,
   CreateScriptWorkflowRequestSchema,
   ListScriptWorkflowsQuerySchema,
   ScriptWorkflowIdParamSchema,
@@ -12,12 +14,16 @@ import {
   WorkflowEventStreamQuerySchema,
   WorkflowEventsQuerySchema,
 } from "@repo/shared";
-import { throwOnInvalid } from "../../../core/middleware";
+import { idempotency, rateLimit, throwOnInvalid } from "../../../core/middleware";
+import { DomainError } from "../../../core/errors/domain-error";
+import { RequestValidationError } from "../../../core/errors/request-validation-error";
 import { logger } from "../../../core/logger";
 import { requireAuth, requireRole } from "../../auth";
 import type { AppEnv } from "../../../types";
+import { assertWritable, loadSeriesForRead } from "../../content";
 import type { WorkflowCommandService, TransitionResult } from "../application/workflow-command.service";
 import { PublicationError } from "../application/publication.service";
+import type { ContentImportService } from "../application/content-import.service";
 import type { WorkflowQueryService } from "../application/workflow-query.service";
 import {
   SSE_BATCH_LIMIT,
@@ -29,26 +35,23 @@ export interface ScriptWorkflowRouteDeps {
   commands: WorkflowCommandService;
   queries: WorkflowQueryService;
   isAiReady: () => boolean;
+  imports: ContentImportService;
 }
 
 const WORKFLOW_NOT_FOUND_MESSAGE = "Workflow not found";
 const TERMINAL_RUN_STATUSES = ["COMPLETED", "FAILED"];
 
-function meta(c: Context<AppEnv>, extra: Record<string, unknown> = {}) {
-  return { requestId: c.get("requestId") ?? "unknown", timestamp: new Date().toISOString(), ...extra };
-}
-
-/** Unwraps a failed TransitionResult into the error the global handler renders. */
 function throwTransitionFailure(result: Extract<TransitionResult, { success: false }>): never {
-  if (result.details instanceof ZodError) throw result.details;
-  throw new HTTPException(result.status, { message: result.error });
+  if (result.details instanceof ZodError) throw new RequestValidationError();
+  const code = result.status === 404 ? "NOT_FOUND" : result.status === 409 ? "STALE_WRITE" : "BAD_REQUEST";
+  throw new DomainError(result.status, code, result.error);
 }
 
 /**
  * Moderator-only endpoints. Admins are excluded on purpose (BR-22: Admin does not
  * edit scripts). A run owned by someone else answers 404, never 403, so ids are not leaked.
  */
-export function createScriptWorkflowRoute({ commands, queries, isAiReady }: ScriptWorkflowRouteDeps) {
+export function createScriptWorkflowRoute({ commands, queries, imports, isAiReady }: ScriptWorkflowRouteDeps) {
   const requireUserId = (session: AppEnv["Variables"]["session"]): string => {
     if (!session) throw new HTTPException(401, { message: "Authentication required" });
     return session.user.id;
@@ -59,23 +62,51 @@ export function createScriptWorkflowRoute({ commands, queries, isAiReady }: Scri
 
     .post(
       "/",
+      rateLimit("write"),
+      idempotency(),
       zValidator("json", CreateScriptWorkflowRequestSchema, throwOnInvalid),
       async (c) => {
         if (!isAiReady()) {
-          throw new HTTPException(503, { message: "AI runtime not ready" });
+          throw new DomainError(503, "SERVICE_UNAVAILABLE", "AI runtime not ready");
         }
         const userId = requireUserId(c.get("session"));
-        const { topic } = c.req.valid("json");
-        const id = await commands.createRun(topic, userId);
-        return c.json({ success: true as const, data: { id }, meta: meta(c) }, 201);
+        const input = c.req.valid("json");
+        if (input.seriesId) {
+          const series = await loadSeriesForRead(prisma, c.get("session")!, input.seriesId);
+          assertWritable(c.get("session")!, series);
+        }
+        const id = await commands.createRun({ ...input, userId });
+        c.header("Location", `/api/script-workflows/${id}`);
+        return c.json({ id }, 201);
       }
     )
 
     .get("/", zValidator("query", ListScriptWorkflowsQuerySchema, throwOnInvalid), async (c) => {
       const userId = requireUserId(c.get("session"));
-      const { page, limit } = c.req.valid("query");
-      const { data, total } = await queries.listRuns(userId, page, limit);
-      return c.json({ success: true as const, data, meta: meta(c, { page, limit, total }) });
+      const { page, limit, seriesId } = c.req.valid("query");
+      const { data: items, total } = await queries.listRuns(userId, page, limit, seriesId);
+      return c.json({ items, page, limit, total });
+    })
+
+    .get("/:id/import-preview", zValidator("param", ScriptWorkflowIdParamSchema, throwOnInvalid), async (c) => {
+      const session = c.get("session");
+      if (!session) throw new DomainError(401, "AUTH_REQUIRED", "Authentication required");
+      return c.json(await imports.preview(c.req.valid("param").id, session));
+    })
+
+    .get("/:id/import", zValidator("param", ScriptWorkflowIdParamSchema, throwOnInvalid), async (c) => {
+      const userId = requireUserId(c.get("session"));
+      const result = await imports.imported(c.req.valid("param").id, userId);
+      if (!result) throw new DomainError(404, "NOT_IMPORTED", "Workflow has not been imported");
+      return c.json(result);
+    })
+
+    .post("/:id/import", rateLimit("ai_import"), idempotency(), zValidator("param", ScriptWorkflowIdParamSchema, throwOnInvalid), zValidator("json", ImportRequestSchema, throwOnInvalid), async (c) => {
+      const session = c.get("session");
+      if (!session) throw new DomainError(401, "AUTH_REQUIRED", "Authentication required");
+      const imported = await imports.import(c.req.valid("param").id, session, c.req.valid("json"));
+      c.header("Location", `/api/studio/series/${imported.result.seriesId}`);
+      return c.json(imported.result, imported.created ? 201 : 200);
     })
 
     .get("/:id", zValidator("param", ScriptWorkflowIdParamSchema, throwOnInvalid), async (c) => {
@@ -84,7 +115,7 @@ export function createScriptWorkflowRoute({ commands, queries, isAiReady }: Scri
         requireUserId(c.get("session"))
       );
       if (!run) throw new HTTPException(404, { message: WORKFLOW_NOT_FOUND_MESSAGE });
-      return c.json({ success: true as const, data: await queries.getDetail(run), meta: meta(c) });
+      return c.json(await queries.getDetail(run));
     })
 
     .get(
@@ -96,12 +127,13 @@ export function createScriptWorkflowRoute({ commands, queries, isAiReady }: Scri
           requireUserId(c.get("session"))
         );
         if (!run) throw new HTTPException(404, { message: WORKFLOW_NOT_FOUND_MESSAGE });
-        return c.json({ success: true as const, data: await queries.getTree(run), meta: meta(c) });
+        return c.json(await queries.getTree(run));
       }
     )
 
     .post(
       "/:id/step-decisions",
+      rateLimit("write"),
       zValidator("param", ScriptWorkflowIdParamSchema, throwOnInvalid),
       zValidator("json", StepDecisionRequestSchema, throwOnInvalid),
       async (c) => {
@@ -121,11 +153,7 @@ export function createScriptWorkflowRoute({ commands, queries, isAiReady }: Scri
               narrativeSelection: decision.narrativeSelection,
             });
             if (!result.success) throwTransitionFailure(result);
-            return c.json({
-              success: true as const,
-              data: { stepType: decision.stepType, action: decision.action, ...result.data },
-              meta: meta(c),
-            });
+            return c.json({ stepType: decision.stepType, action: decision.action, ...result.data });
           }
           case "RERUN": {
             const result = await commands.rerunStep({
@@ -134,11 +162,7 @@ export function createScriptWorkflowRoute({ commands, queries, isAiReady }: Scri
               feedback: decision.feedback,
             });
             if (!result.success) throwTransitionFailure(result);
-            return c.json({
-              success: true as const,
-              data: { stepType: decision.stepType, action: decision.action },
-              meta: meta(c),
-            });
+            return c.json({ stepType: decision.stepType, action: decision.action });
           }
           case "DIRECT_EDIT": {
             const result = await commands.directEditStep({
@@ -149,11 +173,7 @@ export function createScriptWorkflowRoute({ commands, queries, isAiReady }: Scri
               note: decision.note,
             });
             if (!result.success) throwTransitionFailure(result);
-            return c.json({
-              success: true as const,
-              data: { stepType: decision.stepType, action: decision.action, ...result.data },
-              meta: meta(c),
-            });
+            return c.json({ stepType: decision.stepType, action: decision.action, ...result.data });
           }
         }
       }
@@ -168,16 +188,13 @@ export function createScriptWorkflowRoute({ commands, queries, isAiReady }: Scri
           requireUserId(c.get("session"))
         );
         if (!run) throw new HTTPException(404, { message: WORKFLOW_NOT_FOUND_MESSAGE });
-        return c.json({
-          success: true as const,
-          data: await queries.listPublications(run.id),
-          meta: meta(c),
-        });
+        return c.json({ items: await queries.listPublications(run.id) });
       }
     )
 
     .post(
       "/:id/publications",
+      rateLimit("write"),
       zValidator("param", ScriptWorkflowIdParamSchema, throwOnInvalid),
       zValidator("json", CreatePublicationRequestSchema, throwOnInvalid),
       async (c) => {
@@ -191,13 +208,11 @@ export function createScriptWorkflowRoute({ commands, queries, isAiReady }: Scri
             c.req.valid("json").approvedVersionId,
             userId
           );
-          return c.json(
-            { success: true as const, data: { publicationId: publication.id }, meta: meta(c) },
-            201
-          );
+          c.header("Location", `/api/script-workflows/${run.id}/publications`);
+          return c.json({ publicationId: publication.id }, 201);
         } catch (err) {
           if (err instanceof PublicationError) {
-            throw new HTTPException(400, { message: err.message });
+            throw new DomainError(400, "BAD_REQUEST", err.message);
           }
           throw err;
         }
@@ -215,11 +230,7 @@ export function createScriptWorkflowRoute({ commands, queries, isAiReady }: Scri
         );
         if (!run) throw new HTTPException(404, { message: WORKFLOW_NOT_FOUND_MESSAGE });
         const { type, limit } = c.req.valid("query");
-        return c.json({
-          success: true as const,
-          data: await queries.listEvents(run.id, type, limit),
-          meta: meta(c),
-        });
+        return c.json(await queries.listEvents(run.id, type, limit));
       }
     )
 

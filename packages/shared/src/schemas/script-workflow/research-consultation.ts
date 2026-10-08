@@ -33,6 +33,7 @@ export const SourceItemSchema = z.object({
   isPrimaryAssertionSource: z.boolean(),
   url: z.string().optional(),
   locationInSource: z.string().optional(),
+  catalogSourceId: z.string().uuid().optional(),
 });
 
 export const NarrativeMenuOptionSchema = z.object({
@@ -58,6 +59,10 @@ export const ResearchConsultationSchema = z.object({
   sourcesCatalogue: z.array(SourceItemSchema),
   narrativeMenu: z.array(NarrativeMenuOptionSchema),
   initialResearchQuestions: z.array(z.string()),
+});
+
+export const ResearcherAgentOutputSchema = ResearchConsultationSchema.extend({
+  sourcesCatalogue: z.array(SourceItemSchema.omit({ catalogSourceId: true })),
 });
 
 export type SourceItem = z.infer<typeof SourceItemSchema>;

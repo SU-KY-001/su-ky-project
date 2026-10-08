@@ -4,3 +4,5 @@ export { requestLogger } from "./logger";
 export { requestId } from "./requestId";
 export { throwOnInvalid } from "./validation";
 export { bypassEventStreams } from "./bypassEventStreams";
+export { idempotency } from "./idempotency";
+export { rateLimit, type RateLimitPolicy } from "./rate-limit";

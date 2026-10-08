@@ -46,7 +46,7 @@ bun install
 
 ### 3. Khởi tạo Database Schema & Dữ Liệu Mẫu
 ```bash
-bun run db:push
+bun run db:deploy
 bun run db:seed
 ```
 
@@ -74,7 +74,7 @@ Bạn có thể sử dụng `make` hoặc gọi trực tiếp bằng `bun`:
 | **Bật PostgreSQL Docker** | `make db-up` | `docker compose up -d` |
 | **Tắt PostgreSQL Docker** | `make db-down` | `docker compose down` |
 | **Sinh Prisma Client** | `make db-generate` | `bun run db:generate` |
-| **Đồng bộ DB Schema** | `make db-push` | `bun run db:push` |
+| **Áp dụng Prisma migrations** | `make db-deploy` | `bun run db:deploy` |
 | **Nạp dữ liệu mẫu (Seed)** | `make db-seed` | `bun run db:seed` |
 | **Mở Prisma Studio UI** | `make db-studio` | `cd packages/db && bun run prisma studio` |
 | **Dọn dẹp cache & build** | `make clean` | `bun run clean` |

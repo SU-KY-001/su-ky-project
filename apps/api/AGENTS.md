@@ -153,7 +153,7 @@ Khi bổ sung một module tính năng mới (ví dụ `podcast`):
 5. **Bước 5: Presentation Layer (`src/modules/[feature]/presentation/`)**
    - Khởi tạo Hono router.
    - Dùng Zod validator từ `@repo/shared` để xác thực input.
-   - Gọi Service và trả về response chuẩn `ApiResponse<T>`.
+   - Trả thẳng dữ liệu thành công; không bọc response envelope.
 
 6. **Bước 6: Gắn Router vào `src/app.ts`**
    - Mount router vào `apps/api/src/app.ts` với tiền tố `/api/[feature]`.
@@ -166,14 +166,12 @@ Khi bổ sung một module tính năng mới (ví dụ `podcast`):
 
 ## 4. Quy Chuẩn Code (Coding Standards)
 
-- **Response Envelope:** Luôn trả về đúng chuẩn `ApiResponse<T>`:
-  - Thành công: `{ success: true, data: ... }`
-  - Thất bại: `{ success: false, error: { code: "...", message: "..." }, meta: { requestId, timestamp } }`
+- **Response:** Trả thẳng dữ liệu thành công. Lỗi chỉ có `{ error_code, message }`.
 - **Mã lỗi HTTP:**
   - 400: `VALIDATION_ERROR` hoặc `BAD_REQUEST`
-  - 401: `UNAUTHORIZED` (Chưa đăng nhập / token không hợp lệ)
-  - 403: `FORBIDDEN` (Không đủ quyền hạn)
+  - 401: `AUTH_REQUIRED`
+  - 403: `FORBIDDEN`
   - 404: `NOT_FOUND`
   - 500: `INTERNAL_SERVER_ERROR`
 - **Xử lý ngoại lệ:**
-  - Ném `HTTPException` từ `hono/http-exception` để middleware `errorHandler` tự động bắt và đóng gói JSON envelope chuẩn.
+  - Ném `DomainError` cho lỗi nghiệp vụ hoặc `HTTPException` cho lỗi HTTP; `errorHandler` chuyển thành `{ error_code, message }`.

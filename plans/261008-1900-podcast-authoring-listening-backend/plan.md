@@ -1,7 +1,7 @@
 ---
 title: "Backend: Moderator podcast authoring + basic listening"
 description: "Implement backend for Moderator create podcast flow, Gate-2 AI import, and basic listening API"
-status: pending
+status: completed
 priority: P1
 effort: 32h
 branch: main
@@ -22,9 +22,11 @@ Implement the backend for the Moderator "create podcast" flow and the basic list
 
 Where this plan and those documents disagree, **this plan wins** (see "Deviations" below). Scope decided by the user: backend only; frontend gets only the minimal edits forced by the response-format cutover (studio/AI/player UI is built later by the FE team); dev DB is reset and the repo moves from `prisma db push` to `prisma migrate`; rate-limit counters live in Postgres; topics/historical periods come from seed data (no Admin CRUD).
 
-End state: all endpoints in contract §1–§8 work with plain REST bodies + RFC 9457 problem+json, `Idempotency-Key` and rate limits enforced, Cloudinary upload/playback works, Gate-2 AI output imports into CMS tables in one transaction, listening progress awards XP once.
+End state: all endpoints in contract §1–§8 use plain REST success bodies. Per the user's implementation-time simplification, every error body is exactly `{ error_code, message }`; `X-Request-Id` remains a response header. `Idempotency-Key`, PostgreSQL-backed rate limits, Cloudinary upload/playback, Gate-2 import, and listening progress/XP are implemented.
 
 ## Deviations from the design docs (binding)
+
+Implementation override (2026-10-08): the user replaced the planned RFC 9457 response with the minimal JSON error contract `{ "error_code": "...", "message": "..." }`. `PROBLEM_TYPE_BASE_URL`, problem type URIs, titles, extensions, and `application/problem+json` are intentionally absent.
 
 ERD changes (apply in the Prisma schema; DBML is otherwise followed literally):
 1. `series.start_year`, `series.end_year` are **nullable** (AI import creates Series without years). CHECKs: each year `<> 0` and `<= 1945` when not null; `start_year <= end_year` when both not null. Publish checklist item `YEAR_RANGE` requires both non-null.
@@ -77,7 +79,7 @@ Prerequisites (repo root): `docker compose up -d postgres`; create test DB once:
 3. Integration tests (new), `apps/api/tests/integration/*.test.ts`, each `describe.skipIf(process.env.RUN_INTEGRATION !== "1")`, run with `cd apps/api && bun --env-file=../../.env.test test tests/integration`. Users are created through `POST /api/auth/sign-up/email` (bearer plugin returns `set-auth-token`), then `prisma.user.update({ role })`; requests send `Authorization: Bearer <token>`. Media tests mount `createMediaRoute` / narration audio routes with a fake `MediaStorageGateway`. Required cases (input → expected):
    - Lineage on snake_case columns (Phase 1): insert RESEARCHER → SOURCE_EVALUATOR → FACT_EXTRACTOR step versions chained by `parent_version_id`; `new LineageService(new PrismaScriptWorkflowRepository()).getAncestryLineage(<FACT_EXTRACTOR id>)` returns 3 nodes root-first with `stepType` and `outputJson` populated.
    - Internal parse failure is a 500: write an invalid value for `slug.max_length` into `system_configs`, `resetSystemConfigCache()`, create a series → 500 `INTERNAL_SERVER_ERROR` (not 400) and the idempotency row is deleted.
-   - Problem format: `GET /api/studio/series` without auth → 401, `content-type: application/problem+json`, `code: "AUTH_REQUIRED"`, `requestId` equals `X-Request-Id`.
+  - Error format: protected requests without auth → 401 JSON `{ error_code: "AUTH_REQUIRED", message: "Authentication required" }`; request correlation remains in `X-Request-Id`.
    - Idempotency: same key + body twice on `POST /api/studio/series` → second 201 with `Idempotent-Replayed: true`, same `id`, one row in `series`; same key, different title → 422 `IDEMPOTENCY_KEY_REUSED`; no key → 400 `IDEMPOTENCY_KEY_REQUIRED`.
    - Slug: two Series titled "Khởi nghĩa Hai Bà Trưng" → slugs `khoi-nghia-hai-ba-trung` and `khoi-nghia-hai-ba-trung-xxxx` (`/^khoi-nghia-hai-ba-trung-[a-z0-9]{4}$/`); PATCH slug after publish → 409 `SLUG_LOCKED`.
    - Rate limit: set `rate_limit.write` to `{limit:2,windowSeconds:60}` in `system_configs`, clear the config cache, 3 PATCHes → third 429 `RATE_LIMITED` with `Retry-After`.

@@ -1,4 +1,4 @@
-.PHONY: help install dev build check-types test clean db-up db-down db-logs db-generate db-push db-migrate db-seed db-studio
+.PHONY: help install dev build check-types test clean db-up db-down db-logs db-generate db-deploy db-migrate db-seed db-studio
 
 # Default target
 .DEFAULT_GOAL := help
@@ -20,7 +20,7 @@ help: ## Hiển thị danh sách các lệnh hỗ trợ
 	@echo "    make db-down       - Dừng PostgreSQL container"
 	@echo "    make db-logs       - Xem log của PostgreSQL container"
 	@echo "    make db-generate   - Sinh mã Prisma Client trong packages/db"
-	@echo "    make db-push       - Đồng bộ schema Prisma trực tiếp vào PostgreSQL"
+	@echo "    make db-deploy     - Áp dụng Prisma migrations vào PostgreSQL"
 	@echo "    make db-migrate    - Chạy migration Prisma (dev mode)"
 	@echo "    make db-seed       - Nạp dữ liệu mẫu ban đầu vào database (triều đại, podcast)"
 	@echo "    make db-studio     - Mở giao diện trực quan Prisma Studio trên trình duyệt"
@@ -58,8 +58,8 @@ db-logs: ## Xem log PostgreSQL
 db-generate: ## Sinh Prisma Client
 	bun run db:generate
 
-db-push: ## Push Prisma schema vào database
-	bun run db:push
+db-deploy: ## Áp dụng Prisma migrations
+	bun run db:deploy
 
 db-migrate: ## Chạy Prisma migrations
 	bun run db:migrate

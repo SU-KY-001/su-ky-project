@@ -2,7 +2,7 @@ import { describe, it, expect } from "bun:test";
 import {
   CreateScriptWorkflowRequestSchema,
   StepDecisionRequestSchema,
-  type ApiResponse,
+  type ErrorResponse,
 } from "@repo/shared";
 import { app } from "../src/app";
 import { lintOralText } from "../src/modules/script-workflow/domain/oral-linter";
@@ -108,9 +108,8 @@ describe("Script workflow", () => {
     it("rejects anonymous callers with the standard envelope", async () => {
       const res = await app.request("/api/script-workflows");
       expect(res.status).toBe(401);
-      const body = (await res.json()) as ApiResponse<never>;
-      expect(body.success).toBe(false);
-      expect(body.error?.code).toBe("UNAUTHORIZED");
+      const body = (await res.json()) as ErrorResponse;
+      expect(body.error_code).toBe("AUTH_REQUIRED");
     });
 
     it("does not buffer-hang or 404 the SSE path for anonymous callers", async () => {

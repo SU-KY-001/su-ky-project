@@ -35,11 +35,12 @@ export class WorkflowQueryService {
     return this.repo.getOwnedWorkflowRun(id, userId);
   }
 
-  async listRuns(userId: string, page: number, limit: number) {
-    const { items, total } = await this.repo.listWorkflowRuns(userId, page, limit);
+  async listRuns(userId: string, page: number, limit: number, seriesId?: string) {
+    const { items, total } = await this.repo.listWorkflowRuns(userId, page, limit, seriesId);
     const data: ScriptWorkflowSummary[] = items.map((run) => ({
       id: run.id,
       topic: run.topic,
+      seriesId: run.seriesId,
       status: run.status,
       currentStep: run.currentStep,
       createdAt: run.createdAt.toISOString(),

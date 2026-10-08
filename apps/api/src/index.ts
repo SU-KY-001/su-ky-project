@@ -1,6 +1,8 @@
 import { prisma } from "@repo/db";
 import { app } from "./app";
 import { env, logger } from "./core";
+import { startMaintenanceJobs, stopMaintenanceJobs } from "./core/jobs/maintenance-jobs";
+import { mediaStorage } from "./modules/media";
 import {
   startScriptWorkflowRuntime,
   stopScriptWorkflowRuntime,
@@ -15,6 +17,7 @@ if (!env.DATABASE_URL) {
 
 try {
   await startScriptWorkflowRuntime(env.DATABASE_URL);
+  await startMaintenanceJobs(env.DATABASE_URL, mediaStorage);
 } catch (err) {
   logger.fatal({ err }, "Failed to start the script workflow runtime");
   await prisma.$disconnect();
@@ -44,6 +47,13 @@ async function handleShutdown(signal: string) {
     logger.info("Script workflow queue stopped cleanly.");
   } catch (err) {
     logger.error({ err }, "Error while stopping the script workflow queue during shutdown");
+  }
+
+  try {
+    await stopMaintenanceJobs();
+    logger.info("Maintenance queues stopped cleanly.");
+  } catch (err) {
+    logger.error({ err }, "Error while stopping maintenance queues during shutdown");
   }
 
   try {

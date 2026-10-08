@@ -49,11 +49,5 @@ export const healthRoute = new Hono().get("/", async (c) => {
     timestamp: new Date().toISOString(),
   };
 
-  return c.json(
-    {
-      success: true,
-      data: healthData,
-    },
-    isHealthy ? 200 : 503
-  );
+  return c.json(healthData, isHealthy ? 200 : 503);
 });

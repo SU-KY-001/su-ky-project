@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { Radio } from "lucide-react";
 import { client } from "../../shared/api/client";
+import { readJson } from "../../shared/api/http";
 
 interface TimelinePeriodListProps {
   title: string;
@@ -10,16 +11,10 @@ interface TimelinePeriodListProps {
 export function TimelinePeriodList({ title, description }: TimelinePeriodListProps) {
   const periodsQuery = useQuery({
     queryKey: ["timeline"],
-    queryFn: async () => {
-      const response = await client.api.timeline.$get();
-      if (!response.ok) {
-        throw new Error("Failed to load timeline periods");
-      }
-      return response.json();
-    },
+    queryFn: async () => readJson(await client.api.timeline.$get()),
   });
 
-  const periods = periodsQuery.data?.data ?? [];
+  const periods = periodsQuery.data?.items ?? [];
 
   return (
     <section className="space-y-4 rounded-xl border border-slate-800 bg-[#0F1420] p-6">

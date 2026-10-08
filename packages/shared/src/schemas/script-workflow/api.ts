@@ -73,6 +73,8 @@ export type StepStatus = z.infer<typeof StepStatusSchema>;
 
 export const CreateScriptWorkflowRequestSchema = z.object({
   topic: z.string().trim().min(3).max(10000),
+  seriesId: z.string().uuid().optional(),
+  focusHint: z.string().trim().min(1).max(2000).optional(),
 });
 
 export type CreateScriptWorkflowRequest = z.infer<typeof CreateScriptWorkflowRequestSchema>;
@@ -89,12 +91,14 @@ export const ScriptWorkflowIdParamSchema = z.object({
 
 export const ListScriptWorkflowsQuerySchema = z.object({
   page: z.coerce.number().int().min(1).default(1),
-  limit: z.coerce.number().int().min(1).max(100).default(20),
+  limit: z.coerce.number().int().min(1).max(50).default(20),
+  seriesId: z.string().uuid().optional(),
 });
 
 export const ScriptWorkflowSummarySchema = z.object({
   id: z.number().int().positive(),
   topic: z.string(),
+  seriesId: z.string().uuid().nullable(),
   status: WorkflowStatusSchema,
   currentStep: StepTypeSchema.nullable(),
   createdAt: z.string(),

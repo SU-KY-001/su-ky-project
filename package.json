@@ -31,7 +31,7 @@
     "clean": "turbo clean && rm -rf node_modules apps/*/node_modules packages/*/node_modules dist apps/*/dist packages/*/dist",
     "db:generate": "turbo db:generate",
     "db:migrate": "turbo db:migrate",
-    "db:push": "turbo db:push",
+    "db:deploy": "turbo db:deploy",
     "db:seed": "turbo db:seed"
   },
   "devDependencies": {

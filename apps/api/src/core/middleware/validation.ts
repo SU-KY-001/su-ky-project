@@ -1,12 +1,5 @@
-import { ZodError } from "zod";
+import { RequestValidationError } from "../errors/request-validation-error";
 
-/**
- * zValidator hook: rethrow validation failures so the global errorHandler renders
- * them in the standard ApiResponse envelope (400 VALIDATION_ERROR with details)
- * instead of zValidator's default bare JSON body.
- */
-export const throwOnInvalid = (result: { success: boolean; error?: unknown }): void => {
-  if (!result.success && result.error instanceof ZodError) {
-    throw result.error;
-  }
+export const throwOnInvalid = (result: { success: boolean }): void => {
+  if (!result.success) throw new RequestValidationError();
 };

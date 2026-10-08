@@ -22,48 +22,32 @@ Moderator tạo kịch bản podcast lịch sử 3 tập bằng AI. Hệ thống
 - Gọi từ trình duyệt khác origin phải gửi cookie (`credentials: "include"`). Với `EventSource` dùng `withCredentials: true`.
 - Quyền sở hữu: workflow thuộc `createdById`. Moderator chỉ thấy workflow của mình. Id của người khác trả `404`, không phải `403`, để không lộ id.
 
-### 1.2 Envelope phản hồi
+### 1.2 Phản hồi
 
-Thành công:
+Response thành công trả thẳng dữ liệu của endpoint. Endpoint danh sách trả
+`{ "items": [], "page": 1, "limit": 20, "total": 0 }`.
 
-```json
-{
-  "success": true,
-  "data": {},
-  "meta": {
-    "requestId": "string",
-    "timestamp": "ISO-8601",
-    "page": 1,
-    "limit": 20,
-    "total": 0
-  }
-}
-```
-
-`page`, `limit`, `total` chỉ có ở `GET /`. Các route khác chỉ có `requestId`, `timestamp`.
-
-Lỗi:
+Response lỗi chỉ có hai trường:
 
 ```json
 {
-  "success": false,
-  "error": { "code": "VALIDATION_ERROR", "message": "string", "details": {} },
-  "meta": { "requestId": "string", "timestamp": "ISO-8601" }
+  "error_code": "VALIDATION_ERROR",
+  "message": "Request validation failed"
 }
 ```
 
 ### 1.3 Bảng mã lỗi
 
-| HTTP | `error.code`            | Khi nào                                                                                                                                |
-| ---- | ----------------------- | -------------------------------------------------------------------------------------------------------------------------------------- |
-| 400  | `VALIDATION_ERROR`      | Body/query/param sai schema. `details` = `{ formErrors: string[], fieldErrors: { [field]: string[] } }` (kết quả `ZodError.flatten()`) |
-| 400  | `BAD_REQUEST`           | Lỗi nghiệp vụ không phải schema (vd: publish node không hợp lệ, `RERUN` khi bước chưa có version). `message` giải thích                |
-| 401  | `UNAUTHORIZED`          | Chưa đăng nhập                                                                                                                         |
-| 403  | `FORBIDDEN`             | Đã đăng nhập nhưng role không phải `moderator`                                                                                         |
-| 404  | `NOT_FOUND`             | Workflow không tồn tại, không thuộc người gọi, hoặc step/node không tồn tại                                                            |
-| 409  | `CONFLICT`              | `baseVersion` cũ, hoặc bước không ở `WAITING_FOR_HUMAN`                                                                                |
-| 503  | `SERVICE_UNAVAILABLE`   | `POST /` khi AI runtime chưa sẵn sàng (thiếu khoá/mô hình)                                                                             |
-| 500  | `INTERNAL_SERVER_ERROR` | Lỗi không xử lý                                                                                                                        |
+| HTTP | `error_code`            | Khi nào                                                                     |
+| ---- | ----------------------- | --------------------------------------------------------------------------- |
+| 400  | `VALIDATION_ERROR`      | Body/query/param sai schema                                                 |
+| 400  | `BAD_REQUEST`           | Lỗi nghiệp vụ không phải schema                                             |
+| 401  | `AUTH_REQUIRED`         | Chưa đăng nhập                                                              |
+| 403  | `FORBIDDEN`             | Đã đăng nhập nhưng role không phải `moderator`                              |
+| 404  | `NOT_FOUND`             | Workflow không tồn tại, không thuộc người gọi, hoặc step/node không tồn tại |
+| 409  | `CONFLICT`              | `baseVersion` cũ, hoặc bước không ở `WAITING_FOR_HUMAN`                     |
+| 503  | `SERVICE_UNAVAILABLE`   | AI runtime chưa sẵn sàng                                                    |
+| 500  | `INTERNAL_SERVER_ERROR` | Lỗi không xử lý                                                             |
 
 ### 1.4 Kiểu dữ liệu dùng chung
 
@@ -150,11 +134,7 @@ Khởi chạy bước `RESEARCHER` ngay.
 **Response `201`** (`CreateScriptWorkflowResponseSchema`)
 
 ```json
-{
-  "success": true,
-  "data": { "id": 12 },
-  "meta": { "requestId": "…", "timestamp": "…" }
-}
+{ "id": 12 }
 ```
 
 **Lỗi**: `400 VALIDATION_ERROR` (topic ngắn/dài), `401`, `403`, `503 SERVICE_UNAVAILABLE` (`AI runtime not ready`).
@@ -174,7 +154,7 @@ Sau khi tạo, theo dõi bằng `GET /:id` (poll) hoặc SSE (mục 3.9).
 
 Sắp xếp `createdAt` giảm dần. Ví dụ `GET /api/script-workflows?page=1&limit=20`.
 
-**Response `200`**: `data` là `ScriptWorkflowSummary[]`, `meta` có `page`, `limit`, `total` (tổng số workflow của người gọi).
+**Response `200`**: `{ items, page, limit, total }`; `items` là `ScriptWorkflowSummary[]`.
 
 `ScriptWorkflowSummary`
 
@@ -190,8 +170,7 @@ Sắp xếp `createdAt` giảm dần. Ví dụ `GET /api/script-workflows?page=1
 
 ```json
 {
-  "success": true,
-  "data": [
+  "items": [
     {
       "id": 12,
       "topic": "Chiến thắng Bạch Đằng năm 1288",
@@ -202,13 +181,9 @@ Sắp xếp `createdAt` giảm dần. Ví dụ `GET /api/script-workflows?page=1
       "completedAt": null
     }
   ],
-  "meta": {
-    "requestId": "…",
-    "timestamp": "…",
-    "page": 1,
-    "limit": 20,
-    "total": 1
-  }
+  "page": 1,
+  "limit": 20,
+  "total": 1
 }
 ```
 
@@ -439,7 +414,7 @@ Thường không cần gọi: Gate 2 (`CONTINUE` trên `FACT_CHECKER`) đã tự
 | ------------------- | ----------- | -------- | -------------------------- |
 | `approvedVersionId` | integer ≥ 1 | có       | Id node (`StepVersion.id`) |
 
-**Response `201`**: `{ "success": true, "data": { "publicationId": 1 }, "meta": {…} }`
+**Response `201`**: `{ "publicationId": 1 }`
 
 **Lỗi `400 BAD_REQUEST`** (`message` tiếng Việt) khi:
 

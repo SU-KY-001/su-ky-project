@@ -59,6 +59,7 @@ export class AgentStepHandler {
 
       const ctx: StepAgentContext = {
         topic: run.topic,
+        focusHint: run.focusHint,
         predecessorOutputs: lineage.predecessorOutputs,
         ownPreviousOutput: ownPrevious?.outputJson,
         incomingGuidance: payload.guidance ?? null,

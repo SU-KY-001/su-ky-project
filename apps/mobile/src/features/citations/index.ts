@@ -1,1 +1,1 @@
-export type { CitationDto } from "@/shared/types";
+export type { PublicEpisodeSourceDto } from "@/shared/types";

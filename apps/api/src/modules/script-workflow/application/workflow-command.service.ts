@@ -20,22 +20,32 @@ export class WorkflowCommandService {
     private readonly publication: PublicationService
   ) {}
 
-  async createRun(topic: string, userId: string): Promise<number> {
-    const run = await this.repo.createWorkflowRun(topic, userId);
+  async createRun(input: {
+    topic: string;
+    userId: string;
+    seriesId?: string;
+    focusHint?: string;
+  }): Promise<number> {
+    const run = await this.repo.createWorkflowRun({
+      topic: input.topic,
+      createdById: input.userId,
+      seriesId: input.seriesId ?? null,
+      focusHint: input.focusHint ?? null,
+    });
     await this.repo.ensureWorkflowStep(run.id, "RESEARCHER", "QUEUED");
     await this.repo.updateWorkflowRun(run.id, { status: "RUNNING", currentStep: "RESEARCHER" });
     await this.repo.logEvent({
       workflowRunId: run.id,
       type: "workflow.created",
-      message: `Workflow ${run.id} created for topic "${topic}"`,
-      metadataJson: { createdById: userId },
+      message: `Workflow ${run.id} created for topic "${input.topic}"`,
+      metadataJson: { createdById: input.userId },
     });
     await this.queue.enqueue({
       workflowRunId: run.id,
       stepType: "RESEARCHER",
       parentVersionId: null,
     } satisfies AgentJobPayload);
-    log.info({ workflowRunId: run.id, userId }, "Workflow created, RESEARCHER enqueued");
+    log.info({ workflowRunId: run.id, userId: input.userId }, "Workflow created, RESEARCHER enqueued");
     return run.id;
   }
 

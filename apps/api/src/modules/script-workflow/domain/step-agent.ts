@@ -2,6 +2,7 @@ import type { StepPayloadMap, StepType } from "@repo/shared";
 
 export interface StepAgentContext {
   topic: string;
+  focusHint: string | null;
   /** Latest output of each earlier step on the ancestor branch. */
   predecessorOutputs: Partial<Record<StepType, unknown>>;
   /** This step's previous output, used when rerunning or regenerating. */

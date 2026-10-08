@@ -21,6 +21,7 @@
     "@repo/shared": "workspace:*",
     "@scalar/hono-api-reference": "^0.12.8",
     "better-auth": "^1.7.6",
+    "cloudinary": "2.11.0",
     "hono": "catalog:",
     "pg-boss": "^12.35.0",
     "pi-web-access": "0.37.0",

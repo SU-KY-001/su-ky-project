@@ -1,4 +1,5 @@
 import { z } from "zod";
+const emptyAsUndefined = (value: unknown): unknown => (value === "" ? undefined : value);
 
 const envSchema = z
   .object({
@@ -12,6 +13,14 @@ const envSchema = z
       .default("su-ky-auth-secret-development-key"),
     BETTER_AUTH_URL: z.string().default("http://localhost:3005"),
     CORS_ORIGIN: z.string().default("http://localhost:5173"),
+    CLOUDINARY_CLOUD_NAME: z.preprocess(emptyAsUndefined, z.string().min(1).optional()),
+    CLOUDINARY_API_KEY: z.preprocess(emptyAsUndefined, z.string().min(1).optional()),
+    CLOUDINARY_API_SECRET: z.preprocess(emptyAsUndefined, z.string().min(1).optional()),
+    CLOUDINARY_FOLDER: z.preprocess(emptyAsUndefined, z.string().min(1).default("su-ky")),
+    CLOUDINARY_TIMEOUT_MS: z.preprocess(
+      emptyAsUndefined,
+      z.coerce.number().int().positive().default(10000)
+    ),
     LOG_LEVEL: z
       .enum(["fatal", "error", "warn", "info", "debug", "trace"])
       .default("info"),
@@ -44,6 +53,18 @@ const envSchema = z
           message:
             "BETTER_AUTH_SECRET must be configured with a secure production key",
           path: ["BETTER_AUTH_SECRET"],
+        });
+      }
+      const cloudinaryValues = [
+        data.CLOUDINARY_CLOUD_NAME,
+        data.CLOUDINARY_API_KEY,
+        data.CLOUDINARY_API_SECRET,
+      ];
+      if (!cloudinaryValues.every(Boolean)) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: "All Cloudinary credentials must be configured together",
+          path: ["CLOUDINARY_CLOUD_NAME"],
         });
       }
     }

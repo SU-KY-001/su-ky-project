@@ -1,6 +1,7 @@
 import {
   prisma,
   Prisma,
+  type DbClient,
   type ScriptPublication as PrismaPublication,
   type StepVersion as PrismaStepVersion,
   type WorkflowEvent as PrismaEvent,
@@ -42,6 +43,8 @@ function toRun(row: PrismaRun): WorkflowRunEntity {
   return {
     id: row.id,
     topic: row.topic,
+    seriesId: row.seriesId,
+    focusHint: row.focusHint,
     status: WorkflowStatusSchema.parse(row.status),
     currentStep: row.currentStep === null ? null : StepTypeSchema.parse(row.currentStep),
     createdById: row.createdById,
@@ -111,46 +114,62 @@ function toJsonInput(value: unknown): Prisma.InputJsonValue | typeof Prisma.Json
 }
 
 export class PrismaScriptWorkflowRepository implements ScriptWorkflowRepository {
-  async createWorkflowRun(topic: string, createdById: string): Promise<WorkflowRunEntity> {
-    const row = await prisma.workflowRun.create({
-      data: { topic, status: "PENDING", currentStep: "RESEARCHER", createdById },
+  constructor(private readonly db: DbClient = prisma) {}
+
+  async createWorkflowRun(input: {
+    topic: string;
+    createdById: string;
+    seriesId: string | null;
+    focusHint: string | null;
+  }): Promise<WorkflowRunEntity> {
+    const row = await this.db.workflowRun.create({
+      data: {
+        topic: input.topic,
+        status: "PENDING",
+        currentStep: "RESEARCHER",
+        createdById: input.createdById,
+        seriesId: input.seriesId,
+        focusHint: input.focusHint,
+      },
     });
     return toRun(row);
   }
 
   async getWorkflowRun(id: number): Promise<WorkflowRunEntity | null> {
-    const row = await prisma.workflowRun.findUnique({ where: { id } });
+    const row = await this.db.workflowRun.findUnique({ where: { id } });
     return row ? toRun(row) : null;
   }
 
   async getOwnedWorkflowRun(id: number, userId: string): Promise<WorkflowRunEntity | null> {
-    const row = await prisma.workflowRun.findFirst({ where: { id, createdById: userId } });
+    const row = await this.db.workflowRun.findFirst({ where: { id, createdById: userId } });
     return row ? toRun(row) : null;
   }
 
   async listWorkflowRuns(
     userId: string,
     page: number,
-    limit: number
+    limit: number,
+    seriesId?: string
   ): Promise<{ items: WorkflowRunEntity[]; total: number }> {
-    const [rows, total] = await prisma.$transaction([
-      prisma.workflowRun.findMany({
-        where: { createdById: userId },
+    const where = { createdById: userId, ...(seriesId ? { seriesId } : {}) };
+    const [rows, total] = await Promise.all([
+      this.db.workflowRun.findMany({
+        where,
         orderBy: { createdAt: "desc" },
         skip: (page - 1) * limit,
         take: limit,
       }),
-      prisma.workflowRun.count({ where: { createdById: userId } }),
+      this.db.workflowRun.count({ where }),
     ]);
     return { items: rows.map(toRun), total };
   }
 
   async updateWorkflowRun(id: number, patch: WorkflowRunPatch): Promise<void> {
-    await prisma.workflowRun.update({ where: { id }, data: patch });
+    await this.db.workflowRun.update({ where: { id }, data: patch });
   }
 
   async getWorkflowStep(workflowRunId: number, stepType: StepType): Promise<WorkflowStepEntity | null> {
-    const row = await prisma.workflowStep.findUnique({
+    const row = await this.db.workflowStep.findUnique({
       where: { workflowRunId_stepType: { workflowRunId, stepType } },
     });
     return row ? toStep(row) : null;
@@ -161,7 +180,7 @@ export class PrismaScriptWorkflowRepository implements ScriptWorkflowRepository 
     stepType: StepType,
     status: StepStatus = "PENDING"
   ): Promise<WorkflowStepEntity> {
-    const row = await prisma.workflowStep.upsert({
+    const row = await this.db.workflowStep.upsert({
       where: { workflowRunId_stepType: { workflowRunId, stepType } },
       create: { workflowRunId, stepType, status },
       update: {},
@@ -170,7 +189,7 @@ export class PrismaScriptWorkflowRepository implements ScriptWorkflowRepository 
   }
 
   async updateWorkflowStep(id: number, patch: WorkflowStepPatch): Promise<void> {
-    await prisma.workflowStep.update({ where: { id }, data: patch });
+    await this.db.workflowStep.update({ where: { id }, data: patch });
   }
 
   async atomicTransitionStepStatus(
@@ -179,32 +198,32 @@ export class PrismaScriptWorkflowRepository implements ScriptWorkflowRepository 
     expectedVersion: number,
     patch: { status: StepStatus; approvedVersion?: number | null; incomingGuidance?: string | null }
   ): Promise<WorkflowStepEntity | null> {
-    const { count } = await prisma.workflowStep.updateMany({
+    const { count } = await this.db.workflowStep.updateMany({
       where: { id: stepId, status: expectedStatus, currentVersion: expectedVersion },
       data: patch,
     });
     if (count === 0) return null;
-    const row = await prisma.workflowStep.findUnique({ where: { id: stepId } });
+    const row = await this.db.workflowStep.findUnique({ where: { id: stepId } });
     return row ? toStep(row) : null;
   }
 
   async setDownstreamStepsStale(workflowRunId: number, downstreamTypes: StepType[]): Promise<void> {
     if (downstreamTypes.length === 0) return;
-    await prisma.workflowStep.updateMany({
+    await this.db.workflowStep.updateMany({
       where: { workflowRunId, stepType: { in: downstreamTypes } },
       data: { status: "STALE" },
     });
   }
 
   async getStepVersion(workflowStepId: number, version: number): Promise<StepVersionEntity | null> {
-    const row = await prisma.stepVersion.findUnique({
+    const row = await this.db.stepVersion.findUnique({
       where: { workflowStepId_version: { workflowStepId, version } },
     });
     return row ? toVersion(row) : null;
   }
 
   async getStepVersionById(id: number): Promise<StepVersionWithRun | null> {
-    const row = await prisma.stepVersion.findUnique({
+    const row = await this.db.stepVersion.findUnique({
       where: { id },
       include: { workflowStep: { select: { stepType: true, workflowRunId: true } } },
     });
@@ -217,17 +236,39 @@ export class PrismaScriptWorkflowRepository implements ScriptWorkflowRepository 
   }
 
   async getAncestry(nodeId: number): Promise<StepVersionWithType[]> {
-    const rows = await prisma.$queryRaw<AncestryRow[]>`
+    const rows = await this.db.$queryRaw<AncestryRow[]>`
       WITH RECURSIVE ancestry AS (
-        SELECT sv.*, ws."stepType" AS "stepType", 0 AS depth
+        SELECT
+          sv.id,
+          sv.workflow_step_id AS "workflowStepId",
+          sv.parent_version_id AS "parentVersionId",
+          sv.version,
+          sv.input_json AS "inputJson",
+          sv.output_json AS "outputJson",
+          sv.human_feedback AS "humanFeedback",
+          sv.validation_status AS "validationStatus",
+          sv.created_at AS "createdAt",
+          ws.step_type AS "stepType",
+          0 AS depth
         FROM step_versions sv
-        JOIN workflow_steps ws ON ws.id = sv."workflowStepId"
+        JOIN workflow_steps ws ON ws.id = sv.workflow_step_id
         WHERE sv.id = ${nodeId}
         UNION ALL
-        SELECT p.*, ws."stepType" AS "stepType", a.depth + 1
+        SELECT
+          p.id,
+          p.workflow_step_id AS "workflowStepId",
+          p.parent_version_id AS "parentVersionId",
+          p.version,
+          p.input_json AS "inputJson",
+          p.output_json AS "outputJson",
+          p.human_feedback AS "humanFeedback",
+          p.validation_status AS "validationStatus",
+          p.created_at AS "createdAt",
+          ws.step_type AS "stepType",
+          a.depth + 1
         FROM step_versions p
         JOIN ancestry a ON p.id = a."parentVersionId"
-        JOIN workflow_steps ws ON ws.id = p."workflowStepId"
+        JOIN workflow_steps ws ON ws.id = p.workflow_step_id
       )
       SELECT * FROM ancestry ORDER BY depth DESC
     `;
@@ -238,7 +279,7 @@ export class PrismaScriptWorkflowRepository implements ScriptWorkflowRepository 
   }
 
   async listRunNodes(workflowRunId: number): Promise<RunNodeEntity[]> {
-    const rows = await prisma.stepVersion.findMany({
+    const rows = await this.db.stepVersion.findMany({
       where: { workflowStep: { workflowRunId } },
       orderBy: { id: "asc" },
       include: { workflowStep: { select: { stepType: true, status: true, approvedVersion: true } } },
@@ -252,7 +293,7 @@ export class PrismaScriptWorkflowRepository implements ScriptWorkflowRepository 
   }
 
   async getRunWithStepsAndVersions(workflowRunId: number): Promise<WorkflowRunWithSteps | null> {
-    const row = await prisma.workflowRun.findUnique({
+    const row = await this.db.workflowRun.findUnique({
       where: { id: workflowRunId },
       include: {
         steps: { include: { versions: { orderBy: { version: "desc" } } } },
@@ -266,7 +307,7 @@ export class PrismaScriptWorkflowRepository implements ScriptWorkflowRepository 
   }
 
   async insertStepVersion(input: InsertStepVersionInput): Promise<StepVersionEntity> {
-    const row = await prisma.stepVersion.create({
+    const row = await this.db.stepVersion.create({
       data: {
         workflowStepId: input.workflowStepId,
         version: input.version,
@@ -282,7 +323,7 @@ export class PrismaScriptWorkflowRepository implements ScriptWorkflowRepository 
 
   async insertPublication(input: InsertPublicationInput): Promise<ScriptPublicationEntity> {
     try {
-      const row = await prisma.scriptPublication.create({ data: input });
+      const row = await this.db.scriptPublication.create({ data: input });
       return toPublication(row);
     } catch (err) {
       // Concurrent double-publish of the same approved node: return the winner.
@@ -298,7 +339,7 @@ export class PrismaScriptWorkflowRepository implements ScriptWorkflowRepository 
   }
 
   async listPublications(workflowRunId: number): Promise<ScriptPublicationEntity[]> {
-    const rows = await prisma.scriptPublication.findMany({
+    const rows = await this.db.scriptPublication.findMany({
       where: { workflowRunId },
       orderBy: { id: "desc" },
     });
@@ -308,12 +349,12 @@ export class PrismaScriptWorkflowRepository implements ScriptWorkflowRepository 
   async findPublicationByApprovedVersionId(
     approvedVersionId: number
   ): Promise<ScriptPublicationEntity | null> {
-    const row = await prisma.scriptPublication.findUnique({ where: { approvedVersionId } });
+    const row = await this.db.scriptPublication.findUnique({ where: { approvedVersionId } });
     return row ? toPublication(row) : null;
   }
 
   async logEvent(input: LogEventInput): Promise<void> {
-    await prisma.workflowEvent.create({
+    await this.db.workflowEvent.create({
       data: {
         workflowRunId: input.workflowRunId,
         type: input.type,
@@ -328,7 +369,7 @@ export class PrismaScriptWorkflowRepository implements ScriptWorkflowRepository 
     typePrefix: string | undefined,
     limit: number
   ): Promise<WorkflowEventEntity[]> {
-    const rows = await prisma.workflowEvent.findMany({
+    const rows = await this.db.workflowEvent.findMany({
       where: {
         workflowRunId,
         ...(typePrefix ? { type: { startsWith: typePrefix } } : {}),
@@ -344,7 +385,7 @@ export class PrismaScriptWorkflowRepository implements ScriptWorkflowRepository 
     afterId: number,
     limit: number
   ): Promise<WorkflowEventEntity[]> {
-    const rows = await prisma.workflowEvent.findMany({
+    const rows = await this.db.workflowEvent.findMany({
       where: { workflowRunId, id: { gt: afterId } },
       orderBy: { id: "asc" },
       take: limit,

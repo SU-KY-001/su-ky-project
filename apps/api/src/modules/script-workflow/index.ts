@@ -1,4 +1,5 @@
 import { AgentStepHandler } from "./application/agent-step.handler";
+import { ContentImportService } from "./application/content-import.service";
 import { LineageService } from "./application/lineage.service";
 import { PublicationService } from "./application/publication.service";
 import { WorkflowCommandService } from "./application/workflow-command.service";
@@ -21,11 +22,13 @@ const publication = new PublicationService(repository, lineage);
 const commands = new WorkflowCommandService(repository, queue, lineage, publication);
 const queries = new WorkflowQueryService(repository);
 const agent = new PiStepAgent(repository.logEvent.bind(repository));
+const imports = new ContentImportService(commands);
 const stepHandler = new AgentStepHandler(repository, queue, lineage, agent);
 
 export const scriptWorkflowRoute = createScriptWorkflowRoute({
   commands,
   queries,
+  imports,
   isAiReady: () => piRuntime.isReady,
 });
 

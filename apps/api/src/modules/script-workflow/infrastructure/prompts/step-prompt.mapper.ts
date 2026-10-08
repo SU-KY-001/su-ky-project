@@ -70,6 +70,7 @@ export function buildStepPrompt(stepType: StepType, ctx: StepAgentContext): Buil
         systemPrompt: RESEARCHER_SYSTEM_PROMPT,
         userPrompt: buildResearcherPrompt({
           topic: ctx.topic,
+          focusHint: ctx.focusHint,
           incomingGuidance: ctx.incomingGuidance,
           previousOutputJson: own,
         }),

@@ -1,21 +1,16 @@
 import { useQuery } from "@tanstack/react-query";
 import { AlertCircle, CheckCircle2, Code2, Database, Server } from "lucide-react";
 import { client } from "../../shared/api/client";
+import { readJson } from "../../shared/api/http";
 
 export function SystemHealthGrid() {
   const healthQuery = useQuery({
     queryKey: ["health"],
-    queryFn: async () => {
-      const response = await client.health.$get();
-      if (!response.ok) {
-        throw new Error(`API healthcheck returned status ${response.status}`);
-      }
-      return response.json();
-    },
+    queryFn: async () => readJson(await client.health.$get()),
     refetchInterval: 10_000,
   });
 
-  const health = healthQuery.data?.data;
+  const health = healthQuery.data;
   const apiStatus = healthQuery.isPending
     ? "Connecting..."
     : healthQuery.isError

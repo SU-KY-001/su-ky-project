@@ -49,6 +49,9 @@ describe("Environment Configuration & Validation", () => {
       PORT: "8080",
       DATABASE_URL: "postgresql://postgres:secret@prod-db.internal:5432/suky",
       BETTER_AUTH_SECRET: "strong-prod-secret-987654321",
+      CLOUDINARY_CLOUD_NAME: "prod-cloud",
+      CLOUDINARY_API_KEY: "prod-api-key",
+      CLOUDINARY_API_SECRET: "prod-api-secret",
     });
 
     expect(parsed.NODE_ENV).toBe("production");

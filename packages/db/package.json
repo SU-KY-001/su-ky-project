@@ -9,8 +9,9 @@
   },
   "scripts": {
     "db:generate": "bun --env-file=../../.env run prisma generate",
-    "db:push": "bun --env-file=../../.env run prisma db push",
+    "db:deploy": "bun --env-file=../../.env run prisma migrate deploy",
     "db:migrate": "bun --env-file=../../.env run prisma migrate dev",
+    "db:test:reset": "bun --env-file=../../.env.test run prisma migrate reset --force",
     "db:seed": "bun --env-file=../../.env run src/seed.ts",
     "check-types": "tsc --noEmit"
   },
