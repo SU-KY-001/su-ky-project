@@ -24,7 +24,7 @@ export function DiscoverySection() {
   }, [filter, query]);
 
   return (
-    <SectionFrame id="discover" tone="deep" labelledBy="discover-heading">
+    <SectionFrame id="discover" labelledBy="discover-heading">
       <div className="flex flex-col gap-7">
         <SectionHeading id="discover-heading" eyebrow="Khám phá" title="Bắt đầu từ điều bạn đang tò mò" description="Tìm theo sự kiện, nhân vật, chủ đề hoặc giai đoạn lịch sử." />
         <div className="flex max-w-[900px] flex-col gap-4">

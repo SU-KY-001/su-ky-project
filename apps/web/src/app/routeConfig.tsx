@@ -11,6 +11,15 @@ export function preloadLandingPage(): Promise<LandingPageModule> {
 
 export const appRoutes: RouteObject[] = [
   {
+    id: "login",
+    path: "/login",
+    errorElement: <RouteErrorFallback />,
+    lazy: async () => {
+      const { LoginPage } = await import("../pages/auth/LoginPage");
+      return { Component: LoginPage };
+    },
+  },
+  {
     id: "landing",
     path: "/",
     errorElement: <RouteErrorFallback />,

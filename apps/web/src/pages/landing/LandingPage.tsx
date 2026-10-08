@@ -2,6 +2,7 @@ import { Component, lazy, Suspense, useEffect, type ReactNode } from "react";
 import { HeroCarousel } from "../../features/landing/components/HeroCarousel";
 import { LandingHeader } from "../../features/landing/components/LandingHeader";
 import { scrollToLandingTarget, useLandingMotion } from "../../features/landing/hooks/useLandingMotion";
+import { LightRays } from "@/components/ui/light-rays";
 
 const LandingContent = lazy(() => import("./LandingContent").then(({ LandingContent: Content }) => ({ default: Content })));
 const LandingFooter = lazy(() => import("./LandingContent").then(({ LandingFooterContent }) => ({ default: LandingFooterContent })));
@@ -25,7 +26,7 @@ class LandingContentBoundary extends Component<LandingContentBoundaryProps, { fa
 
 function LandingContentError() {
   return (
-    <div className="bg-paper-deep px-5 py-4 text-sm text-ink-soft" role="alert">
+    <div className="px-5 py-4 text-sm text-ink-soft" role="alert">
       Câu chuyện nổi bật vẫn sẵn sàng; tải lại trang để thử lấy các phần còn lại.
     </div>
   );
@@ -46,7 +47,7 @@ export function LandingPage() {
   }, []);
 
   return (
-    <div id="landing-page" className="min-h-screen bg-paper">
+    <div id="landing-page" className="relative isolate min-h-screen bg-paper">
       <LandingHeader />
       <main>
         <HeroCarousel />
@@ -61,6 +62,7 @@ export function LandingPage() {
           <LandingFooter />
         </Suspense>
       </LandingContentBoundary>
+      <LightRays className="fixed inset-0 z-30 opacity-70" count={6} color="rgba(181, 138, 60, 0.24)" blur={52} speed={22} length="110vh" />
     </div>
   );
 }

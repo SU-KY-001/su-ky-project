@@ -39,12 +39,12 @@ export function NarrativeDemo() {
   };
 
   return (
-    <section role="region" aria-labelledby="narrative-heading" className={cn("px-5 py-20 md:px-7 md:py-28", dark ? "bg-night" : "bg-paper-deep")}>
+    <section role="region" aria-labelledby="narrative-heading" className="px-5 py-20 md:px-7 md:py-28">
       <div className="mx-auto flex w-full max-w-[1280px] flex-col items-stretch gap-8 md:flex-row">
         <div className="flex flex-[.75] flex-col justify-center gap-4">
-          <p className={cn("text-xs font-bold uppercase tracking-[.17em]", dark ? "text-bronze" : "text-vermilion")}>Một sự kiện, hai tiếng nói</p>
-          <h2 id="narrative-heading" className={cn("font-serif text-3xl font-bold leading-tight md:text-5xl", dark ? "text-paper-soft" : "text-ink")}>Lịch sử thay đổi khi người trong cuộc lên tiếng</h2>
-          <p className={cn("text-base leading-7", dark ? "text-paper-deep" : "text-ink-soft")}>Chuyển ngôi kể để cảm nhận khoảng cách giữa sử liệu và ký ức cá nhân.</p>
+          <p className="text-xs font-bold uppercase tracking-[.17em] text-vermilion">Một sự kiện, hai tiếng nói</p>
+          <h2 id="narrative-heading" className="font-serif text-3xl font-bold leading-tight text-ink md:text-5xl">Lịch sử thay đổi khi người trong cuộc lên tiếng</h2>
+          <p className="text-base leading-7 text-ink-soft">Chuyển ngôi kể để cảm nhận khoảng cách giữa sử liệu và ký ức cá nhân.</p>
         </div>
         <div className={cn("flex flex-1 flex-col gap-5 rounded-lg border p-5 md:p-7", dark ? "border-bronze-dark bg-night-soft" : "border-bronze bg-paper-soft")}>
           <div className={cn("flex self-start gap-1 rounded-md border p-1", dark ? "border-bronze-dark" : "border-line")} role="group" aria-label="Chọn ngôi kể">

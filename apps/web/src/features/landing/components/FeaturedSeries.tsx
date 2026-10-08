@@ -11,7 +11,7 @@ export function FeaturedSeries() {
   const series = featuredSeries.find((item) => item.id === selectedId) ?? featuredSeries[0];
 
   return (
-    <SectionFrame tone="paper" labelledBy="series-heading">
+    <SectionFrame labelledBy="series-heading">
       <div className="flex flex-col gap-7">
         <SectionHeading id="series-heading" title="Mỗi series là một chương hồi" description="Theo một sự kiện từ bối cảnh, nhân vật đến những lựa chọn đã làm lịch sử rẽ hướng." />
         <div className="overflow-x-auto pb-2">
