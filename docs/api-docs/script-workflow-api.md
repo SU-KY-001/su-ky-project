@@ -112,6 +112,9 @@ flowchart LR
 | 7   | POST   | `/:id/publications`   | Xuất bản tường minh một node đã duyệt                 |
 | 8   | GET    | `/:id/events`         | Nhật ký sự kiện                                       |
 | 9   | GET    | `/:id/events/stream`  | Luồng sự kiện realtime (SSE)                          |
+| 10  | GET    | `/:id/import-preview` | Xem trước nhập CMS (sau Gate 2)                       |
+| 11  | POST   | `/:id/import`         | Nhập vào CMS (sau Gate 2, không tự duyệt)             |
+| 12  | GET    | `/:id/import`         | Kết quả nhập đã lưu                                   |
 
 Path param `:id` ở mọi route: `ScriptWorkflowIdParamSchema` → `{ id: integer ≥ 1 }` (chuỗi số được ép kiểu). Sai định dạng → `400 VALIDATION_ERROR`.
 
@@ -480,6 +483,33 @@ Lưu ý khi dùng:
 - `data` của `workflow-event` dùng `id` của DB, cùng không gian id với `GET /:id/events`.
 - Lỗi xác thực/quyền (`401`, `403`, `404`) trả JSON thường như các route khác, trước khi stream mở.
 
+### 3.10 `GET /api/script-workflows/:id/import-preview` — Xem trước nhập CMS
+
+Chỉ dùng được **sau khi Gate 2 đã được duyệt** (`CONTINUE` trên `FACT_CHECKER`, bước có `approvedVersion`). Dữ liệu lấy từ đúng phiên bản đã duyệt. Chưa duyệt → `409 IMPORT_NOT_AVAILABLE`.
+
+**Response `200`** (`ImportPreviewSchema`): `target`, `factCheck`, `basis.factCheckerVersionId`, `episodes`, `sources` (kèm ứng viên trùng catalog), `entities`.
+
+Lỗi: `401`, `403`, `404 NOT_FOUND`, `409 IMPORT_NOT_AVAILABLE` (Gate 2 chưa duyệt hoặc lineage không đầy đủ).
+
+### 3.11 `POST /api/script-workflows/:id/import` — Nhập vào CMS
+
+Cần header `Idempotency-Key`. Endpoint này **không** tự duyệt Gate 2: phải gọi `step-decisions` `CONTINUE` trước. Tạo (hoặc dùng lại) Series, các tập nháp, bản kể, nguồn và thẻ thực thể theo quyết định của Moderator.
+
+**Body** (`ImportRequestSchema`): `basis.factCheckerVersionId` (lấy từ preview), `approvalNote?`, `sourceDecisions[]`, `entityDecisions[]`.
+
+**Response**: `201` (`ImportResult`) khi tạo mới, `200` khi lặp lại.
+
+| HTTP | `error_code`                  | Khi nào                                                         |
+| ---- | ----------------------------- | --------------------------------------------------------------- |
+| 404  | `NOT_FOUND`                   | Workflow không thuộc người gọi                                  |
+| 409  | `IMPORT_NOT_AVAILABLE`        | Gate 2 chưa được duyệt, hoặc lineage không đầy đủ               |
+| 409  | `STALE_WRITE`                 | `basis.factCheckerVersionId` không còn khớp phiên bản đã duyệt  |
+| 422  | `IMPORT_DECISIONS_INCOMPLETE` | Còn nguồn trong danh mục AI chưa có quyết định                  |
+
+### 3.12 `GET /api/script-workflows/:id/import` — Kết quả nhập đã lưu
+
+Trả `ImportResult` đã lưu. Chưa nhập → `404 NOT_IMPORTED`.
+
 ## 4. Kịch bản gọi chuẩn (sequence)
 
 1. `POST /` với `topic` → `id`.
@@ -490,6 +520,7 @@ Lưu ý khi dùng:
 6. Hệ thống chạy `SCRIPT_WRITER` → `ORALIZER` → `FACT_CHECKER`, dừng ở Gate 2.
 7. Gate 2: hiển thị `ReviewReport` (`passed`, `overallScore`, `claimVerification`, `oralLinter`), kèm văn nói từ node `ORALIZER`. Moderator `CONTINUE` → run `COMPLETED`, response có `publicationId`.
 8. `GET /:id/publications` → lấy `finalScript` đem sang ElevenLabs.
+9. Sau khi Gate 2 đã duyệt: `GET /:id/import-preview` → đối chiếu nguồn/thực thể, rồi `POST /:id/import` để nhập vào CMS. Trước Gate 2 cả hai trả `409 IMPORT_NOT_AVAILABLE`.
 
 ## 5. Schema `outputJson` theo `StepType`
 

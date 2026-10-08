@@ -59,15 +59,15 @@ Hiện trạng `apps/web`: chỉ có `/` (landing) và `/moderator` (dashboard d
 
 | # | File | Nội dung | Ước lượng | Trạng thái |
 |---|---|---|---|---|
-| 1 | [phase-01-dev-credential-and-auth-client.md](phase-01-dev-credential-and-auth-client.md) | Seed acc mod, nút đăng nhập dev, client gửi cookie | 3h | pending |
-| 2 | [phase-02-foundation-hooks-shell-routes.md](phase-02-foundation-hooks-shell-routes.md) | Helper lỗi/idempotency, hooks, SSE, `ModeratorShell`, route, guard | 6h | pending |
-| 3 | [phase-03-list-and-create.md](phase-03-list-and-create.md) | S1 danh sách, S2 tạo | 4h | pending |
-| 4 | [phase-04-workspace-readonly-steps.md](phase-04-workspace-readonly-steps.md) | S3 khung, stepper, version switcher, panel chỉ đọc | 7h | pending |
-| 5 | [phase-05-gate0-sources-and-focus.md](phase-05-gate0-sources-and-focus.md) | Gate 0: sửa nguồn + chọn trọng tâm | 5h | pending |
-| 6 | [phase-06-gate1-rerun-direct-edit.md](phase-06-gate1-rerun-direct-edit.md) | Gate 1, hộp thoại Làm lại, trình Sửa tay | 4h | pending |
-| 7 | [phase-07-gate2-and-publication.md](phase-07-gate2-and-publication.md) | Gate 2 báo cáo kiểm định, S4 xuất bản | 4h | pending |
-| 8 | [phase-08-tree-and-event-log.md](phase-08-tree-and-event-log.md) | S5 cây lịch sử, tab Nhật ký | 1h+ | pending |
-| 9 | [phase-09-cms-import.md](phase-09-cms-import.md) | Nút "Nhập vào Studio": điền sẵn Series + 3 tập nháp từ kịch bản đã duyệt | 4h | pending |
+| 1 | [phase-01-dev-credential-and-auth-client.md](phase-01-dev-credential-and-auth-client.md) | Seed acc mod, nút đăng nhập dev, client gửi cookie | 3h | done 2026-10-09 |
+| 2 | [phase-02-foundation-hooks-shell-routes.md](phase-02-foundation-hooks-shell-routes.md) | Helper lỗi/idempotency, hooks, SSE, `ModeratorShell`, route, guard | 6h | done 2026-10-09 |
+| 3 | [phase-03-list-and-create.md](phase-03-list-and-create.md) | S1 danh sách, S2 tạo | 4h | done 2026-10-09 |
+| 4 | [phase-04-workspace-readonly-steps.md](phase-04-workspace-readonly-steps.md) | S3 khung, stepper, version switcher, panel chỉ đọc | 7h | done 2026-10-09 |
+| 5 | [phase-05-gate0-sources-and-focus.md](phase-05-gate0-sources-and-focus.md) | Gate 0: sửa nguồn + chọn trọng tâm | 5h | done 2026-10-09 |
+| 6 | [phase-06-gate1-rerun-direct-edit.md](phase-06-gate1-rerun-direct-edit.md) | Gate 1, hộp thoại Làm lại, trình Sửa tay | 4h | done 2026-10-09 |
+| 7 | [phase-07-gate2-and-publication.md](phase-07-gate2-and-publication.md) | Gate 2 báo cáo kiểm định, S4 xuất bản | 4h | done 2026-10-09 |
+| 8 | [phase-08-tree-and-event-log.md](phase-08-tree-and-event-log.md) | S5 cây lịch sử, tab Nhật ký | 1h+ | done 2026-10-09 |
+| 9 | [phase-09-cms-import.md](phase-09-cms-import.md) | Nút "Nhập vào Studio": điền sẵn Series + 3 tập nháp từ kịch bản đã duyệt | 4h | done 2026-10-09 |
 
 Thứ tự bắt buộc: 1 → 2 → (3, 4) → 5 → 6 → 7 → 9. Phase 8 (cây, nhật ký) độc lập sau phase 7, làm sau cùng. Phase 3 và 4 chỉ cùng phụ thuộc phase 2.
 
