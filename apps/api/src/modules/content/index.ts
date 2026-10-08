@@ -1,14 +1,22 @@
 import { Hono } from "hono";
 import type { AppEnv } from "../../types";
-import type { MediaStorageGateway } from "../media/application/media-storage";
+import type { MediaStorageGateway } from "../media";
+import { PrismaEpisodeRepository, PrismaSeriesRepository } from "./infrastructure/prisma-content.repository";
+import { ContentService } from "./application/content.service";
 import { createEpisodeRoute } from "./presentation/episode.routes";
 import { createSeriesRoute } from "./presentation/series.routes";
 
+const contentService = new ContentService(new PrismaSeriesRepository(), new PrismaEpisodeRepository());
+
 export function createStudioContentRoute(storage?: MediaStorageGateway) {
   return new Hono<AppEnv>()
-    .route("/series", createSeriesRoute(storage))
-    .route("/", createEpisodeRoute(storage));
+    .route("/series", createSeriesRoute(contentService, storage))
+    .route("/", createEpisodeRoute(contentService, storage));
 }
 
-export { createSeriesDraft, appendEpisodes } from "./application/content-writer";
-export { loadSeriesForRead, assertWritable } from "./application/content-access";
+/**
+ * Transaction-aware content API for the script-workflow import flow: these run
+ * on the caller's Prisma client/transaction so the import stays atomic.
+ */
+export { createSeriesDraft, appendEpisodes, loadSeriesForRead } from "./infrastructure/prisma-content.repository";
+export { assertWritable } from "./application/content.service";

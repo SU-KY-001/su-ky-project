@@ -1,11 +1,11 @@
-import { prisma, type DbClient, type MediaAsset, type MediaKind } from "@repo/db";
 import { getSystemConfig } from "../../../core/config/system-config";
 import { DomainError } from "../../../core/errors/domain-error";
 import { env } from "../../../core/env";
-import { MediaProviderError, type MediaStorageGateway } from "./media-storage";
+import type { MediaAsset, MediaKind } from "../domain/media.entity";
+import { MediaProviderError, type MediaRepository, type MediaStorageGateway } from "../domain/media.repository";
 
 export class MediaService {
-  constructor(private readonly storage: MediaStorageGateway, private readonly db: DbClient = prisma) {}
+  constructor(private readonly storage: MediaStorageGateway, private readonly repository: MediaRepository) {}
 
   private async config(kind: MediaKind) {
     return kind === "AUDIO"
@@ -28,7 +28,7 @@ export class MediaService {
     if (input.sizeBytes > config.maxBytes) throw new DomainError(422, "MEDIA_TOO_LARGE", "Media exceeds the size limit");
     const id = crypto.randomUUID();
     const segment = input.kind === "AUDIO" ? "audio" : "image";
-    const asset = await this.db.mediaAsset.create({ data: { id, kind: input.kind, publicId: `${env.CLOUDINARY_FOLDER}/${segment}/${id}`, status: "PENDING", uploadedById: userId } });
+    const asset = await this.repository.createAsset({ id, kind: input.kind, publicId: `${env.CLOUDINARY_FOLDER}/${segment}/${id}`, status: "PENDING", uploadedById: userId });
     try {
       const upload = await this.storage.signUpload({ publicId: asset.publicId, kind: asset.kind, allowedFormats: config.formats });
       return { assetId: asset.id, upload: { url: upload.url, fields: upload.fields }, expiresAt: upload.expiresAt };
@@ -36,13 +36,13 @@ export class MediaService {
   }
 
   async get(id: string, userId: string, isAdmin: boolean) {
-    const asset = await this.db.mediaAsset.findUnique({ where: { id } });
+    const asset = await this.repository.getAsset(id);
     if (!asset || (!isAdmin && asset.uploadedById !== userId)) throw new DomainError(404, "NOT_FOUND", "Media asset not found");
     return this.map(asset);
   }
 
   async verify(id: string, userId: string, isAdmin: boolean, publicId: string) {
-    const asset = await this.db.mediaAsset.findUnique({ where: { id } });
+    const asset = await this.repository.getAsset(id);
     if (!asset || (!isAdmin && asset.uploadedById !== userId)) throw new DomainError(404, "NOT_FOUND", "Media asset not found");
     if (publicId !== asset.publicId) throw new DomainError(422, "MEDIA_INVALID", "Uploaded publicId does not match the media ticket");
     if (asset.status === "READY") return this.map(asset);
@@ -53,10 +53,10 @@ export class MediaService {
       const invalid = !config.formats.includes(resource.format.toLowerCase()) || resource.bytes > BigInt(config.maxBytes) || (asset.kind === "AUDIO" && (!resource.durationMs || resource.durationMs <= 0));
       if (invalid) {
         await this.storage.destroy(asset.publicId, asset.kind);
-        await this.db.mediaAsset.update({ where: { id }, data: { status: "DELETED", deletedAt: new Date() } });
+        await this.repository.updateStatus(id, { status: "DELETED", deletedAt: new Date() });
         throw new DomainError(422, "MEDIA_INVALID", "Uploaded media is invalid");
       }
-      const updated = await this.db.mediaAsset.update({ where: { id }, data: { status: "READY", version: resource.version, format: resource.format.toLowerCase(), sizeBytes: resource.bytes, durationMs: resource.durationMs, verifiedAt: new Date() } });
+      const updated = await this.repository.updateStatus(id, { status: "READY", version: resource.version, format: resource.format.toLowerCase(), sizeBytes: resource.bytes, durationMs: resource.durationMs, verifiedAt: new Date() });
       return this.map(updated);
     } catch (error) { return this.providerError(error); }
   }

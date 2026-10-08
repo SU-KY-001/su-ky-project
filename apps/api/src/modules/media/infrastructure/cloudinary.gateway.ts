@@ -1,8 +1,8 @@
 import { v2 as cloudinary } from "cloudinary";
-import type { MediaAsset, MediaKind } from "@repo/db";
 import { getSystemConfig } from "../../../core/config/system-config";
 import { env } from "../../../core/env";
-import { MediaProviderError, type MediaStorageGateway, type StoredResource } from "../application/media-storage";
+import type { MediaAsset, MediaKind } from "../domain/media.entity";
+import { MediaProviderError, type MediaStorageGateway, type StoredResource } from "../domain/media.repository";
 
 function cloudinaryType(kind: MediaKind) {
   return kind === "AUDIO" ? "authenticated" : "upload";
