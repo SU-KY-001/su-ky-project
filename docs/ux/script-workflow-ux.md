@@ -103,7 +103,7 @@ API: `POST /api/script-workflows`. Tuỳ chọn `GET /health` để kiểm tra A
 - Không có ô nguồn tự cung cấp (tính năng chưa có).
 - Khi gửi: nút chuyển sang trạng thái "Đang khởi tạo…", khoá form để tránh gửi hai lần. Thành công thì chuyển sang S3 với `id` trả về.
 - Trước khi gửi, gọi `GET /health`. Nếu `data.ai = "unavailable"` hiện cảnh báo vàng "Hệ thống AI chưa sẵn sàng, chưa thể tạo kịch bản" và khoá nút. Cách này tránh người dùng gõ xong mới nhận `503`.
-- Lỗi: `400` hiện lỗi tại ô (lấy `details.fieldErrors.topic`); `503` hiện cảnh báo như trên, cho phép thử lại; lỗi khác hiện toast kèm `requestId` để báo hỗ trợ.
+- Lỗi: `400` hiện `message` tại ô `topic` (body lỗi chỉ có `{ error_code, message }`, không có lỗi theo field; giới hạn 3 đến 10000 ký tự đã chặn ở client bằng schema dùng chung); `503` hiện cảnh báo như trên, cho phép thử lại; lỗi khác hiện toast kèm mã yêu cầu (header `X-Request-Id`) để báo hỗ trợ.
 
 ### S3. Workspace của một kịch bản (màn chính)
 
@@ -180,14 +180,14 @@ Hành vi:
 |---|---|---|---|
 | **Duyệt & tiếp tục** | Luôn (Gate 0/1/2) | `CONTINUE` | Gate 0: bắt buộc đã chọn trọng tâm. Gate 2: nhãn đổi thành **Duyệt & xuất bản** |
 | **Làm lại…** | Luôn | `RERUN` | Mở hộp thoại nhập feedback (bắt buộc, ít nhất 1 ký tự) |
-| **Sửa tay** | Gate 0, Gate 1, Gate 2 | `DIRECT_EDIT` | Mở trình sửa (xem 3.5). Không có ở bước tự động |
+| **Sửa tay** | Gate 0, Gate 1, Gate 2 | `DIRECT_EDIT` | Mở trình sửa (xem 3.5). Gate 0 sửa danh mục nguồn (4.1). Không có ở bước tự động |
 
 Quy tắc chung:
 - `baseVersion` luôn lấy từ `currentVersion` của bước ở lần fetch mới nhất, không lấy từ tab đang xem.
 - Khi gửi: khoá toàn bộ nút, nút bấm hiện spinner. Tránh bấm đúp.
 - Sau `CONTINUE` hoặc `RERUN` thành công: hiện toast ngắn, refetch, stepper chuyển sang bước kế. Panel chuyển sang trạng thái chờ.
 - `409 CONFLICT`: hộp thoại "Kịch bản vừa thay đổi ở nơi khác" + nút **Tải lại**. Tự refetch, giữ nguyên nội dung người dùng đang nhập (feedback / bản sửa) để họ gửi lại.
-- `400 VALIDATION_ERROR` (chủ yếu `DIRECT_EDIT`): hiện danh sách lỗi theo field từ `details.fieldErrors`, giữ nguyên bản sửa.
+- `400 VALIDATION_ERROR` (chủ yếu `DIRECT_EDIT`): hiện `message` do server trả, giữ nguyên bản sửa. Lỗi theo từng field do client tự bắt bằng schema `@repo/shared` trước khi gửi.
 - `403/401`: đưa về đăng nhập hoặc trang không có quyền.
 
 #### 3.5 Hộp thoại "Làm lại" và trình "Sửa tay"
@@ -210,7 +210,7 @@ API: `GET /:id/publications` (lấy `finalScript`), vẫn có thể dùng `GET /
 ```
 ┌────────────────────────────────────────────────────────────┐
 │ ✓ Đã xuất bản · 5.400 từ · ~36 phút      [Copy toàn bộ]    │
-│ Duyệt bởi: <tên Moderator> · 08/10/2026 15:30  [Tải .txt]  │
+│ Duyệt bởi: <tên Moderator> · 08/10/2026 15:30              │
 ├────────────────────────────────────────────────────────────┤
 │ [Tập 1] [Tập 2] [Tập 3]                                    │
 │ Tập 1: <episodeTitle>              1.800 từ · ~12 phút     │
@@ -225,7 +225,6 @@ API: `GET /:id/publications` (lấy `finalScript`), vẫn có thể dùng `GET /
 
 - Vào được khi run `COMPLETED` (có ít nhất 1 publication). Nếu chưa xuất bản thì chuyển hướng về S3.
 - Nút **Copy toàn bộ** chép `finalScript` (định dạng `# Tiêu đề` + nội dung, các tập cách nhau `---`). **Copy tập này** chép riêng `spokenNarration` của tập đang xem, không kèm tiêu đề, để dán thẳng vào ElevenLabs. Sau khi chép: đổi nhãn "Đã chép" 2 giây và thông báo cho trình đọc màn hình (`aria-live`).
-- **Tải .txt**: tạo file phía client từ `finalScript`, tên file theo chủ đề.
 - Chi tiết từng tập (tiêu đề, số từ, thời lượng, ghi chú nhịp đọc) lấy từ `ORALIZER` ở node được duyệt (xem 5.2). `finalScript` chỉ có văn bản ghép, không có số liệu từng tập.
 - Khối **Nguồn tham khảo** liệt kê từ `SOURCE_EVALUATOR.evaluatedSources` (tên, tier, độ tin cậy, đường dẫn nếu có) để Moderator đối chiếu.
 - Có nhiều publication (xuất bản lại node khác): hiện dropdown chọn bản, mặc định bản mới nhất.
@@ -245,7 +244,12 @@ Schema đầy đủ ở mục 5 của tài liệu API. Dưới đây là cách t
 ### 4.1 `RESEARCHER` · Gate 0 (quan trọng nhất)
 
 Hai khối:
-1. **Danh mục nguồn** (`sourcesCatalogue`): bảng/thẻ. Mỗi nguồn: tên, tác giả/xuất xứ, nhãn tier (dùng `SOURCE_TIER_LABELS`), thanh điểm tin cậy 1 đến 10, dấu "Nguồn khẳng định chính" nếu `isPrimaryAssertionSource`, ghi chú đối chiếu, liên kết `url` (mở tab mới, `rel="noopener noreferrer"`). Cho phép lọc theo tier và sắp xếp theo điểm.
+1. **Danh mục nguồn** (`sourcesCatalogue`): bảng/thẻ. Mỗi nguồn: tên, tác giả/xuất xứ, nhãn tier (dùng `SOURCE_TIER_LABELS`), thanh điểm tin cậy 1 đến 10, dấu "Nguồn khẳng định chính" nếu `isPrimaryAssertionSource`, ghi chú đối chiếu, liên kết `url` (mở tab mới, `rel="noopener noreferrer"`). Cho phép lọc theo tier và sắp xếp theo điểm. **Moderator thêm, sửa, xoá được nguồn** (AI chỉ đề xuất, không phụ thuộc hoàn toàn vào AI):
+   - **Thêm / Sửa:** hộp thoại form đủ các trường trên (tier chọn từ `SOURCE_TIER_LABELS`, điểm 1 đến 10, `url` phải hợp lệ). Nguồn thêm tay có `id` do client sinh, không trùng `id` đang có.
+   - **Xoá:** xác nhận nhẹ, có toast "Hoàn tác" trong phiên.
+   - Thay đổi chỉ nằm ở bản nháp phía client cho tới khi bấm **Lưu chỉnh sửa**: gửi `DIRECT_EDIT` với toàn bộ `editedOutputJson` (giữ nguyên `narrativeMenu` và các trường khác). Lưu xong có version mới `v(n+1)`, bước vẫn chờ duyệt. Hiện chỉ báo "Có thay đổi chưa lưu"; bấm **Duyệt & tiếp tục** khi còn nháp chưa lưu thì hỏi lưu trước.
+   - Xoá hết nguồn rồi duyệt: cảnh báo "Không còn nguồn nào" và yêu cầu xác nhận.
+   - Chỉ sửa được ở Gate 0. Danh mục sau thẩm định (`SOURCE_EVALUATOR`) là bước tự động, chỉ đọc.
 2. **Menu trọng tâm kể** (`narrativeMenu`): nhóm radio dạng thẻ. Mỗi thẻ: nhãn trọng tâm, mô tả góc kể, lý do đề xuất, tiêu đề series, 3 tiêu đề tập. Cuối nhóm có lựa chọn **Tự nhập** (`CUSTOM`).
 
 Biểu mẫu chọn:
@@ -342,9 +346,9 @@ Dùng kiểu và Zod schema từ `@repo/shared` để parse response (`GetWorkfl
 | `403` | Trang "Bạn không có quyền truy cập" |
 | `404` | Trang "Không tìm thấy kịch bản" + nút về danh sách |
 | `409` | Hộp thoại xung đột (3.4) |
-| `400 VALIDATION_ERROR` | Lỗi theo field, giữ dữ liệu người dùng nhập |
+| `400 VALIDATION_ERROR` | Hiện `message` của server (lỗi theo field do client bắt trước), giữ dữ liệu người dùng nhập |
 | `503` khi tạo | Cảnh báo AI chưa sẵn sàng (S2) |
-| `500` / lỗi khác | Toast: "Đã có lỗi", kèm `meta.requestId` có nút sao chép |
+| `500` / lỗi khác | Toast: "Đã có lỗi", kèm mã yêu cầu (header `X-Request-Id`) có nút sao chép |
 | Run `FAILED` | Banner đỏ ở S3 (3.2) |
 
 ## 7. Nội dung chữ (microcopy) cần thống nhất
@@ -366,7 +370,7 @@ Dùng kiểu và Zod schema từ `@repo/shared` để parse response (`GetWorkfl
 ## 9. Ngoài phạm vi (không thiết kế ở đợt này)
 
 - Nhập nguồn tự cung cấp, upload PDF/DOC, trình soạn thảo giàu định dạng.
-- CRUD nguồn tham khảo thủ công, xác nhận metadata nhân vật/sự kiện.
+- Xác nhận metadata nhân vật/sự kiện; sửa nguồn ở bước ngoài Gate 0.
 - Huỷ run đang chạy, chạy lại run đã `FAILED` (hiện chỉ có tạo run mới hoặc `RERUN` bước đã có version).
 - Tạo audio, gắn kịch bản vào Series/Episode, xuất bản lên catalog.
 - Phân quyền cho Admin xem kịch bản của Moderator.
@@ -380,6 +384,6 @@ Dùng kiểu và Zod schema từ `@repo/shared` để parse response (`GetWorkfl
 4. S3 khung: stepper, version switcher, thanh hành động, banner `FAILED`, hook SSE kèm polling dự phòng.
 5. Panel cho 7 bước theo mục 4, ưu tiên Gate 0 và Gate 2 (rủi ro nghiệp vụ cao nhất).
 6. Hộp thoại Làm lại và trình Sửa tay (form Gate 1 trước, JSON cho bước còn lại).
-7. S4 xuất bản: copy, tải `.txt`, nguồn tham khảo.
+7. S4 xuất bản: copy, nguồn tham khảo.
 8. S5 cây lịch sử (sau cùng).
 9. Xử lý `409`/`400`/`503`/`FAILED` theo mục 6, không mất dữ liệu người dùng đã nhập.
