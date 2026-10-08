@@ -233,7 +233,7 @@ export const scriptWorkflowPaths: Paths = {
       tag: TAG,
       summary: "Xem trước nhập Gate 2",
       description:
-        "Đối chiếu kết quả FACT_CHECKER với catalog hiện có (nguồn, thực thể trùng) để Moderator quyết định trước khi nhập vào CMS. `basis.factCheckerVersionId` phải gửi lại ở bước nhập.",
+        "Chỉ dùng được sau khi Gate 2 đã được duyệt (`CONTINUE` trên `FACT_CHECKER`); trước đó trả `409 IMPORT_NOT_AVAILABLE`. Đối chiếu kết quả FACT_CHECKER đã duyệt với catalog hiện có (nguồn, thực thể trùng) để Moderator quyết định trước khi nhập vào CMS. `basis.factCheckerVersionId` phải gửi lại ở bước nhập.",
       access: "moderator",
       ...idParams,
       ok: {
@@ -243,7 +243,7 @@ export const scriptWorkflowPaths: Paths = {
       },
       errors: {
         404: OWNED_NOT_FOUND,
-        409: "`IMPORT_NOT_AVAILABLE`: chưa có output fact-check hoặc lineage không đầy đủ",
+        409: "`IMPORT_NOT_AVAILABLE`: Gate 2 chưa được duyệt, hoặc lineage không đầy đủ",
       },
     }),
   },
@@ -267,7 +267,7 @@ export const scriptWorkflowPaths: Paths = {
       tag: TAG,
       summary: "Duyệt và nhập vào CMS",
       description:
-        "Tạo (hoặc dùng lại) Series, các tập nháp, bản kể, nguồn và thẻ thực thể từ kết quả AI theo quyết định của Moderator. Trả `201` khi tạo mới, `200` khi là kết quả lặp lại.",
+        "Chỉ dùng được sau khi Gate 2 đã được duyệt qua `step-decisions` (`CONTINUE` trên `FACT_CHECKER`); endpoint này không tự duyệt Gate 2. Tạo (hoặc dùng lại) Series, các tập nháp, bản kể, nguồn và thẻ thực thể từ kết quả AI theo quyết định của Moderator. Trả `201` khi tạo mới, `200` khi là kết quả lặp lại.",
       access: "moderator",
       ...idParams,
       body: {
@@ -290,7 +290,7 @@ export const scriptWorkflowPaths: Paths = {
       rate: "ai_import",
       errors: {
         404: OWNED_NOT_FOUND,
-        409: "`STALE_WRITE`: nhánh đã thay đổi so với `basis`; `IMPORT_NOT_AVAILABLE`: fact-check chưa sẵn sàng",
+        409: "`STALE_WRITE`: nhánh đã thay đổi so với `basis`; `IMPORT_NOT_AVAILABLE`: Gate 2 chưa được duyệt (bước FACT_CHECKER chưa có phiên bản đã duyệt)",
         422: "`IMPORT_DECISIONS_INCOMPLETE`: còn nguồn trong danh mục AI chưa có quyết định",
       },
     }),

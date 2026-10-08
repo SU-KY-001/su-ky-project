@@ -1,11 +1,9 @@
 import type { MiddlewareHandler } from "hono";
 import { cors } from "hono/cors";
+import { parseAllowedOrigins } from "../config/allowedOrigins";
 
 export function corsConfig(): MiddlewareHandler {
-  const allowedOrigins = (process.env.CORS_ORIGIN || "http://localhost:5173")
-    .split(",")
-    .map((origin) => origin.trim())
-    .filter(Boolean);
+  const allowedOrigins = parseAllowedOrigins();
 
   return cors({
     origin: (origin) => {

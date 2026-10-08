@@ -3,20 +3,15 @@ import { prismaAdapter } from "better-auth/adapters/prisma";
 import { admin, bearer } from "better-auth/plugins";
 import { prisma } from "@repo/db";
 import type { UserRole } from "@repo/shared";
-import { env } from "../../core/env";
+import { trustedAuthOrigins } from "../../core/config/allowedOrigins";
 
 export const auth = betterAuth({
-  trustedOrigins: [
-    new URL(env.BETTER_AUTH_URL).origin,
-    ...env.CORS_ORIGIN.split(",")
-      .map((origin) => origin.trim())
-      .filter((origin) => origin.length > 0 && !origin.includes("*")),
-  ],
   database: prismaAdapter(prisma, {
     provider: "postgresql",
   }),
   baseURL: process.env.BETTER_AUTH_URL || "http://localhost:3005",
   secret: process.env.BETTER_AUTH_SECRET || "su-ky-auth-secret-development-key",
+  trustedOrigins: trustedAuthOrigins(),
   emailAndPassword: {
     enabled: true,
   },

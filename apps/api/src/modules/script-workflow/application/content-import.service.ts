@@ -5,7 +5,6 @@ import { DomainError } from "../../../core/errors/domain-error";
 import { insertWithUniqueSlug } from "../../../core/slug";
 import { appendEpisodes, createSeriesDraft, loadSeriesForRead, assertWritable } from "../../content";
 import type { Session } from "../../auth";
-import type { WorkflowCommandService } from "./workflow-command.service";
 
 interface ImportBasis {
   nodeId: number;
@@ -18,8 +17,6 @@ interface ImportBasis {
 }
 
 export class ContentImportService {
-  constructor(private readonly commands: WorkflowCommandService) {}
-
   private async run(runId: number, userId: string) {
     const run = await prisma.workflowRun.findFirst({ where: { id: runId, createdById: userId } });
     if (!run) throw new DomainError(404, "NOT_FOUND", "Workflow not found");
@@ -28,8 +25,8 @@ export class ContentImportService {
 
   private async basis(runId: number): Promise<ImportBasis> {
     const step = await prisma.workflowStep.findUnique({ where: { workflowRunId_stepType: { workflowRunId: runId, stepType: "FACT_CHECKER" } } });
-    const selectedVersion = step?.status === "WAITING_FOR_HUMAN" ? step.currentVersion : step?.approvedVersion;
-    if (!step || !selectedVersion) throw new DomainError(409, "IMPORT_NOT_AVAILABLE", "Fact-check output is not ready for import");
+    const selectedVersion = step?.approvedVersion;
+    if (!step || !selectedVersion) throw new DomainError(409, "IMPORT_NOT_AVAILABLE", "Gate 2 has not been approved yet");
     const selectedNode = await prisma.stepVersion.findUnique({ where: { workflowStepId_version: { workflowStepId: step.id, version: selectedVersion } } });
     if (!selectedNode) throw new DomainError(409, "IMPORT_NOT_AVAILABLE", "Fact-check output is not available");
     const nodeId = selectedNode.id;
@@ -87,11 +84,8 @@ export class ContentImportService {
     if (request.basis.factCheckerVersionId !== basis.nodeId) throw new DomainError(409, "STALE_WRITE", "Import basis changed");
     const undecided = basis.researcher.sourcesCatalogue.filter((item) => !item.catalogSourceId && !request.sourceDecisions.some((decision) => decision.itemId === item.id));
     if (undecided.length) throw new DomainError(422, "IMPORT_DECISIONS_INCOMPLETE", `Missing source decisions: ${undecided.map((item) => item.id).join(", ")}`);
-    const publication = await prisma.scriptPublication.findUnique({ where: { approvedVersionId: basis.nodeId } }) ?? await (async () => {
-      const transition = await this.commands.continueStep({ workflowRunId: runId, stepType: "FACT_CHECKER", version: basis.version, userId: session.user.id, incomingGuidance: request.approvalNote });
-      if (!transition.success) throw new DomainError(transition.status, transition.status === 404 ? "NOT_FOUND" : "STALE_WRITE", transition.error);
-      return prisma.scriptPublication.findUniqueOrThrow({ where: { approvedVersionId: basis.nodeId } });
-    })();
+    const publication = await prisma.scriptPublication.findUnique({ where: { approvedVersionId: basis.nodeId } });
+    if (!publication) throw new DomainError(409, "IMPORT_NOT_AVAILABLE", "Gate 2 has not been approved yet");
     return prisma.$transaction(async (tx) => {
       await tx.$queryRaw(Prisma.sql`SELECT id FROM workflow_runs WHERE id = ${runId} FOR UPDATE`);
       const completed = await tx.auditLog.findFirst({ where: { action: "ai_import", resourceType: "workflow_run", resourceId: String(runId) }, orderBy: { createdAt: "desc" } });

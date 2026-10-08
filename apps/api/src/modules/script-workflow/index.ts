@@ -22,7 +22,7 @@ const publication = new PublicationService(repository, lineage);
 const commands = new WorkflowCommandService(repository, queue, lineage, publication);
 const queries = new WorkflowQueryService(repository);
 const agent = new PiStepAgent(repository.logEvent.bind(repository));
-const imports = new ContentImportService(commands);
+const imports = new ContentImportService();
 const stepHandler = new AgentStepHandler(repository, queue, lineage, agent);
 
 export const scriptWorkflowRoute = createScriptWorkflowRoute({
