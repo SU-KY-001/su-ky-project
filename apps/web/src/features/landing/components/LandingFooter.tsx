@@ -49,7 +49,7 @@ export function LandingFooter() {
         <Separator className="bg-bronze-dark" />
         <div className="flex flex-col justify-between gap-6 md:flex-row md:items-center">
           <div className="flex items-center gap-3">
-            <span className="grid size-10 place-items-center rounded bg-vermilion font-serif text-lg font-bold">Sử</span>
+            <span className="grid size-10 place-items-center rounded bg-vermilion font-serif text-lg font-bold text-paper-soft">Sử</span>
             <span className="flex flex-col"><span className="font-serif text-xl font-bold">Sử Ký</span><span className="text-xs text-paper-deep">Nghe sử bằng chính giọng người trong cuộc</span></span>
           </div>
           <nav className="flex flex-wrap gap-4 text-sm text-paper-deep" aria-label="Liên kết chân trang">

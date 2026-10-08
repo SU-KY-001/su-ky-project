@@ -12,7 +12,7 @@ export function LearningSection() {
       <div className="flex flex-col gap-7">
         <SectionHeading id="learn-heading" title="Nghe để hiểu, ôn để nhớ" description="Biến mỗi tập đã nghe thành một mốc kiến thức có thể quay lại bất cứ lúc nào." />
         <div className="flex flex-col items-stretch gap-5 md:flex-row">
-          <button type="button" className={`flex min-h-[390px] flex-1 flex-col justify-between gap-6 rounded-lg border border-bronze p-6 text-left transition-colors ${flipped ? "bg-night" : "bg-paper-deep"}`} onClick={() => setFlipped((current) => !current)} aria-label={flipped ? "Xem câu hỏi" : "Lật thẻ xem đáp án"}>
+          <Button type="button" variant="ghost" className={`flex min-h-[390px] w-full flex-1 flex-col justify-between gap-6 whitespace-normal rounded-lg border border-bronze p-6 text-left transition-colors ${flipped ? "bg-night hover:bg-night" : "bg-paper-deep hover:bg-paper-deep"}`} onClick={() => setFlipped((current) => !current)} aria-label={flipped ? "Xem câu hỏi" : "Lật thẻ xem đáp án"} aria-pressed={flipped}>
             <div className="flex items-center justify-between"><span className={`text-sm font-bold ${flipped ? "text-bronze" : "text-vermilion"}`}>Thẻ ôn tập</span><ArrowCounterClockwise size={20} color={flipped ? "#B58A3C" : "#B8322A"} /></div>
             {flipped ? (
               <div className="flex flex-col gap-4"><span className="text-sm font-bold text-bronze">Đáp án</span><span className="font-serif text-2xl font-bold leading-tight text-paper-soft md:text-3xl">Năm 938</span><span className="text-base leading-7 text-paper-deep">Ngô Quyền chiến thắng quân Nam Hán trên sông Bạch Đằng, mở đầu thời kỳ độc lập lâu dài.</span><span className="text-xs text-bronze">Nguồn: Bạch Đằng 938, tập 4</span></div>
@@ -20,7 +20,7 @@ export function LearningSection() {
               <div className="flex flex-col gap-4"><span className="text-sm font-bold text-vermilion">Câu hỏi</span><span className="font-serif text-2xl font-bold leading-tight text-ink md:text-3xl">Chiến thắng Bạch Đằng của Ngô Quyền diễn ra vào năm nào?</span></div>
             )}
             <span className={`text-sm ${flipped ? "text-paper-deep" : "text-ink-soft"}`}>Chạm để {flipped ? "quay lại câu hỏi" : "xem đáp án"}</span>
-          </button>
+          </Button>
 
           <div className="relative min-h-[390px] flex-[1.18] overflow-hidden rounded-lg border border-line bg-paper-deep p-6">
             <div className="flex flex-col gap-6 opacity-40 blur-[3px]" aria-hidden="true">
