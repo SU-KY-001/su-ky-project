@@ -51,6 +51,7 @@
   --color-mod-border: var(--modBorder);
   --color-mod-success: var(--modSuccess);
   --color-mod-attention: var(--modAttention);
+  --color-mod-danger: var(--modDanger);
   --color-mod-chart-sky: var(--modChartSky);
   --color-mod-chart-violet: var(--modChartViolet);
   --color-mod-chart-emerald: var(--modChartEmerald);
@@ -102,6 +103,7 @@
   --modTextLow: #94a3b8;
   --modBorder: #e2e8f0;
   --modSuccess: #15803d;
+  --modDanger: #b91c1c;
   --modAttention: #c2410c;
   --modChartSky: #0284c7;
   --modChartViolet: #7c3aed;
