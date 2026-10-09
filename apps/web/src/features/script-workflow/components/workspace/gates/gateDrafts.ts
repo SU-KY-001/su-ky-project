@@ -108,3 +108,15 @@ export function buildStoryPlannerFeedbackFromClaims(claims: readonly ClaimVerifi
   );
   return `Cần điều chỉnh dàn ý để loại bỏ các chi tiết mâu thuẫn hoặc chưa có dẫn chứng phát hiện ở bước kiểm định:\n${lines.join("\n")}`;
 }
+
+/** Pre-filled feedback for a SCRIPT_WRITER rerun: the outline is kept, so every flagged claim is listed. */
+export function buildScriptWriterFeedbackFromClaims(claims: readonly ClaimVerificationItem[]): string {
+  const targets = claims.filter(
+    (claim) => claim.status === "CONTRADICTION" || claim.status === "UNSUPPORTED_SPECULATION",
+  );
+  if (targets.length === 0) {
+    return "Viết lại kịch bản bám sát dàn ý và nguồn sử liệu đã thẩm định.";
+  }
+  const lines = targets.map((claim) => `- Câu “${claim.scriptSentence}”: ${claim.explanation}`);
+  return `Giữ nguyên dàn ý. Viết lại kịch bản, loại bỏ hoặc sửa các câu mâu thuẫn hoặc chưa có dẫn chứng phát hiện ở bước kiểm định:\n${lines.join("\n")}`;
+}

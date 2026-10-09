@@ -1,6 +1,11 @@
 import { STEP_OUTPUT_SCHEMAS, type StepType } from "@repo/shared";
 import { logger } from "../../../core/logger";
-import type { AgentJobPayload, AgentJobQueue, NarrativeSelectionPayload } from "../domain/agent-job-queue";
+import {
+  narrativeSelectionFromNodeInput,
+  type AgentJobPayload,
+  type AgentJobQueue,
+  type NarrativeSelectionPayload,
+} from "../domain/agent-job-queue";
 import type { ScriptWorkflowRepository } from "../domain/script-workflow.repository";
 import { getDownstreamStepTypes, getNextStepType } from "../domain/step-order";
 import type { LineageService } from "./lineage.service";
@@ -50,9 +55,10 @@ export class WorkflowCommandService {
   }
 
   /**
-   * Moderator approves a node at a HITL gate: mark the step COMPLETED, then either
+   * Moderator approves a node at its gate: mark the step COMPLETED, then either
    * enqueue the next step with parentVersionId = the approved node (keeps the branch)
    * or, at FACT_CHECKER, write the publication and finish the run.
+   * The Gate 0 narrative selection is carried forward from the approved node's stored input.
    */
   async continueStep(params: {
     workflowRunId: number;
@@ -142,7 +148,7 @@ export class WorkflowCommandService {
       stepType: nextStepType,
       parentVersionId: approvedNode.id,
       guidance: incomingGuidance,
-      narrativeSelection,
+      narrativeSelection: narrativeSelection ?? narrativeSelectionFromNodeInput(approvedNode.inputJson),
     } satisfies AgentJobPayload);
 
     await this.repo.logEvent({
@@ -203,6 +209,7 @@ export class WorkflowCommandService {
       stepType,
       parentVersionId: currentNode.parentVersionId,
       guidance: feedback.trim(),
+      narrativeSelection: narrativeSelectionFromNodeInput(currentNode.inputJson),
     } satisfies AgentJobPayload);
 
     await this.repo.logEvent({
@@ -269,7 +276,12 @@ export class WorkflowCommandService {
       workflowStepId: step.id,
       version: nextVersion,
       parentVersionId: baseNode?.id ?? null,
-      inputJson: { directEdit: true, baseVersion, note: note ?? null },
+      inputJson: {
+        directEdit: true,
+        baseVersion,
+        note: note ?? null,
+        narrativeSelection: narrativeSelectionFromNodeInput(baseNode?.inputJson) ?? null,
+      },
       outputJson: parseResult.data,
       humanFeedback: note ? `[Direct Edit] ${note}` : "[Direct Edit]",
       validationStatus: "valid",

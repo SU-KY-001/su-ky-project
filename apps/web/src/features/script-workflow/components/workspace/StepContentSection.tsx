@@ -78,6 +78,14 @@ export function StepContentSection({
       </div>
     ) : null);
 
+  const canRerunCompleted =
+    step !== undefined &&
+    step.status === "COMPLETED" &&
+    step.versions.length > 0 &&
+    !viewingOld &&
+    editingStep === null &&
+    (workflow.status === "WAITING_FOR_HUMAN" || workflow.status === "FAILED");
+
   const stepHeaderTint =
     step?.status === "WAITING_FOR_HUMAN"
       ? "bg-gradient-to-r from-amber-50/90 via-sky-50/60 to-mod-canvas"
@@ -119,6 +127,18 @@ export function StepContentSection({
                 viewedVersion={viewedVersion}
                 onChoose={(version) => viewVersion(step.type, version === step.currentVersion ? null : version)}
               />
+            ) : null}
+            {step && canRerunCompleted ? (
+              <div>
+                <button
+                  type="button"
+                  onClick={() => onRequestRerun(step.type)}
+                  className="inline-flex min-h-11 items-center gap-1.5 rounded-[10px] border border-mod-border bg-mod-surface px-3.5 font-moderator text-xs font-bold text-mod-text hover:bg-mod-canvas-accent focus-visible:outline focus-visible:outline-2 focus-visible:outline-mod-primary"
+                >
+                  <ArrowsClockwise size={ICON_SIZE_SM} weight="bold" aria-hidden={true} />
+                  Làm lại bước này với yêu cầu riêng
+                </button>
+              </div>
             ) : null}
           </div>
 

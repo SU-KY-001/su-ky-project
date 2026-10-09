@@ -48,6 +48,7 @@ export function GateActionBar({
     isBusy,
     executeGate0Continue,
     executeGate1Continue,
+    executeStepContinue,
     executeGate2Continue,
   } = useGateContinue({ workflowId: workflow.id, baseVersion, consultation, onConflict });
 
@@ -86,7 +87,10 @@ export function GateActionBar({
         return;
       }
       executeGate2Continue();
+      return;
     }
+
+    executeStepContinue(step.type);
   };
 
   const primaryLabel = step.type === "FACT_CHECKER" ? "Duyệt & xuất bản" : "Duyệt & tiếp tục";

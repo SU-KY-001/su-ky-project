@@ -1,36 +1,15 @@
 import { PgBoss } from "pg-boss";
 import { STEP_TYPES, type StepType } from "@repo/shared";
 import { logger } from "../../../core/logger";
-import type {
-  AgentJobDelivery,
-  AgentJobPayload,
-  AgentJobQueue,
-  NarrativeSelectionPayload,
+import {
+  parseNarrativeSelection,
+  type AgentJobDelivery,
+  type AgentJobPayload,
+  type AgentJobQueue,
 } from "../domain/agent-job-queue";
 import { MAX_QUEUE_RETRY_COUNT, WORKFLOW_QUEUES } from "../script-workflow.constants";
 
 const log = logger.child({ scope: "agent-queue" });
-
-function parseNarrativeSelection(value: unknown): NarrativeSelectionPayload | undefined {
-  if (!value || typeof value !== "object") return undefined;
-  const raw = value as Record<string, unknown>;
-  const titles = raw.episodeTitles;
-  if (
-    typeof raw.selectedFocusType !== "string" ||
-    typeof raw.seriesTitle !== "string" ||
-    !Array.isArray(titles) ||
-    titles.length !== 3 ||
-    !titles.every((title) => typeof title === "string")
-  ) {
-    return undefined;
-  }
-  return {
-    selectedFocusType: raw.selectedFocusType,
-    seriesTitle: raw.seriesTitle,
-    episodeTitles: [titles[0] as string, titles[1] as string, titles[2] as string],
-    editorialNotes: typeof raw.editorialNotes === "string" ? raw.editorialNotes : undefined,
-  };
-}
 
 /** Guards the untyped pg-boss payload at the queue boundary. */
 export function parseAgentPayload(data: unknown, expectedStep: StepType): AgentJobPayload | null {

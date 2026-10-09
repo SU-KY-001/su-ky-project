@@ -11,14 +11,22 @@ export const STEP_LABELS: Record<StepType, string> = {
 };
 
 export const GATE_LABELS: Partial<Record<StepType, string>> = {
-  RESEARCHER: "Gate 0",
-  STORY_PLANNER: "Gate 1",
-  FACT_CHECKER: "Gate 2",
+  RESEARCHER: "Cổng 1",
+  SOURCE_EVALUATOR: "Cổng 2",
+  FACT_EXTRACTOR: "Cổng 3",
+  STORY_PLANNER: "Cổng 4",
+  SCRIPT_WRITER: "Cổng 5",
+  ORALIZER: "Cổng 6",
+  FACT_CHECKER: "Cổng 7",
 };
 
 export const GATE_ACTION_HINTS: Partial<Record<StepType, string>> = {
   RESEARCHER: "Chọn trọng tâm",
+  SOURCE_EVALUATOR: "Duyệt thẩm định nguồn",
+  FACT_EXTRACTOR: "Duyệt sự kiện",
   STORY_PLANNER: "Duyệt dàn ý",
+  SCRIPT_WRITER: "Duyệt kịch bản",
+  ORALIZER: "Duyệt văn nói",
   FACT_CHECKER: "Duyệt và xuất bản",
 };
 

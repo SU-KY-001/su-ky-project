@@ -1,4 +1,4 @@
-import { isHitlGatedStep, type StepType } from "@repo/shared";
+import type { StepType } from "@repo/shared";
 import { logger, type Logger } from "../../../core/logger";
 import type { AgentJobDelivery, AgentJobPayload, AgentJobQueue } from "../domain/agent-job-queue";
 import { lintOralText, type OralLintResult } from "../domain/oral-linter";
@@ -8,7 +8,6 @@ import {
   type StepAgent,
   type StepAgentContext,
 } from "../domain/step-agent";
-import { getNextStepType } from "../domain/step-order";
 import { MAX_AGENT_RETRY_COUNT } from "../script-workflow.constants";
 import type { LineageService } from "./lineage.service";
 
@@ -17,7 +16,7 @@ const TERMINAL_FAILURE_PATTERN = /lineage thiếu|not found|xuất bản|không 
 
 /**
  * One handler runs all 7 steps. The steps differ only in output schema (inside the
- * prompt mapper), HITL gate (`isHitlGatedStep`) and the ORALIZER spoken-text linter.
+ * prompt mapper) and the ORALIZER spoken-text linter. Every step ends at a Moderator gate.
  */
 export class AgentStepHandler {
   constructor(
@@ -87,7 +86,7 @@ export class AgentStepHandler {
             lint: { sentences: lint.sentences, words: lint.words },
           },
         });
-        await this.advanceOrGate({ payload, nodeId: node.id, stepId: step.id, stepType });
+        await this.waitForModerator({ nodeId: node.id, stepId: step.id, stepType, workflowRunId });
         return;
       }
 
@@ -101,7 +100,7 @@ export class AgentStepHandler {
         humanFeedback: payload.guidance ?? null,
       });
       jobLog.info({ nodeId: node.id, version: node.version }, "Agent step saved");
-      await this.advanceOrGate({ payload, nodeId: node.id, stepId: step.id, stepType });
+      await this.waitForModerator({ nodeId: node.id, stepId: step.id, stepType, workflowRunId });
     } catch (err) {
       await this.failStep({
         workflowRunId,
@@ -115,59 +114,26 @@ export class AgentStepHandler {
   }
 
   /**
-   * After saving a node: stop at a HITL gate and wait for the Moderator, or auto-run
-   * the next step. The next step gets parentVersionId = the node just created, so
-   * the branch is preserved.
+   * After saving a node, every step stops and waits for the Moderator: AI only assists,
+   * the human approves (CONTINUE), edits (DIRECT_EDIT) or reruns (RERUN) before the next step starts.
    */
-  private async advanceOrGate(params: {
-    payload: AgentJobPayload;
+  private async waitForModerator(params: {
     nodeId: number;
     stepId: number;
     stepType: StepType;
+    workflowRunId: number;
   }): Promise<void> {
-    const { payload, nodeId, stepId, stepType } = params;
-    const { workflowRunId } = payload;
-
-    if (isHitlGatedStep(stepType)) {
-      await this.repo.updateWorkflowStep(stepId, { status: "WAITING_FOR_HUMAN" });
-      await this.repo.updateWorkflowRun(workflowRunId, {
-        status: "WAITING_FOR_HUMAN",
-        currentStep: stepType,
-      });
-      await this.repo.logEvent({
-        workflowRunId,
-        type: `step.${stepType.toLowerCase()}.waiting_for_human`,
-        message: `${stepType} chờ Moderator duyệt (node ${nodeId})`,
-        metadataJson: { stepType, nodeId },
-      });
-      return;
-    }
-
-    const nextStepType = getNextStepType(stepType);
-    await this.repo.updateWorkflowStep(stepId, { status: "COMPLETED" });
-
-    if (!nextStepType) {
-      await this.repo.updateWorkflowRun(workflowRunId, {
-        status: "COMPLETED",
-        currentStep: null,
-        completedAt: new Date(),
-      });
-      return;
-    }
-
-    await this.repo.ensureWorkflowStep(workflowRunId, nextStepType, "QUEUED");
-    await this.repo.updateWorkflowRun(workflowRunId, { status: "RUNNING", currentStep: nextStepType });
-    await this.queue.enqueue({
-      workflowRunId,
-      stepType: nextStepType,
-      parentVersionId: nodeId,
-      narrativeSelection: payload.narrativeSelection,
-    } satisfies AgentJobPayload);
+    const { nodeId, stepId, stepType, workflowRunId } = params;
+    await this.repo.updateWorkflowStep(stepId, { status: "WAITING_FOR_HUMAN" });
+    await this.repo.updateWorkflowRun(workflowRunId, {
+      status: "WAITING_FOR_HUMAN",
+      currentStep: stepType,
+    });
     await this.repo.logEvent({
       workflowRunId,
-      type: `step.${nextStepType.toLowerCase()}.queued`,
-      message: `${nextStepType} auto-queued from ${stepType} node ${nodeId}`,
-      metadataJson: { from: stepType, nodeId, nextStepType },
+      type: `step.${stepType.toLowerCase()}.waiting_for_human`,
+      message: `${stepType} chờ Moderator duyệt (node ${nodeId})`,
+      metadataJson: { stepType, nodeId },
     });
   }
 

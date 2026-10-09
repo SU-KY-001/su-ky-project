@@ -1,10 +1,11 @@
 import { useCallback, useState } from "react";
 import { useNavigate } from "react-router";
-import { STEP_OUTPUT_SCHEMAS, type ResearchConsultation } from "@repo/shared";
+import { STEP_OUTPUT_SCHEMAS, type ResearchConsultation, type StepType } from "@repo/shared";
 import { useModeratorToastStore } from "@/features/moderator/toastStore";
 import { errorMessage, errorRequestId, isApiError } from "@/lib/apiError";
 import { workflowPublicationPath } from "../../../constants";
 import { useStepDecision } from "../../../hooks/useWorkflowMutations";
+import { STEP_LABELS } from "../../../labels";
 import { useWorkflowUiStore } from "../../../store";
 import { toNarrativeFocusSelection, useGate0FocusDraft, useGate0SourcesDraft } from "./gate0Drafts";
 import {
@@ -25,7 +26,7 @@ type UseGateContinueOptions = {
 };
 
 /**
- * CONTINUE submissions for the three HITL gates, sharing one mutation and one error/rate-limit state.
+ * CONTINUE submissions for the HITL gates (every step), sharing one mutation and one error/rate-limit state.
  * Gate 0 first saves dirty source-catalogue edits as a DIRECT_EDIT, then continues from the new version.
  */
 export function useGateContinue({ workflowId, baseVersion, consultation, onConflict }: UseGateContinueOptions) {
@@ -103,7 +104,7 @@ export function useGateContinue({ workflowId, baseVersion, consultation, onConfl
       });
 
       focusDraft.clear();
-      showToast("Đã duyệt Gate 0. AI đang xử lý bước tiếp theo.");
+      showToast("Đã duyệt bước Tư vấn biên tập. AI đang xử lý bước tiếp theo.");
     } catch (error) {
       handleMutationError(error);
     } finally {
@@ -124,6 +125,22 @@ export function useGateContinue({ workflowId, baseVersion, consultation, onConfl
         onSuccess: () => {
           clearDraft(`gate1:edit:${workflowId}`);
           showToast("Đã duyệt dàn ý. AI đang viết kịch bản.");
+        },
+        onError: handleMutationError,
+      },
+    );
+  };
+
+  /** Approves a step without a step-specific payload (every gate except Gate 0 focus selection). */
+  const executeStepContinue = (stepType: StepType) => {
+    if (baseVersion === null) return;
+    setServerError(null);
+    mutation.mutate(
+      { action: "CONTINUE", stepType, baseVersion },
+      {
+        onSuccess: () => {
+          clearDraft(`json-edit:${workflowId}:${stepType}`);
+          showToast(`Đã duyệt bước ${STEP_LABELS[stepType]}. AI đang xử lý bước tiếp theo.`);
         },
         onError: handleMutationError,
       },
@@ -159,6 +176,7 @@ export function useGateContinue({ workflowId, baseVersion, consultation, onConfl
     isBusy,
     executeGate0Continue,
     executeGate1Continue,
+    executeStepContinue,
     executeGate2Continue,
   };
 }

@@ -2,7 +2,7 @@ import { ArrowsClockwise, CheckCircle, XCircle } from "@phosphor-icons/react";
 import type { ReviewReport, StepType } from "@repo/shared";
 import { cn } from "@/lib/utils";
 import { ModeratorText } from "@/features/moderator/components/ModeratorText";
-import { buildStoryPlannerFeedbackFromClaims } from "../gates/gateDrafts";
+import { buildScriptWriterFeedbackFromClaims, buildStoryPlannerFeedbackFromClaims } from "../gates/gateDrafts";
 import { TONE_TEXT_CLASS } from "../StatusBadge";
 import { FactCheckerClaimsSection } from "./FactCheckerClaimsSection";
 import { BulletList, Callout, Chip, Section } from "./stepUi";
@@ -68,16 +68,26 @@ export function FactCheckerReportView({ report, interactive, onRequestRerun }: F
         <Callout tone="attention" title="Hướng xử lý khi có câu mâu thuẫn hoặc suy đoán" role="status">
           <div className="flex flex-col gap-2.5">
             <ModeratorText as="p" className="text-sm text-mod-text-muted">
-              Bạn có thể chạy lại bước kiểm định trên cùng bản văn nói, hoặc quay về làm lại từ bước Dàn ý 3 tập để AI viết lại kịch bản.
+              Dàn ý giữ nguyên: chạy lại từ bước Viết kịch bản để AI sửa các câu bị gắn cờ. Chỉ quay về Dàn ý 3 tập nếu chính dàn ý sai hướng.
             </ModeratorText>
             <div className="flex flex-wrap gap-2">
+              <button
+                type="button"
+                onClick={() =>
+                  onRequestRerun("SCRIPT_WRITER", buildScriptWriterFeedbackFromClaims(report.claimVerification))
+                }
+                className="inline-flex min-h-11 items-center gap-1.5 rounded-[10px] bg-mod-primary px-3 font-moderator text-xs font-bold text-white hover:bg-mod-primary-hover focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-mod-primary"
+              >
+                <ArrowsClockwise size={ICON_SIZE_SM} weight="bold" aria-hidden={true} />
+                Viết lại kịch bản (giữ dàn ý)
+              </button>
               <button
                 type="button"
                 onClick={() => onRequestRerun("FACT_CHECKER")}
                 className="inline-flex min-h-11 items-center gap-1.5 rounded-[10px] border border-mod-border bg-mod-surface px-3 font-moderator text-xs font-bold text-mod-text hover:bg-mod-canvas-accent focus-visible:outline focus-visible:outline-2 focus-visible:outline-mod-primary"
               >
                 <ArrowsClockwise size={ICON_SIZE_SM} weight="bold" aria-hidden={true} />
-                Làm lại
+                Kiểm định lại
               </button>
               <button
                 type="button"

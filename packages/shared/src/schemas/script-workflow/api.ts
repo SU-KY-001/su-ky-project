@@ -22,10 +22,9 @@ export const StepTypeSchema = z.enum(STEP_TYPES);
 export type StepType = (typeof STEP_TYPES)[number];
 
 /**
- * Ba trạm bắt buộc dừng chờ Moderator: sau Tư vấn biên tập (Gate 0),
- * sau Dàn ý SPDC (Gate 1), sau Kiểm định (Gate 2).
+ * Mọi bước đều dừng chờ Moderator duyệt: AI chỉ là trợ lý, Moderator kiểm soát toàn bộ luồng.
  */
-export const HITL_GATED_STEPS = ["RESEARCHER", "STORY_PLANNER", "FACT_CHECKER"] as const;
+export const HITL_GATED_STEPS = STEP_TYPES;
 
 export const STEP_ORDER: readonly StepType[] = STEP_TYPES;
 

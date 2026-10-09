@@ -12,6 +12,7 @@ import { ScriptWriterPanel } from "./steps/ScriptWriterPanel";
 import { SourceEvaluatorPanel } from "./steps/SourceEvaluatorPanel";
 import { StoryPlannerPanel } from "./steps/StoryPlannerPanel";
 import { Callout, EmptyNote } from "./steps/stepUi";
+import { FallbackJsonEditor } from "./gates/FallbackJsonEditor";
 import { findAncestorVersion, isInProgress } from "./workspaceModel";
 
 type StepPanelProps = {
@@ -43,6 +44,9 @@ type StepContentProps = {
   onConflict?: () => void;
 };
 
+/** Steps without a dedicated editor: the moderator hand-edits the validated JSON output. */
+const JSON_EDITED_STEPS: readonly StepType[] = ["SOURCE_EVALUATOR", "FACT_EXTRACTOR", "SCRIPT_WRITER", "ORALIZER"];
+
 function StepContent({
   workflow,
   step,
@@ -54,6 +58,18 @@ function StepContent({
   onConflict,
 }: StepContentProps) {
   const output = version.outputJson;
+  if (interactive && editing && JSON_EDITED_STEPS.includes(step.type) && onExitEdit && onConflict) {
+    return (
+      <FallbackJsonEditor
+        workflowId={workflow.id}
+        step={step}
+        output={output}
+        onSaved={onExitEdit}
+        onCancel={onExitEdit}
+        onConflict={onConflict}
+      />
+    );
+  }
   switch (step.type) {
     case "RESEARCHER":
       return (
