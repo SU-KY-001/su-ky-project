@@ -1,26 +1,21 @@
 import { useCallback, useState, type ReactNode } from "react";
-import { Link } from "react-router";
 import { useQueryClient } from "@tanstack/react-query";
-import { ArrowLeft, ArrowsClockwise } from "@phosphor-icons/react";
-import { isHitlGatedStep, type GetWorkflowResponse, type StepType } from "@repo/shared";
-import { ModeratorText } from "@/features/moderator/components/ModeratorText";
-import { SCRIPT_WORKFLOWS_PATH } from "@/features/moderator/navItems";
+import { ArrowsClockwise } from "@phosphor-icons/react";
+import type { GetWorkflowResponse, StepType } from "@repo/shared";
 import { workflowKeys } from "../../api/queryKeys";
-import { GATE_LABELS, STEP_LABELS, STEP_STATUS, WORKFLOW_STATUS } from "../../labels";
+import { STEP_LABELS } from "../../labels";
 import { useWorkflowUiStore } from "../../store";
-import { ConflictDialog } from "./dialogs/ModalDialog";
+import { ConflictDialog } from "./dialogs/ConflictDialog";
 import { RerunDialog } from "./dialogs/RerunDialog";
 import { WorkflowEventLogTab } from "./events/WorkflowEventLogTab";
-import { GateActionBar } from "./gates/GateActionBar";
-import { StatusBadge } from "./StatusBadge";
-import { StepPanel } from "./StepPanel";
+import { StepContentSection } from "./StepContentSection";
 import { TabList, TabPanel, type TabDefinition } from "./Tabs";
 import { WorkflowTreeTab } from "./tree/WorkflowTreeTab";
-import { VersionSwitcher } from "./VersionSwitcher";
 import { RealtimeLostBanner, RunFailedBanner } from "./WorkspaceBanners";
+import { WorkspaceHeader } from "./WorkspaceHeader";
 import { WorkflowStepper } from "./WorkflowStepper";
 import { useWorkspaceView } from "./useWorkspaceView";
-import { findStep, isViewingOldVersion, resolveViewedVersion, sortedSteps } from "./workspaceModel";
+import { findStep, sortedSteps } from "./workspaceModel";
 
 type WorkspaceTab = "flow" | "tree" | "log";
 type RerunDialogState = { stepType: StepType; initialFeedback?: string };
@@ -46,7 +41,6 @@ type WorkflowWorkspaceProps = {
 export function WorkflowWorkspace({ workflow, actions, failureAction, treeTab, logTab }: WorkflowWorkspaceProps) {
   const queryClient = useQueryClient();
   const streamConnection = useWorkflowUiStore((state) => state.streamConnection);
-  const viewedVersions = useWorkflowUiStore((state) => state.viewedVersions);
   const viewVersion = useWorkflowUiStore((state) => state.viewVersion);
   const { viewedType, viewStep, attentionSteps, announcement } = useWorkspaceView(workflow);
   const [tab, setTab] = useState<WorkspaceTab>("flow");
@@ -57,7 +51,6 @@ export function WorkflowWorkspace({ workflow, actions, failureAction, treeTab, l
 
   const steps = sortedSteps(workflow);
   const step = viewedType ? findStep(workflow, viewedType) : undefined;
-  const status = WORKFLOW_STATUS[workflow.status];
   const failedStep =
     steps.find((entry) => entry.status === "FAILED") ??
     (workflow.currentStep ? findStep(workflow, workflow.currentStep) : undefined);
@@ -78,11 +71,6 @@ export function WorkflowWorkspace({ workflow, actions, failureAction, treeTab, l
     { id: "tree", label: "Cây lịch sử" },
     { id: "log", label: "Nhật ký" },
   ];
-
-  const chosenVersion = step ? viewedVersions[step.type] : undefined;
-  const viewedVersion = step ? resolveViewedVersion(step, chosenVersion) : null;
-  const viewingOld = step ? isViewingOldVersion(step, viewedVersion) : false;
-  const gate = step ? GATE_LABELS[step.type] : undefined;
 
   const openRerun = useCallback((stepType: StepType, initialFeedback?: string) => {
     setRerunDialog({ stepType, initialFeedback });
@@ -118,22 +106,6 @@ export function WorkflowWorkspace({ workflow, actions, failureAction, treeTab, l
     }
   };
 
-  const showGateActions =
-    step !== undefined && isHitlGatedStep(step.type) && step.status === "WAITING_FOR_HUMAN";
-
-  const resolvedActions =
-    actions ??
-    (showGateActions && step ? (
-      <GateActionBar
-        workflow={workflow}
-        step={step}
-        editing={editingStep === step.type}
-        onRequestRerun={(stepType) => openRerun(stepType)}
-        onToggleEdit={handleToggleEdit}
-        onConflict={openConflict}
-      />
-    ) : null);
-
   const runBannerFailureAction =
     failureAction ??
     (failedStep && failedStep.versions.length > 0 ? (
@@ -149,61 +121,15 @@ export function WorkflowWorkspace({ workflow, actions, failureAction, treeTab, l
       </div>
     ) : null);
 
-  const stepFailureAction =
-    failureAction ??
-    (step && step.status === "FAILED" && step.versions.length > 0 ? (
-      <div>
-        <button
-          type="button"
-          onClick={() => openRerun(step.type)}
-          className="inline-flex min-h-11 items-center gap-1.5 rounded-[10px] border border-mod-danger bg-mod-surface px-3.5 font-moderator text-xs font-bold text-mod-danger hover:bg-mod-danger/10 focus-visible:outline focus-visible:outline-2 focus-visible:outline-mod-primary"
-        >
-          <ArrowsClockwise size={ICON_SIZE_SM} weight="bold" aria-hidden={true} />
-          Làm lại
-        </button>
-      </div>
-    ) : null);
-
-  const heroAccentClass =
-    workflow.status === "WAITING_FOR_HUMAN"
-      ? "border-l-mod-attention"
-      : workflow.status === "COMPLETED"
-        ? "border-l-mod-success"
-        : workflow.status === "FAILED"
-          ? "border-l-mod-danger"
-          : "border-l-mod-primary";
-
-  const stepHeaderTint =
-    step?.status === "WAITING_FOR_HUMAN"
-      ? "bg-gradient-to-r from-amber-50/90 via-sky-50/60 to-mod-canvas"
-      : step?.status === "COMPLETED"
-        ? "bg-gradient-to-r from-emerald-50/80 via-mod-canvas to-mod-surface"
-        : "bg-gradient-to-r from-sky-50/80 via-mod-canvas to-mod-surface";
-
   return (
     <div className="flex min-w-0 flex-col gap-4">
       <div role="status" aria-live="polite" className="sr-only">
         {announcement}
       </div>
 
-      <header
-        className={`flex flex-col gap-3 rounded-[16px] border border-mod-border border-l-4 ${heroAccentClass} bg-mod-surface p-4 shadow-[0_8px_22px_rgba(15,23,42,.045)] sm:flex-row sm:flex-wrap sm:items-center sm:justify-between sm:px-5`}
-      >
-        <div className="flex min-w-0 flex-1 flex-wrap items-center gap-3">
-          <Link
-            to={SCRIPT_WORKFLOWS_PATH}
-            className="inline-flex min-h-10 items-center gap-1.5 rounded-[10px] border border-mod-border bg-mod-canvas px-3 text-xs font-extrabold text-mod-primary-hover no-underline hover:border-mod-primary hover:bg-sky-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-mod-primary"
-          >
-            <ArrowLeft size={ICON_SIZE_SM} weight="bold" aria-hidden={true} />
-            Danh sách
-          </Link>
-          <ModeratorText as="h1" className="min-w-0 flex-1 text-xl font-extrabold tracking-tight text-mod-text sm:text-2xl">
-            {workflow.topic}
-          </ModeratorText>
-          <StatusBadge status={workflow.status} label={status.label} tone={status.tone} />
-        </div>
+      <WorkspaceHeader workflow={workflow}>
         <TabList label="Khu vực kịch bản" idPrefix={TAB_ID_PREFIX} tabs={tabs} value={tab} onChange={setTab} />
-      </header>
+      </WorkspaceHeader>
 
       {workflow.status === "FAILED" ? (
         <RunFailedBanner
@@ -227,66 +153,17 @@ export function WorkflowWorkspace({ workflow, actions, failureAction, treeTab, l
             ) : null}
           </aside>
 
-          <section
-            aria-label={step ? `Nội dung bước ${STEP_LABELS[step.type]}` : "Nội dung bước"}
-            className="flex min-w-0 flex-col gap-5 rounded-[16px] border border-mod-border bg-mod-surface p-4 shadow-[0_10px_28px_rgba(15,23,42,.045)] sm:p-5"
-          >
-            {step ? (
-              <>
-                <div
-                  className={`-mx-4 -mt-4 flex flex-col gap-3 rounded-t-[15px] border-b border-mod-border px-4 py-4 sm:-mx-5 sm:-mt-5 sm:px-5 ${stepHeaderTint}`}
-                >
-                  <div className="flex flex-wrap items-center justify-between gap-2">
-                    <div className="flex flex-wrap items-center gap-2.5">
-                      {gate ? (
-                        <span className="inline-flex items-center rounded-[8px] bg-mod-primary px-2.5 py-1 font-moderator text-xs font-extrabold uppercase tracking-wider text-white shadow-sm">
-                          {gate}
-                        </span>
-                      ) : null}
-                      <ModeratorText as="h2" className="text-lg font-extrabold text-mod-text sm:text-xl">
-                        {STEP_LABELS[step.type]}
-                      </ModeratorText>
-                    </div>
-                    <StatusBadge
-                      status={step.status}
-                      label={STEP_STATUS[step.status].label}
-                      tone={STEP_STATUS[step.status].tone}
-                    />
-                  </div>
-
-                  {viewedVersion ? (
-                    <VersionSwitcher
-                      step={step}
-                      viewedVersion={viewedVersion}
-                      onChoose={(version) => viewVersion(step.type, version === step.currentVersion ? null : version)}
-                    />
-                  ) : null}
-                </div>
-
-                <StepPanel
-                  workflow={workflow}
-                  step={step}
-                  version={viewedVersion}
-                  versionChosen={chosenVersion !== undefined}
-                  viewingOld={viewingOld}
-                  editing={editingStep === step.type}
-                  onExitEdit={exitEdit}
-                  onRequestRerun={openRerun}
-                  onConflict={openConflict}
-                  failureAction={stepFailureAction}
-                />
-
-                {resolvedActions ? (
-                  <fieldset
-                    disabled={viewingOld}
-                    className="sticky bottom-0 z-10 -mx-4 -mb-4 min-w-0 rounded-b-[15px] border-0 border-t-2 border-mod-primary bg-slate-900 px-4 py-3.5 text-white shadow-[0_-10px_28px_rgba(15,23,42,.18)] sm:-mx-5 sm:-mb-5 sm:px-5"
-                  >
-                    {resolvedActions}
-                  </fieldset>
-                ) : null}
-              </>
-            ) : null}
-          </section>
+          <StepContentSection
+            workflow={workflow}
+            step={step}
+            editingStep={editingStep}
+            actions={actions}
+            failureAction={failureAction}
+            onToggleEdit={handleToggleEdit}
+            onExitEdit={exitEdit}
+            onRequestRerun={openRerun}
+            onConflict={openConflict}
+          />
         </div>
       </TabPanel>
 

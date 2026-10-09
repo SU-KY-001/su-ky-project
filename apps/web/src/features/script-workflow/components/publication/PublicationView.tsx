@@ -1,28 +1,18 @@
 import { useId, useState } from "react";
 import { Link } from "react-router";
 import { ArrowLeft, Clock, TextAa, User } from "@phosphor-icons/react";
-import {
-  SOURCE_TIER_LABELS,
-  STEP_OUTPUT_SCHEMAS,
-  type EvaluatedSource,
-  type GetWorkflowResponse,
-  type ImportResult,
-  type ScriptPublication,
-  type StepVersion,
-} from "@repo/shared";
+import type { GetWorkflowResponse, ImportResult, ScriptPublication, StepVersion } from "@repo/shared";
 import { ModeratorText } from "@/features/moderator/components/ModeratorText";
 import { workflowDetailPath } from "../../constants";
 import { formatDateTime, formatDuration, formatWords } from "../../labels";
 import { StatusBadge } from "../workspace/StatusBadge";
-import { TabList, TabPanel, type TabDefinition } from "../workspace/Tabs";
-import { findAncestorVersion } from "../workspace/workspaceModel";
-import { ReliabilityScore } from "../workspace/steps/ReliabilityScore";
-import { Chip, EmptyNote, ExternalLink, Section, UnreadableStepData } from "../workspace/steps/stepUi";
+import { Chip } from "../workspace/steps/stepUi";
 import { CopyButton } from "./CopyButton";
-import { ImportResultBanner, StudioImportButton } from "./StudioImportControl";
+import { ImportResultBanner } from "./ImportResultBanner";
+import { PublicationEpisodesSection } from "./PublicationEpisodesSection";
+import { PublicationSourcesSection } from "./PublicationSourcesSection";
+import { StudioImportButton } from "./StudioImportControl";
 
-const EPISODE_TAB_PREFIX = "publication-episode";
-const SPOKEN_TEXT_CLASS = "whitespace-pre-line text-lg leading-8 text-mod-text";
 const CHIP_ICON_SIZE = 13;
 const BACK_ICON_SIZE = 16;
 
@@ -35,176 +25,6 @@ function findApprovedFactCheckerVersion(
     if (found) return found;
   }
   return null;
-}
-
-function ReferenceSourcesTable({ sources }: { sources: readonly EvaluatedSource[] }) {
-  return (
-    <div className="overflow-x-auto rounded-[12px] border border-slate-300 bg-mod-surface shadow-[0_4px_16px_rgba(15,23,42,.04)]">
-      <table className="w-full border-collapse text-left font-moderator text-sm">
-        <thead className="border-b border-slate-700 bg-slate-800 text-xs font-extrabold uppercase tracking-wider text-white">
-          <tr>
-            <th scope="col" className="px-4 py-3">Nguồn tư liệu</th>
-            <th scope="col" className="px-4 py-3">Nhóm nguồn</th>
-            <th scope="col" className="px-4 py-3">Độ tin cậy</th>
-            <th scope="col" className="px-4 py-3">Liên kết</th>
-          </tr>
-        </thead>
-        <tbody className="divide-y divide-slate-200">
-          {sources.map((source) => (
-            <tr key={source.id} className="align-top even:bg-slate-50/80 hover:bg-sky-50/60">
-              <td className="px-4 py-3 font-extrabold text-mod-text">{source.name}</td>
-              <td className="whitespace-nowrap px-4 py-3">
-                <Chip tone="info">{SOURCE_TIER_LABELS[source.tier]}</Chip>
-              </td>
-              <td className="whitespace-nowrap px-4 py-3">
-                <ReliabilityScore score={source.reliabilityScore} />
-              </td>
-              <td className="px-4 py-3 text-xs">
-                {source.url ? <ExternalLink url={source.url}>{source.url}</ExternalLink> : <span className="text-mod-text-low">—</span>}
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
-  );
-}
-
-function PublicationEpisodesSection({
-  workflow,
-  factCheckerVersion,
-  finalScript,
-}: {
-  workflow: GetWorkflowResponse;
-  factCheckerVersion: StepVersion | null;
-  finalScript: string;
-}) {
-  const [selectedEpisode, setSelectedEpisode] = useState<string>("1");
-  const oralizerVersion = factCheckerVersion
-    ? findAncestorVersion(workflow, factCheckerVersion, "ORALIZER")
-    : null;
-  const parsed = oralizerVersion
-    ? STEP_OUTPUT_SCHEMAS.ORALIZER.safeParse(oralizerVersion.outputJson)
-    : null;
-
-  if (!parsed || !parsed.success) {
-    return (
-      <div className="flex flex-col gap-4">
-        <UnreadableStepData output={oralizerVersion?.outputJson ?? null} />
-        <Section title="Bản văn nói hợp nhất">
-          <ModeratorText as="p" className={SPOKEN_TEXT_CLASS}>
-            {finalScript}
-          </ModeratorText>
-        </Section>
-      </div>
-    );
-  }
-
-  const { seriesTitle, episodes } = parsed.data;
-  const tabs: readonly TabDefinition<string>[] = episodes.map((episode) => ({
-    id: String(episode.episodeNumber),
-    label: `Tập ${episode.episodeNumber}`,
-  }));
-
-  return (
-    <div className="flex flex-col gap-4">
-      <ModeratorText as="h2" className="text-lg font-extrabold text-mod-text">
-        {seriesTitle}
-      </ModeratorText>
-
-      <div>
-        <TabList
-          label="Các tập đã xuất bản"
-          idPrefix={EPISODE_TAB_PREFIX}
-          tabs={tabs}
-          value={selectedEpisode}
-          onChange={setSelectedEpisode}
-        />
-        {episodes.map((episode) => (
-          <TabPanel
-            key={episode.episodeNumber}
-            idPrefix={EPISODE_TAB_PREFIX}
-            id={String(episode.episodeNumber)}
-            value={selectedEpisode}
-            className="flex flex-col gap-4"
-          >
-            <div className="flex flex-wrap items-center justify-between gap-3">
-              <div className="flex flex-col gap-1.5">
-                <ModeratorText as="h3" className="text-base font-extrabold text-mod-text">
-                  Tập {episode.episodeNumber}: {episode.episodeTitle}
-                </ModeratorText>
-                <div className="flex flex-wrap items-center gap-2">
-                  <Chip icon={<TextAa size={CHIP_ICON_SIZE} aria-hidden={true} />}>
-                    {formatWords(episode.wordCount)}
-                  </Chip>
-                  <Chip icon={<Clock size={CHIP_ICON_SIZE} aria-hidden={true} />}>
-                    {formatDuration(episode.estimatedDurationSeconds)}
-                  </Chip>
-                </div>
-              </div>
-              <CopyButton
-                label="Copy tập này"
-                text={episode.spokenNarration}
-                variant="primary"
-              />
-            </div>
-
-            <div className="rounded-[12px] border border-mod-border bg-mod-canvas p-5">
-              <ModeratorText as="p" className={SPOKEN_TEXT_CLASS}>
-                {episode.spokenNarration}
-              </ModeratorText>
-            </div>
-
-            {episode.breathAndPacingNotes ? (
-              <Section title="Ghi chú nhịp đọc">
-                <ModeratorText
-                  as="p"
-                  className="whitespace-pre-line rounded-[10px] bg-mod-canvas px-3.5 py-3 text-sm text-mod-text-muted"
-                >
-                  {episode.breathAndPacingNotes}
-                </ModeratorText>
-              </Section>
-            ) : null}
-          </TabPanel>
-        ))}
-      </div>
-    </div>
-  );
-}
-
-function PublicationSourcesSection({
-  workflow,
-  factCheckerVersion,
-}: {
-  workflow: GetWorkflowResponse;
-  factCheckerVersion: StepVersion | null;
-}) {
-  const sourceEvaluatorVersion = factCheckerVersion
-    ? findAncestorVersion(workflow, factCheckerVersion, "SOURCE_EVALUATOR")
-    : null;
-  const parsed = sourceEvaluatorVersion
-    ? STEP_OUTPUT_SCHEMAS.SOURCE_EVALUATOR.safeParse(sourceEvaluatorVersion.outputJson)
-    : null;
-
-  if (!parsed || !parsed.success) {
-    return (
-      <Section title="Nguồn tham khảo">
-        <UnreadableStepData output={sourceEvaluatorVersion?.outputJson ?? null} />
-      </Section>
-    );
-  }
-
-  const sources = parsed.data.evaluatedSources;
-
-  return (
-    <Section title={`Nguồn tham khảo (${sources.length})`}>
-      {sources.length === 0 ? (
-        <EmptyNote>Chưa có nguồn tham khảo được ghi nhận.</EmptyNote>
-      ) : (
-        <ReferenceSourcesTable sources={sources} />
-      )}
-    </Section>
-  );
 }
 
 type PublicationViewProps = {

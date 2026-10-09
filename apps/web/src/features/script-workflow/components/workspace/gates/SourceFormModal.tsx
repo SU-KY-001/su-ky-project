@@ -9,7 +9,7 @@ import {
 import { ModeratorText } from "@/features/moderator/components/ModeratorText";
 import { ModalDialog } from "../dialogs/ModalDialog";
 import { Callout } from "../steps/stepUi";
-import { nextCustomSourceId } from "./gateDrafts";
+import { nextCustomSourceId } from "./gate0Drafts";
 
 const MIN_RELIABILITY_SCORE = 1;
 const MAX_RELIABILITY_SCORE = 10;

@@ -8,7 +8,7 @@ import { useStepDecision } from "../../../hooks/useWorkflowMutations";
 import { STEP_LABELS } from "../../../labels";
 import { useWorkflowUiStore } from "../../../store";
 import { RateLimitNotice } from "../../create/Notices";
-import { ConfirmDialog } from "../dialogs/ModalDialog";
+import { ConfirmDialog } from "../dialogs/ConfirmDialog";
 import { Callout } from "../steps/stepUi";
 import {
   DEFAULT_RATE_LIMIT_SECONDS,

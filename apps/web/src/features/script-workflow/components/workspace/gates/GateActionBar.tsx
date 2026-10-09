@@ -1,30 +1,14 @@
-import { useCallback, useState } from "react";
-import { useNavigate } from "react-router";
+import { useState } from "react";
 import { ArrowsClockwise, CheckCircle, CircleNotch, PencilSimple } from "@phosphor-icons/react";
 import { STEP_OUTPUT_SCHEMAS, type GetWorkflowResponse, type StepType, type WorkflowStep } from "@repo/shared";
 import { ModeratorText } from "@/features/moderator/components/ModeratorText";
-import { useModeratorToastStore } from "@/features/moderator/toastStore";
-import { errorMessage, errorRequestId, isApiError } from "@/lib/apiError";
-import { workflowPublicationPath } from "../../../constants";
-import { useStepDecision } from "../../../hooks/useWorkflowMutations";
-import { useWorkflowUiStore } from "../../../store";
 import { RateLimitNotice } from "../../create/Notices";
-import { ConfirmDialog } from "../dialogs/ModalDialog";
+import { ConfirmDialog } from "../dialogs/ConfirmDialog";
 import { Callout } from "../steps/stepUi";
 import { resolveViewedVersion } from "../workspaceModel";
-import {
-  DEFAULT_RATE_LIMIT_SECONDS,
-  HTTP_BAD_REQUEST,
-  HTTP_CONFLICT,
-  HTTP_TOO_MANY_REQUESTS,
-  toNarrativeFocusSelection,
-  useGate0FocusDraft,
-  useGate0SourcesDraft,
-  type RateLimitState,
-} from "./gateDrafts";
+import { useGateContinue } from "./useGateContinue";
 
 const ICON_SIZE = 18;
-const NEXT_VERSION_OFFSET = 1;
 
 type GateActionBarProps = {
   workflow: GetWorkflowResponse;
@@ -43,12 +27,6 @@ export function GateActionBar({
   onToggleEdit,
   onConflict,
 }: GateActionBarProps) {
-  const navigate = useNavigate();
-  const showToast = useModeratorToastStore((state) => state.show);
-  const viewVersion = useWorkflowUiStore((state) => state.viewVersion);
-  const clearDraft = useWorkflowUiStore((state) => state.clearDraft);
-  const mutation = useStepDecision(workflow.id);
-
   const currentVersionObj = resolveViewedVersion(step, step.currentVersion ?? undefined);
   const currentOutput = currentVersionObj?.outputJson;
 
@@ -60,19 +38,21 @@ export function GateActionBar({
     step.type === "FACT_CHECKER" ? STEP_OUTPUT_SCHEMAS.FACT_CHECKER.safeParse(currentOutput) : null;
   const reviewReport = parsedFactChecker?.success ? parsedFactChecker.data : null;
 
-  const sourcesDraft = useGate0SourcesDraft(workflow.id, consultation);
-  const focusDraft = useGate0FocusDraft(workflow.id);
+  const baseVersion = step.currentVersion;
+  const {
+    sourcesDraft,
+    focusDraft,
+    serverError,
+    rateLimit,
+    clearRateLimit,
+    isBusy,
+    executeGate0Continue,
+    executeGate1Continue,
+    executeGate2Continue,
+  } = useGateContinue({ workflowId: workflow.id, baseVersion, consultation, onConflict });
 
-  const [serverError, setServerError] = useState<string | null>(null);
-  const [rateLimit, setRateLimit] = useState<RateLimitState | null>(null);
   const [confirmEmptySources, setConfirmEmptySources] = useState(false);
   const [confirmUnpassedPublish, setConfirmUnpassedPublish] = useState(false);
-  const [savingAndContinuing, setSavingAndContinuing] = useState(false);
-
-  const clearRateLimit = useCallback(() => setRateLimit(null), []);
-
-  const isBusy = mutation.isPending || savingAndContinuing;
-  const baseVersion = step.currentVersion;
 
   const canContinueGate0 =
     step.type !== "RESEARCHER" || (consultation !== null && focusDraft.isValid);
@@ -82,110 +62,6 @@ export function GateActionBar({
     rateLimit === null &&
     canContinueGate0 &&
     !(editing && step.type !== "RESEARCHER");
-
-  const handleMutationError = (error: unknown) => {
-    if (isApiError(error, HTTP_CONFLICT)) {
-      onConflict();
-    } else if (isApiError(error, HTTP_BAD_REQUEST)) {
-      setServerError(error.message);
-    } else if (isApiError(error, HTTP_TOO_MANY_REQUESTS)) {
-      setRateLimit({ seconds: error.retryAfterSeconds ?? DEFAULT_RATE_LIMIT_SECONDS, startedAt: Date.now() });
-    } else {
-      showToast(errorMessage(error), errorRequestId(error));
-    }
-  };
-
-  const executeGate0Continue = async () => {
-    if (baseVersion === null || !consultation) return;
-    const narrativeSelection = toNarrativeFocusSelection(focusDraft.draft);
-    if (!narrativeSelection) return;
-
-    setServerError(null);
-    setSavingAndContinuing(true);
-
-    try {
-      let targetBaseVersion = baseVersion;
-
-      if (sourcesDraft.isDirty) {
-        const editedConsultation = {
-          ...consultation,
-          sourcesCatalogue: sourcesDraft.sources,
-        };
-        const validated = STEP_OUTPUT_SCHEMAS.RESEARCHER.safeParse(editedConsultation);
-        if (!validated.success) {
-          setServerError("Danh mục nguồn chưa hợp lệ, vui lòng kiểm tra lại trước khi duyệt.");
-          setSavingAndContinuing(false);
-          return;
-        }
-        const trimmedNote = sourcesDraft.note.trim();
-        const directEditRes = await mutation.mutateAsync({
-          action: "DIRECT_EDIT",
-          stepType: "RESEARCHER",
-          baseVersion: targetBaseVersion,
-          editedOutputJson: validated.data,
-          ...(trimmedNote.length > 0 ? { note: trimmedNote } : {}),
-        });
-        sourcesDraft.reset();
-        viewVersion("RESEARCHER", null);
-        targetBaseVersion = directEditRes.newVersion ?? targetBaseVersion + NEXT_VERSION_OFFSET;
-      }
-
-      const trimmedGuidance = focusDraft.draft.incomingGuidance.trim();
-      await mutation.mutateAsync({
-        action: "CONTINUE",
-        stepType: "RESEARCHER",
-        baseVersion: targetBaseVersion,
-        narrativeSelection,
-        ...(trimmedGuidance.length > 0 ? { incomingGuidance: trimmedGuidance } : {}),
-      });
-
-      focusDraft.clear();
-      showToast("Đã duyệt Gate 0. AI đang xử lý bước tiếp theo.");
-    } catch (error) {
-      handleMutationError(error);
-    } finally {
-      setSavingAndContinuing(false);
-    }
-  };
-
-  const executeGate1Continue = () => {
-    if (baseVersion === null) return;
-    setServerError(null);
-    mutation.mutate(
-      {
-        action: "CONTINUE",
-        stepType: "STORY_PLANNER",
-        baseVersion,
-      },
-      {
-        onSuccess: () => {
-          clearDraft(`gate1:edit:${workflow.id}`);
-          showToast("Đã duyệt dàn ý. AI đang viết kịch bản.");
-        },
-        onError: handleMutationError,
-      },
-    );
-  };
-
-  const executeGate2Continue = () => {
-    if (baseVersion === null) return;
-    setServerError(null);
-    mutation.mutate(
-      {
-        action: "CONTINUE",
-        stepType: "FACT_CHECKER",
-        baseVersion,
-      },
-      {
-        onSuccess: () => {
-          clearDraft(`json-edit:${workflow.id}:FACT_CHECKER`);
-          showToast("Đã duyệt và xuất bản kịch bản.");
-          void navigate(workflowPublicationPath(workflow.id));
-        },
-        onError: handleMutationError,
-      },
-    );
-  };
 
   const handleContinueClick = () => {
     if (!canContinue) return;
