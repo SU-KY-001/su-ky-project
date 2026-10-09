@@ -1,17 +1,22 @@
 import { betterAuth } from "better-auth";
 import { prismaAdapter } from "better-auth/adapters/prisma";
-import { admin, bearer, openAPI } from "better-auth/plugins";
+import { admin, bearer } from "better-auth/plugins";
 import { prisma } from "@repo/db";
 import type { UserRole } from "@repo/shared";
-import { trustedAuthOrigins } from "../../core/config/allowedOrigins";
+import { env } from "../../core/env";
 
 export const auth = betterAuth({
+  trustedOrigins: [
+    new URL(env.BETTER_AUTH_URL).origin,
+    ...env.CORS_ORIGIN.split(",")
+      .map((origin) => origin.trim())
+      .filter((origin) => origin.length > 0 && !origin.includes("*")),
+  ],
   database: prismaAdapter(prisma, {
     provider: "postgresql",
   }),
-  baseURL: process.env.BETTER_AUTH_URL || "http://localhost:3005",
+  baseURL: process.env.BETTER_AUTH_URL || "http://localhost:3000",
   secret: process.env.BETTER_AUTH_SECRET || "su-ky-auth-secret-development-key",
-  trustedOrigins: trustedAuthOrigins(),
   emailAndPassword: {
     enabled: true,
   },
@@ -21,8 +26,6 @@ export const auth = betterAuth({
       adminRole: "admin",
     }),
     bearer(),
-    // Only used to generate the schema merged into /openapi.json; /docs is the single reference UI.
-    openAPI({ disableDefaultReference: true }),
   ],
   user: {
     additionalFields: {

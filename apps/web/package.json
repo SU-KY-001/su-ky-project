@@ -7,7 +7,7 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "preview": "vite preview",
-    "test": "bun test --pass-with-no-tests",
+    "test": "bun test",
     "check-types": "tsc --noEmit"
   },
   "dependencies": {
@@ -43,7 +43,6 @@
     "@repo/api": "workspace:*",
     "@repo/tsconfig": "workspace:*",
     "@types/node": "catalog:",
-    "bun-types": "catalog:",
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",
     "@tailwindcss/vite": "^4.1.14",

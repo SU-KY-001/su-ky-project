@@ -25,11 +25,6 @@ export function createAuthGuards(getSession: SessionResolver = defaultGetSession
     await next();
   });
 
-  const attachSession = createMiddleware<AppEnv>(async (c, next) => {
-    c.set("session", await getSession(c.req.raw.headers));
-    await next();
-  });
-
   const requireRole = (...roles: UserRole[]) =>
     createMiddleware<AppEnv>(async (c, next) => {
       const session = c.get("session") ?? (await getSession(c.req.raw.headers));
@@ -47,7 +42,6 @@ export function createAuthGuards(getSession: SessionResolver = defaultGetSession
     });
 
   return {
-    attachSession,
     requireAuth,
     requireRole,
     requireAdmin: requireRole("admin"),
@@ -55,7 +49,6 @@ export function createAuthGuards(getSession: SessionResolver = defaultGetSession
 }
 
 const defaultGuards = createAuthGuards();
-export const attachSession = defaultGuards.attachSession;
 export const requireAuth = defaultGuards.requireAuth;
 export const requireRole = defaultGuards.requireRole;
 export const requireAdmin = defaultGuards.requireAdmin;

@@ -1,9 +1,9 @@
-export type { SystemHealthDto } from "@repo/shared";
+export type { ApiResponse, SystemHealthDto } from "@repo/shared";
 export type {
-  EpisodeSourceDto,
-  HistoricalPeriodDto,
+  CitationDto,
+  EpisodeDto,
+  EpisodeFilterQuery,
+  FigureDto,
   PeriodDto,
-  PublicEpisodeDetailDto,
-  PublicEpisodeSourceDto,
-  PublicSeriesListItemDto,
+  SeriesDto,
 } from "@/shared/schemas";

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "bun:test";
 import { Hono } from "hono";
-import type { ErrorResponse, UserRole } from "@repo/shared";
+import type { UserRole } from "@repo/shared";
 import { errorHandler } from "../src/core/middleware";
 import { app } from "../src/app";
 import { createAuthGuards, type Session } from "../src/modules/auth";
@@ -54,8 +54,8 @@ describe("Better Auth API guards", () => {
     const response = await app.request("/admin");
 
     expect(response.status).toBe(401);
-    const body = (await response.json()) as ErrorResponse;
-    expect(body.error_code).toBe("AUTH_REQUIRED");
+    const body = (await response.json()) as { error: { code: string } };
+    expect(body.error.code).toBe("UNAUTHORIZED");
   });
 
   it("rejects standard User access to Admin APIs", async () => {
@@ -63,8 +63,8 @@ describe("Better Auth API guards", () => {
     const response = await app.request("/admin");
 
     expect(response.status).toBe(403);
-    const body = (await response.json()) as ErrorResponse;
-    expect(body.error_code).toBe("FORBIDDEN");
+    const body = (await response.json()) as { error: { code: string } };
+    expect(body.error.code).toBe("FORBIDDEN");
   });
 
   it("allows Admin accounts to access the Admin API", async () => {
@@ -88,15 +88,15 @@ describe("Better Auth HTTP integration", () => {
     const response = await app.request("/api/me");
 
     expect(response.status).toBe(401);
-    const body = (await response.json()) as ErrorResponse;
-    expect(body.error_code).toBe("AUTH_REQUIRED");
+    const body = (await response.json()) as { error: { code: string } };
+    expect(body.error.code).toBe("UNAUTHORIZED");
   });
 
   it("protects the mounted Admin API path", async () => {
     const response = await app.request("/api/admin");
 
     expect(response.status).toBe(401);
-    const body = (await response.json()) as ErrorResponse;
-    expect(body.error_code).toBe("AUTH_REQUIRED");
+    const body = (await response.json()) as { error: { code: string } };
+    expect(body.error.code).toBe("UNAUTHORIZED");
   });
 });

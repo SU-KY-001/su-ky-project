@@ -1,15 +1,15 @@
-.PHONY: help install dev build check-types test clean db-up db-down db-logs db-generate db-deploy db-migrate db-seed db-studio
+.PHONY: help install dev build check-types test clean db-up db-down db-logs db-generate db-push db-migrate db-seed db-studio
 
 # Default target
 .DEFAULT_GOAL := help
 
 help: ## Hiển thị danh sách các lệnh hỗ trợ
 	@echo ""
-	@echo "Su-Ky (Sử Ký) — Monorepo Commands:"
+	@echo "🏯 Su-Ky (Sử Ký) — Monorepo Commands:"
 	@echo ""
 	@echo "  Môi trường & Cài đặt:"
 	@echo "    make install       - Cài đặt toàn bộ dependencies bằng Bun v1.4"
-	@echo "    make dev           - Khởi động môi trường dev (API :3005 + Web :5173)"
+	@echo "    make dev           - Khởi động môi trường dev (API :3000 + Web :5173)"
 	@echo "    make build         - Build production toàn bộ monorepo bằng Turborepo"
 	@echo "    make check-types   - Kiểm tra kiểu dữ liệu TypeScript toàn bộ workspace"
 	@echo "    make test          - Chạy toàn bộ automated test suite với Bun test"
@@ -20,7 +20,7 @@ help: ## Hiển thị danh sách các lệnh hỗ trợ
 	@echo "    make db-down       - Dừng PostgreSQL container"
 	@echo "    make db-logs       - Xem log của PostgreSQL container"
 	@echo "    make db-generate   - Sinh mã Prisma Client trong packages/db"
-	@echo "    make db-deploy     - Áp dụng Prisma migrations vào PostgreSQL"
+	@echo "    make db-push       - Đồng bộ schema Prisma trực tiếp vào PostgreSQL"
 	@echo "    make db-migrate    - Chạy migration Prisma (dev mode)"
 	@echo "    make db-seed       - Nạp dữ liệu mẫu ban đầu vào database (triều đại, podcast)"
 	@echo "    make db-studio     - Mở giao diện trực quan Prisma Studio trên trình duyệt"
@@ -58,8 +58,8 @@ db-logs: ## Xem log PostgreSQL
 db-generate: ## Sinh Prisma Client
 	bun run db:generate
 
-db-deploy: ## Áp dụng Prisma migrations
-	bun run db:deploy
+db-push: ## Push Prisma schema vào database
+	bun run db:push
 
 db-migrate: ## Chạy Prisma migrations
 	bun run db:migrate

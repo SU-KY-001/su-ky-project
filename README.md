@@ -10,7 +10,6 @@ Nền tảng Podcast Kể Chuyện Lịch Sử Việt Nam (Đồ án WDP301).
 - **Frontend Mobile**: [Expo](https://expo.dev) `57` + React Native `0.86` + Tamagui `2`
 - **Database & ORM**: PostgreSQL 18 ([Docker Compose](./compose.yaml) image `postgres:18-alpine`) + [Prisma ORM](https://www.prisma.io) `v6`
 - **Contracts**: [Zod](https://zod.dev) schemas in `@repo/shared`
-- **AI script workflow**: Pi SDK + pg-boss trên cùng PostgreSQL, xem [docs/api-docs/script-workflow-api.md](./docs/api-docs/script-workflow-api.md) (cần khoá AI trong `.env`)
 
 ---
 
@@ -48,7 +47,7 @@ bun install
 
 ### 3. Khởi tạo Database Schema & Dữ Liệu Mẫu
 ```bash
-bun run db:deploy
+bun run db:push
 bun run db:seed
 ```
 
@@ -57,8 +56,8 @@ bun run db:seed
 bun run dev
 ```
 - **Web Client**: http://localhost:5173
-- **API Server**: http://localhost:3005
-- **API Health**: http://localhost:3005/health
+- **API Server**: http://localhost:3000
+- **API Health**: http://localhost:3000/health
 
 ---
 
@@ -76,7 +75,7 @@ Bạn có thể sử dụng `make` hoặc gọi trực tiếp bằng `bun`:
 | **Bật PostgreSQL Docker** | `make db-up` | `docker compose up -d` |
 | **Tắt PostgreSQL Docker** | `make db-down` | `docker compose down` |
 | **Sinh Prisma Client** | `make db-generate` | `bun run db:generate` |
-| **Áp dụng Prisma migrations** | `make db-deploy` | `bun run db:deploy` |
+| **Đồng bộ DB Schema** | `make db-push` | `bun run db:push` |
 | **Nạp dữ liệu mẫu (Seed)** | `make db-seed` | `bun run db:seed` |
 | **Mở Prisma Studio UI** | `make db-studio` | `cd packages/db && bun run prisma studio` |
 | **Dọn dẹp cache & build** | `make clean` | `bun run clean` |

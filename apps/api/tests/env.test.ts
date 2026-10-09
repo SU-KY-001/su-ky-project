@@ -8,7 +8,7 @@ describe("Environment Configuration & Validation", () => {
     });
 
     expect(parsed.NODE_ENV).toBe("development");
-    expect(parsed.PORT).toBe(3005);
+    expect(parsed.PORT).toBe(3000);
     expect(parsed.BETTER_AUTH_SECRET).toBe("su-ky-auth-secret-development-key");
     expect(parsed.CORS_ORIGIN).toBe("http://localhost:5173");
     expect(parsed.LOG_LEVEL).toBe("info");
@@ -49,9 +49,6 @@ describe("Environment Configuration & Validation", () => {
       PORT: "8080",
       DATABASE_URL: "postgresql://postgres:secret@prod-db.internal:5432/suky",
       BETTER_AUTH_SECRET: "strong-prod-secret-987654321",
-      CLOUDINARY_CLOUD_NAME: "prod-cloud",
-      CLOUDINARY_API_KEY: "prod-api-key",
-      CLOUDINARY_API_SECRET: "prod-api-secret",
     });
 
     expect(parsed.NODE_ENV).toBe("production");

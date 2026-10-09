@@ -1,15 +1,17 @@
 export {
-  EpisodeSourceSchema,
-  HistoricalPeriodSchema,
+  CitationSchema,
+  EpisodeFilterQuerySchema,
+  EpisodeSchema,
+  FigureSchema,
   PeriodSchema,
-  PublicEpisodeDetailSchema,
-  PublicSeriesListItemSchema,
+  PodcastCategoryEnum,
+  SeriesSchema,
 } from "@repo/shared";
 export type {
-  EpisodeSourceDto,
-  HistoricalPeriodDto,
+  CitationDto,
+  EpisodeDto,
+  EpisodeFilterQuery,
+  FigureDto,
   PeriodDto,
-  PublicEpisodeDetailDto,
-  PublicEpisodeSourceDto,
-  PublicSeriesListItemDto,
+  SeriesDto,
 } from "@repo/shared";
