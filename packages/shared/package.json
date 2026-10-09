@@ -4,7 +4,8 @@
   "private": true,
   "type": "module",
   "exports": {
-    ".": "./src/index.ts"
+    ".": "./src/index.ts",
+    "./dev-moderator": "./src/dev-moderator.ts"
   },
   "scripts": {
     "check-types": "tsc --noEmit"

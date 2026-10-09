@@ -206,7 +206,7 @@ Lightweight, zero-cold-start web service built natively on Bun using Hono v4.
   - `.`: Points to `./src/index.ts`.
   - `./types`: Points to `./src/app.ts` (exposing `AppType` and `AppEnv` for RPC consumption).
 - **Runtime Execution**:
-  - `src/index.ts` reads `PORT` (defaults to 3000) and exports Bun server object (`{ port, fetch: app.fetch }`).
+  - `src/index.ts` reads `PORT` (defaults to 3005) and exports Bun server object (`{ port, fetch: app.fetch }`).
 - **Middleware Pipeline (`src/app.ts`)**:
   1. `requestId()`: Generates UUID or propagates client `X-Request-Id`. Sets response header.
   2. `requestLogger()`: Measures duration with `performance.now()`. Emits structured JSON logs.
@@ -231,7 +231,7 @@ Lightweight, zero-cold-start web service built natively on Bun using Hono v4.
 React 19 single-page application bundled with Vite 8 and styled with Tailwind CSS v4, source-owned shadcn/ui components, and selected Magic UI components. The root Tamagui config remains for the Expo mobile app through Metro.
 
 - **RPC Client (`src/lib/api.ts`)**:
-  - Creates type-safe client: `client = hc<AppType>(import.meta.env.VITE_API_URL || "http://localhost:3000")`.
+  - Creates type-safe client: `client = hc<AppType>(import.meta.env.VITE_API_URL || "http://localhost:3005")`.
   - Client has complete type knowledge of all backend route paths, parameters, queries, and return schemas without any manual interface declarations.
 - **Query Cache (`src/lib/queryClient.ts`)**:
   - Initialized with `staleTime: 1000 * 60` (1 minute) and `retry: 1`.
@@ -260,8 +260,8 @@ The matrix below illustrates dependencies and consumption boundaries:
 
 | Variable | Target Workspace | Default in `.env.example` | Production Usage |
 | :--- | :--- | :--- | :--- |
-| `PORT` | `apps/api` | `3000` | Port on which the Bun HTTP server listens. |
+| `PORT` | `apps/api` | `3005` | Port on which the Bun HTTP server listens. |
 | `DATABASE_URL` | `packages/db`, `apps/api` | `postgresql://postgres:postgres@localhost:5432/suky_dev` | Connection string for PostgreSQL database instance. |
 | `CORS_ORIGIN` | `apps/api` | `http://localhost:5173` | Allowed origin header for cross-origin browser requests. |
-| `VITE_API_URL` | `apps/web` | `http://localhost:3000` | Base URL used by `hc<AppType>` RPC client. |
+| `VITE_API_URL` | `apps/web` | `http://localhost:3005` | Base URL used by `hc<AppType>` RPC client. |
 | `NODE_ENV` | Global | `development` | Dictates logging verbosity, Prisma client pooling, and stack traces. |

@@ -1,11 +1,9 @@
 import type { MiddlewareHandler } from "hono";
 import { cors } from "hono/cors";
+import { parseAllowedOrigins } from "../config/allowedOrigins";
 
 export function corsConfig(): MiddlewareHandler {
-  const allowedOrigins = (process.env.CORS_ORIGIN || "http://localhost:5173")
-    .split(",")
-    .map((origin) => origin.trim())
-    .filter(Boolean);
+  const allowedOrigins = parseAllowedOrigins();
 
   return cors({
     origin: (origin) => {
@@ -17,9 +15,9 @@ export function corsConfig(): MiddlewareHandler {
       }
       return allowedOrigins[0] ?? "";
     },
-    allowMethods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-    allowHeaders: ["Content-Type", "Authorization", "X-Request-Id"],
-    exposeHeaders: ["X-Request-Id"],
+    allowMethods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+    allowHeaders: ["Content-Type", "Authorization", "X-Request-Id", "Idempotency-Key"],
+    exposeHeaders: ["X-Request-Id", "Location", "Retry-After", "Idempotent-Replayed"],
     credentials: true,
   });
 }

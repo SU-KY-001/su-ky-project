@@ -35,7 +35,7 @@ PostgreSQL 17 ──> Prisma ORM ──> Hono v4 (Bun) ──[hc RPC]──> Rea
 ```
 su-ky-project/
 ├── apps/
-│   ├── api/             # Hono v4 API service running on Bun (Port 3000)
+│   ├── api/             # Hono v4 API service running on Bun (Port 3005)
 │   │   ├── src/app.ts   # Hono app instance & chained RPC routes
 │   │   ├── src/index.ts # Bun HTTP server entrypoint
 │   │   └── src/routes/  # Modular route controllers: health, timeline, series, episodes, figures
@@ -89,14 +89,14 @@ cp .env.example .env
 ```
 Default local variables configured in `.env.example`:
 ```env
-PORT=3000
+PORT=3005
 DATABASE_URL=postgresql://postgres:postgres@localhost:5432/suky_dev
 CORS_ORIGIN=http://localhost:5173
-BETTER_AUTH_URL=http://localhost:3000
+BETTER_AUTH_URL=http://localhost:3005
 BETTER_AUTH_SECRET=<generate with openssl rand -base64 32>
 GOOGLE_CLIENT_ID=
 GOOGLE_CLIENT_SECRET=
-VITE_API_URL=http://localhost:3000
+VITE_API_URL=http://localhost:3005
 ```
 
 ### Step 3: Start PostgreSQL Container
@@ -125,8 +125,8 @@ bun run dev
 *Runs `apps/api` (with hot reloading via `bun --watch`) and `apps/web` (via Vite HMR) concurrently.*
 
 - **Web Frontend**: [http://localhost:5173](http://localhost:5173)
-- **API Server**: [http://localhost:3000](http://localhost:3000)
-- **API Healthcheck**: [http://localhost:3000/health](http://localhost:3000/health)
+- **API Server**: [http://localhost:3005](http://localhost:3005)
+- **API Healthcheck**: [http://localhost:3005/health](http://localhost:3005/health)
 
 ---
 
@@ -140,7 +140,7 @@ The API uses Better Auth with PostgreSQL/Prisma sessions:
 - Current user: `GET /api/me` (requires a valid session cookie or Bearer token)
 - Admin check: `GET /api/admin` (Admin only)
 
-Set `BETTER_AUTH_SECRET` to a persistent random secret in all environments. Google sign-in is enabled when both Google credentials are configured; set the Google OAuth callback URL to `http://localhost:3000/api/auth/callback/google` for local development. `CORS_ORIGIN` accepts a comma-separated list of frontend origins.
+Set `BETTER_AUTH_SECRET` to a persistent random secret in all environments. Google sign-in is enabled when both Google credentials are configured; set the Google OAuth callback URL to `http://localhost:3005/api/auth/callback/google` for local development. `CORS_ORIGIN` accepts a comma-separated list of frontend origins.
 
 New registrations receive the default `user` role. Only admins can change roles or manage users through Better Auth's `/api/auth/admin/*` endpoints. Bootstrap the first admin using Better Auth's CLI after applying the schema, for example:
 
@@ -160,7 +160,7 @@ All root commands are coordinated via Turborepo (`turbo.json`) and run across ma
 | :--- | :--- | :--- |
 | `bun install` | Installs dependencies with strict isolation | Root & all workspaces |
 | `docker compose up -d` | Launches PostgreSQL 17 daemon | Docker daemon |
-| `bun run dev` | Runs API (`:3000`) and Web (`:5173`) in dev mode | `apps/api`, `apps/web` |
+| `bun run dev` | Runs API (`:3005`) and Web (`:5173`) in dev mode | `apps/api`, `apps/web` |
 | `bun run build` | Compiles packages and production bundles | All workspaces (`^build`) |
 | `bun run check-types` | Executes `tsc --noEmit` across all packages | All workspaces (`^build`) |
 | `bun test` | Runs unit & integration tests using Bun Test | `apps/api` |
@@ -233,4 +233,6 @@ For detailed architectural specifications, standards, and requirements, refer to
 - [Code Standards](./code-standards.md) — Bun 1.4 conventions, TypeScript rules (no `any`), Zod schemas, and Prisma discipline.
 - [System Architecture](./system-architecture.md) — In-depth architectural diagrams, sequence flows, and infrastructure models.
 - [Design Guidelines](./design-guidelines.md) — Vietnamese cultural visual language, color tokens, and typography specifications.
+- [Script Workflow API](./api-docs/script-workflow-api.md) — REST contract, schemas and error codes for the AI script workflow.
+- [Script Workflow UX](./ux/script-workflow-ux.md) — Screens, states and behaviour for the script workflow frontend.
 - [Interactive Wireframe](./wireframe/index.html) — Standalone prototype showcasing the timeline, audio dock, and chronicle views.

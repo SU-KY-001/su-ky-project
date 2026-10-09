@@ -8,10 +8,11 @@
     "./client": "./src/client.ts"
   },
   "scripts": {
-    "db:generate": "prisma generate",
-    "db:push": "prisma db push",
-    "db:migrate": "prisma migrate dev",
-    "db:seed": "bun run src/seed.ts",
+    "db:generate": "bun --env-file=../../.env run prisma generate",
+    "db:deploy": "bun --env-file=../../.env run prisma migrate deploy",
+    "db:migrate": "bun --env-file=../../.env run prisma migrate dev",
+    "db:test:reset": "bun --env-file=../../.env.test run prisma migrate reset --force",
+    "db:seed": "bun --env-file=../../.env run src/seed.ts",
     "check-types": "tsc --noEmit"
   },
   "dependencies": {

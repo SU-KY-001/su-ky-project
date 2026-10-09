@@ -21,7 +21,7 @@ Tài liệu này quy định cấu trúc thư mục, kiến trúc phân tầng (
 
 4. **Chuẩn hóa Phân quyền (Authentication & Authorization):**
    - Sử dụng Better Auth với plugin `admin` và `bearer`.
-   - Roles chuẩn: `"user"` và `"admin"` (không dùng `"customer"`).
+   - Roles chuẩn: `"user"`, `"moderator"` và `"admin"` (không dùng `"customer"`). Moderator dùng module `script-workflow` (`/api/script-workflows`); Admin không sửa kịch bản (BR-22).
 
 5. **Chuẩn hóa Logging (Pino & `logs/error.log`):**
    - Không sử dụng `console.log` / `console.error` tùy tiện trong mã nguồn production.
@@ -43,6 +43,7 @@ Tài liệu này quy định cấu trúc thư mục, kiến trúc phân tầng (
 8. **Tài liệu API & OpenAPI (Scalar API Reference):**
    - OpenAPI 3.1 JSON spec tại `GET /openapi.json`.
    - Giao diện tra cứu API tương tác tại `GET /docs` sử dụng `@scalar/hono-api-reference`.
+   - Đổi API (thêm, sửa, xoá route, đổi response hoặc mã lỗi) phải cập nhật spec trong `src/routes/docs/` theo `src/routes/docs/AGENTS.md`; `tests/openapi.test.ts` fail nếu spec lệch route.
 
 9. **Graceful Shutdown:**
    - Xử lý các tín hiệu `SIGINT` và `SIGTERM` tại `src/index.ts`.
@@ -59,7 +60,7 @@ su-ky-monorepo/
 │   ├── shared/                          # [Shared Contracts] Hợp đồng dữ liệu dùng chung FE & BE
 │   │   └── src/
 │   │       ├── schemas/
-│   │       │   ├── auth.ts              # Zod schemas: SignIn, SignUp, UserRoleEnum ("user" | "admin")
+│   │       │   ├── auth.ts              # Zod schemas: SignIn, SignUp, UserRoleEnum ("user" | "moderator" | "admin")
 │   │       │   ├── podcast.ts           # Zod schemas: Series, Episode, EpisodeFilterQuery
 │   │       │   ├── timeline.ts          # Zod schemas: Period, TimelineEvent
 │   │       │   └── figure.ts            # Zod schemas: Historical Figure
@@ -103,7 +104,7 @@ su-ky-monorepo/
             │   └── errors/              # Custom application exceptions (nếu có)
             │
             ├── routes/                  # Global routes (docs, health, placeholder resources)
-            │   ├── docs.ts              # OpenAPI 3.1 & Scalar API Reference (/docs)
+            │   ├── docs/                # OpenAPI 3.1 & Scalar (/docs); xem docs/AGENTS.md
             │   ├── health.ts            # Hệ thống health check & DB ping
             │   └── ...
             │
@@ -153,7 +154,7 @@ Khi bổ sung một module tính năng mới (ví dụ `podcast`):
 5. **Bước 5: Presentation Layer (`src/modules/[feature]/presentation/`)**
    - Khởi tạo Hono router.
    - Dùng Zod validator từ `@repo/shared` để xác thực input.
-   - Gọi Service và trả về response chuẩn `ApiResponse<T>`.
+   - Trả thẳng dữ liệu thành công; không bọc response envelope.
 
 6. **Bước 6: Gắn Router vào `src/app.ts`**
    - Mount router vào `apps/api/src/app.ts` với tiền tố `/api/[feature]`.
@@ -162,18 +163,20 @@ Khi bổ sung một module tính năng mới (ví dụ `podcast`):
    - Tạo `apps/api/tests/[feature].test.ts`.
    - Kiểm thử các use-case và endpoint HTTP bằng `bun:test`.
 
+8. **Bước 8: Cập nhật OpenAPI spec**
+   - Thêm operation cho mọi route mới vào `src/routes/docs/paths/` theo `src/routes/docs/AGENTS.md`.
+   - `tests/openapi.test.ts` sẽ fail cho đến khi route được ghi trong spec.
+
 ---
 
 ## 4. Quy Chuẩn Code (Coding Standards)
 
-- **Response Envelope:** Luôn trả về đúng chuẩn `ApiResponse<T>`:
-  - Thành công: `{ success: true, data: ... }`
-  - Thất bại: `{ success: false, error: { code: "...", message: "..." }, meta: { requestId, timestamp } }`
+- **Response:** Trả thẳng dữ liệu thành công. Lỗi chỉ có `{ error_code, message }`.
 - **Mã lỗi HTTP:**
   - 400: `VALIDATION_ERROR` hoặc `BAD_REQUEST`
-  - 401: `UNAUTHORIZED` (Chưa đăng nhập / token không hợp lệ)
-  - 403: `FORBIDDEN` (Không đủ quyền hạn)
+  - 401: `AUTH_REQUIRED`
+  - 403: `FORBIDDEN`
   - 404: `NOT_FOUND`
   - 500: `INTERNAL_SERVER_ERROR`
 - **Xử lý ngoại lệ:**
-  - Ném `HTTPException` từ `hono/http-exception` để middleware `errorHandler` tự động bắt và đóng gói JSON envelope chuẩn.
+  - Ném `DomainError` cho lỗi nghiệp vụ hoặc `HTTPException` cho lỗi HTTP; `errorHandler` chuyển thành `{ error_code, message }`.

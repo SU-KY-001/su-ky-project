@@ -183,7 +183,7 @@ In `apps/web/src/lib/api.ts`, initialize the client with `hc<AppType>`:
 import { hc } from "hono/client";
 import type { AppType } from "@repo/api/types";
 
-const apiUrl = import.meta.env.VITE_API_URL || "http://localhost:3000";
+const apiUrl = import.meta.env.VITE_API_URL || "http://localhost:3005";
 
 export const client = hc<AppType>(apiUrl);
 ```
