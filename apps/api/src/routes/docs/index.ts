@@ -2,6 +2,7 @@ import { apiReference } from "@scalar/hono-api-reference";
 import { Hono } from "hono";
 import { env } from "../../core/env";
 import { COMMON_RESPONSES, parameters, securitySchemes } from "./components";
+import { betterAuthPaths, betterAuthSchemas } from "./better-auth-schema";
 import { registeredSchemas } from "./registry";
 import type { Paths } from "./operation";
 import { catalogPaths } from "./paths/catalog";
@@ -67,7 +68,9 @@ const TAG_GROUPS = [
   { name: "AI Studio", tags: ["Script Workflow"] },
 ] as const;
 
+// Hand-written auth entries come last so their curated docs override the generated ones.
 const allPaths: Paths = {
+  ...betterAuthPaths,
   ...systemAuthPaths,
   ...catalogPaths,
   ...listeningPaths,
@@ -92,7 +95,7 @@ export const openApiSpec = {
     parameters,
     // Only the responses operations reference via $ref; every other error is inlined with its specific codes.
     responses: { Unauthorized: COMMON_RESPONSES.Unauthorized, InternalError: COMMON_RESPONSES.InternalError },
-    schemas: registeredSchemas(),
+    schemas: { ...betterAuthSchemas, ...registeredSchemas() },
   },
 };
 

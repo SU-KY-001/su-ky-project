@@ -82,7 +82,7 @@ Quy tắc:
 
 ## 5. Không nằm trong spec
 
-- `/api/auth/*` do Better Auth quản lý: chỉ ghi vài endpoint thường dùng trong `paths/system-auth.ts`. Test bỏ qua nhóm này.
+- `/api/auth/*` do Better Auth quản lý: spec tự sinh bằng `auth.api.generateOpenAPISchema()` (plugin `openAPI()` trong `auth.ts`, qua `better-auth-schema.ts`), nên thêm plugin/endpoint thì tự có trong docs. `paths/system-auth.ts` chỉ chứa bản viết tay (mô tả tiếng Việt, envelope) và ghi đè bản sinh. Test bỏ qua nhóm này.
 - `/docs` và `/openapi.json` tự mô tả chính chúng.
 
 ---

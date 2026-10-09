@@ -1,6 +1,6 @@
 import { betterAuth } from "better-auth";
 import { prismaAdapter } from "better-auth/adapters/prisma";
-import { admin, bearer } from "better-auth/plugins";
+import { admin, bearer, openAPI } from "better-auth/plugins";
 import { prisma } from "@repo/db";
 import type { UserRole } from "@repo/shared";
 import { trustedAuthOrigins } from "../../core/config/allowedOrigins";
@@ -21,6 +21,8 @@ export const auth = betterAuth({
       adminRole: "admin",
     }),
     bearer(),
+    // Only used to generate the schema merged into /openapi.json; /docs is the single reference UI.
+    openAPI({ disableDefaultReference: true }),
   ],
   user: {
     additionalFields: {
