@@ -2,10 +2,10 @@ import { ArrowLeft, Eye, EyeSlash } from "@phosphor-icons/react";
 import { useState, type ReactElement, type ReactNode } from "react";
 import type { UseFormRegisterReturn } from "react-hook-form";
 import brandLogo from "@/public/brand-su-ky-viet-nam.png";
-import { Button } from "@/components/ui/button";
-import { DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import { Button } from "@/shared/components/ui/button";
+import { DialogDescription, DialogHeader, DialogTitle } from "@/shared/components/ui/dialog";
+import { Input } from "@/shared/components/ui/input";
+import { Label } from "@/shared/components/ui/label";
 import { useAuthDialog } from "../hooks/useAuthDialog";
 
 type AuthMode = "sign-in" | "sign-up" | "reset";

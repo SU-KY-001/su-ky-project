@@ -1,33 +1,13 @@
-import { useState, type ReactNode } from "react";
-import {
-  ArrowClockwise,
-  ArrowUpRight,
-  ChartBar,
-  CheckCircle,
-  Plus,
-  SquaresFour,
-  TrendUp,
-} from "@phosphor-icons/react";
-import { Button } from "@/components/ui/button";
+import { useEffect, useState, type ReactNode } from "react";
+import { ArrowClockwise, CheckCircle, Plus } from "@phosphor-icons/react";
+import { Button } from "@/shared/components/ui/button";
 import { moderatorMockDataLabel, moderatorOverviewMock } from "../data";
-import { scriptWorkflowNavItem } from "../navItems";
-import { useModeratorToastStore } from "../toastStore";
 import type { ModeratorQuickActionIcon } from "../types";
 import { AreaChartPanel } from "./AreaChartPanel";
 import { IntegrationStatusCard } from "./IntegrationStatusCard";
 import { MetricCard } from "./MetricCard";
-import { ModeratorShell, type ShellNavItem } from "./ModeratorShell";
 import { ModeratorText } from "./ModeratorText";
 import { QuickActions } from "./QuickActions";
-
-const sidebarItems = [
-  { id: "overview", label: "Tổng quan", icon: SquaresFour },
-  { id: "analytics", label: "Phân tích", icon: TrendUp },
-  { id: "integrations", label: "Kết nối", icon: ChartBar },
-  { id: "quick-actions", label: "Thao tác nhanh", icon: Plus },
-] as const;
-
-const MOCK_DATA_NOTICE = "Dữ liệu dashboard là bản minh họa, chưa kết nối dịch vụ thật.";
 
 const quickActionCopy: Record<ModeratorQuickActionIcon, string> = {
   series: "Mở bản xem trước tạo series. Dữ liệu chưa được lưu.",
@@ -35,8 +15,6 @@ const quickActionCopy: Record<ModeratorQuickActionIcon, string> = {
   milestone: "Mở bản xem trước thêm mốc lịch sử. Dữ liệu chưa được lưu.",
   reference: "Mở bản xem trước thêm nguồn tư liệu. Dữ liệu chưa được lưu.",
 };
-
-type DashboardSection = (typeof sidebarItems)[number]["id"];
 
 function DashboardActionButton({ label, icon, onClick, primary = false }: { label: string; icon: ReactNode; onClick: () => void; primary?: boolean }) {
   return (
@@ -46,25 +24,16 @@ function DashboardActionButton({ label, icon, onClick, primary = false }: { labe
   );
 }
 
-export function ModeratorDashboard() {
-  const [activeSection, setActiveSection] = useState<DashboardSection>("overview");
-  const [today] = useState(() => new Date());
-  const showToast = useModeratorToastStore((state) => state.show);
+interface ModeratorDashboardProps {
+  greetingLabel: string;
+  onToast: (message: string) => void;
+  onReady: () => void;
+}
 
-  const navigateToSection = (section: DashboardSection) => {
-    setActiveSection(section);
-    const scrollContainer = document.querySelector<HTMLElement>(".mod-main-content");
-    const target = document.getElementById(section);
-    if (scrollContainer && target) {
-      const targetTop = scrollContainer.scrollTop + target.getBoundingClientRect().top - scrollContainer.getBoundingClientRect().top;
-      const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-      scrollContainer.scrollTo({ top: targetTop, behavior: reducedMotion ? "auto" : "smooth" });
-    }
-    const nextUrl = new URL(window.location.href);
-    nextUrl.hash = section;
-    window.history.replaceState(window.history.state, "", nextUrl);
-  };
-  const refreshMockData = () => showToast("Đã cập nhật dữ liệu minh họa.");
+export function ModeratorDashboard({ greetingLabel, onToast, onReady }: ModeratorDashboardProps) {
+  const [today] = useState(() => new Date());
+
+  useEffect(() => onReady(), [onReady]);
 
   const formattedDate = new Intl.DateTimeFormat("vi-VN", {
     weekday: "long",
@@ -74,29 +43,8 @@ export function ModeratorDashboard() {
   }).format(today);
   const currentDate = `${formattedDate.slice(0, 1).toLocaleUpperCase("vi-VN")}${formattedDate.slice(1)}`;
 
-  const nav: ShellNavItem[] = [
-    ...sidebarItems.map((item) => ({
-      id: item.id,
-      label: item.label,
-      icon: item.icon,
-      active: activeSection === item.id,
-      onSelect: () => navigateToSection(item.id),
-    })),
-    scriptWorkflowNavItem(false),
-  ];
-
-  const previewNote = (
-    <div className="mt-5 flex flex-col gap-[11px] rounded-[13px] border border-mod-border bg-mod-canvas-accent p-3.5">
-      <div className="flex items-center gap-2"><span className="size-2 rounded-full bg-mod-success" /><ModeratorText className="text-[10px] font-bold text-mod-text">BẢN XEM TRƯỚC</ModeratorText></div>
-      <ModeratorText className="text-xs leading-[18px] text-mod-text-secondary">Bảng điều khiển đang dùng dữ liệu minh họa.</ModeratorText>
-      <Button variant="ghost" className="h-8 justify-between px-0 text-xs font-bold text-mod-primary hover:bg-transparent hover:text-mod-primary-hover" onClick={() => showToast(MOCK_DATA_NOTICE)} aria-label="Xem trạng thái dữ liệu minh họa">
-        Xem chi tiết<ArrowUpRight size={15} />
-      </Button>
-    </div>
-  );
-
   return (
-    <ModeratorShell nav={nav} breadcrumb="Tổng quan" sidebarNote={previewNote}>
+    <>
       <section id="overview" className="flex flex-col gap-[21px]">
         <div className="flex flex-wrap items-end justify-between gap-[18px]">
           <div className="flex min-w-[245px] flex-1 flex-col gap-2">
@@ -108,15 +56,15 @@ export function ModeratorDashboard() {
               </span>
             </div>
             <div className="flex flex-col gap-1">
-              <ModeratorText className="text-sm font-semibold text-mod-text-muted">{moderatorOverviewMock.greeting}, {moderatorOverviewMock.moderatorLabel}</ModeratorText>
+              <ModeratorText className="text-sm font-semibold text-mod-text-muted">{moderatorOverviewMock.greeting}, {greetingLabel}</ModeratorText>
               <ModeratorText as="h1" className="text-3xl font-extrabold leading-tight tracking-tight text-mod-text max-[620px]:text-2xl">Tổng quan nội dung</ModeratorText>
             </div>
             <ModeratorText className="text-sm text-mod-text-secondary">Theo dõi thư viện lịch sử, lượt nghe và hoạt động của Sử Ký.</ModeratorText>
           </div>
 
           <div className="flex flex-wrap items-center gap-2">
-            <DashboardActionButton label="Làm mới" icon={<ArrowClockwise size={16} color="var(--modTextMuted)" aria-hidden={true} />} onClick={refreshMockData} />
-            <DashboardActionButton label="Tạo nội dung" icon={<Plus size={17} color="white" weight="bold" aria-hidden={true} />} onClick={() => showToast("Mở bản xem trước tạo nội dung. Dữ liệu chưa được lưu.")} primary />
+            <DashboardActionButton label="Làm mới" icon={<ArrowClockwise size={16} color="var(--modTextMuted)" aria-hidden={true} />} onClick={() => onToast("Đã cập nhật dữ liệu minh họa.")} />
+            <DashboardActionButton label="Tạo nội dung" icon={<Plus size={17} color="white" weight="bold" aria-hidden={true} />} onClick={() => onToast("Mở bản xem trước tạo nội dung. Dữ liệu chưa được lưu.")} primary />
           </div>
         </div>
 
@@ -158,9 +106,9 @@ export function ModeratorDashboard() {
         </div>
         <QuickActions items={moderatorOverviewMock.quickActions} onAction={(id) => {
           const action = moderatorOverviewMock.quickActions.find((item) => item.id === id);
-          if (action) showToast(quickActionCopy[action.icon]);
+          if (action) onToast(quickActionCopy[action.icon]);
         }} />
       </section>
-    </ModeratorShell>
+    </>
   );
 }

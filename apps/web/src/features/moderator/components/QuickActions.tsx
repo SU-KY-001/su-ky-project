@@ -1,5 +1,5 @@
 import { ArrowUpRight, BookOpenText, Headphones, MapTrifold, SquaresFour } from "@phosphor-icons/react";
-import { Button } from "@/components/ui/button";
+import { Button } from "@/shared/components/ui/button";
 import type { ModeratorQuickAction, ModeratorQuickActionIcon } from "../types";
 import { ModeratorText } from "./ModeratorText";
 

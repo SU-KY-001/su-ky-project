@@ -1,6 +1,6 @@
 import { useId } from "react";
 import { ChartLineUp } from "@phosphor-icons/react";
-import { Card } from "@/components/ui/card";
+import { Card } from "@/shared/components/ui/card";
 import { moderatorChartColors } from "../theme";
 import type { ModeratorChart, ModeratorChartSeries } from "../types";
 import { EmptyChartState } from "./DashboardStates";
@@ -64,7 +64,7 @@ export function AreaChartPanel({ chart }: { chart: ModeratorChart }) {
             return (
               <g key={`grid-${index}`}>
                 <line x1={plot.left} x2={plot.left + plot.width} y1={y} y2={y} stroke="var(--modBorder)" strokeDasharray="2 6" />
-                <text x={plot.left - 10} y={y + 4} textAnchor="end" fill="var(--modTextLow)" fontSize="10" fontFamily="Manrope, sans-serif">{formatValue.format(tick)}</text>
+                <text x={plot.left - 10} y={y + 4} textAnchor="end" fill="var(--modTextLow)" fontSize="10">{formatValue.format(tick)}</text>
               </g>
             );
           })}
@@ -86,7 +86,7 @@ export function AreaChartPanel({ chart }: { chart: ModeratorChart }) {
               </g>
             );
           })}
-          {chart.months.map((month, index) => <text key={month} x={xAt(index)} y={chartHeight - 18} textAnchor="middle" fill="var(--modTextLow)" fontSize="10" fontFamily="Manrope, sans-serif">{month}</text>)}
+          {chart.months.map((month, index) => <text key={month} x={xAt(index)} y={chartHeight - 18} textAnchor="middle" fill="var(--modTextLow)" fontSize="10">{month}</text>)}
         </svg>
         <div className="flex flex-wrap items-center gap-3.5" aria-label="Chú giải biểu đồ">
           {chart.series.map((series) => <div key={series.id} className="flex items-center gap-2"><span className="size-2 rounded-full" style={{ backgroundColor: moderatorChartColors[series.tone].svg }} /><ModeratorText className="text-xs text-mod-text-secondary">{series.label}</ModeratorText></div>)}

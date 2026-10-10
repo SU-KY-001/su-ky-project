@@ -2,7 +2,7 @@ import { Component, lazy, Suspense, useEffect, type ReactNode } from "react";
 import { HeroCarousel } from "../../features/landing/components/HeroCarousel";
 import { LandingHeader } from "../../features/landing/components/LandingHeader";
 import { scrollToLandingTarget, useLandingMotion } from "../../features/landing/hooks/useLandingMotion";
-import { LightRays } from "@/components/ui/light-rays";
+import { LightRays } from "@/shared/components/ui/light-rays";
 
 const LandingContent = lazy(() => import("./LandingContent").then(({ LandingContent: Content }) => ({ default: Content })));
 const LandingFooter = lazy(() => import("./LandingContent").then(({ LandingFooterContent }) => ({ default: LandingFooterContent })));
