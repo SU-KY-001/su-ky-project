@@ -3,6 +3,11 @@
 Đối tượng: team FE. Mỗi mục ghi **endpoint bị ảnh hưởng**, **trước/sau** và **FE phải sửa gì**.
 Nhãn: `BREAKING` (code cũ gọi sẽ lỗi hoặc sai), `ADDITIVE` (mới, không vỡ), `FIX` (sửa cho đúng spec).
 
+## [Unreleased]
+
+### FIX — Verify audio (2026-10-10)
+- `POST /api/studio/media-assets/:id/verify` với `kind: AUDIO` trước đây luôn trả `MEDIA_INVALID`. Nguyên nhân (xác nhận qua E2E + Admin API reference "Get details of a single resource by public ID": `media_metadata` mặc định `false`, áp dụng cho cả video/audio nên response thiếu `duration`): gateway không xin `duration` từ Cloudinary. Đã sửa: `fetchResource` truyền `media_metadata: true`. FE không cần đổi gì — flow ticket → upload → verify giờ trả `status: READY` kèm `durationMs`.
+
 ## [0.0.1] - 2026-10-10 — Studio CRUD + Thời kỳ→Giai đoạn (commit `2af754a`)
 
 ### BREAKING — Workflow AI-first bị xóa
@@ -40,9 +45,6 @@ Nhãn: `BREAKING` (code cũ gọi sẽ lỗi hoặc sai), `ADDITIVE` (mới, kh�
 
 ### BREAKING — `GET /health` bỏ field `ai`
 - `ai` bị xóa, `queue` giờ phản ánh maintenance boss. FE dashboard nào đọc `health.ai` phải sửa.
-
-### FIX — Verify audio (2026-10-10, sau 0.0.1)
-- `POST /api/studio/media-assets/:id/verify` với `kind: AUDIO` trước đây luôn trả `MEDIA_INVALID` vì gateway không xin `duration` từ Cloudinary. Đã sửa: `fetchResource` truyền `media_metadata: true`. FE không cần đổi gì — flow ticket → upload → verify giờ trả `status: READY` kèm `durationMs`.
 
 ### ADDITIVE — Kho nguồn + PDF
 - `POST /api/studio/sources` yêu cầu có `url` hoặc `fileAssetId`, response thêm `fileAssetId` + `file: {assetId, url, format, sizeBytes} | null`. Gán/gỡ PDF qua `fileAssetId` ở POST/PATCH (`null` = gỡ). Có `GET /sources/similar` cảnh báo trùng, archive/unarchive.
