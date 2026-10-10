@@ -112,13 +112,7 @@ bun run db:push
 ```
 *Generates TypeScript client bindings into `node_modules/@prisma/client` and synchronizes tables with PostgreSQL.*
 
-### Step 5: Seed Historical Data
-```bash
-bun run db:seed
-```
-*Populates 9 historical periods, flagship series, sample episodes with transcripts, citations, and historical figures.*
-
-### Step 6: Start All Applications in Development Mode
+### Step 5: Start All Applications in Development Mode
 ```bash
 bun run dev
 ```
@@ -167,7 +161,6 @@ All root commands are coordinated via Turborepo (`turbo.json`) and run across ma
 | `bun run db:generate` | Generates Prisma client types from schema | `packages/db` |
 | `bun run db:migrate` | Runs database migrations interactively | `packages/db` |
 | `bun run db:push` | Synchronizes Prisma schema directly to DB | `packages/db` |
-| `bun run db:seed` | Seeds initial historical periods & episodes | `packages/db` |
 | `bun run clean` | Purges build artifacts and node_modules | Root & all workspaces |
 
 ---

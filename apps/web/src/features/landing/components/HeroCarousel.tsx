@@ -1,7 +1,7 @@
 import { Heart, Play, WarningCircle } from "@phosphor-icons/react";
 import { useRef, useState } from "react";
 import { useNavigate } from "react-router";
-import { Button } from "@/components/ui/button";
+import { Button } from "@/shared/components/ui/button";
 import { cn } from "@/lib/utils";
 import { heroSlides } from "../data";
 import { useHeroCarousel } from "../hooks/useHeroCarousel";

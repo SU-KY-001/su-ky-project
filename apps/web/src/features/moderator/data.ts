@@ -4,7 +4,6 @@ const months = ["Tháng 5", "Tháng 6", "Tháng 7", "Tháng 8", "Tháng 9", "Th�
 
 export const moderatorOverviewMock: ModeratorOverviewData = {
   greeting: "Chào mừng trở lại",
-  moderatorLabel: "Biên tập viên Sử Ký",
   metrics: [
     { id: "series", label: "Tổng series", value: 18, detail: "Trong thư viện", icon: "series" },
     { id: "episodes", label: "Tập podcast", value: 72, detail: "Trong thư viện", icon: "episode" },

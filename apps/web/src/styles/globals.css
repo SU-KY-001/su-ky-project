@@ -4,7 +4,6 @@
 @theme inline {
   --font-sans: "Be Vietnam Pro", ui-sans-serif, system-ui, sans-serif;
   --font-serif: "Be Vietnam Pro", ui-sans-serif, system-ui, sans-serif;
-  --font-moderator: "Manrope", ui-sans-serif, system-ui, sans-serif;
 
   --color-background: var(--background);
   --color-foreground: var(--foreground);
@@ -376,6 +375,116 @@ img {
   gap: 14px;
 }
 
+.workspace-content-skeleton {
+  display: flex;
+  width: 100%;
+  flex-direction: column;
+  gap: 25px;
+}
+
+.workspace-skeleton-overview {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 18px;
+}
+
+.workspace-skeleton-intro,
+.workspace-skeleton-section-heading {
+  display: flex;
+  min-width: 220px;
+  flex: 1;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.workspace-skeleton-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.workspace-skeleton-metric-grid,
+.workspace-skeleton-chart-grid,
+.workspace-skeleton-integration-grid,
+.workspace-skeleton-action-grid {
+  display: grid;
+  width: 100%;
+  gap: 15px;
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.workspace-skeleton-section {
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+}
+
+.workspace-skeleton-section-heading {
+  flex: none;
+  gap: 8px;
+}
+
+.workspace-skeleton-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  border: 1px solid var(--modBorder);
+  border-radius: 14px;
+  background: var(--modSurface);
+  padding: 18px;
+}
+
+.workspace-skeleton-metric {
+  min-height: 148px;
+  justify-content: space-between;
+}
+
+.workspace-skeleton-chart {
+  min-height: 316px;
+}
+
+.workspace-skeleton-integration,
+.workspace-skeleton-quick-action {
+  min-height: 100px;
+  flex-direction: row;
+  align-items: center;
+}
+
+.workspace-skeleton-quick-action {
+  min-height: 86px;
+}
+
+.workspace-skeleton-block {
+  display: block;
+  flex: none;
+  border-radius: 7px;
+  background: linear-gradient(100deg, #e7edf2 25%, #f7f9fb 45%, #e7edf2 65%);
+  background-size: 200% 100%;
+  animation: workspace-skeleton-shimmer 1.6s ease-in-out infinite;
+}
+
+.workspace-skeleton-line {
+  height: 12px;
+}
+
+.workspace-skeleton-line-short { width: 26%; }
+.workspace-skeleton-line-medium { width: 48%; }
+.workspace-skeleton-line-wide { width: 72%; }
+.workspace-skeleton-line-title { width: min(62%, 330px); height: 30px; border-radius: 9px; }
+.workspace-skeleton-line-value { width: 54%; height: 28px; border-radius: 8px; }
+.workspace-skeleton-button { height: 44px; border-radius: 10px; }
+.workspace-skeleton-button-secondary { width: 104px; }
+.workspace-skeleton-button-primary { width: 142px; }
+.workspace-skeleton-chart-area { width: 100%; min-height: 226px; margin-top: auto; border-radius: 10px; }
+.workspace-skeleton-avatar { width: 38px; height: 38px; border-radius: 50%; }
+
+@keyframes workspace-skeleton-shimmer {
+  from { background-position: 100% 0; }
+  to { background-position: -100% 0; }
+}
+
 .mod-toast {
   position: fixed;
   z-index: 60;
@@ -403,6 +512,11 @@ img {
   .mod-integration-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
+
+  .workspace-skeleton-metric-grid,
+  .workspace-skeleton-integration-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
 }
 
 @media (min-width: 981px) {
@@ -423,10 +537,22 @@ img {
   .mod-chart-grid > :last-child:nth-child(odd) {
     grid-column: 1 / -1;
   }
+
+  .workspace-skeleton-chart-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
 }
 
 @media (min-width: 1280px) {
   .mod-metric-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+
+  .workspace-skeleton-metric-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+
+  .workspace-skeleton-action-grid {
     grid-template-columns: repeat(4, minmax(0, 1fr));
   }
 }

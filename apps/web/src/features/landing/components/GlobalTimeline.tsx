@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
-import { Button } from "@/components/ui/button";
-import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import { Button } from "@/shared/components/ui/button";
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/shared/components/ui/sheet";
 import { cn } from "@/lib/utils";
 import { timelineEvents } from "../data";
 import type { TimelineEvent } from "../types";

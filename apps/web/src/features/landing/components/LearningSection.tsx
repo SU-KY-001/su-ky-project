@@ -1,6 +1,6 @@
 import { ArrowCounterClockwise, LockKey, SealCheck } from "@phosphor-icons/react";
 import { useState } from "react";
-import { Button } from "@/components/ui/button";
+import { Button } from "@/shared/components/ui/button";
 import { SectionFrame, SectionHeading } from "./SectionFrame";
 import { scrollToLandingTarget } from "../hooks/useLandingMotion";
 

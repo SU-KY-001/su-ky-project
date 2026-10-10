@@ -1,7 +1,7 @@
 import { List, MagnifyingGlass, X } from "@phosphor-icons/react";
 import { useState } from "react";
 import { Link } from "react-router";
-import { Button } from "@/components/ui/button";
+import { Button } from "@/shared/components/ui/button";
 import { cn } from "@/lib/utils";
 import brandLogo from "@/public/brand-su-ky-viet-nam.png";
 import { scrollToLandingTarget } from "../hooks/useLandingMotion";

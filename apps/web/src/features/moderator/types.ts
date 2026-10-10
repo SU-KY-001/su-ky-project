@@ -53,7 +53,6 @@ export interface ModeratorQuickAction {
 
 export interface ModeratorOverviewData {
   greeting: string;
-  moderatorLabel: string;
   metrics: ModeratorMetric[];
   charts: ModeratorChart[];
   integrations: ModeratorIntegration[];
