@@ -14,7 +14,9 @@ export const paginatedSchema = <T extends z.ZodTypeAny>(item: T) =>
   });
 
 export const UuidParamSchema = z.object({ id: z.string().uuid() });
-export const HistoricalYearSchema = z.number().int().max(1945).refine((year) => year !== 0, {
+/** Year columns are SMALLINT; this is the storage limit, not a content rule. */
+const YEAR_COLUMN_MAX = 32767;
+export const HistoricalYearSchema = z.number().int().min(-YEAR_COLUMN_MAX).max(YEAR_COLUMN_MAX).refine((year) => year !== 0, {
   message: "Year zero is not valid",
 });
 export const ContentStatusSchema = z.enum(["DRAFT", "PUBLISHED", "HIDDEN"]);

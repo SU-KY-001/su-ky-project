@@ -14,7 +14,7 @@ const UPLOAD_FLOW = [
   "2. Client gửi file thẳng lên `upload.url` (Cloudinary) bằng `multipart/form-data`, kèm đủ `upload.fields`.",
   "3. `POST /api/studio/media-assets/{id}/verify` với `publicId` Cloudinary trả về; server kiểm tra rồi chuyển asset sang `READY`.",
   "",
-  "Chỉ asset `READY` mới gắn được vào Series (ảnh bìa) hoặc bản kể (audio).",
+  "Chỉ asset `READY` mới gắn được vào Series (ảnh bìa), bản kể (audio) hoặc nguồn (PDF, `kind = DOCUMENT`).",
 ].join("\n");
 
 export const mediaPaths: Paths = {

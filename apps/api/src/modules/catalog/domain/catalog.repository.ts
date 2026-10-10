@@ -6,6 +6,7 @@ import type {
   SourceTier,
   SourceWithUsage,
   Topic,
+  SourceFileCandidate,
 } from "./catalog.entity";
 
 /**
@@ -56,6 +57,7 @@ export interface CreateSourceData {
   edition?: string | null;
   isbn: string | null;
   url?: string | null;
+  fileAssetId?: string | null;
   createdById: string;
 }
 
@@ -71,6 +73,8 @@ export interface PatchSourceData {
   edition?: string | null;
   isbn?: string | null;
   url?: string | null;
+  /** `null` removes the file; the adapter detaches the previous asset and attaches the new one atomically. */
+  fileAssetId?: string | null;
 }
 
 export interface CreateHistoricalEntityData {
@@ -110,6 +114,9 @@ export interface SourceRepository {
   createSource(data: CreateSourceData): Promise<boolean>;
   findSourceIdByIsbn(isbn: string | null): Promise<string | null>;
   findSourceIdByIsbnExcept(isbn: string, exceptId: string): Promise<string | null>;
+  /** Source already holding the uploaded file `assetId` (excluding `exceptId`), if any. */
+  findSourceIdByFileAsset(assetId: string, exceptId?: string): Promise<string | null>;
+  findMediaAsset(id: string): Promise<SourceFileCandidate | null>;
   requireSource(id: string): Promise<Source>;
   updateSource(id: string, data: PatchSourceData): Promise<Source>;
   setSourceArchivedAt(id: string, archivedAt: Date | null): Promise<Source>;

@@ -95,7 +95,23 @@ export class CatalogService {
     return source;
   }
 
+  private assertSourceReachable(url: string | null | undefined, fileAssetId: string | null | undefined): void {
+    if (!url && !fileAssetId) throw new DomainError(422, "VALIDATION_ERROR", "A source needs a url or an uploaded file");
+  }
+
+  private async assertFileUsable(actor: CatalogActor, assetId: string, exceptSourceId?: string): Promise<void> {
+    const asset = await this.sources.findMediaAsset(assetId);
+    if (!asset || asset.kind !== "DOCUMENT" || asset.status !== "READY" || (actor.role !== "admin" && asset.uploadedById !== actor.userId)) {
+      throw new DomainError(422, "VALIDATION_ERROR", "Source file asset is not usable");
+    }
+    if (await this.sources.findSourceIdByFileAsset(assetId, exceptSourceId)) {
+      throw new DomainError(409, "ASSET_IN_USE", "File asset is already attached to another source");
+    }
+  }
+
   async createSource(actor: CatalogActor, input: SourceCreateInput): Promise<Source> {
+    this.assertSourceReachable(input.url, input.fileAssetId);
+    if (input.fileAssetId) await this.assertFileUsable(actor, input.fileAssetId);
     const isbn = normalizeIsbn(input.isbn);
     const data: CreateSourceData = { id: crypto.randomUUID(), ...input, isbn, createdById: actor.userId };
     const inserted = await this.sources.createSource(data);
@@ -117,6 +133,13 @@ export class CatalogService {
       const duplicateId = await this.sources.findSourceIdByIsbnExcept(isbn, id);
       if (duplicateId) throw new DomainError(409, "SOURCE_ISBN_TAKEN", `ISBN already belongs to source ${duplicateId}`);
     }
+    if (input.url !== undefined || input.fileAssetId !== undefined) {
+      this.assertSourceReachable(
+        input.url === undefined ? existing.url : input.url,
+        input.fileAssetId === undefined ? existing.fileAssetId : input.fileAssetId
+      );
+    }
+    if (input.fileAssetId) await this.assertFileUsable(actor, input.fileAssetId, id);
     const data: PatchSourceData = { ...input, isbn };
     return this.sources.updateSource(id, data);
   }

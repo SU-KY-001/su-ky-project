@@ -3,23 +3,22 @@ import {
   AttachAudioSchema,
   CreateEntityTagSchema,
   CreateEpisodeSchema,
-  CreateEpisodeSourceSchema,
   CreateSeriesSchema,
+  CreateSeriesSourceSchema,
   EpisodeOrderSchema,
-  EpisodeSourceOrderSchema,
-  EpisodeSourceSchema,
   NarrationTypeSchema,
   PatchEntityTagSchema,
   PatchEpisodeSchema,
-  PatchEpisodeSourceSchema,
   PatchSeriesSchema,
+  PatchSeriesSourceSchema,
   PutNarrationSchema,
   SeriesQuerySchema,
+  SeriesSourceOrderSchema,
+  SeriesSourceSchema,
   UuidParamSchema,
 } from "@repo/shared";
 import { operation, type Paths } from "../operation";
 import {
-  AiOriginalSchema,
   EntityTagSchema,
   EpisodeWorkspaceSchema,
   ItemsOf,
@@ -73,12 +72,16 @@ const childParams = {
   pathParams: ChildParamSchema,
   pathParamDocs: { id: "ID tập (UUID)", childId: "ID bản ghi con (UUID)" },
 } as const;
+const seriesChildParams = {
+  pathParams: ChildParamSchema,
+  pathParamDocs: { id: "ID Series (UUID)", childId: "ID trích dẫn của Series (UUID)" },
+} as const;
 
 const seriesDetail = { name: "SeriesDetail", schema: SeriesDetailSchema } as const;
 const workspace = { name: "EpisodeWorkspace", schema: EpisodeWorkspaceSchema } as const;
 const narration = { name: "Narration", schema: NarrationSchema } as const;
-const episodeSource = { name: "EpisodeSource", schema: EpisodeSourceSchema } as const;
-const episodeSourceList = { name: "EpisodeSourceList", schema: ItemsOf(EpisodeSourceSchema) } as const;
+const seriesSource = { name: "SeriesSource", schema: SeriesSourceSchema } as const;
+const seriesSourceList = { name: "SeriesSourceList", schema: ItemsOf(SeriesSourceSchema) } as const;
 const entityTag = { name: "EntityTag", schema: EntityTagSchema } as const;
 
 const NO_CONTENT = { status: 204, description: "Đã xử lý, không có nội dung trả về" } as const;
@@ -157,7 +160,7 @@ export const studioPaths: Paths = {
       rate: "write",
       errors: {
         409: "`SLUG_CONFLICT`: không cấp được slug duy nhất (có thể thử lại)",
-        422: "`VALIDATION_ERROR`: ảnh bìa không tồn tại, chưa `READY`, không phải ảnh hoặc không do bạn upload",
+        422: "`VALIDATION_ERROR`: ảnh bìa không tồn tại, chưa `READY`, không phải ảnh hoặc không do bạn upload; `historicalPhaseId` không tồn tại",
       },
     }),
   },
@@ -166,7 +169,7 @@ export const studioPaths: Paths = {
       id: "getStudioSeries",
       tag: SERIES_TAG,
       summary: "Chi tiết Series",
-      description: "Kèm danh sách tập, `publishChecklist` (điều kiện xuất bản) và các run AI đang chờ.",
+      description: "Kèm danh sách tập, nguồn (`sources`), Giai đoạn kèm Thời kỳ (`historicalPhase`) và `publishChecklist` (điều kiện xuất bản: chủ đề, Giai đoạn, khoảng năm, ít nhất một nguồn, ít nhất một tập đã xuất bản).",
       access: "studio",
       ...seriesParams,
       ok: { status: 200, description: "Series", schema: seriesDetail },
@@ -189,7 +192,7 @@ export const studioPaths: Paths = {
       rate: "write",
       errors: writeErrors("Series", {
         409: `${STALE}; \`SLUG_LOCKED\`: chỉ Series \`DRAFT\` mới đổi được slug; \`SLUG_CONFLICT\`: không cấp được slug duy nhất`,
-        422: "`VALIDATION_ERROR`: ảnh bìa không dùng được",
+        422: "`VALIDATION_ERROR`: ảnh bìa không dùng được hoặc `historicalPhaseId` không tồn tại",
       }),
     }),
     delete: operation({
@@ -280,7 +283,7 @@ export const studioPaths: Paths = {
       id: "getEpisodeWorkspace",
       tag: EPISODE_TAG,
       summary: "Workspace tập",
-      description: "Mọi thứ cần để biên tập một tập: bản kể, nguồn, thẻ thực thể và `publishChecklist`.",
+      description: "Mọi thứ cần để biên tập một tập: bản kể, thẻ thực thể và `publishChecklist`. Nguồn thuộc Series, xem `GET /api/studio/series/{id}/sources`.",
       access: "studio",
       ...episodeParams,
       ok: { status: 200, description: "Workspace tập", schema: workspace },
@@ -322,7 +325,7 @@ export const studioPaths: Paths = {
       "Xuất bản tập",
       "Chỉ thành công khi `publishChecklist.ready = true`. Gọi lại trên tập đã xuất bản không đổi gì.",
       writeErrors("tập", {
-        422: "`EPISODE_NOT_PUBLISHABLE`: thiếu thông tin cơ bản, nguồn, kịch bản hoặc audio ngôi thứ ba",
+        422: "`EPISODE_NOT_PUBLISHABLE`: thiếu thông tin cơ bản, kịch bản hoặc audio ngôi thứ ba",
       })
     ),
   },
@@ -363,7 +366,7 @@ export const studioPaths: Paths = {
       tag: EPISODE_TAG,
       summary: "Lưu kịch bản bản kể",
       description:
-        "Tạo hoặc thay kịch bản. Dùng cho cả kịch bản tự dán lẫn kịch bản AI đã chỉnh. Bản `FIRST_PERSON` bắt buộc có `narratorEntityId` là nhân vật lịch sử (`FIGURE`).",
+        "Tạo hoặc thay kịch bản. Kịch bản là văn bản thuần (không HTML), tối đa theo cấu hình `script.max_chars`. Bản `FIRST_PERSON` bắt buộc có `narratorEntityId` là nhân vật lịch sử (`FIGURE`).",
       access: "studio",
       ...narrationParams,
       body: {
@@ -375,7 +378,7 @@ export const studioPaths: Paths = {
       rate: "write",
       errors: writeErrors("tập", {
         409: `${STALE}; \`REQUIRED_FOR_PUBLISHED\`: không được để trống kịch bản ngôi thứ ba của tập đã xuất bản`,
-        422: "`VALIDATION_ERROR`: bản ngôi thứ nhất thiếu `narratorEntityId` hoặc nhân vật dẫn không phải `FIGURE`",
+        422: "`VALIDATION_ERROR`: kịch bản chứa HTML hoặc quá dài; bản ngôi thứ nhất thiếu `narratorEntityId` hoặc nhân vật dẫn không phải `FIGURE`",
       }),
     }),
   },
@@ -390,18 +393,6 @@ export const studioPaths: Paths = {
       ok: NO_CONTENT,
       rate: "write",
       errors: writeErrors("tập"),
-    }),
-  },
-  [`${EPISODES}/{id}/narrations/{type}/ai-original`]: {
-    get: operation({
-      id: "getNarrationAiOriginal",
-      tag: EPISODE_TAG,
-      summary: "Đọc kịch bản AI gốc",
-      description: "Bản AI sinh ra khi nhập, để so sánh với bản Moderator đã sửa.",
-      access: "studio",
-      ...narrationParams,
-      ok: { status: 200, description: "Kịch bản AI gốc", schema: { name: "AiOriginal", schema: AiOriginalSchema } },
-      errors: { 404: `${notFound("tập")}; hoặc bản kể viết tay nên không có bản AI gốc` },
     }),
   },
   [`${EPISODES}/{id}/narrations/{type}/audio`]: {
@@ -439,76 +430,77 @@ export const studioPaths: Paths = {
     }),
   },
 
-  [`${EPISODES}/{id}/sources`]: {
+  [`${SERIES}/{id}/sources`]: {
     get: operation({
-      id: "listEpisodeSources",
-      tag: EPISODE_TAG,
-      summary: "Nguồn của tập",
+      id: "listSeriesSources",
+      tag: SERIES_TAG,
+      summary: "Nguồn của Series",
+      description: "Trích dẫn thuộc Series, dùng chung cho mọi tập. Mỗi nguồn kèm `fileUrl` nếu có PDF đã upload.",
       access: "studio",
-      ...episodeParams,
-      ok: { status: 200, description: "Danh sách trích dẫn theo thứ tự", schema: episodeSourceList },
-      errors: { 404: notFound("tập") },
+      ...seriesParams,
+      ok: { status: 200, description: "Danh sách trích dẫn theo thứ tự", schema: seriesSourceList },
+      errors: { 404: notFound("Series") },
     }),
     post: operation({
-      id: "addEpisodeSource",
-      tag: EPISODE_TAG,
-      summary: "Gắn nguồn vào tập",
-      description: "`locator` là vị trí trích (trang, chương). Cùng nguồn có thể trích nhiều lần ở các `locator` khác nhau.",
+      id: "addSeriesSource",
+      tag: SERIES_TAG,
+      summary: "Gắn nguồn vào Series",
+      description: "`locator` là vị trí trích (trang, chương). Cùng nguồn có thể trích nhiều lần ở các `locator` khác nhau. Một nguồn gắn được cho nhiều Series.",
       access: "studio",
-      ...episodeParams,
+      ...seriesParams,
       body: {
-        name: "CreateEpisodeSource",
-        schema: CreateEpisodeSourceSchema,
+        name: "CreateSeriesSource",
+        schema: CreateSeriesSourceSchema,
         example: { sourceId: "3f6b0c9e-7c1a-4b53-9e0e-2f5d8a1b4c10", locator: "Quyển V, tr. 120" },
       },
-      ok: { status: 201, description: "Trích dẫn đã gắn", schema: episodeSource, location: `${EPISODES}/{id}/sources/{childId}` },
+      ok: { status: 201, description: "Trích dẫn đã gắn", schema: seriesSource, location: `${SERIES}/{id}/sources/{childId}` },
       idempotent: true,
       rate: "write",
-      errors: writeErrors("tập", { 409: "`EPISODE_SOURCE_DUPLICATE`: nguồn đã gắn ở cùng `locator`" }),
+      errors: writeErrors("Series", { 409: "`SERIES_SOURCE_DUPLICATE`: nguồn đã gắn ở cùng `locator`" }),
     }),
   },
-  [`${EPISODES}/{id}/sources/order`]: {
+  [`${SERIES}/{id}/sources/order`]: {
     put: operation({
-      id: "reorderEpisodeSources",
-      tag: EPISODE_TAG,
+      id: "reorderSeriesSources",
+      tag: SERIES_TAG,
       summary: "Sắp xếp thứ tự nguồn",
-      description: "`episodeSourceIds` phải gồm đủ mọi trích dẫn của tập, mỗi trích dẫn đúng một lần. Đường dẫn cố định `order`, không phải `{childId}`.",
+      description: "`seriesSourceIds` phải gồm đủ mọi trích dẫn của Series, mỗi trích dẫn đúng một lần. Đường dẫn cố định `order`, không phải `{childId}`.",
       access: "studio",
-      ...episodeParams,
+      ...seriesParams,
       body: {
-        name: "EpisodeSourceOrder",
-        schema: EpisodeSourceOrderSchema,
-        example: { episodeSourceIds: ["3f6b0c9e-7c1a-4b53-9e0e-2f5d8a1b4c10"] },
+        name: "SeriesSourceOrder",
+        schema: SeriesSourceOrderSchema,
+        example: { seriesSourceIds: ["3f6b0c9e-7c1a-4b53-9e0e-2f5d8a1b4c10"] },
       },
-      ok: { status: 200, description: "Danh sách theo thứ tự mới", schema: episodeSourceList },
+      ok: { status: 200, description: "Danh sách theo thứ tự mới", schema: seriesSourceList },
       rate: "write",
-      errors: writeErrors("tập", {
-        422: "`EPISODE_ORDER_MISMATCH`: danh sách thiếu, thừa hoặc lặp trích dẫn",
+      errors: writeErrors("Series", {
+        422: "`SERIES_SOURCE_ORDER_MISMATCH`: danh sách thiếu, thừa hoặc lặp trích dẫn",
       }),
     }),
   },
-  [`${EPISODES}/{id}/sources/{childId}`]: {
+  [`${SERIES}/{id}/sources/{childId}`]: {
     patch: operation({
-      id: "updateEpisodeSource",
-      tag: EPISODE_TAG,
+      id: "updateSeriesSource",
+      tag: SERIES_TAG,
       summary: "Sửa trích dẫn",
       access: "studio",
-      ...childParams,
-      body: { name: "PatchEpisodeSource", schema: PatchEpisodeSourceSchema, example: { locator: "Quyển V, tr. 121" } },
-      ok: { status: 200, description: "Trích dẫn đã sửa", schema: episodeSource },
+      ...seriesChildParams,
+      body: { name: "PatchSeriesSource", schema: PatchSeriesSourceSchema, example: { locator: "Quyển V, tr. 121" } },
+      ok: { status: 200, description: "Trích dẫn đã sửa", schema: seriesSource },
       rate: "write",
-      errors: writeErrors("tập hoặc trích dẫn"),
+      errors: writeErrors("Series hoặc trích dẫn"),
     }),
     delete: operation({
-      id: "deleteEpisodeSource",
-      tag: EPISODE_TAG,
+      id: "deleteSeriesSource",
+      tag: SERIES_TAG,
       summary: "Gỡ trích dẫn",
       access: "studio",
-      ...childParams,
+      ...seriesChildParams,
       ok: NO_CONTENT,
       rate: "write",
-      errors: writeErrors("tập", {
-        409: "`REQUIRED_FOR_PUBLISHED`: tập đã xuất bản phải còn ít nhất một nguồn",
+      errors: writeErrors("Series", {
+        409: "`REQUIRED_FOR_PUBLISHED`: Series đã xuất bản phải còn ít nhất một nguồn",
       }),
     }),
   },

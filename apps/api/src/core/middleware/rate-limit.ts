@@ -4,7 +4,7 @@ import { DomainError } from "../errors/domain-error";
 import { getSystemConfig } from "../config/system-config";
 import type { AppEnv } from "../../types";
 
-export type RateLimitPolicy = "write" | "media_upload" | "listening_progress" | "ai_import";
+export type RateLimitPolicy = "write" | "media_upload" | "listening_progress";
 
 interface BucketRow {
   count: number;

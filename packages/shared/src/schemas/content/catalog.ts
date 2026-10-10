@@ -20,7 +20,11 @@ export const SourceInputSchema = z.object({
   edition: z.string().trim().max(100).nullish(),
   isbn: z.string().trim().max(32).nullish(),
   url: z.string().url().nullish(),
+  fileAssetId: z.string().uuid().nullish(),
 });
+const hasUrlOrFile = (value: { url?: string | null; fileAssetId?: string | null }) => Boolean(value.url || value.fileAssetId);
+/** A source must be reachable: an external URL or an uploaded PDF (`fileAssetId`). */
+export const CreateSourceSchema = SourceInputSchema.refine(hasUrlOrFile, { path: ["url"], message: "url or fileAssetId is required" });
 export const PatchSourceSchema = SourceInputSchema.partial();
 export const SourceQuerySchema = PaginationQuerySchema.extend({
   q: z.string().trim().optional(),
@@ -45,13 +49,21 @@ export const HistoricalEntityQuerySchema = PaginationQuerySchema.extend({
   type: HistoricalEntityTypeSchema.optional(),
 });
 
+const yearBound = z.number().int().nullable();
+export const HistoricalPhaseSchema = z.object({
+  id: z.string().uuid(), slug: z.string(), name: z.string(), startYear: yearBound, endYear: yearBound, note: z.string().nullable(),
+});
 export const HistoricalPeriodSchema = z.object({
-  id: z.string().uuid(), slug: z.string(), name: z.string(),
-  startYear: z.number().int().nullable(), endYear: z.number().int().nullable(),
+  id: z.string().uuid(), slug: z.string(), name: z.string(), startYear: yearBound, endYear: yearBound,
+  phases: z.array(HistoricalPhaseSchema),
 });
-export const EpisodeSourceSchema = z.object({
-  id: z.string().uuid(), sortOrder: z.number().int(), locator: z.string(), excerpt: z.string().nullable(), origin: z.enum(["AI", "MODERATOR"]),
-  source: z.object({ id: z.string().uuid(), tier: SourceTierSchema, title: z.string(), author: z.string().nullable(), publicationYear: z.number().int().nullable(), url: z.string().nullable() }),
+export const SeriesSourceSchema = z.object({
+  id: z.string().uuid(), sortOrder: z.number().int(), locator: z.string(), excerpt: z.string().nullable(),
+  source: z.object({
+    id: z.string().uuid(), tier: SourceTierSchema, title: z.string(), author: z.string().nullable(), publicationYear: z.number().int().nullable(),
+    url: z.string().nullable(), fileUrl: z.string().nullable(),
+  }),
 });
+export type HistoricalPhaseDto = z.infer<typeof HistoricalPhaseSchema>;
 export type HistoricalPeriodDto = z.infer<typeof HistoricalPeriodSchema>;
-export type EpisodeSourceDto = z.infer<typeof EpisodeSourceSchema>;
+export type SeriesSourceDto = z.infer<typeof SeriesSourceSchema>;

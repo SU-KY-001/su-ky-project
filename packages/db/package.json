@@ -5,7 +5,9 @@
   "type": "module",
   "exports": {
     ".": "./src/index.ts",
-    "./client": "./src/client.ts"
+    "./client": "./src/client.ts",
+    "./historical-seed-data": "./src/historical-seed-data.ts",
+    "./historical-seed": "./src/historical-seed.ts"
   },
   "scripts": {
     "db:generate": "bun --env-file=../../.env run prisma generate",

@@ -1,14 +1,10 @@
 import type {
-  AudioProvider,
   ContentStatus,
   EpisodeEntity,
   EpisodeEntityTagEntity,
   EpisodeEntityTagWithEntityEntity,
   EpisodeNarrationDetailEntity,
   EpisodeNarrationEntity,
-  EpisodeNarrationWithPublicationEntity,
-  EpisodeSourceEntity,
-  EpisodeSourceWithSourceEntity,
   EpisodeWithSeriesEntity,
   EpisodeWorkspaceEntity,
   HistoricalEntityEntity,
@@ -17,6 +13,8 @@ import type {
   SeriesDetailEntity,
   SeriesEntity,
   SeriesListItemEntity,
+  SeriesSourceEntity,
+  SeriesSourceWithSourceEntity,
 } from "./content.entity";
 
 export interface CreateSeriesDraftInput {
@@ -25,7 +23,7 @@ export interface CreateSeriesDraftInput {
   slug?: string;
   description?: string | null;
   topicId?: string | null;
-  historicalPeriodId?: string | null;
+  historicalPhaseId?: string | null;
   startYear?: number | null;
   endYear?: number | null;
   coverImageAssetId?: string | null;
@@ -42,7 +40,7 @@ export interface SeriesPatch {
   slug?: string;
   description?: string | null;
   topicId?: string | null;
-  historicalPeriodId?: string | null;
+  historicalPhaseId?: string | null;
   startYear?: number | null;
   endYear?: number | null;
   coverImageAssetId?: string | null;
@@ -70,7 +68,6 @@ export interface SeriesListFilter {
 export interface AppendEpisodeInput {
   title: string;
   slug?: string;
-  thirdPersonScript?: { content: string; scriptPublicationId: number; episodeNo: number };
 }
 
 export interface AppendEpisodeResult {
@@ -96,7 +93,6 @@ export interface UpsertNarrationInput {
 export interface AttachAudioInput {
   previousAudioAssetId: string | null;
   assetId: string;
-  provider: AudioProvider;
 }
 
 export interface UpdateEntityTagInput {
@@ -112,6 +108,7 @@ export interface SeriesRepository {
   /** True when another series already holds `slug` (excluding `excludeId`). */
   seriesSlugConflict(slug: string, excludeId: string): Promise<boolean>;
   findMediaAsset(id: string): Promise<MediaAssetEntity | null>;
+  historicalPhaseExists(id: string): Promise<boolean>;
   listSeries(filter: SeriesListFilter): Promise<{ items: SeriesListItemEntity[]; total: number }>;
   /** Bare unique-slug draft creation (import flow; no audit, no cover bookkeeping). */
   createSeriesDraft(input: CreateSeriesDraftInput): Promise<SeriesEntity>;
@@ -123,6 +120,18 @@ export interface SeriesRepository {
   hideSeries(id: string): Promise<void>;
   trashSeries(id: string, statusBeforeDelete: ContentStatus): Promise<void>;
   restoreSeries(id: string, restoredStatus: ContentStatus): Promise<void>;
+
+  listSeriesSources(seriesId: string): Promise<SeriesSourceWithSourceEntity[]>;
+  /** False when the (seriesId, sourceId, locator) duplicate made `skipDuplicates` drop the row. */
+  createSeriesSource(seriesId: string, input: { sourceId: string; locator: string; excerpt?: string | null }): Promise<boolean>;
+  findCreatedSeriesSource(seriesId: string, sourceId: string, locator: string): Promise<SeriesSourceWithSourceEntity>;
+  findSeriesSource(seriesId: string, childId: string): Promise<SeriesSourceEntity | null>;
+  updateSeriesSource(childId: string, patch: { locator?: string; excerpt?: string | null }): Promise<SeriesSourceWithSourceEntity>;
+  countSeriesSources(seriesId: string): Promise<number>;
+  deleteSeriesSource(seriesId: string, childId: string): Promise<void>;
+  listSeriesSourceIds(seriesId: string): Promise<string[]>;
+  /** Transactional unit: one sortOrder update per source id. */
+  reorderSeriesSources(orderedIds: string[]): Promise<void>;
 }
 
 export interface EpisodeRepository {
@@ -145,7 +154,6 @@ export interface EpisodeRepository {
   findNarrationByType(episodeId: string, narrationType: NarrationType): Promise<EpisodeNarrationDetailEntity | null>;
   findNarrationUpdatedAt(id: string): Promise<Date | null>;
   upsertNarration(input: UpsertNarrationInput): Promise<EpisodeNarrationDetailEntity>;
-  findNarrationWithPublication(episodeId: string, narrationType: NarrationType): Promise<EpisodeNarrationWithPublicationEntity | null>;
   findNarrationUsingAsset(assetId: string, excludeNarrationId: string): Promise<EpisodeNarrationEntity | null>;
   /** Transactional unit: detach previous asset, attach new one, stamp the narration. */
   attachAudio(narrationId: string, input: AttachAudioInput): Promise<EpisodeNarrationDetailEntity>;
@@ -155,18 +163,6 @@ export interface EpisodeRepository {
   deleteNarration(narrationId: string, audioAssetId: string | null): Promise<void>;
 
   findHistoricalEntity(id: string): Promise<HistoricalEntityEntity | null>;
-
-  listEpisodeSources(episodeId: string): Promise<EpisodeSourceWithSourceEntity[]>;
-  /** False when the (episodeId, sourceId, locator) duplicate made `skipDuplicates` drop the row. */
-  createEpisodeSource(episodeId: string, input: { sourceId: string; locator: string; excerpt?: string | null }): Promise<boolean>;
-  findCreatedEpisodeSource(episodeId: string, sourceId: string, locator: string): Promise<EpisodeSourceWithSourceEntity>;
-  findEpisodeSource(episodeId: string, childId: string): Promise<EpisodeSourceEntity | null>;
-  updateEpisodeSource(childId: string, patch: { locator?: string; excerpt?: string | null }): Promise<EpisodeSourceWithSourceEntity>;
-  countEpisodeSources(episodeId: string): Promise<number>;
-  deleteEpisodeSource(episodeId: string, childId: string): Promise<void>;
-  listEpisodeSourceIds(episodeId: string): Promise<string[]>;
-  /** Transactional unit: one sortOrder update per source id. */
-  reorderEpisodeSources(orderedIds: string[]): Promise<void>;
 
   listEpisodeEntityTags(episodeId: string): Promise<EpisodeEntityTagWithEntityEntity[]>;
   upsertEpisodeEntityTag(episodeId: string, entityId: string, confirmedById: string): Promise<EpisodeEntityTagWithEntityEntity>;
@@ -181,9 +177,6 @@ export type {
   EpisodeEntityTagWithEntityEntity,
   EpisodeNarrationDetailEntity,
   EpisodeNarrationEntity,
-  EpisodeNarrationWithPublicationEntity,
-  EpisodeSourceEntity,
-  EpisodeSourceWithSourceEntity,
   EpisodeWithSeriesEntity,
   EpisodeWorkspaceEntity,
   HistoricalEntityEntity,
@@ -191,4 +184,6 @@ export type {
   SeriesDetailEntity,
   SeriesEntity,
   SeriesListItemEntity,
+  SeriesSourceEntity,
+  SeriesSourceWithSourceEntity,
 };

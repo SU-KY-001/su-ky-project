@@ -21,7 +21,7 @@ Tài liệu này quy định cấu trúc thư mục, kiến trúc phân tầng (
 
 4. **Chuẩn hóa Phân quyền (Authentication & Authorization):**
    - Sử dụng Better Auth với plugin `admin` và `bearer`.
-   - Roles chuẩn: `"user"`, `"moderator"` và `"admin"` (không dùng `"customer"`). Moderator dùng module `script-workflow` (`/api/script-workflows`); Admin không sửa kịch bản (BR-22).
+   - Roles chuẩn: `"user"`, `"moderator"` và `"admin"` (không dùng `"customer"`). Moderator biên tập nội dung qua `/api/studio/*`; Admin không sửa kịch bản (BR-22). `modules/ai-engine` là thư viện gọi LLM, không có route và không được import từ module nghiệp vụ.
 
 5. **Chuẩn hóa Logging (Pino & `logs/error.log`):**
    - Không sử dụng `console.log` / `console.error` tùy tiện trong mã nguồn production.
@@ -84,7 +84,13 @@ su-ky-monorepo/
         │   ├── auth.test.ts             # Authentication & role-based guard tests
         │   ├── env.test.ts              # Kiểm thử parse & validate biến môi trường Zod
         │   ├── logger.test.ts           # Kiểm thử Pino logger và ghi file error.log
+        │   ├── historical-phases.test.ts # Seed Thời kỳ → Giai đoạn (nửa kín) + helper năm; không cần DB
+        │   ├── series-sources.test.ts   # Nguồn series-level, publish checklist, lọc theo giai đoạn, PDF, dọn media; cần DB (xem dưới)
+        │   ├── support/integration.ts   # Helper test có DB; chặn chạy nếu DATABASE_URL không chứa "test"
         │   └── [feature].test.ts        # Tests cho từng module tính năng
+        │
+        │   Test có DB chỉ chạy khi `RUN_INTEGRATION=1` (mặc định bị skip), ví dụ:
+        │   `bun --env-file=../../.env.test test` (xem `.env.test.example`; DB phải được migrate: `bun run db:test:reset` ở `packages/db`).
         │
         └── src/                         # MÃ NGUỒN BACKEND
             ├── index.ts                 # Server entrypoint (Bun.serve, graceful shutdown)

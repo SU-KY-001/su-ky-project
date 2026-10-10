@@ -1,12 +1,7 @@
-import { z } from "zod";
 import type { AgentSessionEvent } from "@earendil-works/pi-coding-agent";
-import { logger } from "../../../../core/logger";
-import type { ScriptWorkflowRepository } from "../../domain/script-workflow.repository";
-
-export type LogWorkflowEvent = ScriptWorkflowRepository["logEvent"];
+import { logger } from "../../core/logger";
 
 const MAX_TEXT_SNIPPET_LENGTH = 500;
-const MAX_METADATA_BYTES = 4000;
 
 function truncate(text: string, maxLength: number = MAX_TEXT_SNIPPET_LENGTH): string {
   if (text.length <= maxLength) return text;
@@ -34,16 +29,19 @@ function extractAssistantText(message: unknown): string {
 }
 
 /**
- * Why: Pi sessions are fire-and-forget LLM calls today — no visibility into
- * turns, streaming tokens, tool calls, retries, or latency. This tracer
- * subscribes to AgentSession events, mirrors them into pino (per workflow/step
- * child logger) and persists a compact row per event into workflow_events so the
- * run can be replayed from the DB after the fact.
+ * Why: Pi sessions are fire-and-forget LLM calls: no visibility into turns, streaming
+ * tokens, tool calls or latency. The tracer mirrors session events into pino and
+ * forwards lifecycle events to an optional caller callback. It never persists anything.
  */
 export interface PiTraceContext {
-  workflowRunId: number;
-  stepType: string;
+  label: string;
   attempt: number;
+}
+
+export interface PiTraceEvent {
+  type: string;
+  message: string;
+  metadata: Record<string, unknown>;
 }
 
 export interface PiTraceSummary {
@@ -54,28 +52,28 @@ export interface PiTraceSummary {
   lastTextSnippet: string;
 }
 
-export function summarizeEventForDb(
+export function summarizeEvent(
   event: AgentSessionEvent
-): { type: string; message: string; metadataJson: Record<string, unknown> } | null {
+): { type: string; message: string; metadata: Record<string, unknown> } | null {
   switch (event.type) {
     case "turn_start":
       return {
         type: "turn.started",
         message: "turn started",
-        metadataJson: {},
+        metadata: {},
       };
     case "turn_end":
       return {
         type: "turn.ended",
         message: "turn ended",
-        metadataJson: {},
+        metadata: {},
       };
     case "message_start": {
       const role = "role" in event.message ? String(event.message.role ?? "unknown") : "unknown";
       return {
         type: "message.started",
         message: `message started (${role})`,
-        metadataJson: { role },
+        metadata: { role },
       };
     }
     case "message_update": {
@@ -89,7 +87,7 @@ export function summarizeEventForDb(
       return {
         type: "message.streaming",
         message: truncate(delta || text || "(streaming)"),
-        metadataJson: {
+        metadata: {
           streamEvent: event.assistantMessageEvent.type,
           snippet: truncate(text),
         },
@@ -101,7 +99,7 @@ export function summarizeEventForDb(
       return {
         type: "message.ended",
         message: truncate(text || `message ended (${role})`),
-        metadataJson: {
+        metadata: {
           role,
           length: text.length,
         },
@@ -111,19 +109,19 @@ export function summarizeEventForDb(
       return {
         type: "tool.started",
         message: `tool ${event.toolName} started`,
-        metadataJson: { toolCallId: event.toolCallId, toolName: event.toolName },
+        metadata: { toolCallId: event.toolCallId, toolName: event.toolName },
       };
     case "tool_execution_update":
       return {
         type: "tool.streaming",
         message: `tool ${event.toolName} streaming`,
-        metadataJson: { toolCallId: event.toolCallId, toolName: event.toolName },
+        metadata: { toolCallId: event.toolCallId, toolName: event.toolName },
       };
     case "tool_execution_end":
       return {
         type: "tool.ended",
         message: `tool ${event.toolName} ${event.isError ? "failed" : "completed"}`,
-        metadataJson: {
+        metadata: {
           toolCallId: event.toolCallId,
           toolName: event.toolName,
           isError: event.isError,
@@ -134,48 +132,21 @@ export function summarizeEventForDb(
   }
 }
 
-function sizeOf(value: unknown): number {
-  try {
-    return JSON.stringify(value)?.length ?? 0;
-  } catch {
-    return 0;
-  }
-}
-
-// Why: message.streaming fires per text_delta (dozens per run). Pino keeps
-// everything; the DB keeps only lifecycle rows so workflow_events stays readable.
-const DB_PERSISTED_TYPES: Record<string, true> = {
-  "turn.started": true,
-  "turn.ended": true,
-  "message.started": true,
-  "message.ended": true,
-  "tool.started": true,
-  "tool.streaming": true,
-  "tool.ended": true,
-};
-
 export function attachPiTracer(
   subscribe: (listener: (event: AgentSessionEvent) => void) => () => void,
   ctx: PiTraceContext,
-  logEvent: LogWorkflowEvent
-): { summary: () => PiTraceSummary; detach: () => void; flush: () => Promise<void> } {
-  const base = logger.child({
-    scope: "pi",
-    workflowRunId: ctx.workflowRunId,
-    step: ctx.stepType,
-    attempt: ctx.attempt,
-  });
+  onEvent?: (event: PiTraceEvent) => void
+): { summary: () => PiTraceSummary; detach: () => void } {
+  const base = logger.child({ scope: "pi", label: ctx.label, attempt: ctx.attempt });
   const startedAt = Date.now();
   let turnCount = 0;
   let tokenApprox = 0;
   let eventCount = 0;
   let lastTextSnippet = "";
-  // Fire-and-forget DB mirror: never block or break the agent run.
-  let persistChain: Promise<void> = Promise.resolve();
 
   const detach = subscribe((event) => {
     eventCount += 1;
-    const summary = summarizeEventForDb(event);
+    const summary = summarizeEvent(event);
 
     if (event.type === "turn_start") turnCount += 1;
     if (event.type === "message_update" && event.assistantMessageEvent.type === "text_delta") {
@@ -186,44 +157,22 @@ export function attachPiTracer(
       lastTextSnippet = truncate(extractAssistantText(event.message));
     }
 
-    if (summary) {
-      base.info(
-        { piEvent: event.type, ...summary.metadataJson },
-        `[${ctx.stepType}] ${summary.message}`
-      );
-      if (!DB_PERSISTED_TYPES[summary.type]) return;
-      // Compact + bounded: lifecycle rows carry snippets only, never full dumps.
-      const metadataJson: Record<string, unknown> = {
-        stepType: ctx.stepType,
-        attempt: ctx.attempt,
-        ...summary.metadataJson,
-      };
-      const bounded =
-        sizeOf(metadataJson) > MAX_METADATA_BYTES
-          ? {
-              stepType: ctx.stepType,
-              attempt: ctx.attempt,
-              snippet: truncate(JSON.stringify(metadataJson).slice(0, MAX_METADATA_BYTES)),
-            }
-          : metadataJson;
-      persistChain = persistChain
-        .then(() =>
-          logEvent({
-            workflowRunId: ctx.workflowRunId,
-            type: `pi.${ctx.stepType.toLowerCase()}.${summary.type}`,
-            message: summary.message,
-            metadataJson: bounded,
-          })
-        )
-        .catch((err) => base.warn({ err }, "pi trace persist failed"));
-    } else {
-      base.debug({ piEvent: event.type }, `[${ctx.stepType}] unmirrored pi event`);
+    if (!summary) {
+      base.debug({ piEvent: event.type }, `[${ctx.label}] unmirrored pi event`);
+      return;
+    }
+    base.info({ piEvent: event.type, ...summary.metadata }, `[${ctx.label}] ${summary.message}`);
+    // Streaming deltas fire dozens of times per run: logged above, not forwarded.
+    if (summary.type === "message.streaming" || !onEvent) return;
+    try {
+      onEvent(summary);
+    } catch (err) {
+      base.warn({ err }, "pi trace onEvent callback failed");
     }
   });
 
   return {
     detach,
-    flush: () => persistChain,
     summary: () => ({
       turnCount,
       tokenApprox,
@@ -233,11 +182,3 @@ export function attachPiTracer(
     }),
   };
 }
-
-export const PiTraceContextSchema = z.object({
-  workflowRunId: z.number().int().positive(),
-  stepType: z.string().min(1),
-  attempt: z.number().int().nonnegative(),
-});
-
-export type PiTraceContextType = z.infer<typeof PiTraceContextSchema>;

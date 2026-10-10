@@ -1,7 +1,7 @@
 ---
 title: "Frontend: Moderator tạo kịch bản podcast (Script Workflow UI)"
 description: "Nối apps/web với API /api/script-workflows: danh sách, tạo, workspace 7 bước + 3 cổng duyệt, SSE, xuất bản"
-status: done
+status: superseded
 priority: P1
 effort: 38h
 branch: feat/script-workflow

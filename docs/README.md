@@ -233,6 +233,5 @@ For detailed architectural specifications, standards, and requirements, refer to
 - [Code Standards](./code-standards.md) — Bun 1.4 conventions, TypeScript rules (no `any`), Zod schemas, and Prisma discipline.
 - [System Architecture](./system-architecture.md) — In-depth architectural diagrams, sequence flows, and infrastructure models.
 - [Design Guidelines](./design-guidelines.md) — Vietnamese cultural visual language, color tokens, and typography specifications.
-- [Script Workflow API](./api-docs/script-workflow-api.md) — REST contract, schemas and error codes for the AI script workflow.
-- [Script Workflow UX](./ux/script-workflow-ux.md) — Screens, states and behaviour for the script workflow frontend.
+- [Archived Script Workflow](../archive/script-workflow/README.md) — Static snapshot of the retired AI-first script workflow (API/UX docs included).
 - [Interactive Wireframe](./wireframe/index.html) — Standalone prototype showcasing the timeline, audio dock, and chronicle views.

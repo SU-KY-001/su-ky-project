@@ -15,7 +15,7 @@ Spec OpenAPI 3.1 của toàn bộ API, viết bằng TypeScript. Phục vụ `GE
 | `components.ts` | `securitySchemes`, parameter `Idempotency-Key`, response lỗi dùng chung |
 | `registry.ts` | `component(name, zod)` đăng ký schema vào `components.schemas`; `toJsonSchema`; `parametersFrom` |
 | `schemas.ts` | Schema zod **chỉ để mô tả response** mà handler tự dựng object (không có schema trong `@repo/shared`) |
-| `paths/*.ts` | Path theo module: `system-auth`, `catalog`, `listening`, `studio` (Series và tập), `media`, `script-workflow` |
+| `paths/*.ts` | Path theo module: `system-auth`, `catalog`, `listening`, `studio` (Series và tập), `media` |
 
 ---
 
@@ -62,7 +62,7 @@ get: operation({
 ```
 
 Quy tắc:
-- `access` phản ánh **đúng** guard trong route. Admin bị loại khỏi `script-workflow` nên dùng `moderator`, không dùng `studio`.
+- `access` phản ánh **đúng** guard trong route. Route chỉ dành cho Moderator (Admin bị loại) dùng `moderator`, không dùng `studio`.
 - Mô tả `errors` theo code thật. Đọc service để lấy đúng status và `error_code`; không đoán.
 - Path dùng `{param}` (không dùng `:param`), tên khớp tên trong `pathParams`.
 - Route có đường dẫn cố định cạnh `/{id}` (như `/similar`, `/order`) vẫn là operation riêng; ghi chú trong description.

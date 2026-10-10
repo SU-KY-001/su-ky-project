@@ -2,7 +2,6 @@ import {
   prisma,
   Prisma,
   type HistoricalEntity as PrismaHistoricalEntity,
-  type Source as PrismaSource,
 } from "@repo/db";
 import type {
   HistoricalEntity,
@@ -10,6 +9,7 @@ import type {
   Source,
   SourceWithUsage,
   Topic,
+  SourceFileCandidate,
 } from "../domain/catalog.entity";
 import type {
   CreateHistoricalEntityData,
@@ -25,12 +25,14 @@ import type {
   TaxonomyRepository,
 } from "../domain/catalog.repository";
 
+const SOURCE_INCLUDE = { fileAsset: { select: { id: true, publicId: true, kind: true, version: true, format: true, sizeBytes: true } } } satisfies Prisma.SourceInclude;
+type SourceRow = Prisma.SourceGetPayload<{ include: typeof SOURCE_INCLUDE }>;
 type SourceRowWithUsage = Prisma.SourceGetPayload<{
-  include: { _count: { select: { episodeSources: true } } };
+  include: typeof SOURCE_INCLUDE & { _count: { select: { seriesSources: true } } };
 }>;
 
 /** Field order mirrors the Prisma model so JSON payloads keep their key order. */
-function toSource(row: PrismaSource): Source {
+function toSource(row: SourceRow): Source {
   return {
     id: row.id,
     tier: row.tier,
@@ -47,12 +49,14 @@ function toSource(row: PrismaSource): Source {
     archivedAt: row.archivedAt,
     createdAt: row.createdAt,
     updatedAt: row.updatedAt,
+    fileAssetId: row.fileAssetId,
+    fileAsset: row.fileAsset,
   };
 }
 
 function toSourceWithUsage(row: SourceRowWithUsage): SourceWithUsage {
   const source = toSource(row);
-  return { ...source, usageCount: row._count.episodeSources };
+  return { ...source, usageCount: row._count.seriesSources };
 }
 
 function toHistoricalEntity(row: PrismaHistoricalEntity): HistoricalEntity {
@@ -75,16 +79,6 @@ function toTopic(row: { id: string; slug: string; name: string }): Topic {
   return { id: row.id, slug: row.slug, name: row.name };
 }
 
-function toHistoricalPeriod(row: {
-  id: string;
-  slug: string;
-  name: string;
-  startYear: number | null;
-  endYear: number | null;
-}): HistoricalPeriod {
-  return { id: row.id, slug: row.slug, name: row.name, startYear: row.startYear, endYear: row.endYear };
-}
-
 export class PrismaCatalogRepository implements TaxonomyRepository, SourceRepository, HistoricalEntityRepository {
   // --- taxonomy -------------------------------------------------------------
 
@@ -98,12 +92,18 @@ export class PrismaCatalogRepository implements TaxonomyRepository, SourceReposi
   }
 
   async listActiveHistoricalPeriods(): Promise<HistoricalPeriod[]> {
-    const rows = await prisma.historicalPeriod.findMany({
+    return prisma.historicalPeriod.findMany({
       where: { isActive: true },
       orderBy: { sortOrder: "asc" },
-      select: { id: true, slug: true, name: true, startYear: true, endYear: true },
+      select: {
+        id: true, slug: true, name: true, startYear: true, endYear: true,
+        phases: {
+          where: { isActive: true },
+          orderBy: { sortOrder: "asc" },
+          select: { id: true, slug: true, name: true, startYear: true, endYear: true, note: true },
+        },
+      },
     });
-    return rows.map(toHistoricalPeriod);
   }
 
   // --- sources ---------------------------------------------------------------
@@ -124,7 +124,7 @@ export class PrismaCatalogRepository implements TaxonomyRepository, SourceReposi
         : {}),
     };
     const [rows, total] = await Promise.all([
-      prisma.source.findMany({ where, skip: (query.page - 1) * query.limit, take: query.limit, orderBy: { title: "asc" } }),
+      prisma.source.findMany({ where, skip: (query.page - 1) * query.limit, take: query.limit, orderBy: { title: "asc" }, include: SOURCE_INCLUDE }),
       prisma.source.count({ where }),
     ]);
     return { items: rows.map(toSource), total };
@@ -142,26 +142,30 @@ export class PrismaCatalogRepository implements TaxonomyRepository, SourceReposi
       },
       take: 10,
       orderBy: { title: "asc" },
+      include: SOURCE_INCLUDE,
     });
     return rows.map(toSource);
   }
 
   async getSource(id: string): Promise<Source | null> {
-    const row = await prisma.source.findUnique({ where: { id } });
+    const row = await prisma.source.findUnique({ where: { id }, include: SOURCE_INCLUDE });
     return row ? toSource(row) : null;
   }
 
   async getSourceWithUsage(id: string): Promise<SourceWithUsage | null> {
     const row = await prisma.source.findUnique({
       where: { id },
-      include: { _count: { select: { episodeSources: true } } },
+      include: { ...SOURCE_INCLUDE, _count: { select: { seriesSources: true } } },
     });
     return row ? toSourceWithUsage(row) : null;
   }
 
   async createSource(data: CreateSourceData): Promise<boolean> {
-    const result = await prisma.source.createMany({ data: [data], skipDuplicates: true });
-    return result.count > 0;
+    return prisma.$transaction(async (tx) => {
+      const result = await tx.source.createMany({ data: [data], skipDuplicates: true });
+      if (result.count > 0 && data.fileAssetId) await tx.mediaAsset.update({ where: { id: data.fileAssetId }, data: { detachedAt: null } });
+      return result.count > 0;
+    });
   }
 
   async findSourceIdByIsbn(isbn: string | null): Promise<string | null> {
@@ -174,18 +178,36 @@ export class PrismaCatalogRepository implements TaxonomyRepository, SourceReposi
     return row?.id ?? null;
   }
 
+  async findSourceIdByFileAsset(assetId: string, exceptId?: string): Promise<string | null> {
+    const row = await prisma.source.findFirst({ where: { fileAssetId: assetId, ...(exceptId ? { id: { not: exceptId } } : {}) }, select: { id: true } });
+    return row?.id ?? null;
+  }
+
+  findMediaAsset(id: string): Promise<SourceFileCandidate | null> {
+    return prisma.mediaAsset.findUnique({ where: { id }, select: { id: true, kind: true, status: true, uploadedById: true } });
+  }
+
   async requireSource(id: string): Promise<Source> {
-    const row = await prisma.source.findUniqueOrThrow({ where: { id } });
+    const row = await prisma.source.findUniqueOrThrow({ where: { id }, include: SOURCE_INCLUDE });
     return toSource(row);
   }
 
   async updateSource(id: string, data: PatchSourceData): Promise<Source> {
-    const row = await prisma.source.update({ where: { id }, data });
+    const row = await prisma.$transaction(async (tx) => {
+      if (data.fileAssetId !== undefined) {
+        const current = await tx.source.findUniqueOrThrow({ where: { id }, select: { fileAssetId: true } });
+        if (current.fileAssetId && current.fileAssetId !== data.fileAssetId) {
+          await tx.mediaAsset.update({ where: { id: current.fileAssetId }, data: { detachedAt: new Date() } });
+        }
+        if (data.fileAssetId) await tx.mediaAsset.update({ where: { id: data.fileAssetId }, data: { detachedAt: null } });
+      }
+      return tx.source.update({ where: { id }, data, include: SOURCE_INCLUDE });
+    });
     return toSource(row);
   }
 
   async setSourceArchivedAt(id: string, archivedAt: Date | null): Promise<Source> {
-    const row = await prisma.source.update({ where: { id }, data: { archivedAt } });
+    const row = await prisma.source.update({ where: { id }, data: { archivedAt }, include: SOURCE_INCLUDE });
     return toSource(row);
   }
 

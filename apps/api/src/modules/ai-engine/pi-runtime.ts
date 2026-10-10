@@ -1,7 +1,7 @@
 import { ModelRuntime } from "@earendil-works/pi-coding-agent";
-import { env } from "../../../../core/env";
-import { logger } from "../../../../core/logger";
-import { DEFAULT_PI_MODEL_BY_PROVIDER, PI_MODEL_REFRESH_TIMEOUT_MS } from "../../script-workflow.constants";
+import { env } from "../../core/env";
+import { logger } from "../../core/logger";
+import { DEFAULT_PI_MODEL_BY_PROVIDER, PI_MODEL_REFRESH_TIMEOUT_MS } from "./ai-engine.constants";
 
 export interface PiModel {
   id: string;
@@ -13,6 +13,8 @@ export class PiRuntime {
   public model: PiModel | null = null;
   public isReady: boolean = false;
 
+  private initPromise: Promise<void> | null = null;
+
   private constructor() {}
 
   public static getInstance(): PiRuntime {
@@ -22,7 +24,13 @@ export class PiRuntime {
     return PiRuntime.instance;
   }
 
-  public async init(): Promise<void> {
+  /** Lazy, single-flight init: nothing touches the model runtime until the first agent run. */
+  public ensureInit(): Promise<void> {
+    this.initPromise ??= this.init();
+    return this.initPromise;
+  }
+
+  private async init(): Promise<void> {
     try {
       this.modelRuntime = await ModelRuntime.create({
         refreshOnCreate: false,

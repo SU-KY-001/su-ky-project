@@ -4,11 +4,18 @@ import { env } from "../../../core/env";
 import type { MediaAsset, MediaKind } from "../domain/media.entity";
 import { MediaProviderError, type MediaStorageGateway, type StoredResource } from "../domain/media.repository";
 
+const RESOURCE_TYPE_BY_KIND = { AUDIO: "video", IMAGE: "image", DOCUMENT: "raw" } as const;
+
+/** Audio is signed (authenticated); images and PDF sources are public citations. */
 function cloudinaryType(kind: MediaKind) {
   return kind === "AUDIO" ? "authenticated" : "upload";
 }
 function resourceType(kind: MediaKind) {
-  return kind === "AUDIO" ? "video" : "image";
+  return RESOURCE_TYPE_BY_KIND[kind];
+}
+/** Raw resources report no `format`; the extension lives in the public id (`.../<id>.pdf`). */
+function formatOf(result: { format?: string }, publicId: string): string {
+  return result.format ?? publicId.slice(publicId.lastIndexOf(".") + 1);
 }
 
 export class CloudinaryGateway implements MediaStorageGateway {
@@ -50,7 +57,7 @@ export class CloudinaryGateway implements MediaStorageGateway {
     this.configured();
     try {
       const result = await this.withTimeout(cloudinary.api.resource(publicId, { resource_type: resourceType(kind), type: cloudinaryType(kind) }));
-      return { version: BigInt(result.version), format: result.format, bytes: BigInt(result.bytes), durationMs: typeof result.duration === "number" ? Math.round(result.duration * 1000) : null };
+      return { version: BigInt(result.version), format: formatOf(result, publicId), bytes: BigInt(result.bytes), durationMs: typeof result.duration === "number" ? Math.round(result.duration * 1000) : null };
     } catch (error) {
       if (typeof error === "object" && error && "http_code" in error && error.http_code === 404) return null;
       if (error instanceof MediaProviderError) throw error;
@@ -71,6 +78,6 @@ export class CloudinaryGateway implements MediaStorageGateway {
 
   deliveryUrl(asset: MediaAsset): string {
     this.configured();
-    return cloudinary.url(asset.publicId, { resource_type: resourceType(asset.kind), type: cloudinaryType(asset.kind), sign_url: asset.kind === "AUDIO", secure: true, version: asset.version ? Number(asset.version) : undefined, format: asset.format ?? undefined });
+    return cloudinary.url(asset.publicId, { resource_type: resourceType(asset.kind), type: cloudinaryType(asset.kind), sign_url: asset.kind === "AUDIO", secure: true, version: asset.version ? Number(asset.version) : undefined, format: asset.kind === "DOCUMENT" ? undefined : (asset.format ?? undefined) });
   }
 }

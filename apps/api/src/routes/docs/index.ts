@@ -8,7 +8,6 @@ import type { Paths } from "./operation";
 import { catalogPaths } from "./paths/catalog";
 import { listeningPaths } from "./paths/listening";
 import { mediaPaths } from "./paths/media";
-import { scriptWorkflowPaths } from "./paths/script-workflow";
 import { studioPaths } from "./paths/studio";
 import { systemAuthPaths } from "./paths/system-auth";
 
@@ -24,7 +23,7 @@ API của nền tảng podcast lịch sử Sử Ký: Moderator biên tập Serie
 | Vai trò | Quyền |
 |---|---|
 | \`user\` | Nghe, đồng bộ tiến độ, xem lịch sử |
-| \`moderator\` | Studio: Series, tập, bản kể, nguồn, media; AI Script Workflow (chỉ Moderator, Admin bị loại trừ) |
+| \`moderator\` | Studio: Series, tập, bản kể, nguồn, media |
 | \`admin\` | Studio trên mọi nội dung, kể cả nội dung bị khoá, và endpoint quản trị |
 
 Mỗi operation ghi rõ quyền cần có ở cuối mô tả và trong \`x-required-roles\`.
@@ -58,14 +57,12 @@ const TAGS = [
   { name: "Studio Episodes", description: "Moderator biên tập tập: bản kể, audio, nguồn trích dẫn, thẻ thực thể" },
   { name: "Studio Catalog", description: "Kho nguồn tham khảo và thực thể lịch sử dùng chung" },
   { name: "Studio Media", description: "Upload và xác minh audio, ảnh qua Cloudinary" },
-  { name: "Script Workflow", description: "AI Studio: tạo kịch bản theo từng bước, duyệt từng node và nhập vào CMS" },
 ] as const;
 
 const TAG_GROUPS = [
   { name: "Hệ thống và tài khoản", tags: ["System", "Authentication", "Admin"] },
   { name: "Người nghe", tags: ["Catalog", "Listening"] },
   { name: "Studio (Moderator)", tags: ["Studio Series", "Studio Episodes", "Studio Catalog", "Studio Media"] },
-  { name: "AI Studio", tags: ["Script Workflow"] },
 ] as const;
 
 // Hand-written auth entries come last so their curated docs override the generated ones.
@@ -76,7 +73,6 @@ const allPaths: Paths = {
   ...listeningPaths,
   ...studioPaths,
   ...mediaPaths,
-  ...scriptWorkflowPaths,
 };
 
 export const openApiSpec = {

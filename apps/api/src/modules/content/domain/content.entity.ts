@@ -6,7 +6,6 @@
 
 export type ContentStatus = "DRAFT" | "PUBLISHED" | "HIDDEN";
 export type NarrationType = "THIRD_PERSON" | "FIRST_PERSON";
-export type AudioProvider = "UPLOAD" | "ELEVENLABS";
 export type TagOrigin = "AI" | "MODERATOR";
 export type EntityTagStatus = "SUGGESTED" | "CONFIRMED" | "REJECTED";
 export type SourceTier = "TIER_1_CHINH_SU" | "TIER_2_KHAO_CO" | "TIER_3_KHOA_HOC" | "TIER_4_DA_SU";
@@ -16,7 +15,7 @@ export interface SeriesEntity {
   id: string;
   ownerId: string;
   topicId: string | null;
-  historicalPeriodId: string | null;
+  historicalPhaseId: string | null;
   title: string;
   slug: string;
   description: string | null;
@@ -56,23 +55,19 @@ export interface EpisodeNarrationEntity {
   narrationType: NarrationType;
   narratorEntityId: string | null;
   scriptContent: string | null;
-  scriptPublicationId: number | null;
-  scriptPublicationEpisodeNo: number | null;
   audioAssetId: string | null;
-  audioProvider: AudioProvider | null;
   scriptUpdatedAt: Date | null;
   audioAttachedAt: Date | null;
   createdAt: Date;
   updatedAt: Date;
 }
 
-export interface EpisodeSourceEntity {
+export interface SeriesSourceEntity {
   id: string;
-  episodeId: string;
+  seriesId: string;
   sourceId: string;
   locator: string;
   excerpt: string | null;
-  origin: TagOrigin;
   sortOrder: number;
   createdAt: Date;
 }
@@ -104,7 +99,7 @@ export interface HistoricalEntityEntity {
 
 export interface MediaAssetEntity {
   id: string;
-  kind: "AUDIO" | "IMAGE";
+  kind: "AUDIO" | "IMAGE" | "DOCUMENT";
   publicId: string;
   status: "PENDING" | "READY" | "DELETED";
   version: bigint | null;
@@ -118,42 +113,13 @@ export interface MediaAssetEntity {
   deletedAt: Date | null;
 }
 
-export interface ScriptPublicationEntity {
-  id: number;
-  workflowRunId: number;
-  approvedVersionId: number;
-  approvedById: string;
-  finalScript: string;
-  wordCount: number;
-  estimatedDurationSeconds: number;
-  publishedAt: Date;
-}
-
-export interface WorkflowRunEntity {
-  id: number;
-  seriesId: string | null;
-  topic: string;
-  focusHint: string | null;
-  status: string;
-  currentStep: string | null;
-  createdById: string;
-  createdAt: Date;
-  updatedAt: Date;
-  completedAt: Date | null;
-}
-
 /** Narration with its included relations (narrator name subset + full audio asset row). */
 export type EpisodeNarrationDetailEntity = EpisodeNarrationEntity & {
   narratorEntity: { id: string; name: string } | null;
   audioAsset: MediaAssetEntity | null;
 };
 
-/** Narration plus the AI script publication it was generated from. */
-export type EpisodeNarrationWithPublicationEntity = EpisodeNarrationEntity & {
-  scriptPublication: ScriptPublicationEntity | null;
-};
-
-export type EpisodeSourceWithSourceEntity = EpisodeSourceEntity & {
+export type SeriesSourceWithSourceEntity = SeriesSourceEntity & {
   source: {
     id: string;
     tier: SourceTier;
@@ -161,6 +127,7 @@ export type EpisodeSourceWithSourceEntity = EpisodeSourceEntity & {
     author: string | null;
     publicationYear: number | null;
     url: string | null;
+    fileAsset: Pick<MediaAssetEntity, "publicId" | "kind" | "version" | "format"> | null;
   };
 };
 
@@ -171,27 +138,25 @@ export type EpisodeEntityTagWithEntityEntity = EpisodeEntityTagEntity & {
 /** Episode loaded together with its owning series (ownership checks). */
 export type EpisodeWithSeriesEntity = EpisodeEntity & { series: SeriesEntity };
 
-/** Full studio workspace payload row: episode + series + narrations/sources/tags. */
+/** Full studio workspace payload row: episode + series + narrations/tags. */
 export type EpisodeWorkspaceEntity = EpisodeWithSeriesEntity & {
   narrations: EpisodeNarrationDetailEntity[];
-  sources: EpisodeSourceWithSourceEntity[];
   entityTags: EpisodeEntityTagWithEntityEntity[];
 };
 
 /** Episode row as included in the series detail query. */
 export type EpisodeDetailRowEntity = EpisodeEntity & {
   narrations: Array<EpisodeNarrationEntity & { audioAsset: MediaAssetEntity | null }>;
-  _count: { sources: number };
 };
 
 /** Full series detail row (the `seriesInclude` query payload). */
 export type SeriesDetailEntity = SeriesEntity & {
   topic: { id: string; name: string } | null;
-  historicalPeriod: { id: string; name: string } | null;
+  historicalPhase: { id: string; name: string; period: { id: string; name: string } } | null;
   owner: { id: string; name: string };
   coverImageAsset: MediaAssetEntity | null;
   episodes: EpisodeDetailRowEntity[];
-  workflowRuns: WorkflowRunEntity[];
+  sources: SeriesSourceWithSourceEntity[];
 };
 
 /** Series row as included in the studio list query. */

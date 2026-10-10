@@ -14,7 +14,6 @@ import { renderError } from "./core/errors/error-response";
 import { docsRoute } from "./routes/docs";
 import { healthRoute } from "./routes/health";
 import { adminRoute, auth, currentUserRoute } from "./modules/auth";
-import { scriptWorkflowRoute } from "./modules/script-workflow";
 import { publicCatalogRoute, studioCatalogRoute } from "./modules/catalog";
 import { createStudioContentRoute } from "./modules/content";
 import { mediaRoute, mediaStorage } from "./modules/media";
@@ -69,7 +68,6 @@ export const routes = app
   .route("/api/studio", createStudioContentRoute(mediaStorage))
   .route("/api/studio/media-assets", mediaRoute)
   .route("/api/admin", adminRoute)
-  .route("/api/script-workflows", scriptWorkflowRoute)
   .route("/health", healthRoute)
   .route("/api/timeline", timelineRoute);
 

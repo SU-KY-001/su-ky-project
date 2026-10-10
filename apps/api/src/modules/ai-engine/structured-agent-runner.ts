@@ -8,13 +8,11 @@ import {
 } from "@earendil-works/pi-coding-agent";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { env } from "../../../../core/env";
-import { logger } from "../../../../core/logger";
-import { MAX_AGENT_RETRY_COUNT } from "../../script-workflow.constants";
-import { AgentValidationError } from "../../domain/step-agent";
+import { env } from "../../core/env";
+import { logger } from "../../core/logger";
 import { piRuntime } from "./pi-runtime";
-import { attachPiTracer, type LogWorkflowEvent } from "./pi-tracer";
-import { buildSchemaRetryPrompt } from "../prompts/schema-retry.prompt";
+import { attachPiTracer, type PiTraceEvent } from "./pi-tracer";
+import { parseWithSchemaRetry } from "./schema-retry";
 
 export interface AgentTextBlock {
   type?: string;
@@ -66,18 +64,8 @@ function getAssistantText(messages: unknown[]): string {
   return "";
 }
 
-function extractJson(raw: string): string {
-  const trimmed = raw.trim();
-  const fenced = trimmed.match(/```(?:json)?\s*([\s\S]*?)```/i);
-  if (fenced?.[1]) return fenced[1].trim();
-  const first = trimmed.indexOf("{");
-  const last = trimmed.lastIndexOf("}");
-  if (first >= 0 && last > first) return trimmed.slice(first, last + 1);
-  return trimmed;
-}
-
 /**
- * Chỉ RESEARCHER cần web; các bước còn lại chạy noTools để không thể tự bịa nguồn.
+ * Chỉ run có `tools: "WEB"` được nạp web; mặc định không tool để agent không thể tự bịa nguồn.
  * Đường dẫn tuyệt đối tới package pi-web-access đã cài (sdk.d.ts: `additionalExtensionPaths`
  * là local path, nên phải resolve thủ công); `PI_WEB_ACCESS_DIR` cho phép ghi đè.
  */
@@ -90,34 +78,31 @@ export function resolveWebAccessDir(): string {
 
 const WEB_TOOL_NAMES = ["web_search", "fetch_content", "get_search_content", "source_check"];
 
-export interface AgentRunOptions {
-  workflowRunId?: number;
-  stepType?: string;
-  toolPolicy?: "WEB" | "NONE";
-  logEvent?: LogWorkflowEvent;
+export interface StructuredAgentRequest<T> {
+  systemPrompt: string;
+  userPrompt: string;
+  schema: z.ZodType<T>;
+  /** `WEB` loads pi-web-access only; default `NONE` disables every tool. */
+  tools?: "WEB" | "NONE";
+  /** Tag for logs and trace events. */
+  label?: string;
+  /** Receives lifecycle events (turn/message/tool); streaming deltas are only logged. */
+  onEvent?: (event: PiTraceEvent) => void;
 }
 
 /**
  * Why: backend owns schema enforcement. Pi is an LLM harness only —
- * parse + Zod.validate here, retry once with validation errors, then fail.
- * Every run is traced: session events stream into pino + workflow_events via
- * attachPiTracer, with a per-attempt summary logged at completion.
+ * parse + Zod.validate here, retry with validation errors, then fail with AgentValidationError.
+ * Every run is traced into pino (and the optional onEvent callback).
  */
-export async function runStructuredAgent<T>(
-  systemPrompt: string,
-  userPrompt: string,
-  schema: z.ZodType<T>,
-  options: AgentRunOptions = {}
-): Promise<T> {
-  if (!piRuntime.modelRuntime || !piRuntime.model) {
+export async function runStructuredAgent<T>(request: StructuredAgentRequest<T>): Promise<T> {
+  const { systemPrompt, userPrompt, schema, onEvent } = request;
+  const label = request.label ?? "agent";
+  await piRuntime.ensureInit();
+  if (!piRuntime.modelRuntime || !piRuntime.model || !piRuntime.isReady) {
     throw new Error("Pi model runtime is not ready");
   }
-  const agentLog = logger.child({
-    scope: "agent",
-    workflowRunId: options.workflowRunId ?? null,
-    step: options.stepType ?? "unknown",
-    model: piRuntime.model.id,
-  });
+  const agentLog = logger.child({ scope: "agent", label, model: piRuntime.model.id });
   const liveModel = piRuntime.modelRuntime.getModel(env.PI_PROVIDER, piRuntime.model.id);
   if (!liveModel) throw new Error(`Model ${piRuntime.model.id} is no longer available`);
 
@@ -131,7 +116,7 @@ export async function runStructuredAgent<T>(
 
   const fullSystemPrompt = `${systemPrompt}\n\n<response_format>\nYou MUST respond with valid JSON matching the schema below. Do not include any markdown fences or conversational text outside the JSON.\n<schema>\n${jsonSchemaStr}\n</schema>\n</response_format>`;
 
-  const useWebTools = options.toolPolicy === "WEB";
+  const useWebTools = request.tools === "WEB";
 
   const resourceLoader = new DefaultResourceLoader({
     cwd: process.cwd(),
@@ -167,21 +152,8 @@ export async function runStructuredAgent<T>(
 
   const { session } = await createAgentSession(sessionOptions);
 
-  // Pi observability: subscribe BEFORE first prompt so no turn/message/tool
-  // event is missed; detach in finally. Trace rows land in workflow_events as
-  // pi.<step>.<turn|message|tool>.* — replayable per workflow after the run.
-  const tracer =
-    options.workflowRunId != null && options.stepType && options.logEvent
-      ? attachPiTracer(
-          session.subscribe.bind(session),
-          {
-            workflowRunId: options.workflowRunId,
-            stepType: options.stepType,
-            attempt: 0,
-          },
-          options.logEvent
-        )
-      : null;
+  // Subscribe BEFORE the first prompt so no turn/message/tool event is missed; detach in finally.
+  const tracer = attachPiTracer(session.subscribe.bind(session), { label, attempt: 0 }, onEvent);
   const runStartedAt = Date.now();
   agentLog.info(
     {
@@ -192,74 +164,45 @@ export async function runStructuredAgent<T>(
     "agent run started"
   );
 
-  try {
-    await session.prompt(userPrompt);
-    let raw = getAssistantText(session.messages as unknown[]);
+  const promptAndRead = async (prompt: string) => {
+    await session.prompt(prompt);
+    return getAssistantText(session.messages as unknown[]);
+  };
 
-    for (let attempt = 0; attempt <= MAX_AGENT_RETRY_COUNT; attempt++) {
-      let parsedJson: unknown;
-      try {
-        parsedJson = JSON.parse(extractJson(raw));
-      } catch {
-        agentLog.warn({ attempt, rawSnippet: raw.slice(0, 500) }, "agent returned invalid JSON");
-        if (attempt >= MAX_AGENT_RETRY_COUNT) {
-          throw new AgentValidationError("Agent returned invalid JSON", "Response is not valid JSON");
-        }
-        await session.prompt(buildSchemaRetryPrompt("Response is not valid JSON", jsonSchemaStr));
-        raw = getAssistantText(session.messages as unknown[]);
-        continue;
-      }
-      const validated = schema.safeParse(parsedJson);
-      if (validated.success) {
-        const summary = tracer?.summary();
-        agentLog.info(
-          {
-            attempt,
-            durationMs: Date.now() - runStartedAt,
-            outputSnippet: raw.slice(0, 500),
-            piTurns: summary?.turnCount ?? null,
-            piEvents: summary?.eventCount ?? null,
-            piTokenApprox: summary?.tokenApprox ?? null,
-            piDurationMs: summary?.durationMs ?? null,
-          },
-          "agent run succeeded"
-        );
-        return validated.data;
-      }
-      agentLog.warn(
-        { attempt, issues: validated.error.issues, rawSnippet: raw.slice(0, 500) },
-        "agent output failed schema validation"
-      );
-      if (attempt >= MAX_AGENT_RETRY_COUNT) {
-        throw new AgentValidationError(
-          "Agent output failed schema validation",
-          JSON.stringify(validated.error.issues)
-        );
-      }
-      await session.prompt(buildSchemaRetryPrompt(JSON.stringify(validated.error.issues), jsonSchemaStr));
-      raw = getAssistantText(session.messages as unknown[]);
-    }
-    throw new AgentValidationError("Agent failed after retry", "No valid output produced");
+  try {
+    const result = await parseWithSchemaRetry(await promptAndRead(userPrompt), schema, jsonSchemaStr, {
+      reprompt: promptAndRead,
+      onInvalid: (info) => agentLog.warn(info, "agent output invalid"),
+    });
+    const summary = tracer.summary();
+    agentLog.info(
+      {
+        attempt: result.attempt,
+        durationMs: Date.now() - runStartedAt,
+        outputSnippet: result.raw.slice(0, 500),
+        piTurns: summary.turnCount,
+        piEvents: summary.eventCount,
+        piTokenApprox: summary.tokenApprox,
+        piDurationMs: summary.durationMs,
+      },
+      "agent run succeeded"
+    );
+    return result.data;
   } catch (err) {
-    const summary = tracer?.summary();
+    const summary = tracer.summary();
     agentLog.error(
       {
         err,
         durationMs: Date.now() - runStartedAt,
-        piTurns: summary?.turnCount ?? null,
-        piEvents: summary?.eventCount ?? null,
-        piLastText: summary?.lastTextSnippet ?? null,
+        piTurns: summary.turnCount,
+        piEvents: summary.eventCount,
+        piLastText: summary.lastTextSnippet,
       },
       "agent run failed"
     );
     throw err;
   } finally {
-    try {
-      await tracer?.flush();
-    } catch (err) {
-      agentLog.warn({ err }, "pi trace flush failed");
-    }
-    tracer?.detach();
+    tracer.detach();
     await session.dispose();
   }
 }

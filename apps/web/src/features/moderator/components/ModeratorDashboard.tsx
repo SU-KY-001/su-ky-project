@@ -10,7 +10,6 @@ import {
 } from "@phosphor-icons/react";
 import { Button } from "@/components/ui/button";
 import { moderatorMockDataLabel, moderatorOverviewMock } from "../data";
-import { scriptWorkflowNavItem } from "../navItems";
 import { useModeratorToastStore } from "../toastStore";
 import type { ModeratorQuickActionIcon } from "../types";
 import { AreaChartPanel } from "./AreaChartPanel";
@@ -74,16 +73,13 @@ export function ModeratorDashboard() {
   }).format(today);
   const currentDate = `${formattedDate.slice(0, 1).toLocaleUpperCase("vi-VN")}${formattedDate.slice(1)}`;
 
-  const nav: ShellNavItem[] = [
-    ...sidebarItems.map((item) => ({
-      id: item.id,
-      label: item.label,
-      icon: item.icon,
-      active: activeSection === item.id,
-      onSelect: () => navigateToSection(item.id),
-    })),
-    scriptWorkflowNavItem(false),
-  ];
+  const nav: ShellNavItem[] = sidebarItems.map((item) => ({
+    id: item.id,
+    label: item.label,
+    icon: item.icon,
+    active: activeSection === item.id,
+    onSelect: () => navigateToSection(item.id),
+  }));
 
   const previewNote = (
     <div className="mt-5 flex flex-col gap-[11px] rounded-[13px] border border-mod-border bg-mod-canvas-accent p-3.5">

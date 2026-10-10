@@ -5,10 +5,10 @@ import {
   type Episode as PrismaEpisode,
   type EpisodeEntityTag as PrismaEpisodeEntityTag,
   type EpisodeNarration as PrismaNarration,
-  type EpisodeSource as PrismaEpisodeSource,
   type ListeningProgress as PrismaListeningProgress,
   type MediaAsset as PrismaMediaAsset,
   type Series as PrismaSeries,
+  type SeriesSource as PrismaSeriesSource,
   type Source as PrismaSource,
 } from "@repo/db";
 import type {
@@ -21,7 +21,6 @@ import type {
   CompletionAward,
   EpisodeDetailEntity,
   EpisodeEntityTagEntity,
-  EpisodeSourceEntity,
   EpisodeWithNarrations,
   HistoricalEntityType,
   ListeningProgressEntity,
@@ -32,6 +31,7 @@ import type {
   NarrationWithAudio,
   NarrationWithNarrator,
   SeriesDetailEntity,
+  SeriesSourceWithSource,
   SeriesWithCoverAndCount,
   SourceEntity,
 } from "../domain/listening.entity";
@@ -43,9 +43,13 @@ type PrismaSeriesWithCoverAndCount = PrismaSeries & {
   coverImageAsset: PrismaMediaAsset | null;
   _count: { episodes: number };
 };
+type PrismaSeriesSourceRow = PrismaSeriesSource & {
+  source: PrismaSource & { fileAsset: PrismaMediaAsset | null };
+};
 type PrismaSeriesDetail = PrismaSeries & {
   coverImageAsset: PrismaMediaAsset | null;
   episodes: PrismaEpisodeWithNarrations[];
+  sources: PrismaSeriesSourceRow[];
 };
 type PrismaNarrationWithNarrator = PrismaNarration & {
   narratorEntity: { id: string; entityType: string; name: string } | null;
@@ -54,11 +58,11 @@ type PrismaNarrationWithNarrator = PrismaNarration & {
 type PrismaSeriesDetailRef = PrismaSeries & {
   coverImageAsset: PrismaMediaAsset | null;
   episodes: { id: string; slug: string; title: string }[];
+  sources: PrismaSeriesSourceRow[];
 };
 type PrismaEpisodeDetail = PrismaEpisode & {
   series: PrismaSeriesDetailRef;
   narrations: PrismaNarrationWithNarrator[];
-  sources: (PrismaEpisodeSource & { source: PrismaSource })[];
   entityTags: (PrismaEpisodeEntityTag & { entity: { id: string; entityType: string; name: string } })[];
   quiz: { id: string } | null;
 };
@@ -78,7 +82,7 @@ function toMediaAsset(row: PrismaMediaAsset): MediaAssetEntity {
 
 function toSeries(row: PrismaSeries) {
   return {
-    id: row.id, ownerId: row.ownerId, topicId: row.topicId, historicalPeriodId: row.historicalPeriodId,
+    id: row.id, ownerId: row.ownerId, topicId: row.topicId, historicalPhaseId: row.historicalPhaseId,
     title: row.title, slug: row.slug, description: row.description, coverImageAssetId: row.coverImageAssetId,
     startYear: row.startYear, endYear: row.endYear, status: row.status, statusBeforeDelete: row.statusBeforeDelete,
     adminLockedAt: row.adminLockedAt, adminLockedById: row.adminLockedById, publishedAt: row.publishedAt,
@@ -102,9 +106,8 @@ function toEpisode(row: PrismaEpisode) {
 function toNarration(row: PrismaNarration) {
   return {
     id: row.id, episodeId: row.episodeId, narrationType: row.narrationType, narratorEntityId: row.narratorEntityId,
-    scriptContent: row.scriptContent, scriptPublicationId: row.scriptPublicationId,
-    scriptPublicationEpisodeNo: row.scriptPublicationEpisodeNo, audioAssetId: row.audioAssetId,
-    audioProvider: row.audioProvider, scriptUpdatedAt: row.scriptUpdatedAt, audioAttachedAt: row.audioAttachedAt,
+    scriptContent: row.scriptContent, audioAssetId: row.audioAssetId,
+    scriptUpdatedAt: row.scriptUpdatedAt, audioAttachedAt: row.audioAttachedAt,
     createdAt: row.createdAt, updatedAt: row.updatedAt,
   };
 }
@@ -122,6 +125,7 @@ function toSeriesDetail(row: PrismaSeriesDetail): SeriesDetailEntity {
     ...toSeries(row),
     coverImageAsset: row.coverImageAsset ? toMediaAsset(row.coverImageAsset) : null,
     episodes: row.episodes.map(toEpisodeWithNarrations),
+    sources: row.sources.map(toSeriesSource),
   };
 }
 
@@ -145,8 +149,12 @@ function toNarrationWithNarrator(row: PrismaNarrationWithNarrator): NarrationWit
   };
 }
 
-function toEpisodeSource(row: PrismaEpisodeSource & { source: PrismaSource }): EpisodeSourceEntity & { source: SourceEntity } {
-  return { id: row.id, episodeId: row.episodeId, sourceId: row.sourceId, locator: row.locator, excerpt: row.excerpt, origin: row.origin, sortOrder: row.sortOrder, createdAt: row.createdAt, source: toSource(row.source) };
+function toSeriesSource(row: PrismaSeriesSourceRow): SeriesSourceWithSource {
+  const { fileAsset } = row.source;
+  return {
+    id: row.id, seriesId: row.seriesId, sourceId: row.sourceId, locator: row.locator, excerpt: row.excerpt, sortOrder: row.sortOrder, createdAt: row.createdAt,
+    source: { ...toSource(row.source), fileAsset: fileAsset ? { publicId: fileAsset.publicId, kind: fileAsset.kind, version: fileAsset.version, format: fileAsset.format } : null },
+  };
 }
 
 function toEntityTag(row: PrismaEpisodeEntityTag & { entity: { id: string; entityType: string; name: string } }): EpisodeEntityTagEntity & { entity: { id: string; entityType: HistoricalEntityType; name: string } } {
@@ -164,9 +172,9 @@ function toEpisodeDetail(row: PrismaEpisodeDetail): EpisodeDetailEntity {
       ...toSeries(row.series),
       coverImageAsset: row.series.coverImageAsset ? toMediaAsset(row.series.coverImageAsset) : null,
       episodes: row.series.episodes,
+      sources: row.series.sources.map(toSeriesSource),
     },
     narrations: row.narrations.map(toNarrationWithNarrator),
-    sources: row.sources.map(toEpisodeSource),
     entityTags: row.entityTags.map(toEntityTag),
     quiz: row.quiz,
   };
@@ -187,6 +195,8 @@ function toProgressWithAudio(row: PrismaListeningProgress & { audioAsset: Prisma
 function toProgressWithHistory(row: PrismaProgressWithEpisode): ListeningProgressWithHistory {
   return { ...toProgressWithAudio(row), episode: { ...toEpisode(row.episode), series: toSeries(row.episode.series) } };
 }
+
+const SERIES_SOURCE_INCLUDE = { source: { include: { fileAsset: true } } } satisfies Prisma.SeriesSourceInclude;
 
 const PUBLIC_SERIES_WHERE = { status: "PUBLISHED" as const, deletedAt: null };
 
@@ -241,7 +251,8 @@ export class PrismaListeningRepository implements ListeningRepository {
     const where: Prisma.SeriesWhereInput = {
       ...PUBLIC_SERIES_WHERE,
       ...(query.topicId ? { topicId: query.topicId } : {}),
-      ...(query.historicalPeriodId ? { historicalPeriodId: query.historicalPeriodId } : {}),
+      ...(query.historicalPhaseId ? { historicalPhaseId: query.historicalPhaseId } : {}),
+      ...(query.periodId ? { historicalPhase: { periodId: query.periodId } } : {}),
       ...(query.toYear !== undefined ? { startYear: { lte: query.toYear } } : {}),
       ...(query.fromYear !== undefined ? { endYear: { gte: query.fromYear } } : {}),
       ...(query.q ? { title: { contains: query.q, mode: "insensitive" as const } } : {}),
@@ -265,6 +276,7 @@ export class PrismaListeningRepository implements ListeningRepository {
       include: {
         coverImageAsset: true,
         episodes: { where: { status: "PUBLISHED" as const, deletedAt: null }, orderBy: { sortOrder: "asc" }, include: { narrations: { include: { audioAsset: true } } } },
+        sources: { orderBy: { sortOrder: "asc" }, include: SERIES_SOURCE_INCLUDE },
       },
     });
     return row ? toSeriesDetail(row) : null;
@@ -280,9 +292,8 @@ export class PrismaListeningRepository implements ListeningRepository {
     const row = await this.db.episode.findFirst({
       where: { slug, status: "PUBLISHED" as const, deletedAt: null, series: PUBLIC_SERIES_WHERE },
       include: {
-        series: { include: { coverImageAsset: true, episodes: { where: { status: "PUBLISHED" as const, deletedAt: null }, orderBy: { sortOrder: "asc" }, select: { id: true, slug: true, title: true } } } },
+        series: { include: { coverImageAsset: true, episodes: { where: { status: "PUBLISHED" as const, deletedAt: null }, orderBy: { sortOrder: "asc" }, select: { id: true, slug: true, title: true } }, sources: { orderBy: { sortOrder: "asc" }, include: SERIES_SOURCE_INCLUDE } } },
         narrations: { include: { narratorEntity: { select: { id: true, entityType: true, name: true } }, audioAsset: true } },
-        sources: { orderBy: { sortOrder: "asc" }, include: { source: true } },
         entityTags: { where: { status: "CONFIRMED" as const }, include: { entity: { select: { id: true, entityType: true, name: true } } } },
         quiz: { select: { id: true } },
       },

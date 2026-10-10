@@ -3,6 +3,7 @@ import { ListeningHistoryQuerySchema, PublicSeriesListQuerySchema, UpdateListeni
 import { getSystemConfig } from "../../../core/config/system-config";
 import { DomainError } from "../../../core/errors/domain-error";
 import { audioMimeType, type MediaStorageGateway } from "../../media";
+import type { SeriesSourceWithSource } from "../domain/listening.entity";
 import type { ListeningRepository } from "../domain/listening.repository";
 
 const BASE64_PATTERN = /^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$/;
@@ -31,6 +32,12 @@ function mondayInVietnam(now: Date): Date {
 
 export class ListeningService {
   constructor(private readonly repo: ListeningRepository, private readonly storage: MediaStorageGateway) {}
+
+  /** Series-level citation; `fileUrl` is the uploaded PDF when the source has one. */
+  private mapSource(item: SeriesSourceWithSource) {
+    const { source } = item;
+    return { title: source.title, author: source.author, tier: source.tier, locator: item.locator, url: source.url, fileUrl: source.fileAsset ? this.storage.deliveryUrl(source.fileAsset) : null };
+  }
 
   async playback(narrationId: string, userId: string) {
     const narration = await this.repo.findPublicNarration(narrationId);
@@ -157,6 +164,7 @@ export class ListeningService {
       startYear: series.startYear,
       endYear: series.endYear,
       cover: series.coverImageAsset ? { url: this.storage.deliveryUrl(series.coverImageAsset) } : null,
+      sources: series.sources.map((item) => this.mapSource(item)),
       episodes: series.episodes.map((episode) => ({
         id: episode.id,
         slug: episode.slug,
@@ -196,6 +204,7 @@ export class ListeningService {
         startYear: episode.series.startYear,
         endYear: episode.series.endYear,
         cover: episode.series.coverImageAsset ? { url: this.storage.deliveryUrl(episode.series.coverImageAsset) } : null,
+        sources: episode.series.sources.map((item) => this.mapSource(item)),
       },
       narrations: episode.narrations.map((item) => ({
         id: item.id,
@@ -204,7 +213,6 @@ export class ListeningService {
         durationMs: item.audioAsset?.durationMs ?? null,
         available: item.audioAsset?.status === "READY",
       })),
-      sources: episode.sources.map((item) => ({ title: item.source.title, author: item.source.author, tier: item.source.tier, locator: item.locator, url: item.source.url })),
       entities: episode.entityTags.map((item) => item.entity),
       previousEpisode: index > 0 ? episode.series.episodes[index - 1] : null,
       nextEpisode: index >= 0 && index < episode.series.episodes.length - 1 ? episode.series.episodes[index + 1] : null,

@@ -13,10 +13,3 @@ export function createStudioContentRoute(storage?: MediaStorageGateway) {
     .route("/series", createSeriesRoute(contentService, storage))
     .route("/", createEpisodeRoute(contentService, storage));
 }
-
-/**
- * Transaction-aware content API for the script-workflow import flow: these run
- * on the caller's Prisma client/transaction so the import stays atomic.
- */
-export { createSeriesDraft, appendEpisodes, loadSeriesForRead } from "./infrastructure/prisma-content.repository";
-export { assertWritable } from "./application/content.service";

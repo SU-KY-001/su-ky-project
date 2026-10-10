@@ -5,13 +5,15 @@ import type {
   EpisodeWorkspaceEntity,
   SeriesDetailEntity,
   SeriesListItemEntity,
+  SeriesSourceWithSourceEntity,
 } from "../domain/content.entity";
 
-export function mapEpisodeSource(item: {
-  id: string; sortOrder: number; locator: string; excerpt: string | null; origin: "AI" | "MODERATOR";
-  source: { id: string; tier: string; title: string; author: string | null; publicationYear: number | null; url: string | null };
-}) {
-  return item;
+export function mapSeriesSource(item: SeriesSourceWithSourceEntity, storage?: MediaStorageGateway) {
+  const { fileAsset, ...source } = item.source;
+  return {
+    id: item.id, sortOrder: item.sortOrder, locator: item.locator, excerpt: item.excerpt,
+    source: { ...source, fileUrl: fileAsset ? (storage?.deliveryUrl(fileAsset) ?? null) : null },
+  };
 }
 
 export function mapEntityTag(item: {
@@ -39,9 +41,8 @@ export async function mapNarration(
   return {
     id: narration.id, type: narration.narrationType, narrator: narration.narratorEntity ?? null,
     scriptContent: narration.scriptContent, wordCount, estimatedDurationMs,
-    origin: narration.scriptPublicationId ? { kind: "AI", scriptPublicationId: narration.scriptPublicationId, episodeNo: narration.scriptPublicationEpisodeNo } : { kind: "MANUAL" },
     audio: narration.audioAsset ? {
-      assetId: narration.audioAsset.id, provider: narration.audioProvider, durationMs: narration.audioAsset.durationMs,
+      assetId: narration.audioAsset.id, durationMs: narration.audioAsset.durationMs,
       sizeBytes: narration.audioAsset.sizeBytes ? Number(narration.audioAsset.sizeBytes) : null,
       format: narration.audioAsset.format, previewUrl: storage?.deliveryUrl(narration.audioAsset) ?? null, attachedAt: narration.audioAttachedAt,
     } : null,
@@ -51,8 +52,9 @@ export async function mapNarration(
 
 export function seriesChecklist(series: SeriesDetailEntity) {
   const items = [
-    { key: "TOPIC", ok: Boolean(series.topicId) }, { key: "HISTORICAL_PERIOD", ok: Boolean(series.historicalPeriodId) },
+    { key: "TOPIC", ok: Boolean(series.topicId) }, { key: "HISTORICAL_PHASE", ok: Boolean(series.historicalPhaseId) },
     { key: "YEAR_RANGE", ok: series.startYear != null && series.endYear != null && series.startYear <= series.endYear },
+    { key: "HAS_SOURCE", ok: series.sources.length > 0 },
     { key: "HAS_PUBLISHED_EPISODE", ok: series.episodes.some((episode) => episode.status === "PUBLISHED") },
   ];
   return { ready: items.every((item) => item.ok), items };
@@ -61,7 +63,7 @@ export function seriesChecklist(series: SeriesDetailEntity) {
 export function episodeChecklist(episode: EpisodeWorkspaceEntity) {
   const third = episode.narrations.find((item) => item.narrationType === "THIRD_PERSON");
   const items = [
-    { key: "BASIC_INFO", ok: Boolean(episode.title.trim()) }, { key: "HAS_SOURCE", ok: episode.sources.length > 0 },
+    { key: "BASIC_INFO", ok: Boolean(episode.title.trim()) },
     { key: "THIRD_PERSON_SCRIPT", ok: Boolean(third?.scriptContent?.trim()) }, { key: "THIRD_PERSON_AUDIO", ok: third?.audioAsset?.status === "READY" },
   ];
   const warnings: Array<{ key: string; count?: number }> = [];
@@ -75,15 +77,15 @@ export function mapSeriesDetail(series: SeriesDetailEntity, storage?: MediaStora
   return {
     id: series.id, title: series.title, slug: series.slug, description: series.description, status: series.status,
     isDeleted: Boolean(series.deletedAt), lock: series.adminLockedAt ? { lockedAt: series.adminLockedAt, lockedBy: series.adminLockedById } : null,
-    topic: series.topic, historicalPeriod: series.historicalPeriod, startYear: series.startYear, endYear: series.endYear,
+    topic: series.topic, historicalPhase: series.historicalPhase, startYear: series.startYear, endYear: series.endYear,
     cover: series.coverImageAsset ? { assetId: series.coverImageAsset.id, url: storage?.deliveryUrl(series.coverImageAsset) ?? null } : null,
     owner: series.owner, publishedAt: series.publishedAt, updatedAt: series.updatedAt, publishChecklist: seriesChecklist(series),
+    sources: series.sources.map((item) => mapSeriesSource(item, storage)),
     episodes: series.episodes.map((episode) => {
       const third = episode.narrations.find((item) => item.narrationType === "THIRD_PERSON");
       return { id: episode.id, title: episode.title, slug: episode.slug, sortOrder: episode.sortOrder, status: episode.status,
-        progress: { hasSource: episode._count.sources > 0, hasThirdPersonScript: Boolean(third?.scriptContent?.trim()), hasThirdPersonAudio: third?.audioAsset?.status === "READY", isPublished: episode.status === "PUBLISHED" } };
+        progress: { hasThirdPersonScript: Boolean(third?.scriptContent?.trim()), hasThirdPersonAudio: third?.audioAsset?.status === "READY", isPublished: episode.status === "PUBLISHED" } };
     }),
-    pendingAiRuns: series.workflowRuns.map((run) => ({ runId: run.id, status: run.status, awaitingStep: run.status === "WAITING_FOR_HUMAN" ? run.currentStep : null, createdAt: run.createdAt })),
   };
 }
 
@@ -102,6 +104,6 @@ export async function mapWorkspace(episode: EpisodeWorkspaceEntity, storage?: Me
     isDeleted: Boolean(episode.deletedAt), lock: episode.adminLockedAt ? { lockedAt: episode.adminLockedAt, lockedBy: episode.adminLockedById } : null,
     publishedAt: episode.publishedAt, updatedAt: episode.updatedAt,
     narrations: await Promise.all(episode.narrations.map((item) => mapNarration(item, storage))),
-    sources: episode.sources.map(mapEpisodeSource), entityTags: episode.entityTags.map(mapEntityTag), publishChecklist: episodeChecklist(episode),
+    entityTags: episode.entityTags.map(mapEntityTag), publishChecklist: episodeChecklist(episode),
   };
 }

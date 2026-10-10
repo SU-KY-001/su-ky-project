@@ -22,7 +22,7 @@ const healthOperation = operation({
   tag: SYSTEM,
   summary: "Kiểm tra sức khỏe hệ thống",
   description:
-    "Trả về runtime, phiên bản Bun, trạng thái PostgreSQL, hàng đợi (pg-boss) và AI runtime, uptime. AI không sẵn sàng không làm hệ thống `degraded`; chỉ việc tạo workflow trả 503.",
+    "Trả về runtime, phiên bản Bun, trạng thái PostgreSQL, hàng đợi bảo trì (pg-boss) và uptime.",
   access: "public",
   ok: {
     status: 200,
