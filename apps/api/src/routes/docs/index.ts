@@ -53,10 +53,10 @@ const TAGS = [
   { name: "Admin", description: "Endpoint riêng cho Admin" },
   { name: "Catalog", description: "Danh mục công khai: chủ đề và giai đoạn lịch sử" },
   { name: "Listening", description: "Duyệt nội dung, phát audio, đồng bộ tiến độ và lịch sử nghe" },
-  { name: "Studio Series", description: "Moderator biên tập Series: tạo, sửa, xuất bản, ẩn, thùng rác, sắp xếp tập" },
-  { name: "Studio Episodes", description: "Moderator biên tập tập: bản kể, audio, nguồn trích dẫn, thẻ thực thể" },
+  { name: "Studio Series", description: "Moderator biên tập Series: tạo, sửa, xuất bản, ẩn, thùng rác, sắp xếp tập, nguồn tham khảo của Series" },
+  { name: "Studio Episodes", description: "Moderator biên tập tập: bản kể (kịch bản text, audio upload), thẻ thực thể" },
   { name: "Studio Catalog", description: "Kho nguồn tham khảo và thực thể lịch sử dùng chung" },
-  { name: "Studio Media", description: "Upload và xác minh audio, ảnh qua Cloudinary" },
+  { name: "Studio Media", description: "Upload và xác minh audio, ảnh, PDF qua Cloudinary" },
 ] as const;
 
 const TAG_GROUPS = [
