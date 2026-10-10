@@ -1,8 +1,10 @@
 {
   "extends": "@repo/tsconfig/bun.json",
   "compilerOptions": {
-    "rootDir": "src",
-    "outDir": "dist"
+    "rootDir": ".",
+    "outDir": "dist",
+    "declaration": false,
+    "declarationMap": false
   },
-  "include": ["src/**/*"]
+  "include": ["src/**/*", "scripts/**/*", "tests/**/*"]
 }

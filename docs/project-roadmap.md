@@ -3,7 +3,7 @@
 
 - **Project**: **Su-Ky** (Sử Ký — Vietnamese History Podcast & Interactive Knowledge Platform)
 - **Monorepo Runtime**: Bun v1.4.0 + Turborepo 2.x
-- **Core Stack**: Hono v4 (Bun Native), React 19 + Vite 6 + Tailwind CSS v4, PostgreSQL 17 + Drizzle ORM, Zod, TanStack Query v5
+- **Core Stack**: Hono v4 (Bun Native), React 19 + Vite 8 + Tailwind CSS v4/shadcn/ui/Magic UI, Expo 57 + React Native 0.86 + Tamagui, PostgreSQL, Zod, TanStack Query v5
 - **Document Version**: 1.0.0
 - **Updated Date**: 2026-09-11
 - **Status**: Approved & Baseline Locked
@@ -45,13 +45,14 @@ Deliver an end-to-end working platform capable of demonstrating the core value p
 ### 2.3 Technical Deliverables & Architecture
 - **Workspaces Configured**:
   - `apps/api`: Hono v4 with type-safe routing, CORS, structured JSON logging, error boundaries, healthcheck (`/health`), and RPC export.
-  - `apps/web`: React 19, Vite 6, Tailwind CSS v4, TanStack Query v5, Hono RPC client (`hc<AppType>`).
+  - `apps/web`: React 19, Vite 8, Tailwind CSS v4, shadcn/ui, Magic UI, TanStack Query v5, Hono RPC client (`hc<AppType>`).
+  - `apps/mobile`: Expo 57, React Native 0.86, Expo Router, Tamagui.
   - `packages/db`: PostgreSQL 17 schema (Drizzle ORM), seed scripts, database migrations, connection lifecycle pooling (`postgres.js`).
   - `packages/shared`: Shared Zod schemas, DTO interfaces, enum contracts for eras, categories, and citation status.
   - `packages/tsconfig`: Strict base, React, and Node/Bun TypeScript configurations.
 - **Infrastructure & Tooling**:
   - `docker-compose.yml`: PostgreSQL 17 container with automated healthcheck and persistent volumes.
-  - Turborepo pipelines: `build`, `dev`, `check-types`, `lint`, `test`, `db:generate`, `db:migrate`, `db:seed`.
+  - Turborepo pipelines: `build`, `dev`, `check-types`, `lint`, `test`, `db:generate`, `db:migrate`.
 
 ### 2.4 Definition of Done (DoD)
 - [x] Zero type errors (`bun run check-types` exits with code 0 across all workspaces).

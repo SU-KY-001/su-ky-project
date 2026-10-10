@@ -5,24 +5,27 @@
   "type": "module",
   "exports": {
     ".": "./src/index.ts",
-    "./client": "./src/client.ts"
+    "./client": "./src/client.ts",
+    "./historical-seed-data": "./src/historical-seed-data.ts",
+    "./historical-seed": "./src/historical-seed.ts"
   },
   "scripts": {
-    "db:generate": "prisma generate",
-    "db:push": "prisma db push",
-    "db:migrate": "prisma migrate dev",
-    "db:seed": "bun run src/seed.ts",
+    "db:generate": "bun --env-file=../../.env run prisma generate",
+    "db:deploy": "bun --env-file=../../.env run prisma migrate deploy",
+    "db:migrate": "bun --env-file=../../.env run prisma migrate dev",
+    "db:test:reset": "bun --env-file=../../.env.test run prisma migrate reset --force",
+    "db:seed": "bun --env-file=../../.env run src/seed.ts",
     "check-types": "tsc --noEmit"
   },
   "dependencies": {
-    "@prisma/client": "^6.4.1",
+    "@prisma/client": "catalog:",
     "@repo/shared": "workspace:*"
   },
   "devDependencies": {
     "@repo/tsconfig": "workspace:*",
-    "@types/node": "^22.20.2",
-    "bun-types": "^1.4.2",
-    "prisma": "^6.4.1",
-    "typescript": "^5.8.2"
+    "@types/node": "catalog:",
+    "bun-types": "catalog:",
+    "prisma": "catalog:",
+    "typescript": "catalog:"
   }
 }

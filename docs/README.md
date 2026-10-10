@@ -19,8 +19,10 @@ PostgreSQL 17 ──> Prisma ORM ──> Hono v4 (Bun) ──[hc RPC]──> Rea
 | **Monorepo Engine**| [Turborepo](https://turbo.build) | `^2.4.4` | Pipeline orchestration, task hashing, and build caching |
 | **Backend API** | [Hono](https://hono.dev) | `^4.7.2` | Lightweight web framework on Bun, providing typed RPC routes |
 | **Frontend Web** | [React](https://react.dev) | `^19.0.0` | Single-page UI with concurrent rendering and modern hooks |
-| **Web Bundler** | [Vite](https://vite.dev) | `^6.2.0` | Fast ESM development server and production bundler |
-| **Styling** | [Tailwind CSS](https://tailwindcss.com) | `^4.0.9` | CSS-first utility framework integrated via `@tailwindcss/vite` |
+| **Web Bundler** | [Vite](https://vite.dev) | `^8.3.3` | Fast ESM development server and production bundler with the Tailwind CSS v4 Vite plugin |
+| **Web UI & Styling** | [Tailwind CSS](https://tailwindcss.com), [shadcn/ui](https://ui.shadcn.com), [Magic UI](https://magicui.design) | Tailwind `^4.1.14` | CSS-first web styling with source-owned shadcn/ui components and selected Magic UI registry components |
+| **Mobile UI & Styling** | [Tamagui](https://tamagui.dev) | `^2.7.7` | Native component and styling system for mobile; shared root tokens/themes remain for Expo/Metro |
+| **Mobile Runtime** | [Expo](https://expo.dev) + React Native | `~57.0.0` + `0.86.0` | Native app runtime and Expo Router, styled with Tamagui through Metro |
 | **State & Cache** | [TanStack Query](https://tanstack.com/query) | `^5.66.0` | Asynchronous server-state caching, deduping, and refetching |
 | **Database ORM** | [Prisma ORM](https://www.prisma.io) | `^6.4.1` | Schema modeling, PostgreSQL migration management, and type-safe client |
 | **Database** | [PostgreSQL](https://www.postgresql.org) | `17-alpine` | Relational store for periods, series, episodes, citations, and figures |
@@ -33,11 +35,12 @@ PostgreSQL 17 ──> Prisma ORM ──> Hono v4 (Bun) ──[hc RPC]──> Rea
 ```
 su-ky-project/
 ├── apps/
-│   ├── api/             # Hono v4 API service running on Bun (Port 3000)
+│   ├── api/             # Hono v4 API service running on Bun (Port 3005)
 │   │   ├── src/app.ts   # Hono app instance & chained RPC routes
 │   │   ├── src/index.ts # Bun HTTP server entrypoint
 │   │   └── src/routes/  # Modular route controllers: health, timeline, series, episodes, figures
-│   └── web/             # React 19 + Vite 6 client application (Port 5173)
+│   ├── web/             # React 19 + Vite 8 + Tailwind CSS + shadcn/ui + Magic UI client application
+│   └── mobile/          # Expo 57 + React Native + Tamagui client application
 │       ├── src/lib/api.ts         # Type-safe RPC client (hc<AppType>)
 │       ├── src/lib/queryClient.ts # TanStack Query client instance
 │       └── src/App.tsx            # Interactive starter dashboard & health monitor
@@ -86,10 +89,14 @@ cp .env.example .env
 ```
 Default local variables configured in `.env.example`:
 ```env
-PORT=3000
+PORT=3005
 DATABASE_URL=postgresql://postgres:postgres@localhost:5432/suky_dev
 CORS_ORIGIN=http://localhost:5173
-VITE_API_URL=http://localhost:3000
+BETTER_AUTH_URL=http://localhost:3005
+BETTER_AUTH_SECRET=<generate with openssl rand -base64 32>
+GOOGLE_CLIENT_ID=
+GOOGLE_CLIENT_SECRET=
+VITE_API_URL=http://localhost:3005
 ```
 
 ### Step 3: Start PostgreSQL Container
@@ -105,25 +112,41 @@ bun run db:push
 ```
 *Generates TypeScript client bindings into `node_modules/@prisma/client` and synchronizes tables with PostgreSQL.*
 
-### Step 5: Seed Historical Data
-```bash
-bun run db:seed
-```
-*Populates 9 historical periods, flagship series, sample episodes with transcripts, citations, and historical figures.*
-
-### Step 6: Start All Applications in Development Mode
+### Step 5: Start All Applications in Development Mode
 ```bash
 bun run dev
 ```
 *Runs `apps/api` (with hot reloading via `bun --watch`) and `apps/web` (via Vite HMR) concurrently.*
 
 - **Web Frontend**: [http://localhost:5173](http://localhost:5173)
-- **API Server**: [http://localhost:3000](http://localhost:3000)
-- **API Healthcheck**: [http://localhost:3000/health](http://localhost:3000/health)
+- **API Server**: [http://localhost:3005](http://localhost:3005)
+- **API Healthcheck**: [http://localhost:3005/health](http://localhost:3005/health)
 
 ---
 
-## 5. Command Reference
+## 5. Backend Authentication
+
+The API uses Better Auth with PostgreSQL/Prisma sessions:
+
+- Email/password: `POST /api/auth/sign-up/email` and `POST /api/auth/sign-in/email`
+- Google OAuth: `POST /api/auth/sign-in/social` with `{ "provider": "google" }`
+- Sign out and session lookup: `POST /api/auth/sign-out` and `GET /api/auth/get-session`
+- Current user: `GET /api/me` (requires a valid session cookie or Bearer token)
+- Admin check: `GET /api/admin` (Admin only)
+
+Set `BETTER_AUTH_SECRET` to a persistent random secret in all environments. Google sign-in is enabled when both Google credentials are configured; set the Google OAuth callback URL to `http://localhost:3005/api/auth/callback/google` for local development. `CORS_ORIGIN` accepts a comma-separated list of frontend origins.
+
+New registrations receive the default `user` role. Only admins can change roles or manage users through Better Auth's `/api/auth/admin/*` endpoints. Bootstrap the first admin using Better Auth's CLI after applying the schema, for example:
+
+```bash
+bun x auth@latest create-admin --email admin@example.com --name "Su-Ky Admin" --role admin
+```
+
+Apply the updated authentication tables using `bun run db:push` after `bun run db:generate`.
+
+---
+
+## 6. Command Reference
 
 All root commands are coordinated via Turborepo (`turbo.json`) and run across matching workspaces.
 
@@ -131,14 +154,13 @@ All root commands are coordinated via Turborepo (`turbo.json`) and run across ma
 | :--- | :--- | :--- |
 | `bun install` | Installs dependencies with strict isolation | Root & all workspaces |
 | `docker compose up -d` | Launches PostgreSQL 17 daemon | Docker daemon |
-| `bun run dev` | Runs API (`:3000`) and Web (`:5173`) in dev mode | `apps/api`, `apps/web` |
+| `bun run dev` | Runs API (`:3005`) and Web (`:5173`) in dev mode | `apps/api`, `apps/web` |
 | `bun run build` | Compiles packages and production bundles | All workspaces (`^build`) |
 | `bun run check-types` | Executes `tsc --noEmit` across all packages | All workspaces (`^build`) |
 | `bun test` | Runs unit & integration tests using Bun Test | `apps/api` |
 | `bun run db:generate` | Generates Prisma client types from schema | `packages/db` |
 | `bun run db:migrate` | Runs database migrations interactively | `packages/db` |
 | `bun run db:push` | Synchronizes Prisma schema directly to DB | `packages/db` |
-| `bun run db:seed` | Seeds initial historical periods & episodes | `packages/db` |
 | `bun run clean` | Purges build artifacts and node_modules | Root & all workspaces |
 
 ---
@@ -162,7 +184,7 @@ All root commands are coordinated via Turborepo (`turbo.json`) and run across ma
 [ apps/web (@repo/web) ]
    ├── Client: hc<AppType>(VITE_API_URL)
    ├── Cache: TanStack Query (@tanstack/react-query)
-   └── Views: React 19 UI (Tailwind CSS v4 + Lucide Icons)
+   └── Views: React 19 UI (Tailwind CSS + shadcn/ui + Magic UI)
 ```
 
 1. **Request Lifecycle**: Every HTTP request receives a unique `X-Request-Id` (propagated to responses and structured logs).
@@ -204,4 +226,5 @@ For detailed architectural specifications, standards, and requirements, refer to
 - [Code Standards](./code-standards.md) — Bun 1.4 conventions, TypeScript rules (no `any`), Zod schemas, and Prisma discipline.
 - [System Architecture](./system-architecture.md) — In-depth architectural diagrams, sequence flows, and infrastructure models.
 - [Design Guidelines](./design-guidelines.md) — Vietnamese cultural visual language, color tokens, and typography specifications.
+- [Archived Script Workflow](../archive/script-workflow/README.md) — Static snapshot of the retired AI-first script workflow (API/UX docs included).
 - [Interactive Wireframe](./wireframe/index.html) — Standalone prototype showcasing the timeline, audio dock, and chronicle views.

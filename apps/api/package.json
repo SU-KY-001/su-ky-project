@@ -1,6 +1,6 @@
 {
   "name": "@repo/api",
-  "version": "0.0.0",
+  "version": "0.0.1",
   "private": true,
   "type": "module",
   "exports": {
@@ -8,23 +8,32 @@
     "./types": "./src/app.ts"
   },
   "scripts": {
-    "dev": "bun --watch src/index.ts",
+    "dev": "bun --env-file=../../.env --watch src/index.ts",
     "build": "bun build src/index.ts --outdir dist --target bun",
     "check-types": "tsc --noEmit",
-    "test": "bun test"
+    "test": "bun test",
+    "seed:mod": "bun --env-file=../../.env src/scripts/seed-dev-moderator.ts"
   },
   "dependencies": {
+    "@earendil-works/pi-coding-agent": "^1.1.0",
     "@hono/zod-validator": "^0.4.3",
-    "@prisma/client": "^6.4.1",
+    "@prisma/client": "catalog:",
     "@repo/db": "workspace:*",
     "@repo/shared": "workspace:*",
-    "hono": "^4.7.2",
-    "zod": "^3.24.2"
+    "@scalar/hono-api-reference": "^0.12.8",
+    "better-auth": "^1.7.7",
+    "cloudinary": "2.11.0",
+    "hono": "catalog:",
+    "pg-boss": "^12.35.0",
+    "pi-web-access": "0.37.0",
+    "pino": "^10.3.1",
+    "zod": "catalog:",
+    "zod-to-json-schema": "^3.25.2"
   },
   "devDependencies": {
     "@repo/tsconfig": "workspace:*",
-    "@types/node": "^22.20.2",
-    "bun-types": "^1.4.2",
-    "typescript": "^5.8.2"
+    "@types/node": "catalog:",
+    "bun-types": "catalog:",
+    "typescript": "catalog:"
   }
 }

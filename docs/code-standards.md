@@ -30,7 +30,7 @@ publicHoistPattern = ["@repo/*"]
 All workspace build and verification tasks must be routed through Turborepo:
 - **Build Topological Order:** `"dependsOn": ["^build"]` ensures packages are built before consuming apps.
 - **Environment Tracking:** Any environment variable accessed during build must be declared in `"globalEnv"`.
-- **Cache Integrity:** Never mark mutating tasks (`db:generate`, `db:seed`, `db:push`) as cacheable.
+- **Cache Integrity:** Never mark mutating tasks (`db:generate`, `db:push`) as cacheable.
 
 ---
 
@@ -183,7 +183,7 @@ In `apps/web/src/lib/api.ts`, initialize the client with `hc<AppType>`:
 import { hc } from "hono/client";
 import type { AppType } from "@repo/api/types";
 
-const apiUrl = import.meta.env.VITE_API_URL || "http://localhost:3000";
+const apiUrl = import.meta.env.VITE_API_URL || "http://localhost:3005";
 
 export const client = hc<AppType>(apiUrl);
 ```

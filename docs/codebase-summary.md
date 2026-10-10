@@ -70,13 +70,13 @@ su-ky-project/
 │   │
 │   └── web/                             # Frontend Single-Page Application
 │       ├── index.html                   # HTML entrypoint with font preconnects
-│       ├── package.json                 # Dependencies: React 19, TanStack Query, Lucide, Tailwind v4
+│       ├── package.json                 # Dependencies: React 19, TanStack Query, Tailwind, shadcn/ui, Magic UI
 │       ├── tsconfig.json                # Extends @repo/tsconfig/react.json
-│       ├── vite.config.ts               # Vite 6 config with React & Tailwind CSS v4 plugins
+│       ├── vite.config.ts               # Vite 8 config with React & Tailwind CSS v4 plugin
 │       └── src/
 │           ├── main.tsx                 # React 19 DOM bootstrap with QueryClientProvider
 │           ├── App.tsx                  # Dashboard with real-time health checks & timeline demo
-│           ├── globals.css              # Global styles & Tailwind CSS v4 imports
+│           ├── styles/globals.css       # Tailwind v4 import, design tokens, and global reset
 │           └── lib/
 │               ├── api.ts               # Type-safe Hono RPC client (`client = hc<AppType>(...)`)
 │               └── queryClient.ts       # TanStack Query client configuration with sensible defaults
@@ -132,7 +132,7 @@ su-ky-project/
 - **`package.json`**:
   - Enforces `packageManager: "bun@1.4.0"`.
   - Configures workspaces: `apps/*` and `packages/*`.
-  - Exposes pipeline scripts: `dev`, `build`, `check-types`, `test`, `clean`, `db:generate`, `db:migrate`, `db:push`, `db:seed`.
+  - Exposes pipeline scripts: `dev`, `build`, `check-types`, `test`, `clean`, `db:generate`, `db:migrate`, `db:push`.
 - **`bunfig.toml`**:
   - Sets `linker = "isolated"` to prevent phantom dependencies across packages.
   - Enables `linkWorkspacePackages = true` with public hoisting for `@repo/*`.
@@ -206,7 +206,7 @@ Lightweight, zero-cold-start web service built natively on Bun using Hono v4.
   - `.`: Points to `./src/index.ts`.
   - `./types`: Points to `./src/app.ts` (exposing `AppType` and `AppEnv` for RPC consumption).
 - **Runtime Execution**:
-  - `src/index.ts` reads `PORT` (defaults to 3000) and exports Bun server object (`{ port, fetch: app.fetch }`).
+  - `src/index.ts` reads `PORT` (defaults to 3005) and exports Bun server object (`{ port, fetch: app.fetch }`).
 - **Middleware Pipeline (`src/app.ts`)**:
   1. `requestId()`: Generates UUID or propagates client `X-Request-Id`. Sets response header.
   2. `requestLogger()`: Measures duration with `performance.now()`. Emits structured JSON logs.
@@ -228,10 +228,10 @@ Lightweight, zero-cold-start web service built natively on Bun using Hono v4.
 ---
 
 ### 3.6 `@repo/web` (`apps/web`)
-React 19 single-page application bundled with Vite 6 and styled with Tailwind CSS v4.
+React 19 single-page application bundled with Vite 8 and styled with Tailwind CSS v4, source-owned shadcn/ui components, and selected Magic UI components. The root Tamagui config remains for the Expo mobile app through Metro.
 
 - **RPC Client (`src/lib/api.ts`)**:
-  - Creates type-safe client: `client = hc<AppType>(import.meta.env.VITE_API_URL || "http://localhost:3000")`.
+  - Creates type-safe client: `client = hc<AppType>(import.meta.env.VITE_API_URL || "http://localhost:3005")`.
   - Client has complete type knowledge of all backend route paths, parameters, queries, and return schemas without any manual interface declarations.
 - **Query Cache (`src/lib/queryClient.ts`)**:
   - Initialized with `staleTime: 1000 * 60` (1 minute) and `retry: 1`.
@@ -252,7 +252,7 @@ The matrix below illustrates dependencies and consumption boundaries:
 | **`packages/shared`** | Extends `base.json` | — | — | — | `zod` |
 | **`packages/db`** | Extends `bun.json` | Imports DTOs/enums | — | — | `@prisma/client`, `prisma` |
 | **`apps/api`** | Extends `bun.json` | Imports schemas & DTOs | Imports `prisma` | — | `hono`, `@hono/zod-validator`, `zod` |
-| **`apps/web`** | Extends `react.json`| Imports DTOs/enums | — | Imports `AppType` (dev) | `react`, `react-dom`, `@tanstack/react-query`, `lucide-react`, `tailwindcss` |
+| **`apps/web`** | Extends `react.json`| Imports DTOs/enums | — | Imports `AppType` (dev) | `react`, `react-dom`, `@tanstack/react-query`, `tailwindcss`, shadcn/ui source components |
 
 ---
 
@@ -260,8 +260,8 @@ The matrix below illustrates dependencies and consumption boundaries:
 
 | Variable | Target Workspace | Default in `.env.example` | Production Usage |
 | :--- | :--- | :--- | :--- |
-| `PORT` | `apps/api` | `3000` | Port on which the Bun HTTP server listens. |
+| `PORT` | `apps/api` | `3005` | Port on which the Bun HTTP server listens. |
 | `DATABASE_URL` | `packages/db`, `apps/api` | `postgresql://postgres:postgres@localhost:5432/suky_dev` | Connection string for PostgreSQL database instance. |
 | `CORS_ORIGIN` | `apps/api` | `http://localhost:5173` | Allowed origin header for cross-origin browser requests. |
-| `VITE_API_URL` | `apps/web` | `http://localhost:3000` | Base URL used by `hc<AppType>` RPC client. |
+| `VITE_API_URL` | `apps/web` | `http://localhost:3005` | Base URL used by `hc<AppType>` RPC client. |
 | `NODE_ENV` | Global | `development` | Dictates logging verbosity, Prisma client pooling, and stack traces. |
