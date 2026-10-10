@@ -1,8 +1,8 @@
 import { LockKey, Play } from "@phosphor-icons/react";
 import { useState } from "react";
-import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
-import { MagicCard } from "@/components/ui/magic-card";
+import { Button } from "@/shared/components/ui/button";
+import { Card } from "@/shared/components/ui/card";
+import { MagicCard } from "@/shared/components/ui/magic-card";
 import { featuredSeries } from "../data";
 import { SectionFrame, SectionHeading } from "./SectionFrame";
 

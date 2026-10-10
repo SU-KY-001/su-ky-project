@@ -132,7 +132,7 @@ su-ky-project/
 - **`package.json`**:
   - Enforces `packageManager: "bun@1.4.0"`.
   - Configures workspaces: `apps/*` and `packages/*`.
-  - Exposes pipeline scripts: `dev`, `build`, `check-types`, `test`, `clean`, `db:generate`, `db:migrate`, `db:push`, `db:seed`.
+  - Exposes pipeline scripts: `dev`, `build`, `check-types`, `test`, `clean`, `db:generate`, `db:migrate`, `db:push`.
 - **`bunfig.toml`**:
   - Sets `linker = "isolated"` to prevent phantom dependencies across packages.
   - Enables `linkWorkspacePackages = true` with public hoisting for `@repo/*`.

@@ -1,5 +1,5 @@
-import { ModeratorDashboard } from "../../features/moderator/components/ModeratorDashboard";
+import { SharedDashboard } from "@/shared/components/dashboard/SharedDashboard";
 
 export function ModeratorDashboardPage() {
-  return <ModeratorDashboard />;
+  return <SharedDashboard role="moderator" />;
 }

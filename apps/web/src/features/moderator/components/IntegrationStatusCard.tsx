@@ -1,6 +1,6 @@
 import { CheckCircle, CloudSlash, WarningCircle } from "@phosphor-icons/react";
-import { Badge } from "@/components/ui/badge";
-import { Card } from "@/components/ui/card";
+import { Badge } from "@/shared/components/ui/badge";
+import { Card } from "@/shared/components/ui/card";
 import { moderatorStatusTokens } from "../theme";
 import type { ModeratorIntegration } from "../types";
 import { ModeratorText } from "./ModeratorText";

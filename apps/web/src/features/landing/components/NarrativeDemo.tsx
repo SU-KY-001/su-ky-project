@@ -1,6 +1,6 @@
 import { Play, Stop } from "@phosphor-icons/react";
 import { useEffect, useState } from "react";
-import { Button } from "@/components/ui/button";
+import { Button } from "@/shared/components/ui/button";
 import { cn } from "@/lib/utils";
 import { InkWaveform } from "./InkWaveform";
 

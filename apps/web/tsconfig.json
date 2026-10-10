@@ -1,6 +1,7 @@
 {
   "extends": "@repo/tsconfig/react.json",
   "compilerOptions": {
+    "ignoreDeprecations": "6.0",
     "rootDir": "../..",
     "outDir": "dist",
     "baseUrl": ".",

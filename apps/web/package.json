@@ -12,7 +12,6 @@
   },
   "dependencies": {
     "@fontsource/be-vietnam-pro": "^5.3.0",
-    "@fontsource/manrope": "^5.3.0",
     "@hookform/resolvers": "catalog:",
     "@phosphor-icons/react": "^2.1.10",
     "@repo/shared": "workspace:*",

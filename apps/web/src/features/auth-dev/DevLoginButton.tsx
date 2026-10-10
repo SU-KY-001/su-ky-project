@@ -1,6 +1,6 @@
 import { CircleNotch, SignIn, UserCircle } from "@phosphor-icons/react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { Button } from "@/components/ui/button";
+import { Button } from "@/shared/components/ui/button";
 import { ModeratorText } from "@/features/moderator/components/ModeratorText";
 import { loginDevModerator } from "./loginDevModerator";
 import { SESSION_QUERY_KEY } from "./session";

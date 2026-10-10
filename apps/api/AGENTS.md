@@ -21,7 +21,7 @@ Tài liệu này quy định cấu trúc thư mục, kiến trúc phân tầng (
 
 4. **Chuẩn hóa Phân quyền (Authentication & Authorization):**
    - Sử dụng Better Auth với plugin `admin` và `bearer`.
-   - Roles chuẩn: `"user"`, `"moderator"` và `"admin"` (không dùng `"customer"`). Moderator biên tập nội dung qua `/api/studio/*`; Admin không sửa kịch bản (BR-22). `modules/ai-engine` là thư viện gọi LLM, không có route và không được import từ module nghiệp vụ.
+   - Roles chuẩn: `"user"`, `"moderator"` và `"admin"` (không dùng `"customer"`); đăng ký công khai mặc định nhận role `"user"`. Moderator biên tập nội dung qua `/api/studio/*`; Admin không sửa kịch bản (BR-22). `modules/ai-engine` là thư viện gọi LLM, không có route và không được import từ module nghiệp vụ.
 
 5. **Chuẩn hóa Logging (Pino & `logs/error.log`):**
    - Không sử dụng `console.log` / `console.error` tùy tiện trong mã nguồn production.

@@ -18,21 +18,12 @@ export const auth = betterAuth({
   plugins: [
     admin({
       defaultRole: "user",
-      adminRole: "admin",
+      adminRoles: ["admin"],
     }),
     bearer(),
     // Only used to generate the schema merged into /openapi.json; /docs is the single reference UI.
     openAPI({ disableDefaultReference: true }),
   ],
-  user: {
-    additionalFields: {
-      role: {
-        type: "string",
-        defaultValue: "user",
-        required: false,
-      },
-    },
-  },
 });
 
 export type Session = typeof auth.$Infer.Session & {

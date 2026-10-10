@@ -52,7 +52,7 @@ Deliver an end-to-end working platform capable of demonstrating the core value p
   - `packages/tsconfig`: Strict base, React, and Node/Bun TypeScript configurations.
 - **Infrastructure & Tooling**:
   - `docker-compose.yml`: PostgreSQL 17 container with automated healthcheck and persistent volumes.
-  - Turborepo pipelines: `build`, `dev`, `check-types`, `lint`, `test`, `db:generate`, `db:migrate`, `db:seed`.
+  - Turborepo pipelines: `build`, `dev`, `check-types`, `lint`, `test`, `db:generate`, `db:migrate`.
 
 ### 2.4 Definition of Done (DoD)
 - [x] Zero type errors (`bun run check-types` exits with code 0 across all workspaces).
