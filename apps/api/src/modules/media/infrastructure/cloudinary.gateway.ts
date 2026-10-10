@@ -54,9 +54,11 @@ export class CloudinaryGateway implements MediaStorageGateway {
   }
 
   async fetchResource(publicId: string, kind: MediaKind): Promise<StoredResource | null> {
+    // Admin API omits `duration` for video/audio unless media_metadata is requested;
+    // without it every AUDIO verify fails MEDIA_INVALID because durationMs is null.
     this.configured();
     try {
-      const result = await this.withTimeout(cloudinary.api.resource(publicId, { resource_type: resourceType(kind), type: cloudinaryType(kind) }));
+      const result = await this.withTimeout(cloudinary.api.resource(publicId, { resource_type: resourceType(kind), type: cloudinaryType(kind), media_metadata: true }));
       return { version: BigInt(result.version), format: formatOf(result, publicId), bytes: BigInt(result.bytes), durationMs: typeof result.duration === "number" ? Math.round(result.duration * 1000) : null };
     } catch (error) {
       if (typeof error === "object" && error && "http_code" in error && error.http_code === 404) return null;
