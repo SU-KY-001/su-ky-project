@@ -407,7 +407,7 @@ export const studioPaths: Paths = {
       body: {
         name: "AttachAudio",
         schema: AttachAudioSchema,
-        example: { assetId: "3f6b0c9e-7c1a-4b53-9e0e-2f5d8a1b4c10", provider: "UPLOAD" },
+        example: { assetId: "3f6b0c9e-7c1a-4b53-9e0e-2f5d8a1b4c10" },
       },
       ok: { status: 200, description: "Bản kể với audio mới", schema: narration },
       rate: "write",

@@ -139,8 +139,8 @@ export const SeriesDetailSchema = z.object({
     .object({ id: uuid, name: z.string(), period: z.object({ id: uuid, name: z.string() }) })
     .nullable()
     .describe("Giai đoạn; Thời kỳ suy ra qua `historicalPhase.period`"),
-  startYear: z.number().int().nullable(),
-  endYear: z.number().int().nullable(),
+  startYear: z.number().int().nullable().describe("Năm bắt đầu (đóng, tính cả năm này). Âm = TCN, không có năm 0, không giới hạn trên"),
+  endYear: z.number().int().nullable().describe("Năm kết thúc (đóng, tính cả năm này; khác `endYear` của Giai đoạn là loại trừ)"),
   cover: CoverSchema,
   owner: z.object({ id: z.string(), name: z.string() }),
   publishedAt: timestamp.nullable(),
