@@ -3,6 +3,7 @@ import { prisma } from "@repo/db";
 import type { SystemHealthDto } from "@repo/shared";
 import { logger } from "../core/logger";
 import { isMaintenanceRunning } from "../core/jobs/maintenance-jobs";
+import { API_VERSION } from "../core/config/app-info";
 
 export const healthRoute = new Hono().get("/", async (c) => {
   let dbStatus: "connected" | "disconnected" = "disconnected";
@@ -38,7 +39,7 @@ export const healthRoute = new Hono().get("/", async (c) => {
   const healthData: SystemHealthDto = {
     status: isHealthy ? "ok" : "degraded",
     service: "su-ky-api",
-    version: "1.0.0",
+    version: API_VERSION,
     runtime: "Bun",
     bunVersion,
     database: dbStatus,

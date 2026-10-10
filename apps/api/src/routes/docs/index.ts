@@ -1,6 +1,7 @@
 import { apiReference } from "@scalar/hono-api-reference";
 import { Hono } from "hono";
 import { env } from "../../core/env";
+import { API_VERSION } from "../../core/config/app-info";
 import { COMMON_RESPONSES, parameters, securitySchemes } from "./components";
 import { betterAuthPaths, betterAuthSchemas } from "./better-auth-schema";
 import { registeredSchemas } from "./registry";
@@ -11,7 +12,6 @@ import { mediaPaths } from "./paths/media";
 import { studioPaths } from "./paths/studio";
 import { systemAuthPaths } from "./paths/system-auth";
 
-const API_VERSION = "1.0.0";
 const SCALAR_THEME = "saturn";
 
 const DESCRIPTION = `
