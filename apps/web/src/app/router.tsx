@@ -1,9 +1,9 @@
-import { createBrowserRouter, redirectDocument, type RouteObject } from "react-router";
+import { createBrowserRouter, redirect, redirectDocument, type RouteObject } from "react-router";
 import { GuestRoute, LoadingSpinner, ProtectedRoute, RouteErrorFallback } from "@/shared/components/common";
 import { APP_PATHS } from "@/shared/constants/routes";
 import { AppFrame } from "@/shared/layouts/AppFrame";
-
-const apiUrl = (import.meta.env.VITE_API_URL || "http://localhost:3000").replace(/\/$/, "");
+import { LoginPage } from "@/pages/auth/LoginPage";
+import { apiUrl } from "@/lib/client";
 
 export const appRoutes: RouteObject[] = [
   {
@@ -15,30 +15,23 @@ export const appRoutes: RouteObject[] = [
     children: [
       {
         id: "landing",
-        index: true,
         lazy: async () => {
           const { LandingPage } = await import("../pages/landing/LandingPage");
           return { Component: LandingPage };
         },
+        children: [
+          { id: "landing-home", index: true, element: null },
+          {
+            id: "guest-routes",
+            element: <GuestRoute />,
+            children: [{ id: "login", path: APP_PATHS.login.slice(1), Component: LoginPage }],
+          },
+        ],
       },
       {
         id: "swagger-docs",
         path: APP_PATHS.docs.slice(1),
         loader: () => redirectDocument(`${apiUrl}${APP_PATHS.docs}`),
-      },
-      {
-        id: "guest-routes",
-        element: <GuestRoute />,
-        children: [
-          {
-            id: "login",
-            path: APP_PATHS.login.slice(1),
-            lazy: async () => {
-              const { LoginPage } = await import("../pages/auth/LoginPage");
-              return { Component: LoginPage };
-            },
-          },
-        ],
       },
       {
         id: "moderator-routes",
@@ -48,9 +41,15 @@ export const appRoutes: RouteObject[] = [
             id: "moderator-dashboard",
             path: APP_PATHS.moderator.slice(1),
             lazy: async () => {
-              const { ModeratorDashboardPage } = await import("../pages/moderator/ModeratorDashboardPage");
-              return { Component: ModeratorDashboardPage };
+              const { ModeratorWorkspacePage } = await import("../pages/moderator/ModeratorWorkspacePage");
+              return { Component: ModeratorWorkspacePage };
             },
+          },
+          {
+            id: "moderator-legacy-menu",
+            path: `${APP_PATHS.moderator.slice(1)}/*`,
+            element: null,
+            loader: () => redirect(APP_PATHS.moderator),
           },
         ],
       },
@@ -65,6 +64,12 @@ export const appRoutes: RouteObject[] = [
               const { AdminDashboardPage } = await import("../pages/admin/AdminDashboardPage");
               return { Component: AdminDashboardPage };
             },
+          },
+          {
+            id: "admin-legacy-menu",
+            path: `${APP_PATHS.admin.slice(1)}/*`,
+            element: null,
+            loader: () => redirect(APP_PATHS.admin),
           },
         ],
       },

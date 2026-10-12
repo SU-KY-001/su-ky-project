@@ -32,7 +32,7 @@ export function WorkflowListRow({ workflow }: { workflow: ScriptWorkflowSummary 
         to={workflowDetailPath(workflow.id)}
         className={cn(
           "grid min-h-11 grid-cols-[1fr_auto] items-center gap-x-4 gap-y-2 rounded-[12px] border bg-mod-surface p-4 no-underline transition-colors hover:bg-mod-canvas-accent focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-mod-primary",
-          waiting ? "border-2 border-mod-attention" : "border-mod-border",
+          waiting ? "border border-mod-attention/20" : "border-mod-border",
         )}
       >
         <div className="flex min-w-0 flex-col gap-1">

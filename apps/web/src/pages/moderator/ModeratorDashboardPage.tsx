@@ -1,5 +1,7 @@
-import { SharedDashboard } from "@/shared/components/dashboard/SharedDashboard";
+import { ModeratorDashboard } from "@/features/moderator/components/ModeratorDashboard";
+import { useCurrentUser } from "@/shared/hooks/useCurrentUser";
 
 export function ModeratorDashboardPage() {
-  return <SharedDashboard role="moderator" />;
+  const { data: user } = useCurrentUser();
+  return <ModeratorDashboard greetingLabel={user?.name ?? "Moderator"} />;
 }

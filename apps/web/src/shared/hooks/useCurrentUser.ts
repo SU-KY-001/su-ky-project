@@ -4,7 +4,7 @@ import { currentUserQueryKey, fetchCurrentUser } from "../services/currentUserSe
 export function useCurrentUser() {
   return useQuery({
     queryKey: currentUserQueryKey,
-    queryFn: fetchCurrentUser,
+    queryFn: ({ signal }) => fetchCurrentUser(signal),
     staleTime: 30_000,
   });
 }

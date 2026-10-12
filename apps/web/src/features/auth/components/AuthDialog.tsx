@@ -43,6 +43,7 @@ export function AuthDialog(): ReactElement {
   const [mode, setMode] = useState<AuthMode>("sign-in");
 
   const switchMode = (nextMode: AuthMode): void => {
+    if (auth.signInPending || auth.signUpPending) return;
     auth.clearSignInError();
     auth.clearSignUpError();
     auth.clearResetError();
@@ -74,8 +75,8 @@ export function AuthDialog(): ReactElement {
 
       {mode !== "reset" ? (
         <div className="auth-mode-tabs" role="tablist" aria-label="Chọn đăng nhập hoặc tạo tài khoản">
-          <button type="button" role="tab" aria-selected={mode === "sign-in"} className={mode === "sign-in" ? "is-active" : ""} onClick={() => switchMode("sign-in")}>Đăng nhập</button>
-          <button type="button" role="tab" aria-selected={mode === "sign-up"} className={mode === "sign-up" ? "is-active" : ""} onClick={() => switchMode("sign-up")}>Tạo tài khoản</button>
+          <button type="button" role="tab" disabled={auth.signInPending || auth.signUpPending} aria-selected={mode === "sign-in"} className={mode === "sign-in" ? "is-active" : ""} onClick={() => switchMode("sign-in")}>Đăng nhập</button>
+          <button type="button" role="tab" disabled={auth.signInPending || auth.signUpPending} aria-selected={mode === "sign-up"} className={mode === "sign-up" ? "is-active" : ""} onClick={() => switchMode("sign-up")}>Tạo tài khoản</button>
         </div>
       ) : null}
 
@@ -85,7 +86,7 @@ export function AuthDialog(): ReactElement {
           <PasswordField id="auth-password" label="Mật khẩu" registration={auth.signInForm.register("password")} error={auth.signInForm.formState.errors.password?.message} autoComplete="current-password" />
           <div className="auth-form-options">
             <label className="auth-remember"><input type="checkbox" {...auth.signInForm.register("rememberMe")} />Ghi nhớ đăng nhập</label>
-            <button type="button" className="auth-text-button" onClick={openReset}>Quên mật khẩu?</button>
+            <button type="button" className="auth-text-button" disabled={auth.signInPending} onClick={openReset}>Quên mật khẩu?</button>
           </div>
           <MutationError>{auth.signInError}</MutationError>
           <Button type="submit" className="auth-submit" disabled={auth.signInPending}>{auth.signInPending ? "Đang đăng nhập…" : "Đăng nhập"}</Button>

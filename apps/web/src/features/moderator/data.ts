@@ -52,4 +52,3 @@ export const moderatorOverviewMock: ModeratorOverviewData = {
   ],
 };
 
-export const moderatorMockDataLabel = "Dữ liệu minh họa";
