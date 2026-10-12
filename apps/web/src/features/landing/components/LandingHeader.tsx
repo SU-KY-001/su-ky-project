@@ -7,6 +7,8 @@ import brandLogo from "@/public/brand-su-ky-viet-nam.png";
 import { scrollToLandingTarget } from "../hooks/useLandingMotion";
 import { useNavbarScrollAnimation } from "../hooks/useNavbarScrollAnimation";
 import { useReducedMotion } from "../hooks/useReducedMotion";
+import { useCurrentUser } from "@/shared/hooks/useCurrentUser";
+import { AccountProfile } from "@/features/auth";
 
 const links = [
   { label: "Khám phá", target: "discover" },
@@ -22,6 +24,14 @@ export function LandingHeader() {
   const reducedMotion = useReducedMotion();
   const [menuOpen, setMenuOpen] = useState(false);
   const { navbarRef, isScrolled } = useNavbarScrollAnimation(reducedMotion);
+  const session = useCurrentUser();
+  const accountControl = session.data ? <AccountProfile /> : session.isPending ? (
+    <span className="h-9 w-28 rounded-lg bg-paper-deep/15" role="status" aria-label="Đang kiểm tra tài khoản" />
+  ) : session.isError ? (
+    <Button variant="outline" onClick={() => { void session.refetch(); }} className="border-line bg-paper-soft text-ink">Kiểm tra lại tài khoản</Button>
+  ) : (
+    <Button asChild className="rounded-lg bg-vermilion px-4 text-paper-soft hover:bg-vermilion-dark"><Link to="/login" onClick={() => setMenuOpen(false)}>Đăng nhập</Link></Button>
+  );
 
   return (
     <header data-navbar-scrolled={isScrolled ? "true" : "false"} className="sticky top-4 z-40 -mb-[76px] h-[76px] w-full overflow-visible bg-transparent">
@@ -51,7 +61,7 @@ export function LandingHeader() {
           <Button data-navbar-tone="primary" variant="ghost" size="icon" className="landing-nav-hover rounded-xl text-paper-soft transition-[background-color,color] duration-200" aria-label="Mở tìm kiếm">
             <MagnifyingGlass size={19} weight="regular" />
           </Button>
-          <Button asChild className="rounded-lg bg-vermilion px-4 text-paper-soft hover:bg-vermilion-dark"><Link to="/login">Đăng nhập</Link></Button>
+          {accountControl}
         </div>
 
         <Button
@@ -74,9 +84,7 @@ export function LandingHeader() {
               {link.label}
             </Button>
           ))}
-          <Button asChild className="mt-2 rounded-lg bg-vermilion px-4 py-3 text-paper-soft hover:bg-vermilion-dark">
-            <Link to="/login" onClick={() => setMenuOpen(false)}>Đăng nhập</Link>
-          </Button>
+          <div className="mt-2">{accountControl}</div>
         </nav>
       ) : null}
     </header>

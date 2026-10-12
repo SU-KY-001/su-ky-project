@@ -1,5 +1,6 @@
 import { CheckCircle, ClockCounterClockwise, FileDashed, WarningCircle } from "@phosphor-icons/react";
 import { cn } from "@/lib/utils";
+import { Badge } from "@/shared/components/ui/badge";
 import type { LibraryStatus } from "../types";
 
 const statusMeta = {
@@ -30,16 +31,16 @@ export function LibraryStatusBadge({ status, compact = false }: { status: Librar
   const Icon = meta.icon;
 
   return (
-    <span
+    <Badge variant="outline"
       className={cn(
         "inline-flex w-fit shrink-0 items-center gap-1.5 border font-semibold",
-        compact ? "rounded-md px-1.5 py-1 text-[10px]" : "rounded-lg px-2 py-1.5 text-xs",
+        compact ? "rounded-md px-2 py-1 text-xs" : "rounded-lg px-2 py-1.5 text-xs",
         meta.className,
       )}
     >
       <Icon size={compact ? 12 : 14} weight="fill" aria-hidden={true} />
       {meta.label}
-    </span>
+    </Badge>
   );
 }
 

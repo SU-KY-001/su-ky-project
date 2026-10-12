@@ -1,5 +1,5 @@
 import { useLayoutEffect } from "react";
-import { RouterProvider } from "react-router";
+import { RouterProvider } from "react-router/dom";
 import { router } from "./router";
 
 const LANDING_LOADER_MIN_VISIBLE_MS = 1200;

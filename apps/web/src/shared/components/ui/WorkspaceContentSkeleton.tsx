@@ -1,15 +1,15 @@
 const metricCards = Array.from({ length: 4 });
-const chartPanels = Array.from({ length: 2 });
-const integrationCards = Array.from({ length: 3 });
+const chartPanels = Array.from({ length: 3 });
+const integrationCards = Array.from({ length: 2 });
 const quickActions = Array.from({ length: 4 });
 
 function SkeletonBlock({ className = "" }: { className?: string }) {
-  return <span aria-hidden="true" className={`workspace-skeleton-block ${className}`} />;
+  return <span aria-hidden="true" className={`ui-skeleton workspace-skeleton-block ${className}`} />;
 }
 
 export function WorkspaceContentSkeleton({ label = "Đang tải nội dung quản trị…" }: { label?: string }) {
   return (
-    <div className="workspace-content-skeleton" role="status" aria-busy="true" aria-live="polite">
+    <div className="workspace-content-skeleton" role="status" aria-busy="true" aria-live="polite" data-skeleton-layout="overview">
       <span className="sr-only">{label}</span>
 
       <section className="workspace-skeleton-overview" aria-hidden="true">

@@ -41,12 +41,13 @@
   "devDependencies": {
     "@repo/api": "workspace:*",
     "@repo/tsconfig": "workspace:*",
+    "@tailwindcss/vite": "^4.1.14",
     "@types/node": "catalog:",
-    "bun-types": "catalog:",
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",
-    "@tailwindcss/vite": "^4.1.14",
     "@vitejs/plugin-react": "^6.1.2",
+    "bun-types": "catalog:",
+    "happy-dom": "^21.0.1",
     "typescript": "catalog:",
     "vite": "^8.3.3"
   }

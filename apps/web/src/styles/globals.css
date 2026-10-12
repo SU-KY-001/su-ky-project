@@ -257,6 +257,35 @@ img {
   border-color: var(--modBorder) !important;
 }
 
+.mod-field:focus-visible:not([aria-invalid="true"]) {
+  border-color: var(--modPrimary) !important;
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--modPrimary) 18%, transparent) !important;
+}
+
+.mod-table-row-action,
+.mod-table-row-action:hover,
+.mod-table-row-action:focus-visible,
+.mod-table-row-action:active,
+.mod-table-row-action[aria-expanded="true"] {
+  background-color: transparent !important;
+}
+
+.mod-dialog-scroll-area {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.mod-dialog-scroll-area::-webkit-scrollbar {
+  display: none;
+  width: 0;
+  height: 0;
+}
+
+.mod-select-content [role="option"]:focus-visible {
+  outline: none;
+  background: color-mix(in srgb, var(--modPrimary) 10%, var(--modSurface));
+}
+
 ::selection {
   background: rgb(181 138 60 / 28%);
   color: var(--foreground);
@@ -499,9 +528,6 @@ img {
   display: block;
   flex: none;
   border-radius: 7px;
-  background: linear-gradient(100deg, #e7edf2 25%, #f7f9fb 45%, #e7edf2 65%);
-  background-size: 200% 100%;
-  animation: workspace-skeleton-shimmer 1.6s ease-in-out infinite;
 }
 
 .workspace-skeleton-line {
@@ -519,26 +545,39 @@ img {
 .workspace-skeleton-chart-area { width: 100%; min-height: 226px; margin-top: auto; border-radius: 10px; }
 .workspace-skeleton-avatar { width: 38px; height: 38px; border-radius: 50%; }
 
-@keyframes workspace-skeleton-shimmer {
-  from { background-position: 100% 0; }
-  to { background-position: -100% 0; }
+.ui-skeleton {
+  position: relative;
+  overflow: hidden;
+  background: color-mix(in srgb, var(--modTextLow) 14%, var(--modSurface));
 }
 
-.mod-toast {
-  position: fixed;
-  z-index: 60;
-  right: 22px;
-  bottom: 22px;
-  display: flex;
-  min-height: 48px;
-  max-width: 420px;
-  align-items: center;
-  gap: 10px;
-  border-radius: 12px;
-  background: var(--modText);
-  padding: 12px 15px;
-  color: white;
-  box-shadow: 0 12px 28px rgb(15 23 42 / 18%);
+.ui-skeleton::after {
+  position: absolute;
+  inset: 0;
+  content: "";
+  pointer-events: none;
+  background: linear-gradient(90deg, transparent, color-mix(in srgb, var(--modSurface) 70%, transparent), transparent);
+  transform: translateX(-100%);
+  animation: skeleton-sweep 1.8s linear infinite;
+}
+
+.mod-content-view,
+[data-skeleton-layout] {
+  animation: moderator-content-enter 160ms ease-out;
+}
+
+@keyframes skeleton-sweep {
+  to { transform: translateX(100%); }
+}
+
+@keyframes moderator-content-enter {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ui-skeleton::after { animation: none; display: none; }
+  .mod-content-view, [data-skeleton-layout] { animation: none; }
 }
 
 @media (min-width: 621px) {
@@ -641,12 +680,6 @@ img {
     padding: 16px;
   }
 
-  .mod-toast {
-    right: 16px;
-    bottom: 16px;
-    left: 16px;
-    max-width: none;
-  }
 }
 
 /* Simple authentication dialog */
@@ -685,3 +718,4 @@ img {
   .auth-dialog-content { padding: 22px; }
   .auth-dialog-logo { width: 96px; }
 }
+

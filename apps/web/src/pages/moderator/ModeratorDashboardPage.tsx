@@ -1,5 +1,7 @@
-import { HistoricalLibraryWorkspace } from "@/features/historical-library";
+import { ModeratorDashboard } from "@/features/moderator/components/ModeratorDashboard";
+import { useCurrentUser } from "@/shared/hooks/useCurrentUser";
 
 export function ModeratorDashboardPage() {
-  return <HistoricalLibraryWorkspace />;
+  const { data: user } = useCurrentUser();
+  return <ModeratorDashboard greetingLabel={user?.name ?? "Moderator"} />;
 }

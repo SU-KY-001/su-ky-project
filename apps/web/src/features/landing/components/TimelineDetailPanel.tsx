@@ -2,12 +2,14 @@ import { LockKey, MicrophoneStage } from "@phosphor-icons/react";
 import { Button } from "@/shared/components/ui/button";
 import { Link } from "react-router";
 import type { TimelineEvent } from "../types";
+import { useCurrentUser } from "@/shared/hooks/useCurrentUser";
 
 interface TimelineDetailPanelProps {
   event: TimelineEvent;
 }
 
 export function TimelineDetailPanel({ event }: TimelineDetailPanelProps) {
+  const session = useCurrentUser();
   return (
     <div className="rounded-lg border border-bronze bg-paper-soft p-5 md:p-6">
       <div className="flex flex-col justify-between gap-5 md:flex-row">
@@ -25,9 +27,9 @@ export function TimelineDetailPanel({ event }: TimelineDetailPanelProps) {
           <p className="text-sm text-ink-soft">{event.character}</p>
           <h4 className="text-sm font-bold text-ink">Series liên quan</h4>
           <p className="text-sm text-ink-soft">{event.series}</p>
-          <Button asChild className="mt-1 rounded-md bg-vermilion text-paper-soft hover:bg-vermilion-dark">
+          {!session.isPending && !session.isError && !session.data ? <Button asChild className="mt-1 rounded-md bg-vermilion text-paper-soft hover:bg-vermilion-dark">
             <Link to="/login"><LockKey size={16} />Đăng nhập để nghe</Link>
-          </Button>
+          </Button> : null}
         </aside>
       </div>
     </div>

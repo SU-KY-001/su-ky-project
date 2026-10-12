@@ -25,3 +25,4 @@ export const authResponseSchema = z.object({
 });
 
 export const passwordResetResponseSchema = z.object({ status: z.literal(true) });
+export const signOutResponseSchema = z.object({ success: z.literal(true) });
