@@ -36,7 +36,7 @@ afterAll(async () => {
   await testWindow.happyDOM.abort();
 });
 
-async function mount(user: CurrentUser | null, entries: string[]): Promise<void> {
+async function mount(user: CurrentUser | null, entries: string[], cacheSession = true): Promise<void> {
   let serverUser = user;
   globalThis.fetch = Object.assign(async (input: URL | RequestInfo) => {
     if (String(input).endsWith("/api/auth/sign-out")) {
@@ -49,7 +49,7 @@ async function mount(user: CurrentUser | null, entries: string[]): Promise<void>
     return Response.json({ error_code: "NOT_FOUND", message: "No test endpoint" }, { status: 404 });
   }, { preconnect: originalFetch.preconnect });
   client = new QueryClient({ defaultOptions: { queries: { retry: false, staleTime: Infinity } } });
-  client.setQueryData(currentUserQueryKey, user);
+  if (cacheSession) client.setQueryData(currentUserQueryKey, user);
   router = createMemoryRouter(appRoutes, { initialEntries: entries });
   const container = document.createElement("div");
   document.body.append(container);
@@ -376,6 +376,7 @@ describe("authentication route history", () => {
     const trigger = document.querySelector('[aria-label="Hồ sơ của Tài khoản user"]');
     await act(async () => { trigger?.dispatchEvent(new PointerEvent("pointerdown", { bubbles: true, button: 0, pointerType: "mouse" })); });
     await until(() => Boolean(document.querySelector('[role="menuitem"]')));
+    expect(document.body.hasAttribute("data-scroll-locked")).toBe(false);
     const logout = Array.from(document.querySelectorAll('[role="menuitem"]')).find((item) => item.textContent?.includes("Đăng xuất"));
     expect(logout).toBeDefined();
     await act(async () => { logout?.dispatchEvent(new MouseEvent("click", { bubbles: true })); });
@@ -384,6 +385,14 @@ describe("authentication route history", () => {
     expect(Boolean(document.querySelector('[aria-label="Hồ sơ của Tài khoản user"]'))).toBe(false);
     expect(router.state.location.pathname).toBe("/");
   });
+
+  for (const [role, home] of [["user", "/"], ["moderator", "/moderator"], ["admin", "/admin"]]) {
+    it(`restores the ${role} session before deciding its homepage`, async () => {
+      await mount(userFor(role), ["/"], false);
+      await until(() => router.state.location.pathname === home && Boolean(client.getQueryData(currentUserQueryKey)) && Boolean(document.querySelector(home === "/" ? "#hero" : '[aria-label="Hồ sơ tài khoản"]')));
+      expect(Boolean(document.getElementById("hero"))).toBe(home === "/");
+    });
+  }
 
   it("opens the moderator overview by default and changes menu content without changing its URL", async () => {
     await mount(userFor("moderator"), ["/moderator"]);
@@ -434,14 +443,14 @@ describe("authentication route history", () => {
   }
 
   for (const [role, home] of [["moderator", "/moderator"], ["admin", "/admin"]]) {
-    it(`allows ${role} to browse the public homepage and blocks the old dashboard after logout`, async () => {
+    it(`redirects ${role} homepage visits to its dashboard and blocks it after logout`, async () => {
       await mount(userFor(role), [home, home]);
       await until(() => document.body.textContent?.includes(`Tài khoản ${role}`) ?? false);
       expect(document.body.textContent?.includes("Mở trang Sử Ký")).toBe(false);
       await act(async () => { await router.navigate("/"); });
-      expect(Boolean(document.getElementById("hero"))).toBe(true);
+      await until(() => router.state.location.pathname === home);
+      expect(Boolean(document.getElementById("hero"))).toBe(false);
       expect(Boolean(document.querySelector('a[href="/login"]'))).toBe(false);
-      await act(async () => { await router.navigate(-1); });
       await until(() => router.state.location.pathname === home && Array.from(document.querySelectorAll("button")).some((button) => button.textContent?.includes("Đăng xuất")));
       const logoutButton = Array.from(document.querySelectorAll("button")).find((button) => button.textContent?.includes("Đăng xuất"));
       expect(logoutButton).toBeDefined();

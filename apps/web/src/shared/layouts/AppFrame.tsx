@@ -20,7 +20,7 @@ export function AppFrame() {
   }, [location.key, location.pathname, queryClient]);
 
   return (
-    <>
+    <div className="app-frame">
       <Outlet />
       <AppToaster />
       {navigation.state !== "idle" ? (
@@ -28,6 +28,6 @@ export function AppFrame() {
           <LoadingSpinner label="Đang chuyển trang…" fullScreen={false} />
         </div>
       ) : null}
-    </>
+    </div>
   );
 }

@@ -206,6 +206,96 @@ body {
   scroll-behavior: auto;
 }
 
+.app-frame {
+  height: 100dvh;
+  overflow: hidden;
+}
+
+.landing-scroll-area {
+  height: 100%;
+  overflow-x: hidden;
+  overflow-y: auto;
+  scrollbar-gutter: stable;
+  overscroll-behavior-y: contain;
+}
+
+.landing-loader-track::after {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: linear-gradient(90deg, transparent, var(--primary), transparent);
+  content: "";
+  animation: landing-loader-shimmer 1.5s ease-in-out infinite;
+}
+
+@keyframes landing-loader-shimmer {
+  from { transform: translateX(-100%); }
+  to { transform: translateX(100%); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .landing-loader-track::after { animation: none; }
+}
+
+.app-toast {
+  will-change: transform, opacity;
+}
+
+.app-toast[data-state="open"] {
+  animation: toast-enter 220ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.app-toast[data-state="closed"] {
+  pointer-events: none;
+  animation: toast-exit 180ms ease-in both;
+}
+
+.app-toast[data-swipe="move"] {
+  animation: none;
+  transform: translateX(var(--radix-toast-swipe-move-x));
+}
+
+.app-toast[data-swipe="cancel"] {
+  transform: translateX(0);
+  transition: transform 160ms ease-out;
+}
+
+.app-toast[data-swipe="end"] {
+  animation: toast-swipe-exit 180ms ease-in both;
+}
+
+.toast-spinner {
+  animation: toast-spin 900ms linear infinite;
+}
+
+.toast-timeout {
+  animation: toast-timeout var(--toast-duration) linear forwards;
+}
+
+@keyframes toast-enter {
+  from { opacity: 0; transform: translateY(-8px) scale(0.98); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+@keyframes toast-exit {
+  from { opacity: 1; transform: translateY(0); }
+  to { opacity: 0; transform: translateY(-6px); }
+}
+
+@keyframes toast-swipe-exit {
+  from { opacity: 1; transform: translateX(var(--radix-toast-swipe-end-x)); }
+  to { opacity: 0; transform: translateX(calc(var(--radix-toast-swipe-end-x) + 100%)); }
+}
+
+@keyframes toast-spin { to { transform: rotate(360deg); } }
+@keyframes toast-timeout { to { transform: scaleX(0); } }
+
+@media (prefers-reduced-motion: reduce) {
+  .toast-timeout {
+    animation-duration: var(--toast-duration) !important;
+  }
+}
+
 body {
   overflow-x: clip;
   color: var(--foreground);
