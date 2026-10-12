@@ -14,13 +14,42 @@ export interface Topic {
   name: string;
 }
 
-/** Public read shape of an active historical period (public /historical-periods endpoint select). */
+/** Phase of a period; `[startYear, endYear)` half-open, `endYear = null` means ongoing. */
+export interface HistoricalPhase {
+  id: string;
+  slug: string;
+  name: string;
+  startYear: number | null;
+  endYear: number | null;
+  note: string | null;
+}
+
+/** Public read shape of an active historical period with its active phases (period → phase tree). */
 export interface HistoricalPeriod {
   id: string;
   slug: string;
   name: string;
   startYear: number | null;
   endYear: number | null;
+  phases: HistoricalPhase[];
+}
+
+/** Fields the delivery URL builder needs for an uploaded source file. */
+export interface SourceFileAsset {
+  id: string;
+  publicId: string;
+  kind: "AUDIO" | "IMAGE" | "DOCUMENT";
+  version: bigint | null;
+  format: string | null;
+  sizeBytes: bigint | null;
+}
+
+/** Media asset as seen when attaching an upload to a source. */
+export interface SourceFileCandidate {
+  id: string;
+  kind: "AUDIO" | "IMAGE" | "DOCUMENT";
+  status: "PENDING" | "READY" | "DELETED";
+  uploadedById: string;
 }
 
 export interface Source {
@@ -39,9 +68,12 @@ export interface Source {
   archivedAt: Date | null;
   createdAt: Date;
   updatedAt: Date;
+  fileAssetId: string | null;
+  /** Uploaded PDF asset, present when `fileAssetId` is set. */
+  fileAsset: SourceFileAsset | null;
 }
 
-/** Source plus how many episodes reference it (detail endpoint payload). */
+/** Source plus how many series reference it (detail endpoint payload). */
 export interface SourceWithUsage extends Source {
   usageCount: number;
 }

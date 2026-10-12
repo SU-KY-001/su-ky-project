@@ -8,7 +8,6 @@ export const SystemHealthSchema = z.object({
   bunVersion: z.string(),
   database: z.enum(["connected", "disconnected"]),
   queue: z.enum(["running", "stopped"]),
-  ai: z.enum(["ready", "unavailable"]),
   uptimeSeconds: z.number(),
   timestamp: z.string(),
 });

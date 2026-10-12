@@ -3,7 +3,7 @@
  * (packages/db/prisma/schema.prisma). Kept hand-written and free of
  * @repo/db imports so domain/application layers stay persistence-agnostic.
  */
-export type MediaKind = "AUDIO" | "IMAGE";
+export type MediaKind = "AUDIO" | "IMAGE" | "DOCUMENT";
 export type MediaStatus = "PENDING" | "READY" | "DELETED";
 
 export interface MediaAsset {

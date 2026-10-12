@@ -6,8 +6,7 @@ from @repo/db — enums are string-literal unions matching the Prisma enums.
 
 export type ContentStatus = "DRAFT" | "PUBLISHED" | "HIDDEN";
 export type NarrationType = "THIRD_PERSON" | "FIRST_PERSON";
-export type AudioProvider = "UPLOAD" | "ELEVENLABS";
-export type MediaKind = "AUDIO" | "IMAGE";
+export type MediaKind = "AUDIO" | "IMAGE" | "DOCUMENT";
 export type MediaStatus = "PENDING" | "READY" | "DELETED";
 export type HistoricalEntityType = "FIGURE" | "EVENT";
 export type EntityTagStatus = "SUGGESTED" | "CONFIRMED" | "REJECTED";
@@ -34,7 +33,7 @@ export interface SeriesEntity {
   id: string;
   ownerId: string;
   topicId: string | null;
-  historicalPeriodId: string | null;
+  historicalPhaseId: string | null;
   title: string;
   slug: string;
   description: string | null;
@@ -74,10 +73,7 @@ export interface EpisodeNarrationEntity {
   narrationType: NarrationType;
   narratorEntityId: string | null;
   scriptContent: string | null;
-  scriptPublicationId: number | null;
-  scriptPublicationEpisodeNo: number | null;
   audioAssetId: string | null;
-  audioProvider: AudioProvider | null;
   scriptUpdatedAt: Date | null;
   audioAttachedAt: Date | null;
   createdAt: Date;
@@ -102,13 +98,12 @@ export interface SourceEntity {
   updatedAt: Date;
 }
 
-export interface EpisodeSourceEntity {
+export interface SeriesSourceEntity {
   id: string;
-  episodeId: string;
+  seriesId: string;
   sourceId: string;
   locator: string;
   excerpt: string | null;
-  origin: TagOrigin;
   sortOrder: number;
   createdAt: Date;
 }
@@ -158,6 +153,7 @@ export interface EpisodeWithNarrations extends EpisodeEntity {
 export interface SeriesDetailEntity extends SeriesEntity {
   coverImageAsset: MediaAssetEntity | null;
   episodes: EpisodeWithNarrations[];
+  sources: SeriesSourceWithSource[];
 }
 
 export interface NarratorRef {
@@ -170,8 +166,8 @@ export interface NarrationWithNarrator extends EpisodeNarrationEntity {
   audioAsset: MediaAssetEntity | null;
 }
 
-export interface EpisodeSourceWithSource extends EpisodeSourceEntity {
-  source: SourceEntity;
+export interface SeriesSourceWithSource extends SeriesSourceEntity {
+  source: SourceEntity & { fileAsset: Pick<MediaAssetEntity, "publicId" | "kind" | "version" | "format"> | null };
 }
 
 export interface EntityRef {
@@ -194,17 +190,17 @@ export interface SeriesEpisodeRef {
 export interface SeriesDetailRef extends SeriesEntity {
   coverImageAsset: MediaAssetEntity | null;
   episodes: SeriesEpisodeRef[];
+  sources: SeriesSourceWithSource[];
 }
 
 export interface QuizRef {
   id: string;
 }
 
-/** /episodes/:slug row: full episode plus series, narrations, sources, tags, quiz. */
+/** /episodes/:slug row: full episode plus series (with citations), narrations, tags, quiz. */
 export interface EpisodeDetailEntity extends EpisodeEntity {
   series: SeriesDetailRef;
   narrations: NarrationWithNarrator[];
-  sources: EpisodeSourceWithSource[];
   entityTags: EntityTagWithEntity[];
   quiz: QuizRef | null;
 }

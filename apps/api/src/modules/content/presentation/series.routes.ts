@@ -1,4 +1,7 @@
-import { CreateSeriesSchema, EpisodeOrderSchema, PatchSeriesSchema, SeriesQuerySchema } from "@repo/shared";
+import {
+  CreateSeriesSchema, CreateSeriesSourceSchema, EpisodeOrderSchema, PatchSeriesSchema, PatchSeriesSourceSchema,
+  SeriesQuerySchema, SeriesSourceOrderSchema,
+} from "@repo/shared";
 import { zValidator } from "@hono/zod-validator";
 import { Hono } from "hono";
 import { z } from "zod";
@@ -7,10 +10,11 @@ import { idempotency, rateLimit, throwOnInvalid } from "../../../core/middleware
 import type { AppEnv } from "../../../types";
 import { requireAuth, requireRole } from "../../auth";
 import type { MediaStorageGateway } from "../../media";
-import { mapSeriesDetail, mapSeriesListItem } from "../application/content.mappers";
+import { mapSeriesDetail, mapSeriesListItem, mapSeriesSource } from "../application/content.mappers";
 import type { ContentService } from "../application/content.service";
 
 const idParam = z.object({ id: z.string().uuid() });
+const childParam = z.object({ id: z.string().uuid(), childId: z.string().uuid() });
 
 export function createSeriesRoute(service: ContentService, storage?: MediaStorageGateway) {
   return new Hono<AppEnv>()
@@ -55,5 +59,33 @@ export function createSeriesRoute(service: ContentService, storage?: MediaStorag
       const { episodeIds, baseUpdatedAt } = c.req.valid("json");
       const series = await service.reorderEpisodes(session, c.req.valid("param").id, episodeIds, baseUpdatedAt);
       return c.json(mapSeriesDetail(series, storage).episodes);
+    })
+    .get("/:id/sources", zValidator("param", idParam, throwOnInvalid), async (c) => {
+      const session = c.get("session")!;
+      const items = await service.listSources(session, c.req.valid("param").id);
+      return c.json({ items: items.map((item) => mapSeriesSource(item, storage)) });
+    })
+    .post("/:id/sources", idempotency(), rateLimit("write"), zValidator("param", idParam, throwOnInvalid), zValidator("json", CreateSeriesSourceSchema, throwOnInvalid), async (c) => {
+      const session = c.get("session")!;
+      const id = c.req.valid("param").id;
+      const item = await service.addSource(session, id, c.req.valid("json"));
+      c.header("Location", `/api/studio/series/${id}/sources/${item.id}`);
+      return c.json(mapSeriesSource(item, storage), 201);
+    })
+    .put("/:id/sources/order", rateLimit("write"), zValidator("param", idParam, throwOnInvalid), zValidator("json", SeriesSourceOrderSchema, throwOnInvalid), async (c) => {
+      const session = c.get("session")!;
+      const items = await service.reorderSources(session, c.req.valid("param").id, c.req.valid("json").seriesSourceIds);
+      return c.json({ items: items.map((item) => mapSeriesSource(item, storage)) });
+    })
+    .patch("/:id/sources/:childId", rateLimit("write"), zValidator("param", childParam, throwOnInvalid), zValidator("json", PatchSeriesSourceSchema, throwOnInvalid), async (c) => {
+      const session = c.get("session")!;
+      const { id, childId } = c.req.valid("param");
+      return c.json(mapSeriesSource(await service.patchSource(session, id, childId, c.req.valid("json")), storage));
+    })
+    .delete("/:id/sources/:childId", rateLimit("write"), zValidator("param", childParam, throwOnInvalid), async (c) => {
+      const session = c.get("session")!;
+      const { id, childId } = c.req.valid("param");
+      await service.deleteSource(session, id, childId);
+      return c.body(null, 204);
     });
 }

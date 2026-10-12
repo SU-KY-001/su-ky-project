@@ -13,7 +13,9 @@ export interface PublicSeriesQuery {
   page: number;
   limit: number;
   topicId?: string;
-  historicalPeriodId?: string;
+  historicalPhaseId?: string;
+  /** Matches every phase of the period (via `historicalPhase.periodId`). */
+  periodId?: string;
   fromYear?: number;
   toYear?: number;
   q?: string;

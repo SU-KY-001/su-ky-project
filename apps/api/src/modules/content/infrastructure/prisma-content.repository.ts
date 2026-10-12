@@ -17,7 +17,7 @@ import type {
 import type {
   ContentStatus,
   EpisodeNarrationDetailEntity,
-  EpisodeSourceWithSourceEntity,
+  SeriesSourceWithSourceEntity,
   EpisodeWithSeriesEntity,
   MediaAssetEntity,
   NarrationType,
@@ -28,15 +28,12 @@ import type {
 /**
  * Prisma adapters for the content module — the only place in this module that
  * touches @repo/db. Domain entities mirror the Prisma rows structurally, so
- * rows are returned directly without per-field mappers. The exported standalone
- * helpers are the transaction-aware API consumed by the script-workflow import
- * flow, which runs them inside its own idempotency transaction
- * (see content-import.service.ts).
+ * rows are returned directly without per-field mappers.
  */
 
-// --- transaction-aware standalone helpers (import flow) ------------------------
+// --- transaction-aware standalone helpers --------------------------------------
 
-/** Bare unique-slug draft creation (import flow; no audit, no cover bookkeeping). */
+/** Bare unique-slug draft creation (no audit, no cover bookkeeping). */
 export async function createSeriesDraft(db: DbClient, input: CreateSeriesDraftInput) {
   let createdId = "";
   await insertWithUniqueSlug(input.slug ?? input.title, async (slug) => {
@@ -48,7 +45,7 @@ export async function createSeriesDraft(db: DbClient, input: CreateSeriesDraftIn
   return db.series.findUniqueOrThrow({ where: { id: createdId } });
 }
 
-/** Unique-slug episode inserts + narration rows; runs on the passed client so the import flow keeps one transaction. */
+/** Unique-slug episode inserts + narration rows; runs on the passed client so callers keep one transaction. */
 export async function appendEpisodes(
   db: DbClient,
   seriesId: string,
@@ -64,43 +61,34 @@ export async function appendEpisodes(
       episodeId = (await db.episode.findUniqueOrThrow({ where: { slug }, select: { id: true } })).id;
       return true;
     });
-    const narration = await db.episodeNarration.create({ data: {
-      episodeId, narrationType: "THIRD_PERSON", scriptContent: input.thirdPersonScript?.content,
-      scriptPublicationId: input.thirdPersonScript?.scriptPublicationId, scriptPublicationEpisodeNo: input.thirdPersonScript?.episodeNo,
-      scriptUpdatedAt: input.thirdPersonScript ? new Date() : null,
-    } });
+    const narration = await db.episodeNarration.create({ data: { episodeId, narrationType: "THIRD_PERSON" } });
     created.push({ episodeId, narrationId: narration.id, title: input.title });
   }
   return created;
-}
-
-export async function loadSeriesForRead(db: DbClient, session: Session, id: string) {
-  const series = await db.series.findUnique({ where: { id } });
-  if (!series || (session.user.role !== "admin" && series.ownerId !== session.user.id)) {
-    throw new DomainError(404, "NOT_FOUND", "Series not found");
-  }
-  return series;
 }
 
 // --- include payloads (verbatim from the former route files) --------------------
 
 const seriesListInclude = { coverImageAsset: true, episodes: { where: { deletedAt: null }, select: { status: true } } } satisfies Prisma.SeriesInclude;
 
+const sourceInclude = {
+  source: { select: { id: true, tier: true, title: true, author: true, publicationYear: true, url: true, fileAsset: { select: { publicId: true, kind: true, version: true, format: true } } } },
+} satisfies Prisma.SeriesSourceInclude;
+
 const seriesDetailInclude = {
-  topic: { select: { id: true, name: true } }, historicalPeriod: { select: { id: true, name: true } },
+  topic: { select: { id: true, name: true } },
+  historicalPhase: { select: { id: true, name: true, period: { select: { id: true, name: true } } } },
   owner: { select: { id: true, name: true } }, coverImageAsset: true,
-  episodes: { where: { deletedAt: null }, orderBy: { sortOrder: "asc" as const }, include: { narrations: { include: { audioAsset: true } }, _count: { select: { sources: true } } } },
-  workflowRuns: { where: { status: { in: ["PENDING", "RUNNING", "WAITING_FOR_HUMAN"] } }, orderBy: { createdAt: "desc" as const } },
+  episodes: { where: { deletedAt: null }, orderBy: { sortOrder: "asc" as const }, include: { narrations: { include: { audioAsset: true } } } },
+  sources: { orderBy: { sortOrder: "asc" as const }, include: sourceInclude },
 } satisfies Prisma.SeriesInclude;
 
 const episodeInclude = {
   series: true,
   narrations: { include: { narratorEntity: { select: { id: true, name: true } }, audioAsset: true } },
-  sources: { orderBy: { sortOrder: "asc" as const }, include: { source: { select: { id: true, tier: true, title: true, author: true, publicationYear: true, url: true } } } },
   entityTags: { include: { entity: { select: { id: true, entityType: true, name: true } } } },
 } satisfies Prisma.EpisodeInclude;
 
-const sourceInclude = { source: { select: { id: true, tier: true, title: true, author: true, publicationYear: true, url: true } } } satisfies Prisma.EpisodeSourceInclude;
 const entityTagInclude = { entity: { select: { id: true, entityType: true, name: true } } } satisfies Prisma.EpisodeEntityTagInclude;
 const narrationInclude = { narratorEntity: { select: { id: true, name: true } }, audioAsset: true } satisfies Prisma.EpisodeNarrationInclude;
 
@@ -149,7 +137,7 @@ export class PrismaSeriesRepository implements SeriesRepository {
 
   async createSeries(input: CreateSeriesInput) {
     const created = await prisma.$transaction(async (tx) => {
-      const row = await createSeriesDraft(tx, { ownerId: input.ownerId, title: input.title, slug: input.slug, description: input.description, topicId: input.topicId, historicalPeriodId: input.historicalPeriodId, startYear: input.startYear, endYear: input.endYear, coverImageAssetId: input.coverImageAssetId });
+      const row = await createSeriesDraft(tx, { ownerId: input.ownerId, title: input.title, slug: input.slug, description: input.description, topicId: input.topicId, historicalPhaseId: input.historicalPhaseId, startYear: input.startYear, endYear: input.endYear, coverImageAssetId: input.coverImageAssetId });
       if (row.coverImageAssetId) await tx.mediaAsset.update({ where: { id: row.coverImageAssetId }, data: { detachedAt: null } });
       await writeAudit(tx, { actorId: input.actorId, action: "series.created", resourceType: "series", resourceId: row.id, changes: { after: { title: row.title, slug: row.slug } }, ipAddress: input.ipAddress });
       return row;
@@ -182,6 +170,49 @@ export class PrismaSeriesRepository implements SeriesRepository {
 
   async restoreSeries(id: string, restoredStatus: ContentStatus): Promise<void> {
     await prisma.series.update({ where: { id }, data: { deletedAt: null, status: restoredStatus, statusBeforeDelete: null } });
+  }
+
+  async historicalPhaseExists(id: string): Promise<boolean> {
+    return Boolean(await prisma.historicalPhase.findFirst({ where: { id, isActive: true }, select: { id: true } }));
+  }
+
+  async listSeriesSources(seriesId: string): Promise<SeriesSourceWithSourceEntity[]> {
+    return prisma.seriesSource.findMany({ where: { seriesId }, orderBy: { sortOrder: "asc" }, include: sourceInclude });
+  }
+
+  async createSeriesSource(seriesId: string, input: { sourceId: string; locator: string; excerpt?: string | null }): Promise<boolean> {
+    const max = await prisma.seriesSource.aggregate({ where: { seriesId }, _max: { sortOrder: true } });
+    const created = await prisma.seriesSource.createMany({ data: [{ seriesId, ...input, sortOrder: (max._max.sortOrder ?? 0) + 1 }], skipDuplicates: true });
+    return created.count > 0;
+  }
+
+  async findCreatedSeriesSource(seriesId: string, sourceId: string, locator: string): Promise<SeriesSourceWithSourceEntity> {
+    return prisma.seriesSource.findFirstOrThrow({ where: { seriesId, sourceId, locator }, include: sourceInclude });
+  }
+
+  async findSeriesSource(seriesId: string, childId: string) {
+    return prisma.seriesSource.findFirst({ where: { id: childId, seriesId } });
+  }
+
+  async updateSeriesSource(childId: string, patch: { locator?: string; excerpt?: string | null }): Promise<SeriesSourceWithSourceEntity> {
+    return prisma.seriesSource.update({ where: { id: childId }, data: patch, include: sourceInclude });
+  }
+
+  async countSeriesSources(seriesId: string): Promise<number> {
+    return prisma.seriesSource.count({ where: { seriesId } });
+  }
+
+  async deleteSeriesSource(seriesId: string, childId: string): Promise<void> {
+    await prisma.seriesSource.deleteMany({ where: { id: childId, seriesId } });
+  }
+
+  async listSeriesSourceIds(seriesId: string): Promise<string[]> {
+    const rows = await prisma.seriesSource.findMany({ where: { seriesId }, select: { id: true } });
+    return rows.map((row) => row.id);
+  }
+
+  async reorderSeriesSources(orderedIds: string[]): Promise<void> {
+    await prisma.$transaction(orderedIds.map((sourceId, index) => prisma.seriesSource.update({ where: { id: sourceId }, data: { sortOrder: index + 1 } })));
   }
 }
 
@@ -260,19 +291,15 @@ export class PrismaEpisodeRepository implements EpisodeRepository {
     });
   }
 
-  async findNarrationWithPublication(episodeId: string, narrationType: NarrationType) {
-    return prisma.episodeNarration.findUnique({ where: { episodeId_narrationType: { episodeId, narrationType } }, include: { scriptPublication: true } });
-  }
-
   async findNarrationUsingAsset(assetId: string, excludeNarrationId: string) {
     return prisma.episodeNarration.findFirst({ where: { audioAssetId: assetId, id: { not: excludeNarrationId } } });
   }
 
-  async attachAudio(narrationId: string, input: { previousAudioAssetId: string | null; assetId: string; provider: "UPLOAD" | "ELEVENLABS" }): Promise<EpisodeNarrationDetailEntity> {
+  async attachAudio(narrationId: string, input: { previousAudioAssetId: string | null; assetId: string }): Promise<EpisodeNarrationDetailEntity> {
     await prisma.$transaction(async (tx) => {
       if (input.previousAudioAssetId && input.previousAudioAssetId !== input.assetId) await tx.mediaAsset.update({ where: { id: input.previousAudioAssetId }, data: { detachedAt: new Date() } });
       await tx.mediaAsset.update({ where: { id: input.assetId }, data: { detachedAt: null } });
-      await tx.episodeNarration.update({ where: { id: narrationId }, data: { audioAssetId: input.assetId, audioProvider: input.provider, audioAttachedAt: new Date() } });
+      await tx.episodeNarration.update({ where: { id: narrationId }, data: { audioAssetId: input.assetId, audioAttachedAt: new Date() } });
     });
     return prisma.episodeNarration.findUniqueOrThrow({ where: { id: narrationId }, include: narrationInclude });
   }
@@ -280,7 +307,7 @@ export class PrismaEpisodeRepository implements EpisodeRepository {
   async detachAudio(narrationId: string, audioAssetId: string | null): Promise<void> {
     await prisma.$transaction(async (tx) => {
       if (audioAssetId) await tx.mediaAsset.update({ where: { id: audioAssetId }, data: { detachedAt: new Date() } });
-      await tx.episodeNarration.update({ where: { id: narrationId }, data: { audioAssetId: null, audioProvider: null, audioAttachedAt: null } });
+      await tx.episodeNarration.update({ where: { id: narrationId }, data: { audioAssetId: null, audioAttachedAt: null } });
     });
   }
 
@@ -293,45 +320,6 @@ export class PrismaEpisodeRepository implements EpisodeRepository {
 
   async findHistoricalEntity(id: string) {
     return prisma.historicalEntity.findUnique({ where: { id } });
-  }
-
-  async listEpisodeSources(episodeId: string): Promise<EpisodeSourceWithSourceEntity[]> {
-    return prisma.episodeSource.findMany({ where: { episodeId }, orderBy: { sortOrder: "asc" }, include: sourceInclude });
-  }
-
-  async createEpisodeSource(episodeId: string, input: { sourceId: string; locator: string; excerpt?: string | null }): Promise<boolean> {
-    const max = await prisma.episodeSource.aggregate({ where: { episodeId }, _max: { sortOrder: true } });
-    const created = await prisma.episodeSource.createMany({ data: [{ episodeId, ...input, origin: "MODERATOR", sortOrder: (max._max.sortOrder ?? 0) + 1 }], skipDuplicates: true });
-    return created.count > 0;
-  }
-
-  async findCreatedEpisodeSource(episodeId: string, sourceId: string, locator: string): Promise<EpisodeSourceWithSourceEntity> {
-    return prisma.episodeSource.findFirstOrThrow({ where: { episodeId, sourceId, locator }, include: sourceInclude });
-  }
-
-  async findEpisodeSource(episodeId: string, childId: string) {
-    return prisma.episodeSource.findFirst({ where: { id: childId, episodeId } });
-  }
-
-  async updateEpisodeSource(childId: string, patch: { locator?: string; excerpt?: string | null }): Promise<EpisodeSourceWithSourceEntity> {
-    return prisma.episodeSource.update({ where: { id: childId }, data: patch, include: sourceInclude });
-  }
-
-  async countEpisodeSources(episodeId: string): Promise<number> {
-    return prisma.episodeSource.count({ where: { episodeId } });
-  }
-
-  async deleteEpisodeSource(episodeId: string, childId: string): Promise<void> {
-    await prisma.episodeSource.deleteMany({ where: { id: childId, episodeId } });
-  }
-
-  async listEpisodeSourceIds(episodeId: string): Promise<string[]> {
-    const rows = await prisma.episodeSource.findMany({ where: { episodeId }, select: { id: true } });
-    return rows.map((row) => row.id);
-  }
-
-  async reorderEpisodeSources(orderedIds: string[]): Promise<void> {
-    await prisma.$transaction(orderedIds.map((sourceId, index) => prisma.episodeSource.update({ where: { id: sourceId }, data: { sortOrder: index + 1 } })));
   }
 
   async listEpisodeEntityTags(episodeId: string) {

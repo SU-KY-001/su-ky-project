@@ -1,1 +1,1 @@
-export type { PublicEpisodeSourceDto } from "@/shared/types";
+export type { PublicSeriesSourceDto } from "@/shared/types";

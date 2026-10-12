@@ -22,16 +22,10 @@ enum NarrationType {
   @@map("narration_type")
 }
 
-enum AudioProvider {
-  UPLOAD
-  ELEVENLABS
-
-  @@map("audio_provider")
-}
-
 enum MediaKind {
   AUDIO
   IMAGE
+  DOCUMENT
 
   @@map("media_kind")
 }
@@ -116,8 +110,6 @@ model User {
   lockedEpisodes          Episode[]              @relation("EpisodeLocker")
   uploadedMediaAssets     MediaAsset[]           @relation("MediaUploader")
   confirmedEntityTags     EpisodeEntityTag[]     @relation("EntityTagConfirmer")
-  workflowRuns            WorkflowRun[]
-  approvedPublications    ScriptPublication[]
   quizAttempts            QuizAttempt[]
   listeningProgress       ListeningProgress[]
   missionTemplates        MissionTemplate[]      @relation("MissionTemplateCreator")
@@ -206,9 +198,30 @@ model HistoricalPeriod {
   createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
   updatedAt   DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
   createdBy   User?    @relation("HistoricalPeriodCreator", fields: [createdById], references: [id], onDelete: SetNull)
-  series      Series[]
+  phases      HistoricalPhase[]
 
   @@map("historical_periods")
+}
+
+/// Giai đoạn thuộc một Thời kỳ. Năm theo quy ước nửa kín [startYear, endYear): endYear loại trừ,
+/// null = còn tiếp diễn (endYear) / không xác định (startYear). Năm TCN là số âm, không có năm 0.
+model HistoricalPhase {
+  id        String           @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  periodId  String           @map("period_id") @db.Uuid
+  name      String           @db.VarChar(255)
+  slug      String           @unique @db.VarChar(280)
+  startYear Int?             @map("start_year") @db.SmallInt
+  endYear   Int?             @map("end_year") @db.SmallInt
+  note      String?          @db.Text
+  sortOrder Int              @default(0) @map("sort_order") @db.SmallInt
+  isActive  Boolean          @default(true) @map("is_active")
+  createdAt DateTime         @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt DateTime         @updatedAt @map("updated_at") @db.Timestamptz(3)
+  period    HistoricalPeriod @relation(fields: [periodId], references: [id], onDelete: Restrict)
+  series    Series[]
+
+  @@index([periodId, sortOrder], map: "historical_phases_period_id_sort_order_idx")
+  @@map("historical_phases")
 }
 
 model HistoricalEntity {
@@ -248,7 +261,9 @@ model Source {
   createdAt       DateTime    @default(now()) @map("created_at") @db.Timestamptz(3)
   updatedAt       DateTime    @updatedAt @map("updated_at") @db.Timestamptz(3)
   createdBy       User?       @relation("SourceCreator", fields: [createdById], references: [id], onDelete: SetNull)
-  episodeSources  EpisodeSource[]
+  fileAssetId     String?     @unique(map: "sources_file_asset_id_key") @map("file_asset_id") @db.Uuid
+  fileAsset       MediaAsset? @relation("SourceFile", fields: [fileAssetId], references: [id], onDelete: Restrict)
+  seriesSources   SeriesSource[]
 
   @@map("sources")
 }
@@ -257,7 +272,7 @@ model Series {
   id                   String          @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   ownerId              String          @map("owner_id") @db.VarChar(36)
   topicId              String?         @map("topic_id") @db.Uuid
-  historicalPeriodId   String?         @map("historical_period_id") @db.Uuid
+  historicalPhaseId    String?         @map("historical_phase_id") @db.Uuid
   title                String          @db.VarChar(255)
   slug                 String          @unique @db.VarChar(280)
   description          String?         @db.Text
@@ -274,15 +289,15 @@ model Series {
   updatedAt            DateTime        @updatedAt @map("updated_at") @db.Timestamptz(3)
   owner                User            @relation("SeriesOwner", fields: [ownerId], references: [id], onDelete: Restrict)
   topic                Topic?          @relation(fields: [topicId], references: [id], onDelete: Restrict)
-  historicalPeriod     HistoricalPeriod? @relation(fields: [historicalPeriodId], references: [id], onDelete: Restrict)
+  historicalPhase      HistoricalPhase? @relation(fields: [historicalPhaseId], references: [id], onDelete: Restrict)
   coverImageAsset      MediaAsset?     @relation("SeriesCover", fields: [coverImageAssetId], references: [id], onDelete: Restrict)
   adminLockedBy        User?           @relation("SeriesLocker", fields: [adminLockedById], references: [id], onDelete: SetNull)
   episodes             Episode[]
-  workflowRuns         WorkflowRun[]
+  sources              SeriesSource[]
 
   @@index([ownerId], map: "series_owner_id_idx")
   @@index([topicId], map: "series_topic_id_idx")
-  @@index([historicalPeriodId], map: "series_historical_period_id_idx")
+  @@index([historicalPhaseId], map: "series_historical_phase_id_idx")
   @@index([startYear, endYear], map: "series_year_range_idx")
   @@map("series")
 }
@@ -305,7 +320,6 @@ model Episode {
   series              Series         @relation(fields: [seriesId], references: [id], onDelete: Restrict)
   adminLockedBy       User?          @relation("EpisodeLocker", fields: [adminLockedById], references: [id], onDelete: SetNull)
   narrations          EpisodeNarration[]
-  sources             EpisodeSource[]
   entityTags          EpisodeEntityTag[]
   quiz                Quiz?
   listeningProgress   ListeningProgress[]
@@ -320,22 +334,17 @@ model EpisodeNarration {
   narrationType              NarrationType  @map("narration_type")
   narratorEntityId           String?        @map("narrator_entity_id") @db.Uuid
   scriptContent              String?        @map("script_content") @db.Text
-  scriptPublicationId        Int?           @map("script_publication_id")
-  scriptPublicationEpisodeNo Int?           @map("script_publication_episode_no") @db.SmallInt
   audioAssetId               String?        @unique(map: "episode_narrations_audio_asset_id_key") @map("audio_asset_id") @db.Uuid
-  audioProvider              AudioProvider? @map("audio_provider")
   scriptUpdatedAt            DateTime?      @map("script_updated_at") @db.Timestamptz(3)
   audioAttachedAt            DateTime?      @map("audio_attached_at") @db.Timestamptz(3)
   createdAt                  DateTime       @default(now()) @map("created_at") @db.Timestamptz(3)
   updatedAt                  DateTime       @updatedAt @map("updated_at") @db.Timestamptz(3)
   episode                    Episode        @relation(fields: [episodeId], references: [id], onDelete: Cascade)
   narratorEntity             HistoricalEntity? @relation(fields: [narratorEntityId], references: [id], onDelete: Restrict)
-  scriptPublication          ScriptPublication? @relation(fields: [scriptPublicationId], references: [id], onDelete: Restrict)
   audioAsset                 MediaAsset?    @relation("NarrationAudio", fields: [audioAssetId], references: [id], onDelete: Restrict)
   listeningProgress          ListeningProgress[]
 
   @@unique([episodeId, narrationType], map: "episode_narrations_episode_id_narration_type_key")
-  @@unique([scriptPublicationId, scriptPublicationEpisodeNo], map: "episode_narrations_script_publication_id_episode_no_key")
   @@map("episode_narrations")
 }
 
@@ -356,6 +365,7 @@ model MediaAsset {
   uploadedBy        User        @relation("MediaUploader", fields: [uploadedById], references: [id], onDelete: Restrict)
   seriesCover       Series[]    @relation("SeriesCover")
   narrationAudio    EpisodeNarration? @relation("NarrationAudio")
+  sourceFile        Source?     @relation("SourceFile")
   listeningProgress ListeningProgress[]
 
   @@index([status, createdAt], map: "media_assets_status_created_at_idx")
@@ -364,21 +374,20 @@ model MediaAsset {
   @@map("media_assets")
 }
 
-model EpisodeSource {
-  id        String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  episodeId String    @map("episode_id") @db.Uuid
-  sourceId  String    @map("source_id") @db.Uuid
-  locator   String    @default("") @db.VarChar(255)
-  excerpt   String?   @db.Text
-  origin    TagOrigin
-  sortOrder Int       @map("sort_order") @db.SmallInt
-  createdAt DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
-  episode   Episode   @relation(fields: [episodeId], references: [id], onDelete: Cascade)
-  source    Source    @relation(fields: [sourceId], references: [id], onDelete: Restrict)
+model SeriesSource {
+  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  seriesId  String   @map("series_id") @db.Uuid
+  sourceId  String   @map("source_id") @db.Uuid
+  locator   String   @default("") @db.VarChar(255)
+  excerpt   String?  @db.Text
+  sortOrder Int      @map("sort_order") @db.SmallInt
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  series    Series   @relation(fields: [seriesId], references: [id], onDelete: Cascade)
+  source    Source   @relation(fields: [sourceId], references: [id], onDelete: Restrict)
 
-  @@unique([episodeId, sourceId, locator], map: "episode_sources_episode_id_source_id_locator_key")
-  @@index([sourceId], map: "episode_sources_source_id_idx")
-  @@map("episode_sources")
+  @@unique([seriesId, sourceId, locator], map: "series_sources_series_id_source_id_locator_key")
+  @@index([sourceId], map: "series_sources_source_id_idx")
+  @@map("series_sources")
 }
 
 model EpisodeEntityTag {
@@ -397,97 +406,6 @@ model EpisodeEntityTag {
   @@unique([episodeId, entityId], map: "episode_entity_tags_episode_id_entity_id_key")
   @@index([entityId, status], map: "episode_entity_tags_entity_id_status_idx")
   @@map("episode_entity_tags")
-}
-
-model WorkflowRun {
-  id          Int       @id @default(autoincrement())
-  seriesId    String?   @map("series_id") @db.Uuid
-  topic       String    @db.Text
-  focusHint   String?   @map("focus_hint") @db.Text
-  status      String    @default("PENDING") @db.VarChar(32)
-  currentStep String?   @map("current_step") @db.VarChar(64)
-  createdById String    @map("created_by_id") @db.VarChar(36)
-  createdAt   DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
-  updatedAt   DateTime  @updatedAt @map("updated_at") @db.Timestamptz(3)
-  completedAt DateTime? @map("completed_at") @db.Timestamptz(3)
-  series      Series?   @relation(fields: [seriesId], references: [id], onDelete: SetNull)
-  createdBy   User      @relation(fields: [createdById], references: [id], onDelete: Restrict)
-  steps       WorkflowStep[]
-  events      WorkflowEvent[]
-  publications ScriptPublication[]
-
-  @@index([createdById, createdAt], map: "workflow_runs_created_by_id_created_at_idx")
-  @@index([seriesId], map: "workflow_runs_series_id_idx")
-  @@map("workflow_runs")
-}
-
-model WorkflowStep {
-  id               Int         @id @default(autoincrement())
-  workflowRunId    Int         @map("workflow_run_id")
-  stepType         String      @map("step_type") @db.VarChar(64)
-  status           String      @default("PENDING") @db.VarChar(32)
-  currentVersion   Int?        @map("current_version")
-  approvedVersion  Int?        @map("approved_version")
-  errorMessage     String?     @map("error_message") @db.Text
-  incomingGuidance String?     @map("incoming_guidance") @db.Text
-  createdAt        DateTime    @default(now()) @map("created_at") @db.Timestamptz(3)
-  updatedAt        DateTime    @updatedAt @map("updated_at") @db.Timestamptz(3)
-  workflowRun      WorkflowRun @relation(fields: [workflowRunId], references: [id], onDelete: Cascade)
-  versions         StepVersion[]
-
-  @@unique([workflowRunId, stepType], map: "workflow_steps_workflow_run_id_step_type_key")
-  @@map("workflow_steps")
-}
-
-model StepVersion {
-  id               Int          @id @default(autoincrement())
-  workflowStepId   Int          @map("workflow_step_id")
-  parentVersionId  Int?         @map("parent_version_id")
-  version          Int
-  inputJson        Json?        @map("input_json")
-  outputJson       Json         @map("output_json")
-  humanFeedback    String?      @map("human_feedback") @db.Text
-  validationStatus String       @default("valid") @map("validation_status") @db.VarChar(32)
-  createdAt        DateTime     @default(now()) @map("created_at") @db.Timestamptz(3)
-  workflowStep     WorkflowStep @relation(fields: [workflowStepId], references: [id], onDelete: Cascade)
-  parent           StepVersion? @relation("StepVersionTree", fields: [parentVersionId], references: [id], onDelete: SetNull)
-  children         StepVersion[] @relation("StepVersionTree")
-  publications     ScriptPublication[]
-
-  @@unique([workflowStepId, version], map: "step_versions_workflow_step_id_version_key")
-  @@index([parentVersionId], map: "step_versions_parent_version_id_idx")
-  @@map("step_versions")
-}
-
-model WorkflowEvent {
-  id            Int         @id @default(autoincrement())
-  workflowRunId Int         @map("workflow_run_id")
-  type          String      @map("event_type") @db.VarChar(64)
-  message       String      @db.Text
-  metadataJson  Json?       @map("metadata_json")
-  createdAt     DateTime    @default(now()) @map("created_at") @db.Timestamptz(3)
-  workflowRun   WorkflowRun @relation(fields: [workflowRunId], references: [id], onDelete: Cascade)
-
-  @@index([workflowRunId, id], map: "workflow_events_workflow_run_id_id_idx")
-  @@map("workflow_events")
-}
-
-model ScriptPublication {
-  id                       Int          @id @default(autoincrement())
-  workflowRunId            Int          @map("workflow_run_id")
-  approvedVersionId        Int          @unique @map("approved_version_id")
-  approvedById             String       @map("approved_by_id") @db.VarChar(36)
-  finalScript              String       @map("final_script") @db.Text
-  wordCount                Int          @map("word_count")
-  estimatedDurationSeconds Int          @map("estimated_duration_seconds")
-  publishedAt              DateTime     @default(now()) @map("published_at") @db.Timestamptz(3)
-  workflowRun              WorkflowRun  @relation(fields: [workflowRunId], references: [id], onDelete: Cascade)
-  approvedVersion          StepVersion  @relation(fields: [approvedVersionId], references: [id], onDelete: Cascade)
-  approvedBy               User         @relation(fields: [approvedById], references: [id], onDelete: Restrict)
-  narrations               EpisodeNarration[]
-
-  @@index([workflowRunId], map: "script_publications_workflow_run_id_idx")
-  @@map("script_publications")
 }
 
 model Quiz {

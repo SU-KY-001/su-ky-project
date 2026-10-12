@@ -10,14 +10,18 @@ import type {
 import type {
   ContentStatus,
   EpisodeNarrationDetailEntity,
-  EpisodeSourceWithSourceEntity,
+  SeriesSourceWithSourceEntity,
   EpisodeWorkspaceEntity,
   MediaAssetEntity,
   NarrationType,
   SeriesDetailEntity,
   SeriesListItemEntity,
 } from "../domain/content.entity";
+import { getSystemConfig } from "../../../core/config/system-config";
 import { episodeChecklist, seriesChecklist } from "./content.mappers";
+
+/** Scripts are plain text read aloud: markup would be spoken or rendered literally. */
+const HTML_TAG_PATTERN = /<\/?[a-z!][^>]*>/i;
 
 /**
  * Studio orchestration for series/episode content. Ports are injected; Prisma
@@ -78,6 +82,19 @@ export class ContentService {
     }
   }
 
+  private async assertPhaseUsable(phaseId: string | null | undefined): Promise<void> {
+    if (phaseId && !(await this.series.historicalPhaseExists(phaseId))) {
+      throw new DomainError(422, "VALIDATION_ERROR", "Historical phase does not exist");
+    }
+  }
+
+  private async assertScriptValid(script: string | null | undefined): Promise<void> {
+    if (!script) return;
+    const maxChars = await getSystemConfig("script.max_chars");
+    if (script.length > maxChars) throw new DomainError(422, "VALIDATION_ERROR", `Script exceeds ${maxChars} characters`);
+    if (HTML_TAG_PATTERN.test(script)) throw new DomainError(422, "VALIDATION_ERROR", "Script must be plain text without HTML");
+  }
+
   private async getSeriesDetail(id: string) {
     const series = await this.series.getSeriesDetail(id);
     if (!series) throw new DomainError(404, "NOT_FOUND", "Series not found");
@@ -103,7 +120,8 @@ export class ContentService {
     return { items: items.items, page: filter.page, limit: filter.limit, total: items.total };
   }
 
-  async createSeries(session: Session, input: { title: string; slug?: string; description?: string | null; topicId?: string | null; historicalPeriodId?: string | null; startYear?: number | null; endYear?: number | null; coverImageAssetId?: string | null }, ipAddress: string | null): Promise<SeriesDetailEntity> {
+  async createSeries(session: Session, input: { title: string; slug?: string; description?: string | null; topicId?: string | null; historicalPhaseId?: string | null; startYear?: number | null; endYear?: number | null; coverImageAssetId?: string | null }, ipAddress: string | null): Promise<SeriesDetailEntity> {
+    await this.assertPhaseUsable(input.historicalPhaseId);
     if (input.coverImageAssetId) {
       this.assertCoverAssetUsable(await this.series.findMediaAsset(input.coverImageAssetId), session);
     }
@@ -116,7 +134,7 @@ export class ContentService {
     return this.getSeriesDetail(id);
   }
 
-  async updateSeries(session: Session, id: string, input: { title?: string; slug?: string; description?: string | null; topicId?: string | null; historicalPeriodId?: string | null; startYear?: number | null; endYear?: number | null; coverImageAssetId?: string | null; baseUpdatedAt?: Date }, ipAddress: string | null): Promise<SeriesDetailEntity> {
+  async updateSeries(session: Session, id: string, input: { title?: string; slug?: string; description?: string | null; topicId?: string | null; historicalPhaseId?: string | null; startYear?: number | null; endYear?: number | null; coverImageAssetId?: string | null; baseUpdatedAt?: Date }, ipAddress: string | null): Promise<SeriesDetailEntity> {
     const current = await this.loadSeriesForRead(session, id);
     assertWritable(session, current);
     await this.assertBaseUpdatedAt("series", id, input.baseUpdatedAt);
@@ -125,6 +143,7 @@ export class ContentService {
     if (patch.slug !== undefined) {
       patch.slug = await insertWithUniqueSlug(patch.slug, async (candidate) => !(await this.series.seriesSlugConflict(candidate, id)));
     }
+    await this.assertPhaseUsable(patch.historicalPhaseId);
     if (patch.coverImageAssetId) {
       this.assertCoverAssetUsable(await this.series.findMediaAsset(patch.coverImageAssetId), session);
     }
@@ -169,6 +188,51 @@ export class ContentService {
     if (session.user.role !== "admin" && current.adminLockedAt) throw new DomainError(403, "CONTENT_LOCKED", "Content is locked by an administrator");
     if (current.deletedAt) await this.series.restoreSeries(id, current.statusBeforeDelete ?? "DRAFT");
     return this.getSeriesDetail(id);
+  }
+
+  // --- series sources ------------------------------------------------------------
+
+  async listSources(session: Session, seriesId: string): Promise<SeriesSourceWithSourceEntity[]> {
+    await this.loadSeriesForRead(session, seriesId);
+    return this.series.listSeriesSources(seriesId);
+  }
+
+  async addSource(session: Session, seriesId: string, input: { sourceId: string; locator: string; excerpt?: string | null }): Promise<SeriesSourceWithSourceEntity> {
+    const series = await this.loadSeriesForRead(session, seriesId);
+    assertWritable(session, series);
+    const created = await this.series.createSeriesSource(seriesId, input);
+    if (!created) throw new DomainError(409, "SERIES_SOURCE_DUPLICATE", "Source is already attached at this locator");
+    return this.series.findCreatedSeriesSource(seriesId, input.sourceId, input.locator);
+  }
+
+  async patchSource(session: Session, seriesId: string, childId: string, input: { locator?: string; excerpt?: string | null }): Promise<SeriesSourceWithSourceEntity> {
+    const series = await this.loadSeriesForRead(session, seriesId);
+    assertWritable(session, series);
+    const existing = await this.series.findSeriesSource(seriesId, childId);
+    if (!existing) throw new DomainError(404, "NOT_FOUND", "Series source not found");
+    return this.series.updateSeriesSource(childId, input);
+  }
+
+  async deleteSource(session: Session, seriesId: string, childId: string): Promise<void> {
+    const series = await this.loadSeriesForRead(session, seriesId);
+    assertWritable(session, series);
+    const existing = await this.series.findSeriesSource(seriesId, childId);
+    if (!existing) return;
+    if (series.status === "PUBLISHED" && (await this.series.countSeriesSources(seriesId)) <= 1) {
+      throw new DomainError(409, "REQUIRED_FOR_PUBLISHED", "Published series require a source");
+    }
+    await this.series.deleteSeriesSource(seriesId, childId);
+  }
+
+  async reorderSources(session: Session, seriesId: string, ids: string[]): Promise<SeriesSourceWithSourceEntity[]> {
+    const series = await this.loadSeriesForRead(session, seriesId);
+    assertWritable(session, series);
+    const rows = await this.series.listSeriesSourceIds(seriesId);
+    if (ids.length !== rows.length || new Set(ids).size !== ids.length || ids.some((value) => !rows.includes(value))) {
+      throw new DomainError(422, "SERIES_SOURCE_ORDER_MISMATCH", "Source order must contain every source exactly once");
+    }
+    await this.series.reorderSeriesSources(ids);
+    return this.series.listSeriesSources(seriesId);
   }
 
   async reorderEpisodes(session: Session, id: string, episodeIds: string[], baseUpdatedAt?: Date): Promise<SeriesDetailEntity> {
@@ -256,6 +320,7 @@ export class ContentService {
     assertWritable(session, episode.series, episode);
     const current = await this.episodes.findNarrationByType(id, type);
     if (current) await this.assertBaseUpdatedAt("narration", current.id, input.baseUpdatedAt);
+    await this.assertScriptValid(input.scriptContent);
     if (type === "THIRD_PERSON" && episode.status === "PUBLISHED" && !input.scriptContent?.trim()) throw new DomainError(409, "REQUIRED_FOR_PUBLISHED", "Published episodes require a third-person script");
     if (type === "FIRST_PERSON") {
       if (!input.narratorEntityId) throw new DomainError(422, "VALIDATION_ERROR", "First-person narration requires a narrator");
@@ -273,17 +338,7 @@ export class ContentService {
     await this.episodes.deleteNarration(narration.id, narration.audioAssetId);
   }
 
-  async getAiOriginal(session: Session, id: string, type: NarrationType): Promise<{ scriptContent: string }> {
-    await this.loadEpisodeForRead(session, id);
-    const narration = await this.episodes.findNarrationWithPublication(id, type);
-    if (!narration?.scriptPublication || !narration.scriptPublicationEpisodeNo) throw new DomainError(404, "NOT_FOUND", "AI original is not available");
-    const segment = narration.scriptPublication.finalScript.split("\n\n---\n\n")[narration.scriptPublicationEpisodeNo - 1];
-    const content = segment?.slice(segment.indexOf("\n\n") + 2);
-    if (!content) throw new DomainError(404, "NOT_FOUND", "AI original is not available");
-    return { scriptContent: content };
-  }
-
-  async attachAudio(session: Session, id: string, type: NarrationType, input: { assetId: string; provider: "UPLOAD" | "ELEVENLABS"; confirmReplacePublished?: boolean }): Promise<EpisodeNarrationDetailEntity> {
+  async attachAudio(session: Session, id: string, type: NarrationType, input: { assetId: string; confirmReplacePublished?: boolean }): Promise<EpisodeNarrationDetailEntity> {
     const episode = await this.loadEpisodeForRead(session, id);
     assertWritable(session, episode.series, episode);
     this.assertAudioAssetUsable(await this.series.findMediaAsset(input.assetId), session);
@@ -294,7 +349,7 @@ export class ContentService {
     if (episode.status === "PUBLISHED" && narration.audioAssetId && narration.audioAssetId !== input.assetId && !input.confirmReplacePublished) {
       throw new DomainError(409, "REPLACE_CONFIRMATION_REQUIRED", "Confirm replacing published audio");
     }
-    return this.episodes.attachAudio(narration.id, { previousAudioAssetId: narration.audioAssetId, assetId: input.assetId, provider: input.provider });
+    return this.episodes.attachAudio(narration.id, { previousAudioAssetId: narration.audioAssetId, assetId: input.assetId });
   }
 
   async detachAudio(session: Session, id: string, type: NarrationType): Promise<void> {
@@ -304,49 +359,6 @@ export class ContentService {
     if (!narration) throw new DomainError(404, "NOT_FOUND", "Narration not found");
     if (episode.status === "PUBLISHED" && type === "THIRD_PERSON") throw new DomainError(409, "REQUIRED_FOR_PUBLISHED", "Published episodes require third-person audio");
     await this.episodes.detachAudio(narration.id, narration.audioAssetId);
-  }
-
-  // --- episode sources ---------------------------------------------------------
-
-  async listSources(session: Session, id: string): Promise<EpisodeSourceWithSourceEntity[]> {
-    await this.loadEpisodeForRead(session, id);
-    return this.episodes.listEpisodeSources(id);
-  }
-
-  async addSource(session: Session, id: string, input: { sourceId: string; locator: string; excerpt?: string | null }): Promise<EpisodeSourceWithSourceEntity> {
-    const episode = await this.loadEpisodeForRead(session, id);
-    assertWritable(session, episode.series, episode);
-    const created = await this.episodes.createEpisodeSource(id, input);
-    if (!created) throw new DomainError(409, "EPISODE_SOURCE_DUPLICATE", "Source is already attached at this locator");
-    return this.episodes.findCreatedEpisodeSource(id, input.sourceId, input.locator);
-  }
-
-  async patchSource(session: Session, id: string, childId: string, input: { locator?: string; excerpt?: string | null }): Promise<EpisodeSourceWithSourceEntity> {
-    const episode = await this.loadEpisodeForRead(session, id);
-    assertWritable(session, episode.series, episode);
-    const existing = await this.episodes.findEpisodeSource(id, childId);
-    if (!existing) throw new DomainError(404, "NOT_FOUND", "Episode source not found");
-    return this.episodes.updateEpisodeSource(childId, input);
-  }
-
-  async deleteSource(session: Session, id: string, childId: string): Promise<void> {
-    const episode = await this.loadEpisodeForRead(session, id);
-    assertWritable(session, episode.series, episode);
-    if (episode.status === "PUBLISHED" && (await this.episodes.countEpisodeSources(id)) <= 1) {
-      throw new DomainError(409, "REQUIRED_FOR_PUBLISHED", "Published episodes require a source");
-    }
-    await this.episodes.deleteEpisodeSource(id, childId);
-  }
-
-  async reorderSources(session: Session, id: string, ids: string[]): Promise<EpisodeSourceWithSourceEntity[]> {
-    const episode = await this.loadEpisodeForRead(session, id);
-    assertWritable(session, episode.series, episode);
-    const rows = await this.episodes.listEpisodeSourceIds(id);
-    if (ids.length !== rows.length || ids.some((value) => !rows.includes(value))) {
-      throw new DomainError(422, "EPISODE_ORDER_MISMATCH", "Source order must contain every source exactly once");
-    }
-    await this.episodes.reorderEpisodeSources(ids);
-    return this.episodes.listEpisodeSources(id);
   }
 
   // --- episode entity tags -------------------------------------------------------

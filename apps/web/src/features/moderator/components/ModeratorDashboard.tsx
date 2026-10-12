@@ -2,6 +2,7 @@ import { useEffect, useState, type ReactNode } from "react";
 import { ArrowClockwise, CheckCircle, Plus } from "@phosphor-icons/react";
 import { Button } from "@/shared/components/ui/button";
 import { moderatorMockDataLabel, moderatorOverviewMock } from "../data";
+
 import type { ModeratorQuickActionIcon } from "../types";
 import { AreaChartPanel } from "./AreaChartPanel";
 import { IntegrationStatusCard } from "./IntegrationStatusCard";
@@ -42,6 +43,7 @@ export function ModeratorDashboard({ greetingLabel, onToast, onReady }: Moderato
     year: "numeric",
   }).format(today);
   const currentDate = `${formattedDate.slice(0, 1).toLocaleUpperCase("vi-VN")}${formattedDate.slice(1)}`;
+
 
   return (
     <>

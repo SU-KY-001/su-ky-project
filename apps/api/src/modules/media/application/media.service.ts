@@ -2,15 +2,18 @@ import { getSystemConfig } from "../../../core/config/system-config";
 import { DomainError } from "../../../core/errors/domain-error";
 import { env } from "../../../core/env";
 import type { MediaAsset, MediaKind } from "../domain/media.entity";
+import { documentExtension } from "../domain/media.formats";
 import { MediaProviderError, type MediaRepository, type MediaStorageGateway } from "../domain/media.repository";
+
+const SEGMENT_BY_KIND = { AUDIO: "audio", IMAGE: "image", DOCUMENT: "document" } as const;
 
 export class MediaService {
   constructor(private readonly storage: MediaStorageGateway, private readonly repository: MediaRepository) {}
 
   private async config(kind: MediaKind) {
-    return kind === "AUDIO"
-      ? { maxBytes: await getSystemConfig("media.audio.max_bytes"), formats: await getSystemConfig("media.audio.allowed_formats"), mimeTypes: await getSystemConfig("media.audio.allowed_mime_types") }
-      : { maxBytes: await getSystemConfig("media.image.max_bytes"), formats: await getSystemConfig("media.image.allowed_formats"), mimeTypes: await getSystemConfig("media.image.allowed_mime_types") };
+    if (kind === "AUDIO") return { maxBytes: await getSystemConfig("media.audio.max_bytes"), formats: await getSystemConfig("media.audio.allowed_formats"), mimeTypes: await getSystemConfig("media.audio.allowed_mime_types") };
+    if (kind === "DOCUMENT") return { maxBytes: await getSystemConfig("media.document.max_bytes"), formats: await getSystemConfig("media.document.allowed_formats"), mimeTypes: await getSystemConfig("media.document.allowed_mime_types") };
+    return { maxBytes: await getSystemConfig("media.image.max_bytes"), formats: await getSystemConfig("media.image.allowed_formats"), mimeTypes: await getSystemConfig("media.image.allowed_mime_types") };
   }
 
   private map(asset: MediaAsset) {
@@ -27,8 +30,9 @@ export class MediaService {
     if (!config.mimeTypes.includes(input.mimeType)) throw new DomainError(422, "MEDIA_TYPE_NOT_ALLOWED", "Media type is not allowed");
     if (input.sizeBytes > config.maxBytes) throw new DomainError(422, "MEDIA_TOO_LARGE", "Media exceeds the size limit");
     const id = crypto.randomUUID();
-    const segment = input.kind === "AUDIO" ? "audio" : "image";
-    const asset = await this.repository.createAsset({ id, kind: input.kind, publicId: `${env.CLOUDINARY_FOLDER}/${segment}/${id}`, status: "PENDING", uploadedById: userId });
+    const extension = input.kind === "DOCUMENT" ? documentExtension(input.mimeType) : null;
+    const publicId = `${env.CLOUDINARY_FOLDER}/${SEGMENT_BY_KIND[input.kind]}/${id}${extension ? `.${extension}` : ""}`;
+    const asset = await this.repository.createAsset({ id, kind: input.kind, publicId, status: "PENDING", uploadedById: userId });
     try {
       const upload = await this.storage.signUpload({ publicId: asset.publicId, kind: asset.kind, allowedFormats: config.formats });
       return { assetId: asset.id, upload: { url: upload.url, fields: upload.fields }, expiresAt: upload.expiresAt };

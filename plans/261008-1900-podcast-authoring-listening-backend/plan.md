@@ -1,7 +1,7 @@
 ---
 title: "Backend: Moderator podcast authoring + basic listening"
 description: "Implement backend for Moderator create podcast flow, Gate-2 AI import, and basic listening API"
-status: completed
+status: superseded
 priority: P1
 effort: 32h
 branch: main

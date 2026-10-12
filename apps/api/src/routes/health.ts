@@ -2,7 +2,8 @@ import { Hono } from "hono";
 import { prisma } from "@repo/db";
 import type { SystemHealthDto } from "@repo/shared";
 import { logger } from "../core/logger";
-import { getScriptWorkflowRuntimeStatus } from "../modules/script-workflow";
+import { isMaintenanceRunning } from "../core/jobs/maintenance-jobs";
+import { API_VERSION } from "../core/config/app-info";
 
 export const healthRoute = new Hono().get("/", async (c) => {
   let dbStatus: "connected" | "disconnected" = "disconnected";
@@ -22,9 +23,8 @@ export const healthRoute = new Hono().get("/", async (c) => {
     );
     dbStatus = "disconnected";
   }
-  const runtime = getScriptWorkflowRuntimeStatus();
-  // AI being unavailable is not fatal: the API keeps serving and workflow creation answers 503.
-  const isHealthy = dbStatus === "connected" && runtime.queue === "running";
+  const queue = isMaintenanceRunning() ? "running" : "stopped";
+  const isHealthy = dbStatus === "connected" && queue === "running";
   const globalObj: Record<string, unknown> = globalThis;
   let bunVersion = "1.4.0";
   const bunEntry = globalObj.Bun;
@@ -39,12 +39,11 @@ export const healthRoute = new Hono().get("/", async (c) => {
   const healthData: SystemHealthDto = {
     status: isHealthy ? "ok" : "degraded",
     service: "su-ky-api",
-    version: "1.0.0",
+    version: API_VERSION,
     runtime: "Bun",
     bunVersion,
     database: dbStatus,
-    queue: runtime.queue,
-    ai: runtime.ai,
+    queue,
     uptimeSeconds: Math.floor(process.uptime()),
     timestamp: new Date().toISOString(),
   };

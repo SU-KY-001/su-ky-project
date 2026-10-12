@@ -1,7 +1,6 @@
 import {
-  AttachAudioSchema, CreateEntityTagSchema, CreateEpisodeSchema, CreateEpisodeSourceSchema,
-  EpisodeSourceOrderSchema, NarrationTypeSchema, PatchEntityTagSchema, PatchEpisodeSchema,
-  PatchEpisodeSourceSchema, PutNarrationSchema,
+  AttachAudioSchema, CreateEntityTagSchema, CreateEpisodeSchema,
+  NarrationTypeSchema, PatchEntityTagSchema, PatchEpisodeSchema, PutNarrationSchema,
 } from "@repo/shared";
 import { zValidator } from "@hono/zod-validator";
 import { Hono } from "hono";
@@ -10,7 +9,7 @@ import { idempotency, rateLimit, throwOnInvalid } from "../../../core/middleware
 import type { AppEnv } from "../../../types";
 import { requireAuth, requireRole } from "../../auth";
 import type { MediaStorageGateway } from "../../media";
-import { mapEntityTag, mapEpisodeSource, mapNarration, mapWorkspace } from "../application/content.mappers";
+import { mapEntityTag, mapNarration, mapWorkspace } from "../application/content.mappers";
 import type { ContentService } from "../application/content.service";
 
 const idParam = z.object({ id: z.string().uuid() });
@@ -67,11 +66,6 @@ export function createEpisodeRoute(service: ContentService, storage?: MediaStora
       await service.deleteNarration(session, c.req.valid("param").id);
       return c.body(null, 204);
     })
-    .get("/episodes/:id/narrations/:type/ai-original", zValidator("param", narrationParam, throwOnInvalid), async (c) => {
-      const session = c.get("session")!;
-      const { id, type } = c.req.valid("param");
-      return c.json(await service.getAiOriginal(session, id, type));
-    })
     .put("/episodes/:id/narrations/:type/audio", rateLimit("write"), zValidator("param", narrationParam, throwOnInvalid), zValidator("json", AttachAudioSchema, throwOnInvalid), async (c) => {
       const session = c.get("session")!;
       const { id, type } = c.req.valid("param");
@@ -82,34 +76,6 @@ export function createEpisodeRoute(service: ContentService, storage?: MediaStora
       const { id, type } = c.req.valid("param");
       await service.detachAudio(session, id, type);
       return c.body(null, 204);
-    })
-    .get("/episodes/:id/sources", zValidator("param", idParam, throwOnInvalid), async (c) => {
-      const session = c.get("session")!;
-      const items = await service.listSources(session, c.req.valid("param").id);
-      return c.json({ items: items.map(mapEpisodeSource) });
-    })
-    .post("/episodes/:id/sources", idempotency(), rateLimit("write"), zValidator("param", idParam, throwOnInvalid), zValidator("json", CreateEpisodeSourceSchema, throwOnInvalid), async (c) => {
-      const session = c.get("session")!;
-      const id = c.req.valid("param").id;
-      const item = await service.addSource(session, id, c.req.valid("json"));
-      c.header("Location", `/api/studio/episodes/${id}/sources/${item.id}`);
-      return c.json(mapEpisodeSource(item), 201);
-    })
-    .patch("/episodes/:id/sources/:childId", rateLimit("write"), zValidator("param", childParam, throwOnInvalid), zValidator("json", PatchEpisodeSourceSchema, throwOnInvalid), async (c) => {
-      const session = c.get("session")!;
-      const { id, childId } = c.req.valid("param");
-      return c.json(mapEpisodeSource(await service.patchSource(session, id, childId, c.req.valid("json"))));
-    })
-    .delete("/episodes/:id/sources/:childId", rateLimit("write"), zValidator("param", childParam, throwOnInvalid), async (c) => {
-      const session = c.get("session")!;
-      const { id, childId } = c.req.valid("param");
-      await service.deleteSource(session, id, childId);
-      return c.body(null, 204);
-    })
-    .put("/episodes/:id/sources/order", rateLimit("write"), zValidator("param", idParam, throwOnInvalid), zValidator("json", EpisodeSourceOrderSchema, throwOnInvalid), async (c) => {
-      const session = c.get("session")!;
-      const items = await service.reorderSources(session, c.req.valid("param").id, c.req.valid("json").episodeSourceIds);
-      return c.json({ items: items.map(mapEpisodeSource) });
     })
     .get("/episodes/:id/entity-tags", zValidator("param", idParam, throwOnInvalid), async (c) => {
       const session = c.get("session")!;

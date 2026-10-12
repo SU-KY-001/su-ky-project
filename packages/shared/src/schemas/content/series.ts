@@ -6,7 +6,7 @@ const seriesFields = z.object({
   title: z.string().trim().min(1).max(200),
   slug: z.string().trim().min(1).max(280).optional(),
   description: z.string().trim().max(5000).nullish(),
-  topicId: nullableUuid.optional(), historicalPeriodId: nullableUuid.optional(),
+  topicId: nullableUuid.optional(), historicalPhaseId: nullableUuid.optional(),
   startYear: HistoricalYearSchema.nullish(), endYear: HistoricalYearSchema.nullish(),
   coverImageAssetId: nullableUuid.optional(),
 });
@@ -18,3 +18,6 @@ export const SeriesQuerySchema = PaginationQuerySchema.extend({
   status: z.union([ContentStatusSchema, z.literal("TRASH")]).optional(), q: z.string().trim().optional(), ownerId: z.string().optional(),
 });
 export const EpisodeOrderSchema = z.object({ episodeIds: z.array(z.string().uuid()), baseUpdatedAt: z.coerce.date().optional() });
+export const CreateSeriesSourceSchema = z.object({ sourceId: z.string().uuid(), locator: z.string().trim().max(255).default(""), excerpt: z.string().trim().nullish() });
+export const PatchSeriesSourceSchema = z.object({ locator: z.string().trim().max(255).optional(), excerpt: z.string().trim().nullish() });
+export const SeriesSourceOrderSchema = z.object({ seriesSourceIds: z.array(z.string().uuid()) });

@@ -10,7 +10,7 @@ Nền tảng Podcast Kể Chuyện Lịch Sử Việt Nam (Đồ án WDP301).
 - **Frontend Mobile**: [Expo](https://expo.dev) `57` + React Native `0.86` + Tamagui `2`
 - **Database & ORM**: PostgreSQL 18 ([Docker Compose](./compose.yaml) image `postgres:18-alpine`) + [Prisma ORM](https://www.prisma.io) `v6`
 - **Contracts**: [Zod](https://zod.dev) schemas in `@repo/shared`
-- **AI script workflow**: Pi SDK + pg-boss trên cùng PostgreSQL, xem [docs/api-docs/script-workflow-api.md](./docs/api-docs/script-workflow-api.md) (cần khoá AI trong `.env`)
+- **AI engine** (`apps/api/src/modules/ai-engine`): Pi SDK, chưa nối vào logic chính, khởi tạo lười, khoá AI trong `.env` là tùy chọn. Pipeline workflow AI-first cũ nằm ở [archive/script-workflow](./archive/script-workflow/README.md)
 
 ---
 

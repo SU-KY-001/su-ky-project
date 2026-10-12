@@ -1,12 +1,12 @@
 import { z } from "zod";
 import {
+  CreateSourceSchema,
   HistoricalEntityInputSchema,
   HistoricalEntityQuerySchema,
   HistoricalEntityTypeSchema,
   HistoricalPeriodSchema,
   PatchHistoricalEntitySchema,
   PatchSourceSchema,
-  SourceInputSchema,
   SourceQuerySchema,
   UuidParamSchema,
 } from "@repo/shared";
@@ -38,6 +38,9 @@ const SimilarEntityQuerySchema = z.object({
 
 const sourceParams = { pathParams: UuidParamSchema, pathParamDocs: { id: "ID nguồn (UUID)" } } as const;
 const entityParams = { pathParams: UuidParamSchema, pathParamDocs: { id: "ID thực thể lịch sử (UUID)" } } as const;
+const periodList = { name: "HistoricalPeriodList", schema: ItemsOf(HistoricalPeriodSchema) } as const;
+const PERIOD_TREE_DESCRIPTION =
+  "Chỉ Thời kỳ/Giai đoạn đang hoạt động, sắp xếp theo thứ tự thời gian. Khoảng năm nửa kín `[startYear, endYear)`: `endYear` loại trừ (năm 43 thuộc Giai đoạn bắt đầu ở 43, không thuộc Giai đoạn kết thúc ở 43); `endYear = null` là còn tiếp diễn, `startYear = null` là không xác định. Năm trước Công nguyên là số âm, không có năm 0.";
 const SOURCE_NOT_FOUND = "`NOT_FOUND`: nguồn không tồn tại";
 const ENTITY_NOT_FOUND = "`NOT_FOUND`: thực thể không tồn tại";
 
@@ -60,13 +63,27 @@ export const catalogPaths: Paths = {
     get: operation({
       id: "listHistoricalPeriods",
       tag: PUBLIC_TAG,
-      summary: "Danh sách giai đoạn lịch sử",
-      description: "Chỉ các giai đoạn đang hoạt động, kèm khoảng năm (năm trước Công nguyên là số âm).",
+      summary: "Cây Thời kỳ → Giai đoạn lịch sử",
+      description: PERIOD_TREE_DESCRIPTION,
       access: "public",
       ok: {
         status: 200,
-        description: "Danh sách giai đoạn",
-        schema: { name: "HistoricalPeriodList", schema: ItemsOf(HistoricalPeriodSchema) },
+        description: "Danh sách Thời kỳ, mỗi Thời kỳ kèm các Giai đoạn",
+        schema: periodList,
+      },
+    }),
+  },
+  "/api/studio/historical-periods": {
+    get: operation({
+      id: "listStudioHistoricalPeriods",
+      tag: TAG,
+      summary: "Cây Thời kỳ → Giai đoạn (studio)",
+      description: PERIOD_TREE_DESCRIPTION,
+      access: "studio",
+      ok: {
+        status: 200,
+        description: "Danh sách Thời kỳ, mỗi Thời kỳ kèm các Giai đoạn",
+        schema: periodList,
       },
     }),
   },
@@ -96,11 +113,12 @@ export const catalogPaths: Paths = {
       id: "createSource",
       tag: TAG,
       summary: "Tạo nguồn",
-      description: "Nên gọi `GET /api/studio/sources/similar` trước để tránh tạo nguồn trùng.",
+      description:
+        "Nên gọi `GET /api/studio/sources/similar` trước để tránh tạo nguồn trùng. Nguồn phải có `url` hoặc `fileAssetId` (PDF: tạo media asset `kind = DOCUMENT`, upload, `verify`, rồi truyền `assetId`). Một PDF chỉ gắn được cho một nguồn.",
       access: "studio",
       body: {
         name: "SourceInput",
-        schema: SourceInputSchema,
+        schema: CreateSourceSchema,
         example: {
           tier: "TIER_1_CHINH_SU",
           title: "Đại Việt sử ký toàn thư",
@@ -116,7 +134,10 @@ export const catalogPaths: Paths = {
       },
       idempotent: true,
       rate: "write",
-      errors: { 409: "`SOURCE_ISBN_TAKEN`: ISBN đã tồn tại; `CONFLICT`: không tạo được nguồn" },
+      errors: {
+        409: "`SOURCE_ISBN_TAKEN`: ISBN đã tồn tại; `ASSET_IN_USE`: PDF đã gắn cho nguồn khác; `CONFLICT`: không tạo được nguồn",
+        422: "`VALIDATION_ERROR`: thiếu cả `url` và `fileAssetId`, hoặc asset không phải PDF `READY` của bạn",
+      },
     }),
   },
   [`${SOURCES}/similar`]: {
@@ -141,7 +162,7 @@ export const catalogPaths: Paths = {
       id: "getSource",
       tag: TAG,
       summary: "Chi tiết nguồn",
-      description: "Kèm `usageCount`: số tập đang trích dẫn nguồn này.",
+      description: "Kèm `usageCount`: số series đang trích dẫn nguồn này.",
       access: "studio",
       ...sourceParams,
       ok: {

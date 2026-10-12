@@ -19,7 +19,7 @@ export async function cleanupDetachedMedia(storage: MediaStorageGateway): Promis
   const batchSize = await getSystemConfig("media.cleanup_batch_size");
   const cutoff = new Date(Date.now() - graceHours * 60 * 60 * 1000);
   const assets = await prisma.mediaAsset.findMany({ where: {
-    status: { not: "DELETED" }, narrationAudio: null, seriesCover: { none: {} },
+    status: { not: "DELETED" }, narrationAudio: null, seriesCover: { none: {} }, sourceFile: null,
     OR: [{ detachedAt: { lt: cutoff } }, { detachedAt: null, createdAt: { lt: cutoff } }],
   }, take: batchSize, orderBy: { createdAt: "asc" } });
   for (const asset of assets) {
@@ -45,6 +45,10 @@ export async function startMaintenanceJobs(connectionString: string, storage: Me
   await boss.work(IDEMPOTENCY_QUEUE, async () => { await prisma.idempotencyKey.deleteMany({ where: { expiresAt: { lt: new Date() } } }); });
   await boss.work(RATE_LIMIT_QUEUE, async () => { await prisma.rateLimitBucket.deleteMany({ where: { windowStart: { lt: new Date(Date.now() - RATE_LIMIT_RETENTION_MS) } } }); });
   maintenanceBoss = boss;
+}
+
+export function isMaintenanceRunning(): boolean {
+  return maintenanceBoss !== null;
 }
 
 export async function stopMaintenanceJobs(): Promise<void> {
