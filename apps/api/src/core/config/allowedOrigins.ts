@@ -11,5 +11,13 @@ export function parseAllowedOrigins(): string[] {
 
 /** Better Auth does not treat "*" as a wildcard, so it is dropped for trustedOrigins. */
 export function trustedAuthOrigins(): string[] {
-  return parseAllowedOrigins().filter((origin) => origin !== WILDCARD_ORIGIN);
+  const configured = parseAllowedOrigins().filter((origin) => origin !== WILDCARD_ORIGIN);
+
+  // Vite serves the web app on port 3000 in this repo. Keep Better Auth's
+  // origin check aligned with the CORS middleware's localhost dev allowance.
+  if (process.env.NODE_ENV !== "production") {
+    configured.push("http://localhost:3000", "http://localhost:5173");
+  }
+
+  return [...new Set(configured)];
 }

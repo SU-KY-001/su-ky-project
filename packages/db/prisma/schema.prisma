@@ -86,39 +86,39 @@ enum XpSourceType {
 }
 
 model User {
-  id            String   @id @db.VarChar(36)
-  name          String   @db.VarChar(255)
-  email         String   @unique @db.VarChar(255)
-  emailVerified Boolean  @default(false) @map("email_verified")
-  image         String?  @db.VarChar(2048)
-  role          String   @default("user") @db.VarChar(16)
-  banned        Boolean  @default(false)
-  banReason     String?  @map("ban_reason") @db.Text
+  id            String    @id @db.VarChar(36)
+  name          String    @db.VarChar(255)
+  email         String    @unique @db.VarChar(255)
+  emailVerified Boolean   @default(false) @map("email_verified")
+  image         String?   @db.VarChar(2048)
+  role          String    @default("user") @db.VarChar(16)
+  banned        Boolean   @default(false)
+  banReason     String?   @map("ban_reason") @db.Text
   banExpires    DateTime? @map("ban_expires_at") @db.Timestamptz(3)
-  totalXp       Int      @default(0) @map("total_xp")
-  createdAt     DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
-  updatedAt     DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+  totalXp       Int       @default(0) @map("total_xp")
+  createdAt     DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt     DateTime  @updatedAt @map("updated_at") @db.Timestamptz(3)
 
-  accounts               Account[]
-  sessions               Session[]
-  topics                  Topic[]                @relation("TopicCreator")
-  historicalPeriods      HistoricalPeriod[]     @relation("HistoricalPeriodCreator")
-  historicalEntities     HistoricalEntity[]     @relation("HistoricalEntityCreator")
-  sources                 Source[]               @relation("SourceCreator")
-  ownedSeries             Series[]               @relation("SeriesOwner")
-  lockedSeries            Series[]               @relation("SeriesLocker")
-  lockedEpisodes          Episode[]              @relation("EpisodeLocker")
-  uploadedMediaAssets     MediaAsset[]           @relation("MediaUploader")
-  confirmedEntityTags     EpisodeEntityTag[]     @relation("EntityTagConfirmer")
+  accounts                Account[]
+  sessions                Session[]
+  topics                  Topic[]             @relation("TopicCreator")
+  historicalPeriods       HistoricalPeriod[]  @relation("HistoricalPeriodCreator")
+  historicalEntities      HistoricalEntity[]  @relation("HistoricalEntityCreator")
+  sources                 Source[]            @relation("SourceCreator")
+  ownedSeries             Series[]            @relation("SeriesOwner")
+  lockedSeries            Series[]            @relation("SeriesLocker")
+  lockedEpisodes          Episode[]           @relation("EpisodeLocker")
+  uploadedMediaAssets     MediaAsset[]        @relation("MediaUploader")
+  confirmedEntityTags     EpisodeEntityTag[]  @relation("EntityTagConfirmer")
   quizAttempts            QuizAttempt[]
   listeningProgress       ListeningProgress[]
-  missionTemplates        MissionTemplate[]      @relation("MissionTemplateCreator")
-  activatedWeeklyMissions WeeklyMission[]        @relation("WeeklyMissionActivator")
+  missionTemplates        MissionTemplate[]   @relation("MissionTemplateCreator")
+  activatedWeeklyMissions WeeklyMission[]     @relation("WeeklyMissionActivator")
   userWeeklyMissions      UserWeeklyMission[]
   xpAwards                XpAward[]
   idempotencyKeys         IdempotencyKey[]
-  updatedSystemConfigs    SystemConfig[]         @relation("SystemConfigUpdater")
-  auditLogs               AuditLog[]             @relation("AuditActor")
+  updatedSystemConfigs    SystemConfig[]      @relation("SystemConfigUpdater")
+  auditLogs               AuditLog[]          @relation("AuditActor")
 
   @@map("users")
 }
@@ -187,18 +187,23 @@ model Topic {
 }
 
 model HistoricalPeriod {
-  id          String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  name        String   @unique @db.VarChar(255)
-  slug        String   @unique @db.VarChar(280)
-  startYear   Int?     @map("start_year") @db.SmallInt
-  endYear     Int?     @map("end_year") @db.SmallInt
-  sortOrder   Int      @default(0) @map("sort_order") @db.SmallInt
-  isActive    Boolean  @default(true) @map("is_active")
-  createdById String?  @map("created_by_id") @db.VarChar(36)
-  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
-  updatedAt   DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
-  createdBy   User?    @relation("HistoricalPeriodCreator", fields: [createdById], references: [id], onDelete: SetNull)
+  id          String               @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name        String               @unique @db.VarChar(255)
+  slug        String               @unique @db.VarChar(280)
+  startYear   Int?                 @map("start_year") @db.Integer
+  endYear     Int?                 @map("end_year") @db.Integer
+  sortOrder   Int                  @default(0) @map("sort_order") @db.SmallInt
+  isActive    Boolean              @default(true) @map("is_active")
+  createdById String?              @map("created_by_id") @db.VarChar(36)
+  createdAt   DateTime             @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt   DateTime             @updatedAt @map("updated_at") @db.Timestamptz(3)
+  createdBy   User?                @relation("HistoricalPeriodCreator", fields: [createdById], references: [id], onDelete: SetNull)
   phases      HistoricalPhase[]
+  time        Json                 @default("{\"kind\":\"UNKNOWN\",\"note\":\"Chưa xác định thời gian\"}")
+  version     Int                  @default(1)
+  deletedAt   DateTime?            @map("deleted_at") @db.Timestamptz(3)
+  citations   HistoricalCitation[]
+  summary     String?              @db.Text
 
   @@map("historical_periods")
 }
@@ -206,94 +211,128 @@ model HistoricalPeriod {
 /// Giai đoạn thuộc một Thời kỳ. Năm theo quy ước nửa kín [startYear, endYear): endYear loại trừ,
 /// null = còn tiếp diễn (endYear) / không xác định (startYear). Năm TCN là số âm, không có năm 0.
 model HistoricalPhase {
-  id        String           @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  periodId  String           @map("period_id") @db.Uuid
-  name      String           @db.VarChar(255)
-  slug      String           @unique @db.VarChar(280)
-  startYear Int?             @map("start_year") @db.SmallInt
-  endYear   Int?             @map("end_year") @db.SmallInt
-  note      String?          @db.Text
-  sortOrder Int              @default(0) @map("sort_order") @db.SmallInt
-  isActive  Boolean          @default(true) @map("is_active")
-  createdAt DateTime         @default(now()) @map("created_at") @db.Timestamptz(3)
-  updatedAt DateTime         @updatedAt @map("updated_at") @db.Timestamptz(3)
-  period    HistoricalPeriod @relation(fields: [periodId], references: [id], onDelete: Restrict)
-  series    Series[]
+  id          String               @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  periodId    String               @map("period_id") @db.Uuid
+  name        String               @db.VarChar(255)
+  slug        String               @unique @db.VarChar(280)
+  startYear   Int?                 @map("start_year") @db.Integer
+  endYear     Int?                 @map("end_year") @db.Integer
+  note        String?              @db.Text
+  sortOrder   Int                  @default(0) @map("sort_order") @db.SmallInt
+  isActive    Boolean              @default(true) @map("is_active")
+  createdAt   DateTime             @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt   DateTime             @updatedAt @map("updated_at") @db.Timestamptz(3)
+  period      HistoricalPeriod     @relation(fields: [periodId], references: [id], onDelete: Restrict)
+  series      Series[]
+  time        Json                 @default("{\"kind\":\"UNKNOWN\",\"note\":\"Chưa xác định thời gian\"}")
+  version     Int                  @default(1)
+  deletedAt   DateTime?            @map("deleted_at") @db.Timestamptz(3)
+  citations   HistoricalCitation[]
+  summary     String?              @db.Text
+  createdById String?              @map("created_by_id") @db.VarChar(36)
+  entities    HistoricalEntity[]
 
   @@index([periodId, sortOrder], map: "historical_phases_period_id_sort_order_idx")
   @@map("historical_phases")
 }
 
 model HistoricalEntity {
-  id          String               @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  entityType  HistoricalEntityType @map("entity_type")
-  name        String               @db.VarChar(255)
-  slug        String               @unique @db.VarChar(280)
-  aliases     String[]             @default([])
-  startYear   Int?                 @map("start_year") @db.SmallInt
-  endYear     Int?                 @map("end_year") @db.SmallInt
-  summary     String?              @db.Text
-  createdById String?              @map("created_by_id") @db.VarChar(36)
-  createdAt   DateTime             @default(now()) @map("created_at") @db.Timestamptz(3)
-  updatedAt   DateTime             @updatedAt @map("updated_at") @db.Timestamptz(3)
-  createdBy   User?                @relation("HistoricalEntityCreator", fields: [createdById], references: [id], onDelete: SetNull)
-  narrations  EpisodeNarration[]
-  episodeTags EpisodeEntityTag[]
+  id                String                     @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  entityType        HistoricalEntityType       @map("entity_type")
+  name              String                     @db.VarChar(255)
+  slug              String                     @unique @db.VarChar(280)
+  aliases           String[]                   @default([])
+  startYear         Int?                       @map("start_year") @db.Integer
+  endYear           Int?                       @map("end_year") @db.Integer
+  summary           String?                    @db.Text
+  createdById       String?                    @map("created_by_id") @db.VarChar(36)
+  createdAt         DateTime                   @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt         DateTime                   @updatedAt @map("updated_at") @db.Timestamptz(3)
+  createdBy         User?                      @relation("HistoricalEntityCreator", fields: [createdById], references: [id], onDelete: SetNull)
+  narrations        EpisodeNarration[]
+  episodeTags       EpisodeEntityTag[]
+  time              Json                       @default("{\"kind\":\"UNKNOWN\",\"note\":\"Chưa xác định thời gian\"}")
+  version           Int                        @default(1)
+  deletedAt         DateTime?                  @map("deleted_at") @db.Timestamptz(3)
+  citations         HistoricalCitation[]
+  historicalPhaseId String?                    @map("historical_phase_id") @db.Uuid
+  historicalPhase   HistoricalPhase?           @relation(fields: [historicalPhaseId], references: [id], onDelete: Restrict)
+  reviewStatus      HistoricalReviewStatus     @default(DRAFT) @map("review_status")
+  reviewedVersion   Int?                       @map("reviewed_version")
+  reviewedById      String?                    @map("reviewed_by_id") @db.VarChar(36)
+  reviewedAt        DateTime?                  @map("reviewed_at") @db.Timestamptz(3)
+  reviewNote        String?                    @map("review_note") @db.Text
+  revisions         HistoricalEntityRevision[]
+  primarySeries     Series[]                   @relation("PrimaryHistoricalEvent")
 
   @@index([entityType], map: "historical_entities_entity_type_idx")
+  @@index([historicalPhaseId, reviewStatus, deletedAt])
   @@map("historical_entities")
 }
 
 model Source {
-  id              String      @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  tier            SourceTier
-  title           String      @db.VarChar(500)
-  originalTitle   String?     @map("original_title") @db.VarChar(500)
-  author          String?     @db.VarChar(255)
-  translator      String?     @db.VarChar(255)
-  publisher       String?     @db.VarChar(255)
-  publicationYear Int?        @map("publication_year") @db.SmallInt
-  edition         String?     @db.VarChar(100)
-  isbn            String?     @db.VarChar(17)
-  url             String?     @db.VarChar(2048)
-  createdById     String?     @map("created_by_id") @db.VarChar(36)
-  archivedAt      DateTime?   @map("archived_at") @db.Timestamptz(3)
-  createdAt       DateTime    @default(now()) @map("created_at") @db.Timestamptz(3)
-  updatedAt       DateTime    @updatedAt @map("updated_at") @db.Timestamptz(3)
-  createdBy       User?       @relation("SourceCreator", fields: [createdById], references: [id], onDelete: SetNull)
-  fileAssetId     String?     @unique(map: "sources_file_asset_id_key") @map("file_asset_id") @db.Uuid
-  fileAsset       MediaAsset? @relation("SourceFile", fields: [fileAssetId], references: [id], onDelete: Restrict)
-  seriesSources   SeriesSource[]
+  id                  String                   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tier                SourceTier
+  title               String                   @db.VarChar(500)
+  originalTitle       String?                  @map("original_title") @db.VarChar(500)
+  author              String?                  @db.VarChar(255)
+  translator          String?                  @db.VarChar(255)
+  publisher           String?                  @db.VarChar(255)
+  publicationYear     Int?                     @map("publication_year") @db.Integer
+  edition             String?                  @db.VarChar(100)
+  isbn                String?                  @db.VarChar(17)
+  url                 String?                  @db.VarChar(2048)
+  createdById         String?                  @map("created_by_id") @db.VarChar(36)
+  archivedAt          DateTime?                @map("archived_at") @db.Timestamptz(3)
+  createdAt           DateTime                 @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt           DateTime                 @updatedAt @map("updated_at") @db.Timestamptz(3)
+  createdBy           User?                    @relation("SourceCreator", fields: [createdById], references: [id], onDelete: SetNull)
+  fileAssetId         String?                  @unique(map: "sources_file_asset_id_key") @map("file_asset_id") @db.Uuid
+  fileAsset           MediaAsset?              @relation("SourceFile", fields: [fileAssetId], references: [id], onDelete: Restrict)
+  seriesSources       SeriesSource[]
+  version             Int                      @default(1)
+  verificationStatus  SourceVerificationStatus @default(PENDING) @map("verification_status")
+  verifiedVersion     Int?                     @map("verified_version")
+  verifiedById        String?                  @map("verified_by_id") @db.VarChar(36)
+  verifiedAt          DateTime?                @map("verified_at") @db.Timestamptz(3)
+  verificationNote    String?                  @map("verification_note") @db.Text
+  revisions           SourceRevision[]
+  historicalCitations HistoricalCitation[]
 
   @@map("sources")
 }
 
 model Series {
-  id                   String          @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  ownerId              String          @map("owner_id") @db.VarChar(36)
-  topicId              String?         @map("topic_id") @db.Uuid
-  historicalPhaseId    String?         @map("historical_phase_id") @db.Uuid
-  title                String          @db.VarChar(255)
-  slug                 String          @unique @db.VarChar(280)
-  description          String?         @db.Text
-  coverImageAssetId    String?         @map("cover_image_asset_id") @db.Uuid
-  startYear            Int?            @map("start_year") @db.SmallInt
-  endYear              Int?            @map("end_year") @db.SmallInt
-  status               ContentStatus   @default(DRAFT)
-  statusBeforeDelete   ContentStatus?  @map("status_before_delete")
-  adminLockedAt        DateTime?       @map("admin_locked_at") @db.Timestamptz(3)
-  adminLockedById      String?         @map("admin_locked_by_id") @db.VarChar(36)
-  publishedAt          DateTime?       @map("published_at") @db.Timestamptz(3)
-  deletedAt            DateTime?       @map("deleted_at") @db.Timestamptz(3)
-  createdAt            DateTime        @default(now()) @map("created_at") @db.Timestamptz(3)
-  updatedAt            DateTime        @updatedAt @map("updated_at") @db.Timestamptz(3)
-  owner                User            @relation("SeriesOwner", fields: [ownerId], references: [id], onDelete: Restrict)
-  topic                Topic?          @relation(fields: [topicId], references: [id], onDelete: Restrict)
-  historicalPhase      HistoricalPhase? @relation(fields: [historicalPhaseId], references: [id], onDelete: Restrict)
-  coverImageAsset      MediaAsset?     @relation("SeriesCover", fields: [coverImageAssetId], references: [id], onDelete: Restrict)
-  adminLockedBy        User?           @relation("SeriesLocker", fields: [adminLockedById], references: [id], onDelete: SetNull)
-  episodes             Episode[]
-  sources              SeriesSource[]
+  id                         String                    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  ownerId                    String                    @map("owner_id") @db.VarChar(36)
+  topicId                    String?                   @map("topic_id") @db.Uuid
+  historicalPhaseId          String?                   @map("historical_phase_id") @db.Uuid
+  title                      String                    @db.VarChar(255)
+  slug                       String                    @unique @db.VarChar(280)
+  description                String?                   @db.Text
+  coverImageAssetId          String?                   @map("cover_image_asset_id") @db.Uuid
+  startYear                  Int?                      @map("start_year") @db.Integer
+  endYear                    Int?                      @map("end_year") @db.Integer
+  status                     ContentStatus             @default(DRAFT)
+  statusBeforeDelete         ContentStatus?            @map("status_before_delete")
+  adminLockedAt              DateTime?                 @map("admin_locked_at") @db.Timestamptz(3)
+  adminLockedById            String?                   @map("admin_locked_by_id") @db.VarChar(36)
+  publishedAt                DateTime?                 @map("published_at") @db.Timestamptz(3)
+  deletedAt                  DateTime?                 @map("deleted_at") @db.Timestamptz(3)
+  createdAt                  DateTime                  @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt                  DateTime                  @updatedAt @map("updated_at") @db.Timestamptz(3)
+  owner                      User                      @relation("SeriesOwner", fields: [ownerId], references: [id], onDelete: Restrict)
+  topic                      Topic?                    @relation(fields: [topicId], references: [id], onDelete: Restrict)
+  historicalPhase            HistoricalPhase?          @relation(fields: [historicalPhaseId], references: [id], onDelete: Restrict)
+  coverImageAsset            MediaAsset?               @relation("SeriesCover", fields: [coverImageAssetId], references: [id], onDelete: Restrict)
+  adminLockedBy              User?                     @relation("SeriesLocker", fields: [adminLockedById], references: [id], onDelete: SetNull)
+  episodes                   Episode[]
+  sources                    SeriesSource[]
+  primaryHistoricalEventId   String?                   @map("primary_historical_event_id") @db.Uuid
+  primaryHistoricalEvent     HistoricalEntity?         @relation("PrimaryHistoricalEvent", fields: [primaryHistoricalEventId], references: [id], onDelete: Restrict)
+  historicalEntityRevisionId String?                   @map("historical_entity_revision_id") @db.Uuid
+  historicalEntityRevision   HistoricalEntityRevision? @relation(fields: [historicalEntityRevisionId], references: [id], onDelete: Restrict)
+  publicationEvidence        Json?                     @map("publication_evidence")
 
   @@index([ownerId], map: "series_owner_id_idx")
   @@index([topicId], map: "series_topic_id_idx")
@@ -303,70 +342,71 @@ model Series {
 }
 
 model Episode {
-  id                  String         @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  seriesId            String         @map("series_id") @db.Uuid
-  title               String         @db.VarChar(255)
-  slug                String         @unique @db.VarChar(280)
-  description         String?        @db.Text
-  sortOrder           Int            @map("sort_order")
-  status              ContentStatus  @default(DRAFT)
-  statusBeforeDelete  ContentStatus? @map("status_before_delete")
-  adminLockedAt       DateTime?      @map("admin_locked_at") @db.Timestamptz(3)
-  adminLockedById     String?        @map("admin_locked_by_id") @db.VarChar(36)
-  publishedAt         DateTime?      @map("published_at") @db.Timestamptz(3)
-  deletedAt           DateTime?      @map("deleted_at") @db.Timestamptz(3)
-  createdAt           DateTime       @default(now()) @map("created_at") @db.Timestamptz(3)
-  updatedAt           DateTime       @updatedAt @map("updated_at") @db.Timestamptz(3)
-  series              Series         @relation(fields: [seriesId], references: [id], onDelete: Restrict)
-  adminLockedBy       User?          @relation("EpisodeLocker", fields: [adminLockedById], references: [id], onDelete: SetNull)
-  narrations          EpisodeNarration[]
-  entityTags          EpisodeEntityTag[]
-  quiz                Quiz?
-  listeningProgress   ListeningProgress[]
+  id                 String              @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  seriesId           String              @map("series_id") @db.Uuid
+  title              String              @db.VarChar(255)
+  slug               String              @unique @db.VarChar(280)
+  description        String?             @db.Text
+  sortOrder          Int                 @map("sort_order")
+  status             ContentStatus       @default(DRAFT)
+  statusBeforeDelete ContentStatus?      @map("status_before_delete")
+  adminLockedAt      DateTime?           @map("admin_locked_at") @db.Timestamptz(3)
+  adminLockedById    String?             @map("admin_locked_by_id") @db.VarChar(36)
+  publishedAt        DateTime?           @map("published_at") @db.Timestamptz(3)
+  deletedAt          DateTime?           @map("deleted_at") @db.Timestamptz(3)
+  createdAt          DateTime            @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt          DateTime            @updatedAt @map("updated_at") @db.Timestamptz(3)
+  series             Series              @relation(fields: [seriesId], references: [id], onDelete: Restrict)
+  adminLockedBy      User?               @relation("EpisodeLocker", fields: [adminLockedById], references: [id], onDelete: SetNull)
+  narrations         EpisodeNarration[]
+  entityTags         EpisodeEntityTag[]
+  quiz               Quiz?
+  listeningProgress  ListeningProgress[]
 
   @@index([seriesId, sortOrder], map: "episodes_series_id_sort_order_idx")
   @@map("episodes")
 }
 
 model EpisodeNarration {
-  id                         String         @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  episodeId                  String         @map("episode_id") @db.Uuid
-  narrationType              NarrationType  @map("narration_type")
-  narratorEntityId           String?        @map("narrator_entity_id") @db.Uuid
-  scriptContent              String?        @map("script_content") @db.Text
-  audioAssetId               String?        @unique(map: "episode_narrations_audio_asset_id_key") @map("audio_asset_id") @db.Uuid
-  scriptUpdatedAt            DateTime?      @map("script_updated_at") @db.Timestamptz(3)
-  audioAttachedAt            DateTime?      @map("audio_attached_at") @db.Timestamptz(3)
-  createdAt                  DateTime       @default(now()) @map("created_at") @db.Timestamptz(3)
-  updatedAt                  DateTime       @updatedAt @map("updated_at") @db.Timestamptz(3)
-  episode                    Episode        @relation(fields: [episodeId], references: [id], onDelete: Cascade)
-  narratorEntity             HistoricalEntity? @relation(fields: [narratorEntityId], references: [id], onDelete: Restrict)
-  audioAsset                 MediaAsset?    @relation("NarrationAudio", fields: [audioAssetId], references: [id], onDelete: Restrict)
-  listeningProgress          ListeningProgress[]
+  id                String              @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  episodeId         String              @map("episode_id") @db.Uuid
+  narrationType     NarrationType       @map("narration_type")
+  narratorEntityId  String?             @map("narrator_entity_id") @db.Uuid
+  scriptContent     String?             @map("script_content") @db.Text
+  audioAssetId      String?             @unique(map: "episode_narrations_audio_asset_id_key") @map("audio_asset_id") @db.Uuid
+  scriptUpdatedAt   DateTime?           @map("script_updated_at") @db.Timestamptz(3)
+  audioAttachedAt   DateTime?           @map("audio_attached_at") @db.Timestamptz(3)
+  createdAt         DateTime            @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt         DateTime            @updatedAt @map("updated_at") @db.Timestamptz(3)
+  episode           Episode             @relation(fields: [episodeId], references: [id], onDelete: Cascade)
+  narratorEntity    HistoricalEntity?   @relation(fields: [narratorEntityId], references: [id], onDelete: Restrict)
+  audioAsset        MediaAsset?         @relation("NarrationAudio", fields: [audioAssetId], references: [id], onDelete: Restrict)
+  listeningProgress ListeningProgress[]
 
   @@unique([episodeId, narrationType], map: "episode_narrations_episode_id_narration_type_key")
   @@map("episode_narrations")
 }
 
 model MediaAsset {
-  id                String      @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  id                String              @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   kind              MediaKind
-  publicId          String      @unique @map("public_id") @db.VarChar(255)
-  status            MediaStatus @default(PENDING)
+  publicId          String              @unique @map("public_id") @db.VarChar(255)
+  status            MediaStatus         @default(PENDING)
   version           BigInt?
-  format            String?     @db.VarChar(10)
-  sizeBytes         BigInt?     @map("size_bytes")
-  durationMs        Int?        @map("duration_ms")
-  uploadedById      String      @map("uploaded_by_id") @db.VarChar(36)
-  createdAt         DateTime    @default(now()) @map("created_at") @db.Timestamptz(3)
-  verifiedAt        DateTime?   @map("verified_at") @db.Timestamptz(3)
-  detachedAt        DateTime?   @map("detached_at") @db.Timestamptz(3)
-  deletedAt         DateTime?   @map("deleted_at") @db.Timestamptz(3)
-  uploadedBy        User        @relation("MediaUploader", fields: [uploadedById], references: [id], onDelete: Restrict)
-  seriesCover       Series[]    @relation("SeriesCover")
-  narrationAudio    EpisodeNarration? @relation("NarrationAudio")
-  sourceFile        Source?     @relation("SourceFile")
+  format            String?             @db.VarChar(10)
+  sizeBytes         BigInt?             @map("size_bytes")
+  durationMs        Int?                @map("duration_ms")
+  uploadedById      String              @map("uploaded_by_id") @db.VarChar(36)
+  createdAt         DateTime            @default(now()) @map("created_at") @db.Timestamptz(3)
+  verifiedAt        DateTime?           @map("verified_at") @db.Timestamptz(3)
+  detachedAt        DateTime?           @map("detached_at") @db.Timestamptz(3)
+  deletedAt         DateTime?           @map("deleted_at") @db.Timestamptz(3)
+  uploadedBy        User                @relation("MediaUploader", fields: [uploadedById], references: [id], onDelete: Restrict)
+  seriesCover       Series[]            @relation("SeriesCover")
+  narrationAudio    EpisodeNarration?   @relation("NarrationAudio")
+  sourceFile        Source?             @relation("SourceFile")
   listeningProgress ListeningProgress[]
+  sourceRevisions   SourceRevision[]    @relation("SourceRevisionFile")
 
   @@index([status, createdAt], map: "media_assets_status_created_at_idx")
   @@index([status, detachedAt], map: "media_assets_status_detached_at_idx")
@@ -375,15 +415,19 @@ model MediaAsset {
 }
 
 model SeriesSource {
-  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  seriesId  String   @map("series_id") @db.Uuid
-  sourceId  String   @map("source_id") @db.Uuid
-  locator   String   @default("") @db.VarChar(255)
-  excerpt   String?  @db.Text
-  sortOrder Int      @map("sort_order") @db.SmallInt
-  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
-  series    Series   @relation(fields: [seriesId], references: [id], onDelete: Cascade)
-  source    Source   @relation(fields: [sourceId], references: [id], onDelete: Restrict)
+  id                   String              @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  seriesId             String              @map("series_id") @db.Uuid
+  sourceId             String              @map("source_id") @db.Uuid
+  locator              String              @default("") @db.VarChar(255)
+  excerpt              String?             @db.Text
+  sortOrder            Int                 @map("sort_order") @db.SmallInt
+  createdAt            DateTime            @default(now()) @map("created_at") @db.Timestamptz(3)
+  series               Series              @relation(fields: [seriesId], references: [id], onDelete: Cascade)
+  source               Source              @relation(fields: [sourceId], references: [id], onDelete: Restrict)
+  sourceRevisionId     String?             @map("source_revision_id") @db.Uuid
+  sourceRevision       SourceRevision?     @relation(fields: [sourceRevisionId], references: [id], onDelete: Restrict)
+  historicalCitationId String?             @map("historical_citation_id") @db.Uuid
+  historicalCitation   HistoricalCitation? @relation(fields: [historicalCitationId], references: [id], onDelete: Restrict)
 
   @@unique([seriesId, sourceId, locator], map: "series_sources_series_id_source_id_locator_key")
   @@index([sourceId], map: "series_sources_source_id_idx")
@@ -391,17 +435,17 @@ model SeriesSource {
 }
 
 model EpisodeEntityTag {
-  id            String          @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  episodeId     String          @map("episode_id") @db.Uuid
-  entityId      String          @map("entity_id") @db.Uuid
-  status        EntityTagStatus @default(SUGGESTED)
+  id            String           @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  episodeId     String           @map("episode_id") @db.Uuid
+  entityId      String           @map("entity_id") @db.Uuid
+  status        EntityTagStatus  @default(SUGGESTED)
   origin        TagOrigin
-  confirmedById String?         @map("confirmed_by_id") @db.VarChar(36)
-  confirmedAt   DateTime?       @map("confirmed_at") @db.Timestamptz(3)
-  createdAt     DateTime        @default(now()) @map("created_at") @db.Timestamptz(3)
-  episode       Episode         @relation(fields: [episodeId], references: [id], onDelete: Cascade)
+  confirmedById String?          @map("confirmed_by_id") @db.VarChar(36)
+  confirmedAt   DateTime?        @map("confirmed_at") @db.Timestamptz(3)
+  createdAt     DateTime         @default(now()) @map("created_at") @db.Timestamptz(3)
+  episode       Episode          @relation(fields: [episodeId], references: [id], onDelete: Cascade)
   entity        HistoricalEntity @relation(fields: [entityId], references: [id], onDelete: Restrict)
-  confirmedBy   User?           @relation("EntityTagConfirmer", fields: [confirmedById], references: [id], onDelete: SetNull)
+  confirmedBy   User?            @relation("EntityTagConfirmer", fields: [confirmedById], references: [id], onDelete: SetNull)
 
   @@unique([episodeId, entityId], map: "episode_entity_tags_episode_id_entity_id_key")
   @@index([entityId, status], map: "episode_entity_tags_entity_id_status_idx")
@@ -437,12 +481,12 @@ model QuizQuestion {
 }
 
 model QuizOption {
-  id           String       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  questionId   String       @map("question_id") @db.Uuid
-  optionLabel  String       @map("option_label") @db.Char(1)
-  optionText   String       @map("option_text") @db.Text
-  isCorrect    Boolean      @default(false) @map("is_correct")
-  question     QuizQuestion @relation(fields: [questionId], references: [id], onDelete: Cascade)
+  id          String       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  questionId  String       @map("question_id") @db.Uuid
+  optionLabel String       @map("option_label") @db.Char(1)
+  optionText  String       @map("option_text") @db.Text
+  isCorrect   Boolean      @default(false) @map("is_correct")
+  question    QuizQuestion @relation(fields: [questionId], references: [id], onDelete: Cascade)
 
   @@unique([questionId, optionLabel], map: "quiz_options_question_id_option_label_key")
   @@map("quiz_options")
@@ -615,4 +659,75 @@ model AuditLog {
   @@index([actorId, createdAt], map: "audit_logs_actor_id_created_at_idx")
   @@index([action, createdAt], map: "audit_logs_action_created_at_idx")
   @@map("audit_logs")
+}
+
+enum HistoricalReviewStatus {
+  DRAFT
+  IN_REVIEW
+  APPROVED
+  CHANGES_REQUESTED
+}
+
+enum SourceVerificationStatus {
+  PENDING
+  VERIFIED
+  REJECTED
+}
+
+model SourceRevision {
+  id            String               @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  sourceId      String               @map("source_id") @db.Uuid
+  version       Int
+  snapshot      Json
+  fileAssetId   String?              @map("file_asset_id") @db.Uuid
+  fileAsset     MediaAsset?          @relation("SourceRevisionFile", fields: [fileAssetId], references: [id], onDelete: Restrict)
+  createdById   String?              @map("created_by_id") @db.VarChar(36)
+  createdAt     DateTime             @default(now()) @map("created_at") @db.Timestamptz(3)
+  source        Source               @relation(fields: [sourceId], references: [id], onDelete: Restrict)
+  citations     HistoricalCitation[]
+  seriesSources SeriesSource[]
+
+  @@unique([sourceId, version])
+  @@map("source_revisions")
+}
+
+model HistoricalEntityRevision {
+  id          String           @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  entityId    String           @map("entity_id") @db.Uuid
+  version     Int
+  snapshot    Json
+  createdById String?          @map("created_by_id") @db.VarChar(36)
+  createdAt   DateTime         @default(now()) @map("created_at") @db.Timestamptz(3)
+  entity      HistoricalEntity @relation(fields: [entityId], references: [id], onDelete: Restrict)
+  series      Series[]
+
+  @@unique([entityId, version])
+  @@map("historical_entity_revisions")
+}
+
+model HistoricalCitation {
+  id               String            @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  periodId         String?           @map("period_id") @db.Uuid
+  phaseId          String?           @map("phase_id") @db.Uuid
+  entityId         String?           @map("entity_id") @db.Uuid
+  sourceId         String            @map("source_id") @db.Uuid
+  sourceRevisionId String            @map("source_revision_id") @db.Uuid
+  locator          String            @default("") @db.VarChar(255)
+  excerpt          String?           @db.Text
+  note             String?           @db.Text
+  sortOrder        Int               @default(0) @map("sort_order")
+  createdById      String            @map("created_by_id") @db.VarChar(36)
+  createdAt        DateTime          @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt        DateTime          @updatedAt @map("updated_at") @db.Timestamptz(3)
+  period           HistoricalPeriod? @relation(fields: [periodId], references: [id], onDelete: Restrict)
+  phase            HistoricalPhase?  @relation(fields: [phaseId], references: [id], onDelete: Restrict)
+  entity           HistoricalEntity? @relation(fields: [entityId], references: [id], onDelete: Restrict)
+  source           Source            @relation(fields: [sourceId], references: [id], onDelete: Restrict)
+  sourceRevision   SourceRevision    @relation(fields: [sourceRevisionId], references: [id], onDelete: Restrict)
+  seriesSources    SeriesSource[]
+
+  @@index([entityId])
+  @@index([periodId])
+  @@index([phaseId])
+  @@map("historical_citations")
 }

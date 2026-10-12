@@ -30,6 +30,6 @@ export function InteractiveTableRow({ onActivate, expanded, className, ...props 
   }} />;
 }
 
-export function EmptyTableRow({ columns, children }: { columns: number; children: ReactNode }) {
-  return <TableRow><TableCell colSpan={columns} className="px-4 py-12 text-center text-sm text-mod-text-secondary">{children}</TableCell></TableRow>;
+export function EmptyTableRow({ columns, children, compact = false }: { columns: number; children: ReactNode; compact?: boolean }) {
+  return <TableRow><TableCell colSpan={columns} className={cn("px-4 text-center text-sm text-mod-text-secondary", compact ? "py-3" : "py-12")}>{children}</TableCell></TableRow>;
 }

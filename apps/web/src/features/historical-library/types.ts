@@ -1,4 +1,8 @@
-export type LibraryStatus = "draft" | "missing_source" | "needs_review" | "complete";
+export type LibraryStatus =
+  | "draft"
+  | "missing_source"
+  | "needs_review"
+  | "complete";
 
 export interface HistoricalSource {
   id: string;
@@ -42,7 +46,12 @@ export type HistorySelection =
 
 export type SelectedHistoryNode =
   | { type: "period"; node: HistoricalPeriod; period: HistoricalPeriod }
-  | { type: "stage"; node: HistoricalStage; period: HistoricalPeriod; stage: HistoricalStage }
+  | {
+      type: "stage";
+      node: HistoricalStage;
+      period: HistoricalPeriod;
+      stage: HistoricalStage;
+    }
   | {
       type: "event";
       node: HistoricalEvent;
@@ -58,4 +67,3 @@ export interface LibrarySummary {
   missingSources: number;
   readyForPodcast: number;
 }
-

@@ -1,8 +1,8 @@
 import { lazy, useState, type ReactElement } from "react";
 import { ModeratorLayout } from "@/features/moderator/components/ModeratorLayout";
 import { ModeratorContentBoundary } from "@/features/moderator/components/ModeratorContentBoundary";
-import type { ModeratorSection } from "@/features/moderator/types";
-import { WorkspaceDataProvider } from "@/features/moderator/WorkspaceData";
+import type { ModeratorQuickAction, ModeratorSection } from "@/features/moderator/types";
+
 import { ModeratorDashboardPage } from "./ModeratorDashboardPage";
 
 const Timeline = lazy(() => import("./ModeratorTimelinePage").then((module) => ({ default: module.ModeratorTimelinePage })));
@@ -11,25 +11,29 @@ const Library = lazy(() => import("./ModeratorLibraryFeaturePage").then((module)
 
 interface WorkspaceContentProps {
   section: ModeratorSection;
+  creation: ModeratorQuickAction["id"] | null;
+  onAction: (id: ModeratorQuickAction["id"]) => void;
 }
 
-function WorkspaceContent({ section }: WorkspaceContentProps): ReactElement {
+function WorkspaceContent({ section, creation, onAction }: WorkspaceContentProps): ReactElement {
   switch (section) {
-    case "overview": return <ModeratorDashboardPage />;
-    case "timeline": return <Timeline />;
-    case "podcast": return <Podcast />;
+    case "overview": return <ModeratorDashboardPage onAction={onAction} />;
+    case "timeline": return <Timeline initialCreating={creation === "add-milestone"} />;
+    case "podcast": return <Podcast initialKind={creation === "create-series" ? "series" : creation === "create-episode" ? "episode" : undefined} />;
     default: return <Library key={section} section={section} />;
   }
 }
 
 export function ModeratorWorkspacePage(): ReactElement {
   const [section, setSection] = useState<ModeratorSection>("overview");
-  const selectSection = (next: ModeratorSection) => setSection(next);
+  const [creation, setCreation] = useState<ModeratorQuickAction["id"] | null>(null);
+  const selectSection = (next: ModeratorSection) => { setCreation(null); setSection(next); };
+  const onAction = (id: ModeratorQuickAction["id"]) => { setCreation(id); setSection(id === "add-milestone" ? "timeline" : "podcast"); };
   return (
-    <WorkspaceDataProvider><ModeratorLayout section={section} onSelect={selectSection}>
+    <ModeratorLayout section={section} onSelect={selectSection}>
       <ModeratorContentBoundary section={section}>
-        <div key={section} className="mod-content-view"><WorkspaceContent section={section} /></div>
+        <div key={section} className="mod-content-view"><WorkspaceContent section={section} creation={creation} onAction={onAction} /></div>
       </ModeratorContentBoundary>
-    </ModeratorLayout></WorkspaceDataProvider>
+    </ModeratorLayout>
   );
 }

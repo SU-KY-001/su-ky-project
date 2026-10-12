@@ -11,7 +11,11 @@ export type MediaStatus = "PENDING" | "READY" | "DELETED";
 export type HistoricalEntityType = "FIGURE" | "EVENT";
 export type EntityTagStatus = "SUGGESTED" | "CONFIRMED" | "REJECTED";
 export type TagOrigin = "AI" | "MODERATOR";
-export type SourceTier = "TIER_1_CHINH_SU" | "TIER_2_KHAO_CO" | "TIER_3_KHOA_HOC" | "TIER_4_DA_SU";
+export type SourceTier =
+  | "TIER_1_CHINH_SU"
+  | "TIER_2_KHAO_CO"
+  | "TIER_3_KHOA_HOC"
+  | "TIER_4_DA_SU";
 
 export interface MediaAssetEntity {
   id: string;
@@ -30,6 +34,18 @@ export interface MediaAssetEntity {
 }
 
 export interface SeriesEntity {
+  primaryHistoricalEventId?: string | null;
+  historicalEntityRevisionId?: string | null;
+  publicationEvidence?: unknown;
+  evidenceCurrentStates?: Record<
+    string,
+    {
+      verificationStatus: string;
+      version: number;
+      verifiedVersion: number | null;
+      archived: boolean;
+    }
+  >;
   id: string;
   ownerId: string;
   topicId: string | null;
@@ -167,7 +183,12 @@ export interface NarrationWithNarrator extends EpisodeNarrationEntity {
 }
 
 export interface SeriesSourceWithSource extends SeriesSourceEntity {
-  source: SourceEntity & { fileAsset: Pick<MediaAssetEntity, "publicId" | "kind" | "version" | "format"> | null };
+  source: SourceEntity & {
+    fileAsset: Pick<
+      MediaAssetEntity,
+      "publicId" | "kind" | "version" | "format"
+    > | null;
+  };
 }
 
 export interface EntityRef {

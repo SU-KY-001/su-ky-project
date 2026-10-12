@@ -3,7 +3,11 @@
  * No imports from @repo/db — the infrastructure adapter maps rows into these.
  */
 
-export type SourceTier = "TIER_1_CHINH_SU" | "TIER_2_KHAO_CO" | "TIER_3_KHOA_HOC" | "TIER_4_DA_SU";
+export type SourceTier =
+  | "TIER_1_CHINH_SU"
+  | "TIER_2_KHAO_CO"
+  | "TIER_3_KHOA_HOC"
+  | "TIER_4_DA_SU";
 
 export type HistoricalEntityType = "FIGURE" | "EVENT";
 
@@ -53,6 +57,12 @@ export interface SourceFileCandidate {
 }
 
 export interface Source {
+  version: number;
+  verificationStatus: "PENDING" | "VERIFIED" | "REJECTED";
+  verifiedVersion: number | null;
+  verifiedById: string | null;
+  verifiedAt: Date | null;
+  verificationNote: string | null;
   id: string;
   tier: SourceTier;
   title: string;
@@ -76,6 +86,7 @@ export interface Source {
 /** Source plus how many series reference it (detail endpoint payload). */
 export interface SourceWithUsage extends Source {
   usageCount: number;
+  historicalUsageCount: number;
 }
 
 export interface HistoricalEntity {

@@ -1,3 +1,4 @@
+import { CatalogSourceSchema } from "@repo/shared";
 import { z } from "zod";
 import {
   ContentStatusSchema,
@@ -47,45 +48,47 @@ export const AuthSessionResultSchema = z.object({
 
 export const GetSessionResponseSchema = z
   .object({
-    session: z.object({ id: z.string(), userId: z.string(), expiresAt: timestamp, token: z.string() }).passthrough(),
+    session: z
+      .object({
+        id: z.string(),
+        userId: z.string(),
+        expiresAt: timestamp,
+        token: z.string(),
+      })
+      .passthrough(),
     user: AuthUserSchema,
   })
   .nullable();
 
 export const CurrentUserResponseSchema = z.object({
-  user: AuthUserSchema.pick({ id: true, name: true, email: true, emailVerified: true, image: true, role: true }),
+  user: AuthUserSchema.pick({
+    id: true,
+    name: true,
+    email: true,
+    emailVerified: true,
+    image: true,
+    role: true,
+  }),
   session: z.object({ expiresAt: timestamp }),
 });
 
 export const MessageResponseSchema = z.object({ message: z.string() });
 
-export const TopicSchema = z.object({ id: uuid, slug: z.string(), name: z.string() });
-
-export const SourceDocSchema = z.object({
+export const TopicSchema = z.object({
   id: uuid,
-  tier: SourceTierSchema,
-  title: z.string(),
-  originalTitle: z.string().nullable(),
-  author: z.string().nullable(),
-  translator: z.string().nullable(),
-  publisher: z.string().nullable(),
-  publicationYear: z.number().int().nullable(),
-  edition: z.string().nullable(),
-  isbn: z.string().nullable(),
-  url: z.string().nullable(),
-  fileAssetId: uuid.nullable(),
-  file: z
-    .object({ assetId: uuid, url: z.string(), format: z.string().nullable(), sizeBytes: z.number().int().nullable() })
-    .nullable()
-    .describe("PDF đã upload (media asset `DOCUMENT`); `url` là đường dẫn tải"),
-  createdById: z.string().nullable(),
-  archivedAt: timestamp.nullable(),
-  createdAt: timestamp,
-  updatedAt: timestamp,
+  slug: z.string(),
+  name: z.string(),
 });
 
+export const SourceDocSchema = CatalogSourceSchema;
+
 export const SourceWithUsageSchema = SourceDocSchema.extend({
-  usageCount: z.number().int().nonnegative().describe("Số series đang trích dẫn nguồn này"),
+  historicalUsageCount: z.number().int().nonnegative(),
+  usageCount: z
+    .number()
+    .int()
+    .nonnegative()
+    .describe("Số series đang trích dẫn nguồn này"),
 });
 
 export const HistoricalEntityDocSchema = z.object({
@@ -102,132 +105,31 @@ export const HistoricalEntityDocSchema = z.object({
   updatedAt: timestamp,
 });
 
-export const ItemsOf = <T extends z.ZodTypeAny>(item: T) => z.object({ items: z.array(item) });
+export const ItemsOf = <T extends z.ZodTypeAny>(item: T) =>
+  z.object({ items: z.array(item) });
 export const PagedOf = paginatedSchema;
 
-const LockSchema = z
-  .object({ lockedAt: timestamp, lockedBy: z.string().nullable() })
-  .nullable()
-  .describe("Khoá của Admin; có khoá thì Moderator không sửa được");
-const CoverSchema = z.object({ assetId: uuid, url: z.string().nullable() }).nullable();
-const ChecklistItemSchema = z.object({ key: z.string(), ok: z.boolean() });
-
-export const SeriesListItemSchema = z.object({
-  id: uuid,
-  title: z.string(),
-  slug: z.string(),
-  status: ContentStatusSchema,
-  isDeleted: z.boolean(),
-  lock: LockSchema,
-  cover: CoverSchema,
-  startYear: z.number().int().nullable(),
-  endYear: z.number().int().nullable(),
-  episodeCounts: z.object({ published: z.number().int(), total: z.number().int() }),
-  updatedAt: timestamp,
-});
-
-export const SeriesDetailSchema = z.object({
-  id: uuid,
-  title: z.string(),
-  slug: z.string(),
-  description: z.string().nullable(),
-  status: ContentStatusSchema,
-  isDeleted: z.boolean(),
-  lock: LockSchema,
-  topic: z.object({ id: uuid, name: z.string() }).nullable(),
-  historicalPhase: z
-    .object({ id: uuid, name: z.string(), period: z.object({ id: uuid, name: z.string() }) })
-    .nullable()
-    .describe("Giai đoạn; Thời kỳ suy ra qua `historicalPhase.period`"),
-  startYear: z.number().int().nullable().describe("Năm bắt đầu (đóng, tính cả năm này). Âm = TCN, không có năm 0, không giới hạn trên"),
-  endYear: z.number().int().nullable().describe("Năm kết thúc (đóng, tính cả năm này; khác `endYear` của Giai đoạn là loại trừ)"),
-  cover: CoverSchema,
-  owner: z.object({ id: z.string(), name: z.string() }),
-  publishedAt: timestamp.nullable(),
-  updatedAt: timestamp.describe("Gửi lại làm `baseUpdatedAt` khi PATCH để phát hiện ghi đè"),
-  publishChecklist: z.object({ ready: z.boolean(), items: z.array(ChecklistItemSchema) }),
-  sources: z.array(SeriesSourceSchema),
-  episodes: z.array(
-    z.object({
-      id: uuid,
-      title: z.string(),
-      slug: z.string(),
-      sortOrder: z.number().int(),
-      status: ContentStatusSchema,
-      progress: z.object({
-        hasThirdPersonScript: z.boolean(),
-        hasThirdPersonAudio: z.boolean(),
-        isPublished: z.boolean(),
-      }),
-    })
-  ),
-});
-
-export const SeriesEpisodeListSchema = SeriesDetailSchema.shape.episodes;
-
-export const NarrationSchema = z.object({
-  id: uuid,
-  type: z.enum(["THIRD_PERSON", "FIRST_PERSON"]),
-  narrator: z.object({ id: uuid, name: z.string() }).nullable(),
-  scriptContent: z.string().nullable(),
-  wordCount: z.number().int(),
-  estimatedDurationMs: z.number().int(),
-  audio: z
-    .object({
-      assetId: uuid,
-      durationMs: z.number().int().nullable(),
-      sizeBytes: z.number().int().nullable(),
-      format: z.string().nullable(),
-      previewUrl: z.string().nullable(),
-      attachedAt: timestamp.nullable(),
-    })
-    .nullable(),
-  warnings: z.array(
-    z.object({
-      key: z.enum(["SCRIPT_CHANGED_AFTER_AUDIO", "DURATION_MISMATCH"]),
-      ratio: z.number().optional(),
-    })
-  ),
-  updatedAt: timestamp.describe("Gửi lại làm `baseUpdatedAt` khi PUT bản kể"),
-});
-
-export const EntityTagSchema = z.object({
-  id: uuid,
-  status: z.enum(["SUGGESTED", "CONFIRMED", "REJECTED"]),
-  origin: z.string(),
-  entity: z.object({ id: uuid, entityType: HistoricalEntityTypeSchema, name: z.string() }),
-});
-
-export const EpisodeWorkspaceSchema = z.object({
-  id: uuid,
-  seriesId: uuid,
-  seriesTitle: z.string(),
-  seriesStatus: ContentStatusSchema,
-  title: z.string(),
-  slug: z.string(),
-  description: z.string().nullable(),
-  sortOrder: z.number().int(),
-  status: ContentStatusSchema,
-  isDeleted: z.boolean(),
-  lock: LockSchema,
-  publishedAt: timestamp.nullable(),
-  updatedAt: timestamp,
-  narrations: z.array(NarrationSchema),
-  entityTags: z.array(EntityTagSchema),
-  publishChecklist: z.object({
-    ready: z.boolean(),
-    items: z.array(ChecklistItemSchema),
-    warnings: z.array(z.object({ key: z.string(), count: z.number().int().optional() })),
-  }),
-});
-
+export {
+  SeriesListItemSchema,
+  SeriesDetailSchema,
+  SeriesEpisodeListSchema,
+  NarrationSchema,
+  EntityTagSchema,
+  EpisodeWorkspaceSchema,
+} from "@repo/shared";
 export const MediaUploadTicketSchema = z.object({
   assetId: uuid,
   upload: z.object({
     url: z.string().url().describe("Endpoint upload trực tiếp lên Cloudinary"),
-    fields: z.record(z.string()).describe("Các field form-data phải gửi kèm file, đúng thứ tự không bắt buộc"),
+    fields: z
+      .record(z.string())
+      .describe(
+        "Các field form-data phải gửi kèm file, đúng thứ tự không bắt buộc",
+      ),
   }),
-  expiresAt: z.union([timestamp, z.number()]).describe("Thời điểm chữ ký hết hạn"),
+  expiresAt: z
+    .union([timestamp, z.number()])
+    .describe("Thời điểm chữ ký hết hạn"),
 });
 
 export const MediaAssetSchema = z.object({
@@ -257,7 +159,7 @@ export const HistoryResponseSchema = z.object({
       lastPositionMs: z.number().int(),
       percent: z.number(),
       isCompleted: z.boolean(),
-    })
+    }),
   ),
   page: z.number().int(),
   limit: z.number().int(),
@@ -265,7 +167,11 @@ export const HistoryResponseSchema = z.object({
 });
 
 const PublicCoverSchema = z.object({ url: z.string() }).nullable();
-const PercentSchema = z.number().min(0).max(100).describe("Phần trăm đã nghe, 0–100");
+const PercentSchema = z
+  .number()
+  .min(0)
+  .max(100)
+  .describe("Phần trăm đã nghe, 0–100");
 const PublicNarrationSchema = z.object({
   id: uuid.describe("Dùng cho playback và đồng bộ tiến độ"),
   type: z.enum(["THIRD_PERSON", "FIRST_PERSON"]),
@@ -286,6 +192,14 @@ export const PublicSeriesListItemDocSchema = z.object({
 });
 
 const PublicSeriesSourceDocSchema = z.object({
+  publisher: z.string().nullable().optional(),
+  edition: z.string().nullable().optional(),
+  publicationYear: z.number().nullable().optional(),
+  isbn: z.string().nullable().optional(),
+  excerpt: z.string().nullable().optional(),
+  verifiedAt: z.string().nullable().optional(),
+  sourceVersion: z.number().optional(),
+  verificationStatus: z.enum(["PENDING", "VERIFIED", "WITHDRAWN"]),
   title: z.string(),
   author: z.string().nullable(),
   tier: SourceTierSchema,
@@ -295,6 +209,11 @@ const PublicSeriesSourceDocSchema = z.object({
 });
 
 export const PublicSeriesDetailDocSchema = z.object({
+  evidenceAsOf: z.string().nullable(),
+  evidenceWarning: z
+    .enum(["LEGACY_UNVERIFIED", "SOURCE_VERIFICATION_WITHDRAWN"])
+    .nullable(),
+  historicalEvent: z.unknown().optional(),
   id: uuid,
   slug: z.string(),
   title: z.string(),
@@ -314,17 +233,27 @@ export const PublicSeriesDetailDocSchema = z.object({
         .object({
           isCompleted: z.boolean(),
           progress: z.array(
-            z.object({ narrationId: uuid, positionMs: z.number().int(), completedAt: timestamp.nullable() })
+            z.object({
+              narrationId: uuid,
+              positionMs: z.number().int(),
+              completedAt: timestamp.nullable(),
+            }),
           ),
         })
         .nullable()
         .describe("`null` khi chưa đăng nhập"),
-    })
+    }),
   ),
 });
 
-const EpisodeLinkSchema = z.object({ id: uuid, slug: z.string(), title: z.string() }).nullable();
-const PublicEntitySchema = z.object({ id: uuid, entityType: HistoricalEntityTypeSchema, name: z.string() });
+const EpisodeLinkSchema = z
+  .object({ id: uuid, slug: z.string(), title: z.string() })
+  .nullable();
+const PublicEntitySchema = z.object({
+  id: uuid,
+  entityType: HistoricalEntityTypeSchema,
+  name: z.string(),
+});
 
 export const PublicEpisodeDetailDocSchema = z.object({
   id: uuid,
@@ -333,16 +262,27 @@ export const PublicEpisodeDetailDocSchema = z.object({
   description: z.string().nullable(),
   publishedAt: timestamp.nullable(),
   series: z.object({
+    evidenceAsOf: z.string().nullable(),
+    evidenceWarning: z
+      .enum(["LEGACY_UNVERIFIED", "SOURCE_VERIFICATION_WITHDRAWN"])
+      .nullable(),
+    historicalEvent: z.unknown().optional(),
     id: uuid,
     slug: z.string(),
     title: z.string(),
     startYear: z.number().int().nullable(),
     endYear: z.number().int().nullable(),
     cover: PublicCoverSchema,
-    sources: z.array(PublicSeriesSourceDocSchema).describe("Trích dẫn thuộc series; mọi tập của series dùng chung"),
+    sources: z
+      .array(PublicSeriesSourceDocSchema)
+      .describe("Trích dẫn thuộc series; mọi tập của series dùng chung"),
   }),
-  narrations: z.array(PublicNarrationSchema.extend({ narrator: PublicEntitySchema.nullable() })),
-  entities: z.array(PublicEntitySchema).describe("Chỉ thẻ thực thể đã được Moderator xác nhận"),
+  narrations: z.array(
+    PublicNarrationSchema.extend({ narrator: PublicEntitySchema.nullable() }),
+  ),
+  entities: z
+    .array(PublicEntitySchema)
+    .describe("Chỉ thẻ thực thể đã được Moderator xác nhận"),
   previousEpisode: EpisodeLinkSchema,
   nextEpisode: EpisodeLinkSchema,
   hasQuiz: z.boolean(),
@@ -355,7 +295,7 @@ export const PublicEpisodeDetailDocSchema = z.object({
           positionMs: z.number().int(),
           percent: PercentSchema,
           completedAt: timestamp.nullable(),
-        })
+        }),
       ),
     })
     .nullable()
@@ -365,7 +305,9 @@ export const PublicEpisodeDetailDocSchema = z.object({
 export const ListeningProgressDocSchema = z.object({
   assetId: uuid,
   positionMs: z.number().int(),
-  playedBitmap: z.string().describe("Bitmap base64, mỗi bit là một giây đã nghe"),
+  playedBitmap: z
+    .string()
+    .describe("Bitmap base64, mỗi bit là một giây đã nghe"),
   playedSeconds: z.number().int(),
   percent: PercentSchema,
   completedAt: timestamp.nullable(),
@@ -374,11 +316,23 @@ export const ListeningProgressDocSchema = z.object({
 export const PlaybackDocSchema = z.object({
   narrationId: uuid,
   episodeId: uuid,
-  audio: z.object({ assetId: uuid, url: z.string(), mimeType: z.string(), durationMs: z.number().int() }),
-  progress: ListeningProgressDocSchema.nullable().describe("`null` khi chưa nghe lần nào"),
+  audio: z.object({
+    assetId: uuid,
+    url: z.string(),
+    mimeType: z.string(),
+    durationMs: z.number().int(),
+  }),
+  progress: ListeningProgressDocSchema.nullable().describe(
+    "`null` khi chưa nghe lần nào",
+  ),
   sync: z.object({
-    intervalMs: z.number().int().describe("Chu kỳ client nên gọi đồng bộ tiến độ"),
-    completionThreshold: z.number().describe("Tỉ lệ số giây đã nghe để tính là nghe xong (0–1)"),
+    intervalMs: z
+      .number()
+      .int()
+      .describe("Chu kỳ client nên gọi đồng bộ tiến độ"),
+    completionThreshold: z
+      .number()
+      .describe("Tỉ lệ số giây đã nghe để tính là nghe xong (0–1)"),
   }),
 });
 
@@ -390,7 +344,10 @@ export const ListeningProgressUpdateDocSchema = z.object({
   completedAt: timestamp.nullable(),
   completion: z
     .object({
-      xpAwarded: z.number().int().describe("XP của lần hoàn thành này; 0 nếu tập đã được tính trước đó"),
+      xpAwarded: z
+        .number()
+        .int()
+        .describe("XP của lần hoàn thành này; 0 nếu tập đã được tính trước đó"),
       totalXp: z.number().int(),
       missions: z.array(
         z.object({
@@ -400,11 +357,13 @@ export const ListeningProgressUpdateDocSchema = z.object({
           target: z.number().int(),
           completedNow: z.boolean(),
           xpAwarded: z.number().int(),
-        })
+        }),
       ),
     })
     .nullable()
-    .describe("Chỉ có ở lần đồng bộ khiến tập chuyển sang hoàn thành; các lần khác là `null`"),
+    .describe(
+      "Chỉ có ở lần đồng bộ khiến tập chuyển sang hoàn thành; các lần khác là `null`",
+    ),
 });
 
 export const TimelineResponseSchema = ItemsOf(
@@ -417,5 +376,5 @@ export const TimelineResponseSchema = ItemsOf(
     description: z.string(),
     episodesCount: z.number().int().optional(),
     seriesCount: z.number().int().optional(),
-  })
+  }),
 );

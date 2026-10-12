@@ -1,12 +1,19 @@
+import { PublicationEvidenceSchema } from "@repo/shared";
+import type { SeriesEntity } from "../domain/listening.entity";
 import type { z } from "zod";
-import { ListeningHistoryQuerySchema, PublicSeriesListQuerySchema, UpdateListeningProgressRequestSchema } from "@repo/shared";
+import {
+  ListeningHistoryQuerySchema,
+  PublicSeriesListQuerySchema,
+  UpdateListeningProgressRequestSchema,
+} from "@repo/shared";
 import { getSystemConfig } from "../../../core/config/system-config";
 import { DomainError } from "../../../core/errors/domain-error";
 import { audioMimeType, type MediaStorageGateway } from "../../media";
 import type { SeriesSourceWithSource } from "../domain/listening.entity";
 import type { ListeningRepository } from "../domain/listening.repository";
 
-const BASE64_PATTERN = /^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$/;
+const BASE64_PATTERN =
+  /^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$/;
 const VN_TIMEZONE_OFFSET_MS = 7 * 60 * 60 * 1000;
 const DAYS_PER_WEEK = 7;
 const MS_PER_SECOND = 1000;
@@ -19,7 +26,13 @@ type HistoryQuery = z.infer<typeof ListeningHistoryQuerySchema>;
 
 function countBits(bytes: Uint8Array): number {
   let total = 0;
-  for (const byte of bytes) { let value = byte; while (value) { total += value & 1; value >>>= 1; } }
+  for (const byte of bytes) {
+    let value = byte;
+    while (value) {
+      total += value & 1;
+      value >>>= 1;
+    }
+  }
   return total;
 }
 
@@ -27,37 +40,136 @@ function countBits(bytes: Uint8Array): number {
 function mondayInVietnam(now: Date): Date {
   const local = new Date(now.getTime() + VN_TIMEZONE_OFFSET_MS);
   const day = local.getUTCDay() || DAYS_PER_WEEK;
-  return new Date(Date.UTC(local.getUTCFullYear(), local.getUTCMonth(), local.getUTCDate() - day + 1));
+  return new Date(
+    Date.UTC(
+      local.getUTCFullYear(),
+      local.getUTCMonth(),
+      local.getUTCDate() - day + 1,
+    ),
+  );
 }
 
 export class ListeningService {
-  constructor(private readonly repo: ListeningRepository, private readonly storage: MediaStorageGateway) {}
+  constructor(
+    private readonly repo: ListeningRepository,
+    private readonly storage: MediaStorageGateway,
+  ) {}
 
   /** Series-level citation; `fileUrl` is the uploaded PDF when the source has one. */
   private mapSource(item: SeriesSourceWithSource) {
     const { source } = item;
-    return { title: source.title, author: source.author, tier: source.tier, locator: item.locator, url: source.url, fileUrl: source.fileAsset ? this.storage.deliveryUrl(source.fileAsset) : null };
+    return {
+      title: source.title,
+      author: source.author,
+      tier: source.tier,
+      locator: item.locator,
+      url: source.url,
+      fileUrl: source.fileAsset
+        ? this.storage.deliveryUrl(source.fileAsset)
+        : null,
+    };
+  }
+
+  private mapPublicationEvidence(
+    series: SeriesEntity,
+    sources: SeriesSourceWithSource[],
+  ) {
+    const parsed = PublicationEvidenceSchema.safeParse(
+      series.publicationEvidence,
+    );
+    if (!parsed.success)
+      return {
+        sources: sources.map((s) => ({
+          ...this.mapSource(s),
+          verificationStatus: "PENDING" as const,
+        })),
+        evidenceAsOf: null,
+        evidenceWarning: "LEGACY_UNVERIFIED",
+      };
+    const evidence = parsed.data;
+    const rows = evidence.sources.map((s) => {
+      const state = series.evidenceCurrentStates?.[s.id];
+      const valid =
+        state?.verificationStatus === "VERIFIED" &&
+        state.version === s.sourceVersion &&
+        state.verifiedVersion === s.sourceVersion &&
+        !state.archived;
+      return {
+        ...s.source,
+        locator: s.locator,
+        excerpt: s.excerpt,
+        verifiedAt: s.verifiedAt,
+        sourceVersion: s.sourceVersion,
+        verificationStatus: valid ? "VERIFIED" : "WITHDRAWN",
+        fileUrl: s.file
+          ? this.storage.deliveryUrl({
+              ...s.file,
+              version: s.file.version ? BigInt(s.file.version) : null,
+            })
+          : null,
+      };
+    });
+    return {
+      sources: rows,
+      evidenceAsOf: evidence.asOf,
+      historicalEvent: evidence.event,
+      evidenceWarning: rows.some((s) => s.verificationStatus !== "VERIFIED")
+        ? "SOURCE_VERIFICATION_WITHDRAWN"
+        : null,
+    };
   }
 
   async playback(narrationId: string, userId: string) {
     const narration = await this.repo.findPublicNarration(narrationId);
-    if (!narration?.audioAsset?.durationMs) throw new DomainError(404, "CONTENT_UNAVAILABLE", "Narration audio is not available");
+    if (!narration?.audioAsset?.durationMs)
+      throw new DomainError(
+        404,
+        "CONTENT_UNAVAILABLE",
+        "Narration audio is not available",
+      );
     const saved = await this.repo.findProgress(userId, narrationId);
     const progress = saved
       ? {
           assetId: narration.audioAsset.id,
-          positionMs: saved.audioAssetId === narration.audioAsset.id ? saved.positionMs : 0,
-          playedBitmap: saved.audioAssetId === narration.audioAsset.id ? Buffer.from(saved.playedBitmap).toString("base64") : "",
-          playedSeconds: saved.audioAssetId === narration.audioAsset.id ? saved.playedSeconds : 0,
-          percent: saved.audioAssetId === narration.audioAsset.id ? Math.min(PERCENT_CAP, saved.playedSeconds / Math.ceil(narration.audioAsset.durationMs / MS_PER_SECOND) * PERCENT_CAP) : 0,
+          positionMs:
+            saved.audioAssetId === narration.audioAsset.id
+              ? saved.positionMs
+              : 0,
+          playedBitmap:
+            saved.audioAssetId === narration.audioAsset.id
+              ? Buffer.from(saved.playedBitmap).toString("base64")
+              : "",
+          playedSeconds:
+            saved.audioAssetId === narration.audioAsset.id
+              ? saved.playedSeconds
+              : 0,
+          percent:
+            saved.audioAssetId === narration.audioAsset.id
+              ? Math.min(
+                  PERCENT_CAP,
+                  (saved.playedSeconds /
+                    Math.ceil(
+                      narration.audioAsset.durationMs / MS_PER_SECOND,
+                    )) *
+                    PERCENT_CAP,
+                )
+              : 0,
           completedAt: saved.completedAt,
         }
       : null;
-    const [intervalMs, completionThreshold] = await Promise.all([getSystemConfig("listening.sync_interval_ms"), getSystemConfig("listening.completion_ratio")]);
+    const [intervalMs, completionThreshold] = await Promise.all([
+      getSystemConfig("listening.sync_interval_ms"),
+      getSystemConfig("listening.completion_ratio"),
+    ]);
     return {
       narrationId,
       episodeId: narration.episodeId,
-      audio: { assetId: narration.audioAsset.id, url: this.storage.deliveryUrl(narration.audioAsset), mimeType: audioMimeType(narration.audioAsset.format), durationMs: narration.audioAsset.durationMs },
+      audio: {
+        assetId: narration.audioAsset.id,
+        url: this.storage.deliveryUrl(narration.audioAsset),
+        mimeType: audioMimeType(narration.audioAsset.format),
+        durationMs: narration.audioAsset.durationMs,
+      },
       progress,
       sync: { intervalMs, completionThreshold },
     };
@@ -65,34 +177,78 @@ export class ListeningService {
 
   async getProgress(narrationId: string, userId: string) {
     const progress = await this.repo.findProgressWithAudio(userId, narrationId);
-    if (!progress) throw new DomainError(404, "NOT_FOUND", "Listening progress not found");
+    if (!progress)
+      throw new DomainError(404, "NOT_FOUND", "Listening progress not found");
     return {
       assetId: progress.audioAssetId,
       positionMs: progress.positionMs,
       playedBitmap: Buffer.from(progress.playedBitmap).toString("base64"),
       playedSeconds: progress.playedSeconds,
-      percent: Math.min(PERCENT_CAP, progress.playedSeconds / Math.ceil((progress.audioAsset.durationMs ?? 1) / MS_PER_SECOND) * PERCENT_CAP),
+      percent: Math.min(
+        PERCENT_CAP,
+        (progress.playedSeconds /
+          Math.ceil((progress.audioAsset.durationMs ?? 1) / MS_PER_SECOND)) *
+          PERCENT_CAP,
+      ),
       completedAt: progress.completedAt,
     };
   }
 
-  async updateProgress(narrationId: string, userId: string, input: UpdateProgressInput) {
+  async updateProgress(
+    narrationId: string,
+    userId: string,
+    input: UpdateProgressInput,
+  ) {
     const narration = await this.repo.findPublicNarration(narrationId);
-    if (!narration?.audioAsset?.durationMs) throw new DomainError(404, "CONTENT_UNAVAILABLE", "Narration audio is not available");
-    if (input.assetId !== narration.audioAsset.id) throw new DomainError(409, "AUDIO_CHANGED", "Episode audio changed; reload playback");
-    if (input.positionMs > narration.audioAsset.durationMs) throw new DomainError(422, "PROGRESS_INVALID", "Position exceeds audio duration");
-    if (!BASE64_PATTERN.test(input.playedBitmap)) throw new DomainError(422, "PROGRESS_INVALID", "Played bitmap is not valid base64");
+    if (!narration?.audioAsset?.durationMs)
+      throw new DomainError(
+        404,
+        "CONTENT_UNAVAILABLE",
+        "Narration audio is not available",
+      );
+    if (input.assetId !== narration.audioAsset.id)
+      throw new DomainError(
+        409,
+        "AUDIO_CHANGED",
+        "Episode audio changed; reload playback",
+      );
+    if (input.positionMs > narration.audioAsset.durationMs)
+      throw new DomainError(
+        422,
+        "PROGRESS_INVALID",
+        "Position exceeds audio duration",
+      );
+    if (!BASE64_PATTERN.test(input.playedBitmap))
+      throw new DomainError(
+        422,
+        "PROGRESS_INVALID",
+        "Played bitmap is not valid base64",
+      );
     const requested = Buffer.from(input.playedBitmap, "base64");
-    const totalSeconds = Math.ceil(narration.audioAsset.durationMs / MS_PER_SECOND);
+    const totalSeconds = Math.ceil(
+      narration.audioAsset.durationMs / MS_PER_SECOND,
+    );
     const expectedBytes = Math.ceil(totalSeconds / BITS_PER_BYTE);
-    if (requested.length > expectedBytes) throw new DomainError(422, "PROGRESS_INVALID", "Played bitmap exceeds audio duration");
+    if (requested.length > expectedBytes)
+      throw new DomainError(
+        422,
+        "PROGRESS_INVALID",
+        "Played bitmap exceeds audio duration",
+      );
     const padded = new Uint8Array(expectedBytes);
     padded.set(requested);
     const unusedBits = expectedBytes * BITS_PER_BYTE - totalSeconds;
-    if (unusedBits > 0) padded[expectedBytes - 1] &= (1 << (BITS_PER_BYTE - unusedBits)) - 1;
+    if (unusedBits > 0)
+      padded[expectedBytes - 1] &= (1 << (BITS_PER_BYTE - unusedBits)) - 1;
 
     // Policy numbers are read up front so the repository unit of work stays mechanics-only.
-    const [syncInterval, maxRate, tolerance, completionRatio, xpPerEpisodeCompletion] = await Promise.all([
+    const [
+      syncInterval,
+      maxRate,
+      tolerance,
+      completionRatio,
+      xpPerEpisodeCompletion,
+    ] = await Promise.all([
       getSystemConfig("listening.sync_interval_ms"),
       getSystemConfig("listening.max_playback_rate"),
       getSystemConfig("listening.tolerance_intervals"),
@@ -112,12 +268,19 @@ export class ListeningService {
       weekStartDate: mondayInVietnam(now),
       xpPerEpisodeCompletion,
       completionRatio,
-      budget: (elapsedSeconds: number) => Math.ceil(elapsedSeconds * maxRate) + Math.ceil((syncInterval / MS_PER_SECOND) * maxRate * tolerance),
+      budget: (elapsedSeconds: number) =>
+        Math.ceil(elapsedSeconds * maxRate) +
+        Math.ceil((syncInterval / MS_PER_SECOND) * maxRate * tolerance),
       merge: (stored: Uint8Array, allowed: number) => {
         for (let bit = 0; bit < totalSeconds; bit += 1) {
           const byte = Math.floor(bit / BITS_PER_BYTE);
-          const mask = 1 << (bit % BITS_PER_BYTE);
-          if ((padded[byte]! & mask) !== 0 && (stored[byte]! & mask) === 0 && allowed-- > 0) stored[byte] |= mask;
+          const mask = 1 << bit % BITS_PER_BYTE;
+          if (
+            (padded[byte]! & mask) !== 0 &&
+            (stored[byte]! & mask) === 0 &&
+            allowed-- > 0
+          )
+            stored[byte] |= mask;
         }
         return { bitmap: stored, playedSeconds: countBits(stored) };
       },
@@ -126,7 +289,10 @@ export class ListeningService {
       narrationId,
       positionMs: result.positionMs,
       playedSeconds: result.playedSeconds,
-      percent: Math.min(PERCENT_CAP, result.playedSeconds / totalSeconds * PERCENT_CAP),
+      percent: Math.min(
+        PERCENT_CAP,
+        (result.playedSeconds / totalSeconds) * PERCENT_CAP,
+      ),
       completedAt: result.completedAt,
       completion: result.completion,
     };
@@ -142,7 +308,9 @@ export class ListeningService {
         description: series.description,
         startYear: series.startYear,
         endYear: series.endYear,
-        cover: series.coverImageAsset ? { url: this.storage.deliveryUrl(series.coverImageAsset) } : null,
+        cover: series.coverImageAsset
+          ? { url: this.storage.deliveryUrl(series.coverImageAsset) }
+          : null,
         episodeCount: series._count.episodes,
         publishedAt: series.publishedAt,
       })),
@@ -155,7 +323,12 @@ export class ListeningService {
   async getSeriesDetail(slug: string, userId: string | null) {
     const series = await this.repo.findPublicSeriesBySlug(slug);
     if (!series) throw new DomainError(404, "NOT_FOUND", "Series not found");
-    const progress = userId ? await this.repo.findProgressByEpisodeIds(userId, series.episodes.map((episode) => episode.id)) : [];
+    const progress = userId
+      ? await this.repo.findProgressByEpisodeIds(
+          userId,
+          series.episodes.map((episode) => episode.id),
+        )
+      : [];
     return {
       id: series.id,
       slug: series.slug,
@@ -163,8 +336,10 @@ export class ListeningService {
       description: series.description,
       startYear: series.startYear,
       endYear: series.endYear,
-      cover: series.coverImageAsset ? { url: this.storage.deliveryUrl(series.coverImageAsset) } : null,
-      sources: series.sources.map((item) => this.mapSource(item)),
+      cover: series.coverImageAsset
+        ? { url: this.storage.deliveryUrl(series.coverImageAsset) }
+        : null,
+      ...this.mapPublicationEvidence(series, series.sources),
       episodes: series.episodes.map((episode) => ({
         id: episode.id,
         slug: episode.slug,
@@ -178,8 +353,16 @@ export class ListeningService {
         })),
         viewer: userId
           ? {
-              isCompleted: progress.some((item) => item.episodeId === episode.id && item.completedAt),
-              progress: progress.filter((item) => item.episodeId === episode.id).map((item) => ({ narrationId: item.narrationId, positionMs: item.positionMs, completedAt: item.completedAt })),
+              isCompleted: progress.some(
+                (item) => item.episodeId === episode.id && item.completedAt,
+              ),
+              progress: progress
+                .filter((item) => item.episodeId === episode.id)
+                .map((item) => ({
+                  narrationId: item.narrationId,
+                  positionMs: item.positionMs,
+                  completedAt: item.completedAt,
+                })),
             }
           : null,
       })),
@@ -189,8 +372,12 @@ export class ListeningService {
   async getEpisodeDetail(slug: string, userId: string | null) {
     const episode = await this.repo.findPublicEpisodeBySlug(slug);
     if (!episode) throw new DomainError(404, "NOT_FOUND", "Episode not found");
-    const index = episode.series.episodes.findIndex((item) => item.id === episode.id);
-    const saved = userId ? await this.repo.findProgressForEpisode(userId, episode.id) : [];
+    const index = episode.series.episodes.findIndex(
+      (item) => item.id === episode.id,
+    );
+    const saved = userId
+      ? await this.repo.findProgressForEpisode(userId, episode.id)
+      : [];
     return {
       id: episode.id,
       slug: episode.slug,
@@ -203,8 +390,10 @@ export class ListeningService {
         title: episode.series.title,
         startYear: episode.series.startYear,
         endYear: episode.series.endYear,
-        cover: episode.series.coverImageAsset ? { url: this.storage.deliveryUrl(episode.series.coverImageAsset) } : null,
-        sources: episode.series.sources.map((item) => this.mapSource(item)),
+        cover: episode.series.coverImageAsset
+          ? { url: this.storage.deliveryUrl(episode.series.coverImageAsset) }
+          : null,
+        ...this.mapPublicationEvidence(episode.series, episode.series.sources),
       },
       narrations: episode.narrations.map((item) => ({
         id: item.id,
@@ -215,7 +404,10 @@ export class ListeningService {
       })),
       entities: episode.entityTags.map((item) => item.entity),
       previousEpisode: index > 0 ? episode.series.episodes[index - 1] : null,
-      nextEpisode: index >= 0 && index < episode.series.episodes.length - 1 ? episode.series.episodes[index + 1] : null,
+      nextEpisode:
+        index >= 0 && index < episode.series.episodes.length - 1
+          ? episode.series.episodes[index + 1]
+          : null,
       hasQuiz: Boolean(episode.quiz),
       viewer: userId
         ? {
@@ -223,7 +415,14 @@ export class ListeningService {
             progress: saved.map((item) => ({
               narrationId: item.narrationId,
               positionMs: item.positionMs,
-              percent: Math.min(PERCENT_CAP, item.playedSeconds / Math.ceil((item.audioAsset.durationMs ?? 1) / MS_PER_SECOND) * PERCENT_CAP),
+              percent: Math.min(
+                PERCENT_CAP,
+                (item.playedSeconds /
+                  Math.ceil(
+                    (item.audioAsset.durationMs ?? 1) / MS_PER_SECOND,
+                  )) *
+                  PERCENT_CAP,
+              ),
               completedAt: item.completedAt,
             })),
           }
@@ -233,21 +432,59 @@ export class ListeningService {
 
   async getHistory(userId: string, { page, limit, status }: HistoryQuery) {
     const rows = await this.repo.listListeningHistory(userId);
-    const grouped = new Map<string, typeof rows[number]>();
-    for (const row of rows) if (!grouped.has(row.episodeId)) grouped.set(row.episodeId, row);
-    const all = [...grouped.values()].map((row) => {
-      const episodeRows = rows.filter((item) => item.episodeId === row.episodeId);
-      const isCompleted = episodeRows.some((item) => item.completedAt);
-      const available = row.episode.status === "PUBLISHED" && !row.episode.deletedAt && row.episode.series.status === "PUBLISHED" && !row.episode.series.deletedAt;
-      return {
-        episode: { id: row.episode.id, slug: row.episode.slug, title: row.episode.title, available, series: { slug: row.episode.series.slug, title: row.episode.series.title } },
-        lastListenedAt: row.lastListenedAt,
-        lastNarrationId: row.narrationId,
-        lastPositionMs: row.positionMs,
-        percent: Math.max(...episodeRows.map((item) => Math.min(PERCENT_CAP, item.playedSeconds / Math.ceil((item.audioAsset.durationMs ?? 1) / MS_PER_SECOND) * PERCENT_CAP))),
-        isCompleted,
-      };
-    }).filter((item) => status === "all" || (status === "completed" ? item.isCompleted : !item.isCompleted));
-    return { items: all.slice((page - 1) * limit, page * limit), page, limit, total: all.length };
+    const grouped = new Map<string, (typeof rows)[number]>();
+    for (const row of rows)
+      if (!grouped.has(row.episodeId)) grouped.set(row.episodeId, row);
+    const all = [...grouped.values()]
+      .map((row) => {
+        const episodeRows = rows.filter(
+          (item) => item.episodeId === row.episodeId,
+        );
+        const isCompleted = episodeRows.some((item) => item.completedAt);
+        const available =
+          row.episode.status === "PUBLISHED" &&
+          !row.episode.deletedAt &&
+          row.episode.series.status === "PUBLISHED" &&
+          !row.episode.series.deletedAt;
+        return {
+          episode: {
+            id: row.episode.id,
+            slug: row.episode.slug,
+            title: row.episode.title,
+            available,
+            series: {
+              slug: row.episode.series.slug,
+              title: row.episode.series.title,
+            },
+          },
+          lastListenedAt: row.lastListenedAt,
+          lastNarrationId: row.narrationId,
+          lastPositionMs: row.positionMs,
+          percent: Math.max(
+            ...episodeRows.map((item) =>
+              Math.min(
+                PERCENT_CAP,
+                (item.playedSeconds /
+                  Math.ceil(
+                    (item.audioAsset.durationMs ?? 1) / MS_PER_SECOND,
+                  )) *
+                  PERCENT_CAP,
+              ),
+            ),
+          ),
+          isCompleted,
+        };
+      })
+      .filter(
+        (item) =>
+          status === "all" ||
+          (status === "completed" ? item.isCompleted : !item.isCompleted),
+      );
+    return {
+      items: all.slice((page - 1) * limit, page * limit),
+      page,
+      limit,
+      total: all.length,
+    };
   }
 }
