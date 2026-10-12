@@ -1,32 +1,41 @@
 import { createBrowserRouter, redirect, redirectDocument, type RouteObject } from "react-router";
-import { GuestRoute, LoadingSpinner, ProtectedRoute, RouteErrorFallback } from "@/shared/components/common";
+import { GuestRoute, ProtectedRoute, RouteErrorFallback } from "@/shared/components/common";
+import { AppLoadingFallback } from "./AppLoadingFallback";
 import { APP_PATHS } from "@/shared/constants/routes";
 import { AppFrame } from "@/shared/layouts/AppFrame";
 import { LoginPage } from "@/pages/auth/LoginPage";
 import { apiUrl } from "@/lib/client";
 import { ModeratorLayout } from "@/features/moderator/components/ModeratorLayout";
 import { PODCAST_PRODUCTION_PATH } from "@/features/moderator/navItems";
+import { PublicRoute } from "@/shared/components/common/PublicRoute";
+import { LandingLoadingPage } from "@/pages/landing/LandingLoadingPage";
 
 export const appRoutes: RouteObject[] = [
   {
     id: "app",
     path: APP_PATHS.home,
     Component: AppFrame,
-    HydrateFallback: LoadingSpinner,
+    HydrateFallback: AppLoadingFallback,
     ErrorBoundary: RouteErrorFallback,
     children: [
       {
-        id: "landing",
-        lazy: async () => {
-          const { LandingPage } = await import("../pages/landing/LandingPage");
-          return { Component: LandingPage };
-        },
+        id: "public-routes",
+        element: <PublicRoute fallback={<LandingLoadingPage />} />,
         children: [
-          { id: "landing-home", index: true, element: null },
           {
-            id: "guest-routes",
-            element: <GuestRoute />,
-            children: [{ id: "login", path: APP_PATHS.login.slice(1), Component: LoginPage }],
+            id: "landing",
+            lazy: async () => {
+              const { LandingPage } = await import("../pages/landing/LandingPage");
+              return { Component: LandingPage };
+            },
+            children: [
+              { id: "landing-home", index: true, element: null },
+              {
+                id: "guest-routes",
+                element: <GuestRoute />,
+                children: [{ id: "login", path: APP_PATHS.login.slice(1), Component: LoginPage }],
+              },
+            ],
           },
         ],
       },

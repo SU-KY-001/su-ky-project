@@ -39,13 +39,14 @@ interface NavbarScrollAnimation {
 export function useNavbarScrollAnimation(reducedMotion: boolean): NavbarScrollAnimation {
   const navbarRef = useRef<HTMLDivElement>(null);
   const [isScrolled, setIsScrolled] = useState(() =>
-    typeof window !== "undefined" && window.scrollY >= REDUCED_MOTION_THRESHOLD,
+    typeof document !== "undefined" && (document.getElementById("landing-page")?.scrollTop ?? 0) >= REDUCED_MOTION_THRESHOLD,
   );
 
   useLayoutEffect(() => {
     const navbar = navbarRef.current;
     const hero = document.getElementById("hero");
-    if (!navbar || !hero) return undefined;
+    const page = document.getElementById("landing-page");
+    if (!navbar || !hero || !page) return undefined;
     const primaryTone = navbar.querySelectorAll<HTMLElement>("[data-navbar-tone='primary']");
     const secondaryTone = navbar.querySelectorAll<HTMLElement>("[data-navbar-tone='secondary']");
 
@@ -56,16 +57,16 @@ export function useNavbarScrollAnimation(reducedMotion: boolean): NavbarScrollAn
 
     if (reducedMotion) {
       const updateNavbar = (): void => {
-        const nextIsScrolled = window.scrollY >= REDUCED_MOTION_THRESHOLD;
+        const nextIsScrolled = page.scrollTop >= REDUCED_MOTION_THRESHOLD;
         gsap.set(navbar, nextIsScrolled ? pillNavbar : expandedNavbar);
         setTone(nextIsScrolled);
         setIsScrolled((current) => current === nextIsScrolled ? current : nextIsScrolled);
       };
 
       updateNavbar();
-      window.addEventListener("scroll", updateNavbar, { passive: true });
+      page.addEventListener("scroll", updateNavbar, { passive: true });
       return () => {
-        window.removeEventListener("scroll", updateNavbar);
+        page.removeEventListener("scroll", updateNavbar);
         gsap.set(navbar, { clearProps: "all" });
       };
     }
@@ -82,6 +83,7 @@ export function useNavbarScrollAnimation(reducedMotion: boolean): NavbarScrollAn
       const timeline = gsap.timeline({
         scrollTrigger: {
           trigger: hero,
+          scroller: page,
           start: "top top",
           end: `+=${NAVBAR_SCROLL_DISTANCE}`,
           scrub: true,
