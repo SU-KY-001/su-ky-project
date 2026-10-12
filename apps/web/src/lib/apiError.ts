@@ -22,7 +22,7 @@ export class ApiError extends Error {
     this.name = "ApiError";
   }
 
-  static async fromResponse(response: Response): Promise<ApiError> {
+  static async fromResponse(response: Pick<Response,"json"|"status"|"headers">): Promise<ApiError> {
     const body = ErrorBodySchema.safeParse(await response.json().catch(() => null));
     const parsed = body.success ? body.data : {};
     const retryAfter = Number(response.headers.get("Retry-After"));

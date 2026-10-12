@@ -1,160 +1,438 @@
-import { useMemo, useState } from "react";
-import { Plus, ArrowRight, CalendarBlank } from "@phosphor-icons/react";
-import { useSearchParams } from "react-router";
-import { useModeratorToastStore } from "@/features/moderator/toastStore";
-import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/shared/components/ui/accordion";
-import { historicalLibraryFixture } from "../data";
-import { createSessionEvent, createSessionPeriod, createSessionStage, findSelectedNode } from "../model";
-import type { HistoricalPeriod, HistorySelection } from "../types";
-import { CreateHistoricalItemDialog, type HistoricalDraftInput, type HistoricalDraftKind } from "./CreateHistoricalItemDialog";
-import { LibraryContent } from "./LibraryContent";
+import { Fragment, useState, type ReactNode } from "react";
+import { Plus } from "@phosphor-icons/react";
+import type {
+  HistoricalPeriodDetailDto,
+  HistoricalPhaseDetailDto,
+  HistoricalEntityDetailDto,
+} from "@repo/shared";
+import { Button } from "@/shared/components/ui/button";
+import { TableRow, TableCell, TableHead } from "@/shared/components/ui/table";
+import { Dialog, DialogTrigger } from "@/shared/components/ui/dialog";
+import {
+  ModeratorTable,
+  InteractiveTableRow,
+  EmptyTableRow,
+  tableCell,
+  primaryAction,
+} from "@/features/moderator/components/ModeratorTable";
+import {
+  ModeratorTreeNode,
+  ContentKindLegend,
+  ContentKindIcon,
+} from "@/features/moderator/components/ModeratorTreeNode";
+import { ModeratorSectionPanel } from "@/features/moderator/components/ModeratorSectionPanel";
+import { ModeratorListToolbar } from "@/features/moderator/components/ModeratorListToolbar";
+import {
+  useHistoricalPeriods,
+  useHistoricalPhases,
+  useHistoricalEntities,
+  useHistoricalSummary,
+} from "../hooks/useHistoricalCatalog";
+import {
+  CreateHistoricalContentDialog,
+  type HistoricalNodeDto,
+} from "./CreateHistoricalContentDialog";
+import type {
+  HistoricalKind,
+  CatalogFilter,
+} from "../services/historicalCatalogService";
+import { HistoricalBranchDetailDialog } from "./HistoricalBranchDetailDialog";
 import { LibraryStatusBadge } from "./LibraryStatusBadge";
+import { cn } from "@/lib/utils";
 
-function parseSelection(periods: HistoricalPeriod[], params: URLSearchParams): HistorySelection | null {
-  const id = params.get("node");
-  if (!id) return null;
-  for (const period of periods) {
-    if (period.id === id) return { type: "period", id };
-    for (const stage of period.stages) {
-      if (stage.id === id) return { type: "stage", id };
-      if (stage.events.some((event) => event.id === id)) return { type: "event", id };
-    }
-  }
-  return null;
-}
-
-export function HistoricalLibraryWorkspace() {
-  const [periods, setPeriods] = useState<HistoricalPeriod[]>(historicalLibraryFixture);
-  const [searchParams, setSearchParams] = useSearchParams();
-  const [createKind, setCreateKind] = useState<HistoricalDraftKind>("period");
-  const [createOpen, setCreateOpen] = useState(false);
-  const showToast = useModeratorToastStore((state) => state.show);
-  const selection = parseSelection(periods, searchParams);
-  const selectedNode = useMemo(() => selection ? findSelectedNode(periods, selection) : null, [periods, selection]);
-
-  const selectNode = (next: HistorySelection) => setSearchParams({ node: next.id });
-  const selectedPeriodId = selectedNode?.period.id ?? "";
-  const selectedStageId = selectedNode && selectedNode.type !== "period" ? selectedNode.stage.id : "";
-  const openCreation = (kind: HistoricalDraftKind) => { setCreateKind(kind); setCreateOpen(true); };
-  const submitDraft = (input: HistoricalDraftInput) => {
-    if (createKind === "period") {
-      const period = createSessionPeriod(input);
-      setPeriods((current) => [...current, period]);
-      setSearchParams({ node: period.id });
-      selectNode({ type: "period", id: period.id });
-      showToast("Đã thêm thời kỳ trong phiên hiện tại.");
-      return;
-    }
-    if (!selectedNode) return;
-    if (createKind === "stage") {
-      const stage = createSessionStage(input);
-      const periodId = selectedNode.period.id;
-      setPeriods((current) => current.map((period) => period.id === periodId ? { ...period, stages: [...period.stages, stage] } : period));
-      setSearchParams({ node: stage.id });
-      showToast("Đã thêm giai đoạn trong phiên hiện tại.");
-      return;
-    }
-    if (selectedNode.type !== "stage") return;
-    const event = createSessionEvent(input);
-    const stageId = selectedNode.stage.id;
-    setPeriods((current) => current.map((period) => ({
-      ...period,
-      stages: period.stages.map((stage) => stage.id === stageId ? { ...stage, events: [...stage.events, event] } : stage),
-    })));
-    setSearchParams({ node: event.id });
-    showToast("Đã thêm sự kiện trong phiên hiện tại.");
-  };
-
-  const parentLabel = createKind === "stage" ? selectedNode?.period.name : createKind === "event" && selectedNode?.type === "stage" ? selectedNode.stage.name : undefined;
-
-  const setPeriodOpen = (value: string) => {
-    if (!value) {
-      setSearchParams({});
-      return;
-    }
-    const period = periods.find((item) => item.id === value);
-    if (period) selectNode({ type: "period", id: period.id });
-  };
-
-  const setStageOpen = (period: HistoricalPeriod, value: string) => {
-    if (!value) {
-      selectNode({ type: "period", id: period.id });
-      return;
-    }
-    selectNode({ type: "stage", id: value });
-  };
-
+type TreeContext = {
+  expanded: Set<string>;
+  toggle: (id: string) => void;
+  openDetail: (period: HistoricalPeriodDetailDto) => void;
+  filter: CatalogFilter;
+  kindFilter: string;
+};
+function LoadRows({
+  pending,
+  error,
+  empty,
+  more,
+  onMore,
+}: {
+  pending: boolean;
+  error: Error | null;
+  empty: boolean;
+  more?: boolean;
+  onMore?: () => void;
+}) {
   return (
-    <div className="flex w-full flex-col gap-5">
-      <header className="flex flex-wrap items-center justify-between gap-3 border-b border-line pb-4">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight text-ink">Dòng lịch sử</h1>
-          <p className="mt-1 text-sm text-ink-soft">Đi lần lượt từ thời kỳ đến giai đoạn, rồi mở từng sự kiện lịch sử.</p>
-        </div>
-        <button type="button" onClick={() => openCreation("period")} className="inline-flex min-h-10 items-center gap-2 rounded-lg bg-vermilion px-4 text-sm font-bold text-white hover:bg-vermilion-dark focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus">
-          <Plus size={17} weight="bold" aria-hidden="true" />Tạo thời kỳ
-        </button>
-      </header>
-
-      {periods.length ? (
-        <Accordion type="single" collapsible value={selectedPeriodId} onValueChange={setPeriodOpen} className="w-full">
-          {periods.map((period, periodIndex) => (
-            <AccordionItem key={period.id} value={period.id} className="border-b border-mod-border">
-              <AccordionTrigger className="py-5 hover:no-underline">
-                <span className="flex min-w-0 items-center gap-4">
-                  <span className="w-8 shrink-0 text-xs font-bold tabular-nums text-mod-text-low">{String(periodIndex + 1).padStart(2, "0")}</span>
-                  <span className="min-w-0 text-left">
-                    <span className="block text-base font-bold text-mod-text">{period.name}</span>
-                    <span className="mt-1 flex items-center gap-1.5 text-xs font-normal text-mod-text-secondary"><CalendarBlank size={13} aria-hidden="true" />{period.timeLabel}</span>
-                  </span>
-                </span>
-              </AccordionTrigger>
-              <AccordionContent className="pb-5 pl-12">
-                <div className="mb-3 flex items-center justify-between gap-3">
-                  <p className="max-w-3xl text-sm leading-6 text-mod-text-secondary">{period.summary}</p>
-                  <button type="button" onClick={() => openCreation("stage")} className="inline-flex min-h-9 shrink-0 items-center gap-1.5 rounded-md px-2.5 text-xs font-semibold text-mod-primary hover:bg-mod-primary/5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-mod-primary"> <Plus size={15} aria-hidden="true" />Thêm giai đoạn</button>
+    <>
+      {pending ? (
+        <EmptyTableRow columns={6} compact>Đang tải nội dung…</EmptyTableRow>
+      ) : error ? (
+        <EmptyTableRow columns={6} compact>
+          <span role="alert">{error.message}</span>
+          <Button type="button" onClick={onMore} variant="ghost">
+            Thử lại
+          </Button>
+        </EmptyTableRow>
+      ) : empty ? (
+        <EmptyTableRow columns={6} compact>
+          Chưa có nội dung phù hợp trong nhánh này.
+        </EmptyTableRow>
+      ) : null}
+      {more ? (
+        <TableRow>
+          <TableCell colSpan={6}>
+            <Button type="button" variant="ghost" onClick={onMore}>
+              Tải thêm nội dung
+            </Button>
+          </TableCell>
+        </TableRow>
+      ) : null}
+    </>
+  );
+}
+function Cells({
+  kind,
+  node,
+  ctx,
+}: {
+  kind: HistoricalKind;
+  node: HistoricalNodeDto;
+  ctx: TreeContext;
+}) {
+  return (
+    <>
+      <TableCell className={cn(tableCell, "align-middle")}>
+        {node.timeLabel}
+        {node.deletedAt ? (
+          <span className="mt-1 block text-xs text-mod-danger">Đã xóa</span>
+        ) : null}
+      </TableCell>
+      <TableCell className={cn(tableCell, "align-middle")}>{node.sourceCount}</TableCell>
+      <TableCell className={cn(tableCell, "align-middle")}>{node.podcastCount}</TableCell>
+      <TableCell className={cn(tableCell, "align-middle")}>
+        {"displayStatus" in node ? (
+          <LibraryStatusBadge
+            status={
+              node.displayStatus === "COMPLETE"
+                ? "complete"
+                : node.displayStatus === "MISSING_SOURCE"
+                  ? "missing_source"
+                  : node.displayStatus === "DRAFT"
+                    ? "draft"
+                    : "needs_review"
+            }
+            compact
+          />
+        ) : (
+          <span className="text-xs text-mod-text-secondary">
+            {node.childCount} {kind === "period" ? "giai đoạn" : "sự kiện"}
+          </span>
+        )}
+      </TableCell>
+      <TableCell className={cn(tableCell, "align-middle")}>
+        {kind === "period" && "phases" in node ? (
+          <Button type="button" variant="outline" className="min-h-10 border-mod-primary/30 bg-mod-primary/5 px-4 font-semibold text-mod-primary hover:bg-mod-primary/5 hover:text-mod-primary" onClick={() => ctx.openDetail(node)} aria-label={`Xem chi tiết ${node.name}`}>
+            Xem chi tiết
+          </Button>
+        ) : null}
+      </TableCell>
+    </>
+  );
+}
+function EventRows({
+  phase,
+  ctx,
+}: {
+  phase: HistoricalPhaseDetailDto;
+  ctx: TreeContext;
+}) {
+  const query = useHistoricalEntities({
+    ...ctx.filter,
+    historicalPhaseId: phase.id,
+  });
+  const items = query.data?.pages.flatMap((p) => p.items) ?? [];
+  return (
+    <>
+      {items.map((event, index) => (
+          <TableRow key={event.id}
+            className="mod-tree-child hover:bg-transparent"
+          >
+            <TableHead scope="row" className={tableCell}>
+              <div className="mod-tree-node" data-depth={2} data-last={index === items.length - 1}>
+                <div className="mod-tree-button flex min-h-8 items-center px-1 py-1 text-left text-mod-text">
+                  <span className="w-3.5 shrink-0" aria-hidden="true" />
+                  <ContentKindIcon kind="event" />
+                  <span className="mod-tree-name">{event.name}</span>
                 </div>
-
-                {period.stages.length ? (
-                  <Accordion type="single" collapsible value={selectedPeriodId === period.id ? selectedStageId : ""} onValueChange={(value) => setStageOpen(period, value)} className="ml-2 border-l border-mod-border pl-5">
-                    {period.stages.map((stage, stageIndex) => (
-                      <AccordionItem key={stage.id} value={stage.id} className="border-b border-mod-border/70 last:border-b-0">
-                        <AccordionTrigger className="py-4 hover:no-underline">
-                          <span className="flex min-w-0 items-start gap-3">
-                            <span className="mt-0.5 text-[11px] font-bold tabular-nums text-mod-text-low">{String(stageIndex + 1).padStart(2, "0")}</span>
-                            <span className="min-w-0 text-left"><span className="block text-sm font-bold text-mod-text">{stage.name}</span><span className="mt-1 block text-xs font-normal text-mod-text-secondary">{stage.timeLabel} · {stage.events.length} sự kiện</span></span>
-                          </span>
-                        </AccordionTrigger>
-                        <AccordionContent className="pb-4 pl-8">
-                          <div className="mb-3 flex items-start justify-between gap-3">
-                            <p className="max-w-3xl text-sm leading-6 text-mod-text-secondary">{stage.summary}</p>
-                            <button type="button" onClick={() => { selectNode({ type: "stage", id: stage.id }); openCreation("event"); }} className="inline-flex min-h-8 shrink-0 items-center gap-1 rounded-md px-2 text-xs font-semibold text-mod-primary hover:bg-mod-primary/5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-mod-primary"><Plus size={14} aria-hidden="true" />Thêm sự kiện</button>
-                          </div>
-                          {stage.events.length ? <ul className="divide-y divide-mod-border border-y border-mod-border">
-                            {stage.events.map((event) => (
-                              <li key={event.id}>
-                                <button type="button" onClick={() => selectNode({ type: "event", id: event.id })} aria-current={selectedNode?.type === "event" && selectedNode.event.id === event.id ? "true" : undefined} className="group flex w-full items-center gap-3 py-3 text-left hover:bg-mod-canvas-accent focus-visible:outline focus-visible:outline-2 focus-visible:outline-mod-primary">
-                                  <span className="size-2 shrink-0 rounded-full bg-mod-primary/70 ring-4 ring-mod-primary/5" />
-                                  <span className="min-w-0 flex-1"><strong className="block text-sm font-semibold text-mod-text">{event.name}</strong><span className="mt-1 block text-xs text-mod-text-secondary">{event.timeLabel}</span></span>
-                                  <LibraryStatusBadge status={event.status} compact />
-                                  <ArrowRight size={15} className="shrink-0 text-mod-text-low transition-transform group-hover:translate-x-0.5" aria-hidden="true" />
-                                </button>
-                              </li>
-                            ))}
-                          </ul> : <p className="border-y border-dashed border-mod-border py-5 text-sm text-mod-text-secondary">Giai đoạn này chưa có sự kiện.</p>}
-                        </AccordionContent>
-                      </AccordionItem>
-                    ))}
-                  </Accordion>
-                ) : <p className="ml-2 border-l border-dashed border-mod-border py-4 pl-5 text-sm text-mod-text-secondary">Thời kỳ này chưa có giai đoạn.</p>}
-              </AccordionContent>
-            </AccordionItem>
-          ))}
-        </Accordion>
-      ) : <p className="py-12 text-center text-sm text-mod-text-secondary">Chưa có thời kỳ nào trong thư viện.</p>}
-
-      {selectedNode?.type === "event" ? <section className="border-t border-mod-border pt-5"><LibraryContent selected={selectedNode} onSelect={selectNode} onCreateChild={openCreation} /></section> : null}
-      <CreateHistoricalItemDialog open={createOpen} kind={createKind} parentLabel={parentLabel} onOpenChange={setCreateOpen} onSubmit={submitDraft} />
-    </div>
+              </div>
+            </TableHead>
+            <Cells kind="entity" node={event} ctx={ctx} />
+          </TableRow>
+      ))}
+      <LoadRows
+        pending={query.isPending}
+        error={query.error}
+        empty={!items.length}
+        more={query.hasNextPage}
+        onMore={() => {
+          void (query.error ? query.refetch() : query.fetchNextPage());
+        }}
+      />
+    </>
+  );
+}
+function PhaseRows({
+  period,
+  ctx,
+}: {
+  period: HistoricalPeriodDetailDto;
+  ctx: TreeContext;
+}) {
+  const query = useHistoricalPhases(period.id, {
+    q: ctx.filter.q,
+    includeDeleted: ctx.filter.includeDeleted,
+  });
+  const items = query.data?.pages.flatMap((p) => p.items) ?? [];
+  return (
+    <>
+      {items.map((phase, index) => {
+        const open =
+          ctx.expanded.has(phase.id) ||
+          (Boolean(ctx.filter.q) && !ctx.expanded.has("closed:" + phase.id));
+        return (
+          <Fragment key={phase.id}>
+            <InteractiveTableRow
+              className="mod-tree-child hover:bg-transparent"
+              onActivate={() => ctx.toggle(phase.id)}
+            >
+              <TableHead scope="row" className={tableCell}>
+                <ModeratorTreeNode
+                  kind="stage"
+                  depth={1}
+                  last={index === items.length - 1}
+                  name={phase.name}
+                  open={open}
+                  onClick={() => ctx.toggle(phase.id)}
+                />
+              </TableHead>
+              <Cells kind="phase" node={phase} ctx={ctx} />
+            </InteractiveTableRow>
+            {open && ctx.kindFilter !== "stage" ? (
+              <EventRows phase={phase} ctx={ctx} />
+            ) : null}
+          </Fragment>
+        );
+      })}
+      <LoadRows
+        pending={query.isPending}
+        error={query.error}
+        empty={!items.length}
+        more={query.hasNextPage}
+        onMore={() => {
+          void (query.error ? query.refetch() : query.fetchNextPage());
+        }}
+      />
+    </>
+  );
+}
+export function HistoricalLibraryWorkspace({
+  initialCreating = false,
+}: {
+  initialCreating?: boolean;
+}) {
+  const [creating, setCreating] = useState(initialCreating);
+  const [expanded, setExpanded] = useState<Set<string>>(new Set());
+  const [detailRecord, setDetailRecord] = useState<HistoricalPeriodDetailDto>();
+  const [q, setQ] = useState("");
+  const [kindFilter, setKindFilter] = useState("all");
+  const [reviewStatus, setReviewStatus] = useState("all");
+  const filter: CatalogFilter = {
+    q,
+    reviewStatus:
+      reviewStatus === "DRAFT" ||
+      reviewStatus === "IN_REVIEW" ||
+      reviewStatus === "APPROVED" ||
+      reviewStatus === "CHANGES_REQUESTED"
+        ? reviewStatus
+        : undefined,
+  };
+  const periods = useHistoricalPeriods({ q });
+  const summary = useHistoricalSummary();
+  const items = periods.data?.pages.flatMap((p) => p.items) ?? [];
+  const toggle = (id: string) =>
+    setExpanded((current) => {
+      const next = new Set(current);
+      const auto = Boolean(q) && !current.has("closed:" + id);
+      if (next.has(id) || auto) {
+        next.delete(id);
+        next.add("closed:" + id);
+      } else {
+        next.add(id);
+        next.delete("closed:" + id);
+      }
+      return next;
+    });
+  const ctx: TreeContext = {
+    expanded,
+    toggle,
+    openDetail: setDetailRecord,
+    filter,
+    kindFilter,
+  };
+  const saved = (kind: HistoricalKind, node: HistoricalNodeDto) => {
+    setCreating(false);
+    setExpanded(
+      (current) =>
+        new Set([
+          ...current,
+          node.id,
+          ...("periodId" in node
+            ? [node.periodId]
+            : "historicalPhase" in node && node.historicalPhase
+              ? [node.historicalPhase.periodId, node.historicalPhase.id]
+              : []),
+        ]),
+    );
+  };
+  return (
+    <Dialog
+      open={creating || Boolean(detailRecord)}
+      onOpenChange={(open) => {
+        if (open && !detailRecord) setCreating(true);
+        if (!open) {
+          setCreating(false);
+          setDetailRecord(undefined);
+        }
+      }}
+    >
+      <section className="flex w-full flex-col gap-5 font-moderator [overflow-anchor:none]">
+        <header className="border-b border-mod-border pb-4">
+          <h1 className="text-2xl font-bold text-mod-text">Dòng lịch sử</h1>
+          <p className="mt-1 text-sm text-mod-text-secondary">
+            Quản lý phân kỳ, sự kiện và nguồn tư liệu lịch sử.
+          </p>
+        </header>
+        <ModeratorSectionPanel
+          title="Danh sách dòng lịch sử"
+          eyebrow="THƯ VIỆN LỊCH SỬ"
+          summary={
+            summary.data
+              ? `${summary.data.periods} thời kỳ · ${summary.data.phases} giai đoạn · ${summary.data.events} sự kiện`
+              : "Đang tải tổng số…"
+          }
+          toolbar={
+            <ModeratorListToolbar
+              searchLabel="Tìm trong dòng lịch sử"
+              searchValue={q}
+              onSearchChange={(value) => {
+                setQ(value);
+                setExpanded(new Set());
+              }}
+              filters={[
+                {
+                  id: "kind",
+                  label: "Loại nội dung",
+                  value: kindFilter,
+                  onValueChange: setKindFilter,
+                  options: [
+                    { value: "all", label: "Tất cả loại" },
+                    { value: "period", label: "Thời kỳ" },
+                    { value: "stage", label: "Giai đoạn" },
+                    { value: "event", label: "Sự kiện" },
+                  ],
+                },
+                {
+                  id: "review",
+                  label: "Trạng thái",
+                  value: reviewStatus,
+                  onValueChange: setReviewStatus,
+                  options: [
+                    { value: "all", label: "Tất cả trạng thái" },
+                    { value: "DRAFT", label: "Bản nháp" },
+                    { value: "IN_REVIEW", label: "Chờ duyệt" },
+                    { value: "APPROVED", label: "Đã duyệt" },
+                    { value: "CHANGES_REQUESTED", label: "Cần chỉnh sửa" },
+                  ],
+                },
+              ]}
+              actions={
+                <DialogTrigger asChild>
+                  <Button
+                    className={primaryAction}
+                  >
+                    <Plus size={17} />
+                    Tạo nội dung
+                  </Button>
+                </DialogTrigger>
+              }
+            />
+          }
+        >
+          <ModeratorTable
+            embedded
+            caption="Dòng lịch sử theo thời kỳ, giai đoạn và sự kiện"
+            columns={[
+              "Nội dung",
+              "Mốc thời gian",
+              "Nguồn",
+              "Podcast",
+              "Trạng thái",
+              "Thao tác",
+            ]}
+            columnWidths={["36%", "20%", "7%", "7%", "14%", "16%"]}
+            minWidth={1000}
+          >
+            {items.map((period) => {
+              const open =
+                expanded.has(period.id) ||
+                (Boolean(q) && !expanded.has("closed:" + period.id));
+              return (
+                <Fragment key={period.id}>
+                  <InteractiveTableRow
+                    className="mod-tree-root hover:bg-transparent"
+                    onActivate={() => toggle(period.id)}
+                  >
+                    <TableHead scope="row" className={tableCell}>
+                      <ModeratorTreeNode
+                        kind="period"
+                        name={period.name}
+                        open={open}
+                        onClick={() => toggle(period.id)}
+                      />
+                    </TableHead>
+                    <Cells kind="period" node={period} ctx={ctx} />
+                  </InteractiveTableRow>
+                  {open && kindFilter !== "period" ? (
+                    <PhaseRows period={period} ctx={ctx} />
+                  ) : null}
+                </Fragment>
+              );
+            })}
+            <LoadRows
+              pending={periods.isPending}
+              error={periods.error}
+              empty={!items.length}
+              more={periods.hasNextPage}
+              onMore={() => {
+                void (periods.error
+                  ? periods.refetch()
+                  : periods.fetchNextPage());
+              }}
+            />
+          </ModeratorTable>
+          <ContentKindLegend kinds={["period", "stage", "event"]} />
+        </ModeratorSectionPanel>
+      </section>
+      {detailRecord ? (
+        <HistoricalBranchDetailDialog
+          key={detailRecord.id}
+          period={detailRecord}
+        />
+      ) : null}
+      {creating ? (
+        <CreateHistoricalContentDialog
+          onBack={() => setCreating(false)}
+          onSaved={saved}
+        />
+      ) : null}
+    </Dialog>
   );
 }

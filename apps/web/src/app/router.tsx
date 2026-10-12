@@ -18,6 +18,7 @@ export const appRoutes: RouteObject[] = [
     HydrateFallback: AppLoadingFallback,
     ErrorBoundary: RouteErrorFallback,
     children: [
+      {id:"historical-event",path:"history/events/:slug",lazy:async()=>{const {HistoricalEventPage}=await import("../pages/history/HistoricalEventPage");return {Component:HistoricalEventPage};}},
       {
         id: "public-routes",
         element: <PublicRoute fallback={<LandingLoadingPage />} />,

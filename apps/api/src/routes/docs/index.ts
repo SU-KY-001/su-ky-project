@@ -7,6 +7,7 @@ import { betterAuthPaths, betterAuthSchemas } from "./better-auth-schema";
 import { registeredSchemas } from "./registry";
 import type { Paths } from "./operation";
 import { catalogPaths } from "./paths/catalog";
+import {historicalCatalogPaths} from "./paths/historical-catalog";
 import { listeningPaths } from "./paths/listening";
 import { mediaPaths } from "./paths/media";
 import { studioPaths } from "./paths/studio";
@@ -70,6 +71,7 @@ const allPaths: Paths = {
   ...betterAuthPaths,
   ...systemAuthPaths,
   ...catalogPaths,
+  ...historicalCatalogPaths,
   ...listeningPaths,
   ...studioPaths,
   ...mediaPaths,

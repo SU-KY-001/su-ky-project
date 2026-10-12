@@ -19,7 +19,7 @@ export async function cleanupDetachedMedia(storage: MediaStorageGateway): Promis
   const batchSize = await getSystemConfig("media.cleanup_batch_size");
   const cutoff = new Date(Date.now() - graceHours * 60 * 60 * 1000);
   const assets = await prisma.mediaAsset.findMany({ where: {
-    status: { not: "DELETED" }, narrationAudio: null, seriesCover: { none: {} }, sourceFile: null,
+    status: { not: "DELETED" }, narrationAudio: null, seriesCover: { none: {} }, sourceFile: null, sourceRevisions: {none:{}},
     OR: [{ detachedAt: { lt: cutoff } }, { detachedAt: null, createdAt: { lt: cutoff } }],
   }, take: batchSize, orderBy: { createdAt: "asc" } });
   for (const asset of assets) {

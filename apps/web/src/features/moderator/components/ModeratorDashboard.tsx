@@ -3,8 +3,10 @@ import { moderatorOverviewMock } from "../data";
 import { AreaChartPanel } from "./AreaChartPanel";
 import { MetricCard } from "./MetricCard";
 import { ModeratorText } from "./ModeratorText";
+import { QuickActions } from "./QuickActions";
+import type { ModeratorQuickAction } from "../types";
 
-export function ModeratorDashboard({ greetingLabel }: { greetingLabel: string }) {
+export function ModeratorDashboard({ greetingLabel, onAction }: { greetingLabel: string; onAction?: (id: ModeratorQuickAction["id"]) => void }) {
   const [today] = useState(() => new Date());
 
   const formattedDate = new Intl.DateTimeFormat("vi-VN", {
@@ -32,6 +34,7 @@ export function ModeratorDashboard({ greetingLabel }: { greetingLabel: string })
         </div>
       </section>
 
+      {onAction ? <QuickActions items={moderatorOverviewMock.quickActions} onAction={onAction} disabledIds={["add-reference"]} /> : null}
       <section id="analytics" className="flex flex-col gap-[15px]">
         <div className="flex flex-col gap-1">
           <ModeratorText as="h2" className="text-lg font-extrabold tracking-tight text-mod-text">Phân tích hoạt động</ModeratorText>
