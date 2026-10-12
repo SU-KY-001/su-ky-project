@@ -5,11 +5,8 @@ import type { CurrentUser } from "../types/auth";
 const apiUrl = (import.meta.env.VITE_API_URL || "http://localhost:3000").replace(/\/$/, "");
 
 const currentUserResponseSchema = z.object({
-  success: z.literal(true),
-  data: z.object({
-    user: UserProfileSchema,
-    session: z.object({ expiresAt: z.string() }),
-  }),
+  user: UserProfileSchema,
+  session: z.object({ expiresAt: z.string() }),
 });
 
 export const currentUserQueryKey = ["auth", "current-user"] as const;
@@ -43,5 +40,5 @@ export async function fetchCurrentUser(): Promise<CurrentUser | null> {
     throw new Error("Máy chủ trả về thông tin phiên đăng nhập chưa hợp lệ.");
   }
 
-  return parsed.data.data.user;
+  return parsed.data.user;
 }

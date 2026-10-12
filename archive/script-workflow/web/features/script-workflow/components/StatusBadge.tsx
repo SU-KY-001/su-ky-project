@@ -7,10 +7,10 @@ const BADGE_ICON_SIZE = 14;
 
 const TONE_CLASS: Record<StatusTone, string> = {
   neutral: "border-mod-border bg-mod-canvas text-mod-text-muted",
-  info: "border-mod-primary/30 bg-mod-primary/10 text-mod-primary-hover",
-  attention: "border-mod-attention/40 bg-mod-attention/10 text-mod-attention",
-  success: "border-mod-success/30 bg-mod-success/10 text-mod-success",
-  danger: "border-mod-danger/30 bg-mod-danger/10 text-mod-danger",
+  info: "border-mod-primary/20 bg-mod-primary/5 text-mod-primary-hover",
+  attention: "border-mod-attention/20 bg-mod-attention/5 text-mod-attention",
+  success: "border-mod-success/20 bg-mod-success/5 text-mod-success",
+  danger: "border-mod-danger/20 bg-mod-danger/5 text-mod-danger",
 };
 
 const TONE_ICON: Record<StatusTone, Icon> = {

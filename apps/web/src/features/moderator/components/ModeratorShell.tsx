@@ -1,27 +1,17 @@
 import { useEffect, useState, type ReactNode } from "react";
 import { Link } from "react-router";
-import "@fontsource/manrope/400.css";
-import "@fontsource/manrope/500.css";
-import "@fontsource/manrope/600.css";
-import "@fontsource/manrope/700.css";
-import "@fontsource/manrope/800.css";
 import {
   ArrowUpRight,
-  BellSimple,
   CheckCircle,
   Copy,
-  GearSix,
   List,
-  MagnifyingGlass,
-  Scroll,
   UsersThree,
   type Icon,
 } from "@phosphor-icons/react";
-import { DevLoginButton } from "@/features/auth-dev/DevLoginButton";
+import brandLogo from "@/public/brand-su-ky-viet-nam.png";
 import { Button } from "@/shared/components/ui/button";
 import { Separator } from "@/shared/components/ui/separator";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/shared/components/ui/sheet";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/shared/components/ui/tooltip";
 import { useModeratorToastStore } from "../toastStore";
 import { ModeratorText } from "./ModeratorText";
 
@@ -33,8 +23,9 @@ const NAV_LINK_CLASS =
 export type ShellNavItem = {
   id: string;
   label: string;
-  icon: Icon;
+  icon?: Icon;
   active: boolean;
+  groupStart?: boolean;
   /** Route target. Omit for in-page anchors handled by `onSelect`. */
   to?: string;
   onSelect?: () => void;
@@ -42,64 +33,42 @@ export type ShellNavItem = {
 
 type ModeratorShellProps = {
   nav: ShellNavItem[];
-  breadcrumb: string;
+  breadcrumb?: string;
   subtitle?: string;
-  /** Optional card under the navigation (the dashboard preview notice). */
-  sidebarNote?: ReactNode;
   children: ReactNode;
 };
 
 function NavLink({ item, onNavigated }: { item: ShellNavItem; onNavigated: () => void }) {
+  if (item.groupStart) {
+    return <ModeratorText className="mb-1 mt-4 px-3 text-[10px] font-bold tracking-[0.08em] text-mod-text-low first:mt-0">{item.label}</ModeratorText>;
+  }
   const Icon = item.icon;
   const className = `${NAV_LINK_CLASS} ${item.active ? "bg-mod-canvas-accent font-bold text-mod-text" : "font-semibold text-mod-text-secondary"}`;
   const content = (
     <>
       {item.active ? <span aria-hidden="true" className="absolute bottom-2.5 left-0 top-2.5 w-[3px] rounded-full bg-mod-primary" /> : null}
-      <Icon size={18} color={item.active ? "var(--modPrimary)" : "var(--modTextSecondary)"} weight={item.active ? "fill" : "regular"} aria-hidden={true} />
+      {Icon ? <Icon size={18} color={item.active ? "var(--modPrimary)" : "var(--modTextSecondary)"} weight={item.active ? "fill" : "regular"} aria-hidden={true} /> : null}
       {item.label}
     </>
   );
 
-  if (item.to) {
-    return (
-      <Link to={item.to} onClick={onNavigated} aria-current={item.active ? "page" : undefined} className={className}>
-        {content}
-      </Link>
-    );
-  }
-  return (
-    <a
-      href={`#${item.id}`}
-      onClick={(event) => {
-        event.preventDefault();
-        item.onSelect?.();
-        onNavigated();
-      }}
-      aria-current={item.active ? "location" : undefined}
-      className={className}
-    >
-      {content}
-    </a>
-  );
+  if (item.to) return <Link to={item.to} onClick={onNavigated} aria-current={item.active ? "page" : undefined} className={className}>{content}</Link>;
+  return <a href={`#${item.id}`} onClick={(event) => { event.preventDefault(); item.onSelect?.(); onNavigated(); }} aria-current={item.active ? "location" : undefined} className={className}>{content}</a>;
 }
 
-function SidebarContents({ nav, sidebarNote, onNavigated }: { nav: ShellNavItem[]; sidebarNote?: ReactNode; onNavigated: () => void }) {
+function SidebarContents({ nav, onNavigated }: { nav: ShellNavItem[]; onNavigated: () => void }) {
   return (
     <>
       <div className="flex items-center gap-[11px] px-2 py-1">
-        <span className="grid size-10 place-items-center rounded-[13px] bg-mod-primary text-white shadow-[0_7px_16px_rgba(2,132,199,.18)]"><Scroll size={20} weight="duotone" aria-hidden="true" /></span>
-        <span className="flex flex-col">
-          <ModeratorText className="text-base font-extrabold tracking-tight text-mod-text">Sử Ký</ModeratorText>
-          <ModeratorText className="text-[10px] font-medium tracking-wide text-mod-text-secondary">KHÔNG GIAN ĐIỀU HÀNH</ModeratorText>
+        <span className="flex min-w-0 flex-col gap-1">
+          <img src={brandLogo} alt="Sử Ký Việt Nam" className="h-auto w-[164px] max-w-full object-contain" />
+          <ModeratorText className="pl-1 text-[9px] font-semibold tracking-[0.08em] text-mod-text-secondary">KHÔNG GIAN BIÊN TẬP</ModeratorText>
         </span>
       </div>
 
-      <nav className="mt-6 flex flex-col gap-1.5" aria-label="Điều hướng moderator">
-        <ModeratorText className="mb-1 px-3 text-[10px] font-bold text-mod-text-low">MENU CHÍNH</ModeratorText>
+      <nav className="mt-6 flex flex-col gap-1" aria-label="Điều hướng moderator">
         {nav.map((item) => <NavLink key={item.id} item={item} onNavigated={onNavigated} />)}
       </nav>
-
-      {sidebarNote}
 
       <div className="mt-auto flex flex-col gap-4">
         <Separator className="bg-mod-border" />
@@ -115,19 +84,6 @@ function SidebarContents({ nav, sidebarNote, onNavigated }: { nav: ShellNavItem[
         </a>
       </div>
     </>
-  );
-}
-
-function UtilityButton({ label, onClick, children }: { label: string; onClick: () => void; children: ReactNode }) {
-  return (
-    <Tooltip>
-      <TooltipTrigger asChild>
-        <Button variant="outline" size="icon" className="size-10 rounded-[11px] border-mod-border bg-mod-canvas text-mod-text-secondary hover:border-mod-primary hover:bg-mod-surface-glass" onClick={onClick} aria-label={label}>
-          {children}
-        </Button>
-      </TooltipTrigger>
-      <TooltipContent>{label}</TooltipContent>
-    </Tooltip>
   );
 }
 
@@ -169,21 +125,21 @@ function ModeratorToastView() {
   );
 }
 
-export function ModeratorShell({ nav, breadcrumb, subtitle = "Không gian điều hành nội dung Sử Ký", sidebarNote, children }: ModeratorShellProps) {
+export function ModeratorShell({ nav, children }: ModeratorShellProps) {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const showToast = useModeratorToastStore((state) => state.show);
   const closeDrawer = () => setDrawerOpen(false);
 
   return (
-    <div className="mod-layout-root font-moderator text-mod-text">
+    <div className="mod-layout-root font-sans text-mod-text">
       <div className="mod-layout-shell">
         <aside className="mod-sidebar" aria-label="Điều hướng moderator">
-          <SidebarContents nav={nav} sidebarNote={sidebarNote} onNavigated={closeDrawer} />
+          <SidebarContents nav={nav} onNavigated={closeDrawer} />
         </aside>
 
         <div className="mod-main-column">
-          <header className="mod-header">
-            <div className="flex min-w-0 items-center gap-[13px]">
+          <header className="mod-header mod-mobile-header">
+            <div className="flex min-w-0 items-center">
               <Sheet open={drawerOpen} onOpenChange={setDrawerOpen}>
                 <SheetTrigger asChild>
                   <Button variant="outline" size="icon" className="mod-mobile-only size-[39px] rounded-[10px] border-mod-border bg-mod-canvas text-mod-text-muted" aria-label="Mở menu điều hướng">
@@ -192,30 +148,12 @@ export function ModeratorShell({ nav, breadcrumb, subtitle = "Không gian điề
                 </SheetTrigger>
                 <SheetContent id="moderator-mobile-navigation" side="left" className="mod-dashboard-sheet w-[286px] max-w-[88vw] flex-col gap-[18px] overflow-y-auto bg-mod-surface p-[18px]">
                   <SheetHeader className="pr-8">
-                    <SheetTitle className="font-moderator text-base">Menu điều hướng moderator</SheetTitle>
+                    <SheetTitle className="font-sans text-base">Menu điều hướng moderator</SheetTitle>
                   </SheetHeader>
-                  <SidebarContents nav={nav} sidebarNote={sidebarNote} onNavigated={closeDrawer} />
+                  <SidebarContents nav={nav} onNavigated={closeDrawer} />
                 </SheetContent>
               </Sheet>
-
-              <div className="flex min-w-0 flex-col gap-1">
-                <div className="flex items-center gap-1.5">
-                  <ModeratorText className="truncate text-xs text-mod-text-secondary">Workspace</ModeratorText>
-                  <ModeratorText className="text-xs text-mod-text-low">/</ModeratorText>
-                  <ModeratorText className="truncate text-xs font-bold text-mod-text">{breadcrumb}</ModeratorText>
-                </div>
-                <ModeratorText className="mod-header-description text-xs text-mod-text-low">{subtitle}</ModeratorText>
-              </div>
             </div>
-
-            <TooltipProvider>
-              <div className="flex shrink-0 items-center gap-2">
-                <DevLoginButton />
-                <UtilityButton label="Tìm kiếm" onClick={() => showToast("Tìm kiếm trong dashboard chưa được bật.")}><MagnifyingGlass size={17} /></UtilityButton>
-                <UtilityButton label="Thông báo" onClick={() => showToast("Bạn chưa có thông báo mới.")}><BellSimple size={17} /></UtilityButton>
-                <UtilityButton label="Cài đặt" onClick={() => showToast("Thiết lập moderator chưa khả dụng trong bản xem trước.")}><GearSix size={17} /></UtilityButton>
-              </div>
-            </TooltipProvider>
           </header>
 
           <main className="mod-main-content">{children}</main>

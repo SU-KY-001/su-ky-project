@@ -1,7 +1,9 @@
-import { createBrowserRouter, redirectDocument, type RouteObject } from "react-router";
+import { createBrowserRouter, redirect, redirectDocument, type RouteObject } from "react-router";
 import { GuestRoute, LoadingSpinner, ProtectedRoute, RouteErrorFallback } from "@/shared/components/common";
 import { APP_PATHS } from "@/shared/constants/routes";
 import { AppFrame } from "@/shared/layouts/AppFrame";
+import { ModeratorLayout } from "@/features/moderator/components/ModeratorLayout";
+import { PODCAST_PRODUCTION_PATH } from "@/features/moderator/navItems";
 
 const apiUrl = (import.meta.env.VITE_API_URL || "http://localhost:3000").replace(/\/$/, "");
 
@@ -45,12 +47,47 @@ export const appRoutes: RouteObject[] = [
         element: <ProtectedRoute allowedRoles={["moderator"]} />,
         children: [
           {
-            id: "moderator-dashboard",
-            path: APP_PATHS.moderator.slice(1),
-            lazy: async () => {
-              const { ModeratorDashboardPage } = await import("../pages/moderator/ModeratorDashboardPage");
-              return { Component: ModeratorDashboardPage };
-            },
+            id: "moderator-shell",
+            Component: ModeratorLayout,
+            children: [
+              {
+                id: "moderator-dashboard",
+                path: APP_PATHS.moderator.slice(1),
+                lazy: async () => {
+                  const { ModeratorDashboardPage } = await import("../pages/moderator/ModeratorDashboardPage");
+                  return { Component: ModeratorDashboardPage };
+                },
+              },
+              {
+                id: "moderator-podcast-production",
+                path: "moderator/podcast",
+                lazy: async () => {
+                  const { PodcastProductionPage } = await import("../pages/moderator/PodcastProductionPage");
+                  return { Component: PodcastProductionPage };
+                },
+              },
+              {
+                id: "moderator-timeline",
+                path: "moderator/timeline",
+                lazy: async () => {
+                  const { ModeratorDashboardPage } = await import("../pages/moderator/ModeratorDashboardPage");
+                  return { Component: ModeratorDashboardPage };
+                },
+              },
+              {
+                id: "moderator-retired-script-workflows",
+                path: "moderator/script-workflows/*",
+                loader: () => redirect(PODCAST_PRODUCTION_PATH),
+              },
+              {
+                id: "moderator-library-features",
+                path: "moderator/:section",
+                lazy: async () => {
+                  const { ModeratorLibraryFeaturePage } = await import("../pages/moderator/ModeratorLibraryFeaturePage");
+                  return { Component: ModeratorLibraryFeaturePage };
+                },
+              },
+            ],
           },
         ],
       },
