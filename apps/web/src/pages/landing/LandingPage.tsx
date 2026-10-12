@@ -3,6 +3,7 @@ import { HeroCarousel } from "../../features/landing/components/HeroCarousel";
 import { LandingHeader } from "../../features/landing/components/LandingHeader";
 import { scrollToLandingTarget, useLandingMotion } from "../../features/landing/hooks/useLandingMotion";
 import { LightRays } from "@/shared/components/ui/light-rays";
+import { Outlet } from "react-router";
 
 const LandingContent = lazy(() => import("./LandingContent").then(({ LandingContent: Content }) => ({ default: Content })));
 const LandingFooter = lazy(() => import("./LandingContent").then(({ LandingFooterContent }) => ({ default: LandingFooterContent })));
@@ -47,6 +48,7 @@ export function LandingPage() {
   }, []);
 
   return (
+    <>
     <div id="landing-page" className="relative isolate min-h-screen bg-paper">
       <LandingHeader />
       <main>
@@ -64,5 +66,7 @@ export function LandingPage() {
       </LandingContentBoundary>
       <LightRays className="fixed inset-0 z-30 opacity-70" count={6} color="rgba(181, 138, 60, 0.24)" blur={52} speed={22} length="110vh" />
     </div>
+    <Outlet />
+    </>
   );
 }

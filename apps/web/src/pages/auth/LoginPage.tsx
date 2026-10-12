@@ -1,10 +1,6 @@
-import { lazy, Suspense, useEffect, type ReactElement } from "react";
+import { useEffect, type ReactElement } from "react";
 import { ChunkErrorBoundary } from "@/shared/components/common/ChunkErrorBoundary";
-import { LandingPage } from "../landing/LandingPage";
-
-const LoginDialog = lazy(() =>
-  import("./LoginDialog").then(({ LoginDialog: Dialog }) => ({ default: Dialog }))
-);
+import { LoginDialog } from "./LoginDialog";
 
 function LoginDialogLoadError() {
   return (
@@ -26,11 +22,8 @@ export function LoginPage(): ReactElement {
 
   return (
     <>
-      <LandingPage />
       <ChunkErrorBoundary fallback={<LoginDialogLoadError />}>
-        <Suspense fallback={null}>
-          <LoginDialog />
-        </Suspense>
+        <LoginDialog />
       </ChunkErrorBoundary>
     </>
   );

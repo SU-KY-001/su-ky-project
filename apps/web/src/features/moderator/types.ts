@@ -1,3 +1,5 @@
+export type ModeratorSection = "overview" | "timeline" | "events" | "sources" | "podcast" | "pending" | "schedule";
+
 export type ModeratorMetricIcon = "series" | "episode" | "milestone" | "reference";
 
 export interface ModeratorMetric {

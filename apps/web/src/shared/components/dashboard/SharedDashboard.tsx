@@ -1,18 +1,17 @@
 import { useState } from "react";
 import {
-  ArrowUpRight,
   Article,
   CalendarBlank,
   ChartBar,
   List,
   ListChecks,
-  UsersThree,
 } from "@phosphor-icons/react";
 import brandLogo from "@/public/brand-su-ky-viet-nam.png";
 import { ModeratorText } from "@/features/moderator/components/ModeratorText";
 import { Button } from "@/shared/components/ui/button";
 import { Separator } from "@/shared/components/ui/separator";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/shared/components/ui/sheet";
+import { AccountProfile } from "@/features/auth";
 
 const sidebarItems = [
   { id: "statistics", label: "Thống kê", icon: ChartBar },
@@ -82,19 +81,7 @@ function SidebarContents({ role }: { role: DashboardRole }) {
 
       <div className="mt-auto flex flex-col gap-4">
         <Separator className="bg-line" />
-        <div className="flex items-center gap-[11px] px-1">
-          <span className="grid size-[38px] place-items-center rounded-full border border-line bg-paper-deep">
-            <UsersThree size={17} className="text-ink-soft" aria-hidden="true" />
-          </span>
-          <span className="flex min-w-0 flex-1 flex-col gap-0.5">
-            <ModeratorText className="truncate text-sm font-bold text-ink">{labels.profileName}</ModeratorText>
-            <ModeratorText className="text-xs text-ink-soft">{labels.roleName}</ModeratorText>
-          </span>
-        </div>
-        <a href="/" className="flex min-h-10 items-center gap-2 rounded-md px-2.5 text-xs font-semibold text-ink-soft no-underline hover:bg-paper-deep focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-focus">
-          <ArrowUpRight size={15} aria-hidden="true" />
-          <span>Mở trang Sử Ký</span>
-        </a>
+        <AccountProfile variant={role} />
       </div>
     </>
   );

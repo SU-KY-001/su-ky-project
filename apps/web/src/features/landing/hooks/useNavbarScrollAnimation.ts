@@ -50,8 +50,8 @@ export function useNavbarScrollAnimation(reducedMotion: boolean): NavbarScrollAn
     const secondaryTone = navbar.querySelectorAll<HTMLElement>("[data-navbar-tone='secondary']");
 
     const setTone = (scrolled: boolean): void => {
-      gsap.set(primaryTone, { color: scrolled ? "#1c1714" : "#faf6ed" });
-      gsap.set(secondaryTone, { color: scrolled ? "#5b4e44" : "#e9dcc2" });
+      if (primaryTone.length) gsap.set(primaryTone, { color: scrolled ? "#1c1714" : "#faf6ed" });
+      if (secondaryTone.length) gsap.set(secondaryTone, { color: scrolled ? "#5b4e44" : "#e9dcc2" });
     };
 
     if (reducedMotion) {
@@ -92,8 +92,8 @@ export function useNavbarScrollAnimation(reducedMotion: boolean): NavbarScrollAn
       });
 
       timeline.fromTo(navbar, expandedNavbar, { ...pillNavbar, ease: "none" }, 0);
-      timeline.fromTo(primaryTone, { color: "#faf6ed" }, { color: "#1c1714", ease: "none" }, 0);
-      timeline.fromTo(secondaryTone, { color: "#e9dcc2" }, { color: "#5b4e44", ease: "none" }, 0);
+      if (primaryTone.length) timeline.fromTo(primaryTone, { color: "#faf6ed" }, { color: "#1c1714", ease: "none" }, 0);
+      if (secondaryTone.length) timeline.fromTo(secondaryTone, { color: "#e9dcc2" }, { color: "#5b4e44", ease: "none" }, 0);
     }, navbar);
 
     return () => context.revert();

@@ -1,12 +1,12 @@
 import {
   authResponseSchema,
   passwordResetResponseSchema,
+  signOutResponseSchema,
   type RequestPasswordResetValues,
   type SignInValues,
   type SignUpValues,
 } from "../schemas/authSchema";
-
-const apiUrl = (import.meta.env.VITE_API_URL || "http://localhost:3000").replace(/\/$/, "");
+import { apiUrl } from "@/lib/client";
 
 interface AuthFailure {
   code?: string;
@@ -73,6 +73,16 @@ async function readAuthResponse(response: Response): Promise<void> {
 }
 
 export const authService = {
+  async signOut(): Promise<void> {
+    const response = await post("sign-out", {});
+    if (response.status === 401) return;
+    if (!response.ok) await readFailure(response, "Không thể đăng xuất. Vui lòng thử lại.");
+    const payload: unknown = await response.json();
+    if (!signOutResponseSchema.safeParse(payload).success) {
+      throw new Error("Máy chủ chưa xác nhận đăng xuất. Vui lòng thử lại.");
+    }
+  },
+
   async signIn(values: SignInValues): Promise<void> {
     const { rememberMe, ...credentials } = values;
     await readAuthResponse(await post("sign-in/email", { ...credentials, rememberMe }));

@@ -10,13 +10,13 @@ const quickActionIcons: Record<ModeratorQuickActionIcon, React.ComponentType<{ s
   reference: BookOpenText,
 };
 
-export function QuickActions({ items, onAction }: { items: ModeratorQuickAction[]; onAction: (id: ModeratorQuickAction["id"]) => void }) {
+export function QuickActions({ items, onAction, disabledIds = [] }: { items: ModeratorQuickAction[]; onAction: (id: ModeratorQuickAction["id"]) => void; disabledIds?: ModeratorQuickAction["id"][] }) {
   return (
     <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
       {items.map((item) => {
         const Icon = quickActionIcons[item.icon];
         return (
-          <Button key={item.id} variant="outline" className="group flex h-auto min-h-[86px] w-full items-center justify-between gap-3 rounded-[13px] border-mod-border bg-mod-surface px-4 py-[15px] text-left hover:border-mod-primary hover:bg-mod-surface-glass" onClick={() => onAction(item.id)} aria-label={`${item.title}. ${item.description}`}>
+          <Button key={item.id} disabled={disabledIds.includes(item.id)} title={disabledIds.includes(item.id) ? "Chức năng thêm nguồn tư liệu chưa khả dụng." : undefined} variant="outline" className="group flex h-auto min-h-[86px] w-full items-center justify-between gap-3 rounded-[13px] border-mod-border bg-mod-surface px-4 py-[15px] text-left hover:border-mod-primary hover:bg-mod-surface-glass" onClick={() => onAction(item.id)} aria-label={`${item.title}. ${item.description}`}>
             <span className="flex min-w-0 flex-1 items-center gap-3">
               <span className="grid size-10 shrink-0 place-items-center rounded-[11px] border border-mod-border bg-mod-surface-glass"><Icon size={18} color="var(--modPrimary)" aria-hidden={true} /></span>
               <span className="flex min-w-0 flex-1 flex-col gap-1 text-left">
