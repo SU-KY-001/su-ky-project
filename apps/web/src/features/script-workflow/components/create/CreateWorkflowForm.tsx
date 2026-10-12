@@ -1,5 +1,5 @@
 import { useCallback, useId, useState } from "react";
-import { Link, useNavigate } from "react-router";
+import { Link, useNavigate, useSearchParams } from "react-router";
 import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { CircleNotch, PaperPlaneTilt, WarningCircle } from "@phosphor-icons/react";
@@ -38,6 +38,9 @@ function topicErrorText(type: string | undefined, message: string | undefined, l
 
 export function CreateWorkflowForm() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const linkedEventId = searchParams.get("event");
+  const linkedTopic = searchParams.get("topic")?.trim() ?? "";
   const showToast = useModeratorToastStore((state) => state.show);
   const health = useSystemHealth();
   const mutation = useCreateScriptWorkflow();
@@ -49,7 +52,7 @@ export function CreateWorkflowForm() {
   const form = useForm<CreateScriptWorkflowRequest>({
     resolver: zodResolver(CreateScriptWorkflowRequestSchema),
     mode: "onChange",
-    defaultValues: { topic: "" },
+    defaultValues: { topic: linkedTopic },
   });
   const { register, handleSubmit, setError, control, formState } = form;
   const topic = useWatch({ control, name: "topic" });
@@ -95,6 +98,11 @@ export function CreateWorkflowForm() {
         <label htmlFor={topicId} className="text-sm font-bold text-mod-text">
           <ModeratorText>Chủ đề lịch sử</ModeratorText>
         </label>
+        {linkedEventId && linkedTopic ? (
+          <ModeratorText className="rounded-lg border border-mod-border bg-mod-canvas-accent px-3 py-2 text-xs font-semibold text-mod-text-muted">
+            Đã nhận sự kiện “{linkedTopic}” từ Thư viện lịch sử. Bạn có thể chỉnh lại phạm vi kể chuyện trước khi bắt đầu.
+          </ModeratorText>
+        ) : null}
         <textarea
           id={topicId}
           rows={TOPIC_ROWS}
@@ -102,7 +110,7 @@ export function CreateWorkflowForm() {
           aria-invalid={showError}
           aria-describedby={showError ? `${topicHelpId} ${topicErrorId}` : topicHelpId}
           className={cn(
-            "field-sizing-content max-h-[50dvh] min-h-[120px] w-full resize-y rounded-[12px] border bg-mod-surface p-3 font-moderator text-sm text-mod-text placeholder:text-mod-text-low focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-mod-primary disabled:opacity-60",
+            "field-sizing-content max-h-[50dvh] min-h-[120px] w-full resize-y rounded-[12px] border bg-mod-surface p-3 font-sans text-sm text-mod-text placeholder:text-mod-text-low focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-mod-primary disabled:opacity-60",
             showError ? "border-mod-danger" : "border-mod-border",
           )}
           {...register("topic")}

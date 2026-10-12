@@ -1,5 +1,5 @@
-import { SharedDashboard } from "@/shared/components/dashboard/SharedDashboard";
+import { HistoricalLibraryWorkspace } from "@/features/historical-library";
 
 export function ModeratorDashboardPage() {
-  return <SharedDashboard role="moderator" />;
+  return <HistoricalLibraryWorkspace />;
 }
