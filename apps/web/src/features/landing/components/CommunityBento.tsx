@@ -157,7 +157,7 @@ export function CommunityBento() {
               ))}
             </ul>
             <Link to="/login" className="mt-auto pt-2 text-right text-[11px] text-ink-soft hover:text-vermilion">
-              Xem thêm →
+              Xem thêm
             </Link>
           </div>
 
@@ -194,7 +194,7 @@ export function CommunityBento() {
               ))}
             </ul>
             <Link to="/login" className="mt-auto pt-2 text-right text-[11px] text-ink-soft hover:text-vermilion">
-              Xem thêm →
+              Xem thêm
             </Link>
           </div>
 
@@ -225,7 +225,7 @@ export function CommunityBento() {
               ))}
             </ul>
             <Link to="/login" className="mt-auto pt-2 text-right text-[11px] text-ink-soft hover:text-vermilion">
-              Xem thêm →
+              Xem thêm
             </Link>
           </div>
 
