@@ -11,11 +11,10 @@ import { DomainError } from "../../../core/errors/domain-error";
 import { audioMimeType, type MediaStorageGateway } from "../../media";
 import type { SeriesSourceWithSource } from "../domain/listening.entity";
 import type { ListeningRepository } from "../domain/listening.repository";
+import { mondayInVietnam } from "../../gamification/gamification.service";
 
 const BASE64_PATTERN =
   /^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$/;
-const VN_TIMEZONE_OFFSET_MS = 7 * 60 * 60 * 1000;
-const DAYS_PER_WEEK = 7;
 const MS_PER_SECOND = 1000;
 const BITS_PER_BYTE = 8;
 const PERCENT_CAP = 100;
@@ -34,19 +33,6 @@ function countBits(bytes: Uint8Array): number {
     }
   }
   return total;
-}
-
-/** UTC midnight of the Monday of `now`'s week in Vietnam (UTC+7). */
-function mondayInVietnam(now: Date): Date {
-  const local = new Date(now.getTime() + VN_TIMEZONE_OFFSET_MS);
-  const day = local.getUTCDay() || DAYS_PER_WEEK;
-  return new Date(
-    Date.UTC(
-      local.getUTCFullYear(),
-      local.getUTCMonth(),
-      local.getUTCDate() - day + 1,
-    ),
-  );
 }
 
 export class ListeningService {

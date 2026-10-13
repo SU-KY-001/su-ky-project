@@ -11,6 +11,7 @@ type AuditContext = { actorId: string; ipAddress: string | null };
 
 const configDescriptions: Record<keyof typeof SYSTEM_CONFIGS, string> = {
   "xp.episode_completion": "XP nhận khi hoàn thành một Episode",
+  "xp.quiz_pass": "XP nhận lần đầu khi vượt qua một Quiz",
   "listening.completion_ratio": "Tỷ lệ nội dung cần nghe để tính hoàn thành",
   "listening.sync_interval_ms": "Chu kỳ đồng bộ tiến trình nghe (ms)",
   "listening.max_playback_rate": "Tốc độ phát tối đa được chấp nhận",

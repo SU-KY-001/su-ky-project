@@ -9,6 +9,7 @@ const rateLimitSchema = z.object({
 
 export const SYSTEM_CONFIGS = {
   "xp.episode_completion": { schema: z.number().int().nonnegative(), defaultValue: 20 },
+  "xp.quiz_pass": { schema: z.number().int().nonnegative(), defaultValue: 10 },
   "listening.completion_ratio": { schema: z.number().min(0).max(1), defaultValue: 0.9 },
   "listening.sync_interval_ms": { schema: z.number().int().positive(), defaultValue: 15000 },
   "listening.max_playback_rate": { schema: z.number().positive(), defaultValue: 2 },

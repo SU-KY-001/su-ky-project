@@ -19,6 +19,7 @@ import { publicCatalogRoute, studioCatalogRoute } from "./modules/catalog";
 import { createStudioContentRoute } from "./modules/content";
 import { mediaRoute, mediaStorage } from "./modules/media";
 import { meListeningRoute, publicListeningRoute } from "./modules/listening";
+import { meMissionRoute, publicQuizRoute, studioQuizRoute } from "./modules/gamification";
 import type { AppEnv } from "./types";
 const MAX_REQUEST_BODY_BYTES = 10 * 1024 * 1024;
 
@@ -64,8 +65,11 @@ export const routes = app
   .route("/api/me", currentUserRoute)
   .route("/api", publicCatalogRoute)
   .route("/api", publicListeningRoute)
+  .route("/api", publicQuizRoute)
   .route("/api/me", meListeningRoute)
+  .route("/api/me", meMissionRoute)
   .route("/api/studio", studioCatalogRoute)
+  .route("/api/studio", studioQuizRoute)
   .route("/api/studio", createStudioContentRoute(mediaStorage))
   .route("/api/studio/media-assets", mediaRoute)
   .route("/api/admin", adminRoute)
