@@ -1,7 +1,9 @@
+import { Headphones, ListBullets } from "@phosphor-icons/react";
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { Link } from "react-router";
 import { cn } from "@/lib/utils";
+import { Badge } from "@/shared/components/ui/badge";
 import type { CardOrientation, PodcastItem } from "../types";
 import { PodcastHoverCard } from "./PodcastHoverCard";
 
@@ -23,6 +25,8 @@ const SIZE: Record<CardOrientation, string> = {
 const HOVER_CAPABLE = "(hover: hover) and (pointer: fine)";
 // Intent delay: the popup opens only if the pointer rests on the card, so sweeping across a row does not flash popups.
 const HOVER_OPEN_DELAY_MS = 700;
+// Translucent corner labels stay legible on any cover colour.
+const cornerBadge = "pointer-events-none absolute rounded-md bg-night/70 px-2 py-1 text-xs font-semibold text-paper-soft backdrop-blur-sm";
 
 export function PodcastCard({ item, orientation = "portrait", progress, caption }: PodcastCardProps) {
   const coverRef = useRef<HTMLDivElement>(null);
@@ -53,6 +57,10 @@ export function PodcastCard({ item, orientation = "portrait", progress, caption 
         <div ref={coverRef} className={cn("relative overflow-hidden rounded-md bg-night", SIZE[orientation])}>
           {image ? <img src={image} alt={item.imageAlt} className="size-full object-cover" loading="lazy" decoding="async" /> : null}
           <span aria-hidden="true" className="pointer-events-none absolute inset-0 rounded-md border-2 border-transparent group-hover:border-vermilion" />
+          <Badge className={cn(cornerBadge, "left-2 top-2")}>{item.period}</Badge>
+          <Badge className={cn(cornerBadge, "right-2 top-2 px-1.5")}><Headphones aria-label="Podcast âm thanh" className="size-4!" /></Badge>
+          <Badge className={cn(cornerBadge, "bottom-3 left-2")}><ListBullets aria-hidden="true" />{item.episodeCount} tập</Badge>
+          <Badge className={cn(cornerBadge, "bottom-3 right-2")}>{item.duration}</Badge>
           {progress !== undefined ? (
             <span className="absolute inset-x-0 bottom-0 h-1 bg-white/25" role="progressbar" aria-valuenow={Math.round(progress * 100)} aria-valuemin={0} aria-valuemax={100}>
               <span className="block h-full bg-vermilion" style={{ width: `${progress * 100}%` }} />
@@ -61,7 +69,7 @@ export function PodcastCard({ item, orientation = "portrait", progress, caption 
         </div>
         <div className={cn("flex flex-col", SIZE[orientation].split(" ")[0])}>
           <p className="truncate text-sm font-bold text-ink">{item.title}</p>
-          <p className="truncate text-xs text-ink-soft">{caption ?? `${item.episodeCount} tập · ${item.duration}`}</p>
+          {caption ? <p className="truncate text-xs text-ink-soft">{caption}</p> : null}
         </div>
       </Link>
       {anchor ? createPortal(<PodcastHoverCard item={item} image={popupImage} anchor={anchor} liked={liked} onToggleLike={() => setLiked((value) => !value)} />, document.body) : null}
