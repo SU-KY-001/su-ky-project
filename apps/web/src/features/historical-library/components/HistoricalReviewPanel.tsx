@@ -90,6 +90,7 @@ export function HistoricalReviewPanel({
           <label className="block text-sm">
             Nhận xét kiểm duyệt
             <Textarea
+              autoGrow
               className={formField}
               value={note}
               onChange={(e) => setNote(e.target.value)}

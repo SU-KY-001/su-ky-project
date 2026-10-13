@@ -1,363 +1,237 @@
-import { useState, type FormEvent } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useState, type ReactElement } from "react";
+import type { EpisodeWorkspaceDto } from "@repo/shared";
+import { ArrowLeft, ArrowRight, Pencil, Save } from "lucide-react";
+import { CreationPage } from "@/features/moderator/components/CreationPage";
 import {
-  CreationPage,
-  FormField,
-  formField,
-} from "@/features/moderator/components/CreationPage";
-import { ModeratorSelect } from "@/features/moderator/components/ModeratorSelect";
+  primaryAction,
+  secondaryAction,
+} from "@/features/moderator/components/ModeratorTable";
+import { useHistoricalEvent } from "@/features/historical-library/hooks/useHistoricalCatalog";
 import { Button } from "@/shared/components/ui/button";
-import { Input } from "@/shared/components/ui/input";
-import { Textarea } from "@/shared/components/ui/textarea";
-import { useIdempotentMutation } from "@/lib/useIdempotentMutation";
-import { newIdempotencyKey } from "@/lib/idempotency";
 import { notify } from "@/shared/lib/notifications";
+import { PodcastInformationStep } from "./components/PodcastInformationStep";
+import { PodcastScriptStep } from "./components/PodcastScriptStep";
+import { PodcastVoiceStep } from "./components/PodcastVoiceStep";
+import { PodcastReviewStep } from "./components/PodcastReviewStep";
+import { PodcastWizardStepper } from "./components/PodcastWizardStepper";
+import { usePodcastCreationWizard } from "./hooks/usePodcastCreationWizard";
 import {
-  useHistoricalEntities,
-  useHistoricalEvent,
-} from "@/features/historical-library/hooks/useHistoricalCatalog";
-import {
+  usePodcastEpisode,
   usePodcastSeries,
   usePodcastSeriesDetail,
-  usePodcastInvalidation,
 } from "./hooks/usePodcastProduction";
+import { podcastWizardStateFromEpisode, type PodcastWizardStep } from "./podcastWizardState";
 import { podcastProductionService as api } from "./services/podcastProductionService";
-export function PodcastCreation({
-  onBack,
-  onSaved,
-  initialKind = "series",
-}: {
+
+interface PodcastCreationProps {
   onBack: () => void;
   onSaved: (seriesId: string) => void;
-  initialKind?: "series" | "episode";
-}) {
-  const [kind, setKind] = useState(initialKind);
-  const [seriesId, setSeriesId] = useState("");
-  const [eventId, setEventId] = useState("");
-  const [q, setQ] = useState("");
-  const [name, setName] = useState("");
-  const [description, setDescription] = useState("");
-  const [script, setScript] = useState("");
-  const [chosen, setChosen] = useState<Set<string>>(new Set());
-  const [topicId, setTopicId] = useState("");
-  const [savedId, setSavedId] = useState<string>();
-  const [error, setError] = useState("");
-  const [busy, setBusy] = useState(false);
-  const series = usePodcastSeries();
-  const selected = usePodcastSeriesDetail(seriesId);
-  const effectiveEvent =
-    kind === "episode"
-      ? (selected.data?.primaryHistoricalEventId ?? "")
-      : eventId;
-  const event = useHistoricalEvent(effectiveEvent);
-  const events = useHistoricalEntities({ q });
-  const topics = useQuery({
-    queryKey: ["podcast-production", "topics"],
-    queryFn: api.topics,
-  });
-  const invalidate = usePodcastInvalidation();
-  const create = useIdempotentMutation(api.create);
-  const append = useIdempotentMutation(
-    (input: { id: string; title: string }, key) =>
-      api.append(input.id, input.title, key),
-  );
-  const submit = async (e: FormEvent) => {
-    e.preventDefault();
-    setError("");
-    if (!name.trim() || !description.trim() || !effectiveEvent) {
-      setError("Vui lòng nhập tên, mô tả và chọn sự kiện lịch sử của series.");
-      return;
+  episodeId?: string;
+}
+
+const stepOrder: PodcastWizardStep[] = [
+  "information",
+  "script",
+  "voice",
+  "review",
+];
+
+export function PodcastCreation({ onBack, onSaved, episodeId }: PodcastCreationProps): ReactElement {
+  const episode = usePodcastEpisode(episodeId ?? "");
+  const existingSeries = usePodcastSeriesDetail(episode.data?.seriesId ?? "");
+  if (episodeId && (episode.error || existingSeries.error || !episode.data)) {
+    if (!episode.error && episode.isPending) {
+      return <CreationPage title="Chi tiết podcast" onBack={onBack}><p className="text-sm text-mod-text-secondary">Đang tải tập podcast…</p></CreationPage>;
     }
-    setBusy(true);
-    let persistedId = savedId;
+    return <CreationPage title="Chi tiết podcast" onBack={onBack}><p role="alert" className="text-sm text-mod-danger">{episode.error?.message ?? existingSeries.error?.message ?? "Không tải được tập podcast."}</p></CreationPage>;
+  }
+  if (episodeId && existingSeries.isPending) {
+    return <CreationPage title="Chi tiết podcast" onBack={onBack}><p className="text-sm text-mod-text-secondary">Đang tải series của tập…</p></CreationPage>;
+  }
+  return <PodcastWizardPage
+    key={episodeId ?? "new"}
+    onBack={onBack}
+    onSaved={onSaved}
+    existingEpisode={episodeId ? episode.data : undefined}
+    historicalEventId={existingSeries.data?.primaryHistoricalEventId ?? ""}
+  />;
+}
+
+function PodcastWizardPage({
+  onBack,
+  onSaved,
+  existingEpisode,
+  historicalEventId,
+}: Pick<PodcastCreationProps, "onBack" | "onSaved"> & {
+  existingEpisode?: EpisodeWorkspaceDto;
+  historicalEventId: string;
+}): ReactElement {
+  const wizard = usePodcastCreationWizard(
+    existingEpisode ? () => podcastWizardStateFromEpisode(existingEpisode, historicalEventId) : undefined,
+  );
+  const series = usePodcastSeries();
+  const selected = usePodcastSeriesDetail(wizard.state.seriesId);
+  const event = useHistoricalEvent(wizard.state.historicalEventId);
+  const [editing, setEditing] = useState(!existingEpisode);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState("");
+  const currentIndex = stepOrder.indexOf(wizard.state.activeStep);
+
+  const handleSelectSeries = async (seriesId: string): Promise<void> => {
+    wizard.dispatch({
+      type: "updateInformation",
+      value: { seriesId, historicalEventId: "" },
+    });
+    if (!seriesId) return;
     try {
-      let id = savedId;
-      if (!id) {
-        if (kind === "series")
-          id = (
-            await create.mutateAsync({
-              title: name.trim(),
-              description: description.trim(),
-              primaryHistoricalEventId: effectiveEvent,
-              topicId: topicId || null,
-            })
-          ).id;
-        else
-          id = (await append.mutateAsync({ id: seriesId, title: name.trim() }))
-            .id;
-        setSavedId(id);
-        persistedId = id;
-      }
-      if (kind === "episode") {
-        await api.patchEpisode(id, { description });
-        if (script.trim()) await api.script(id, { scriptContent: script });
-      } else {
-        const current = await api.detail(id);
-        if (savedId)
-          await api.patch(id, {
-            description: description.trim(),
-            topicId: topicId || null,
-            baseUpdatedAt: current.updatedAt,
-          });
-        for (const citationId of chosen) {
-          const citation = event.data?.citations.find(
-            (c) => c.id === citationId,
-          );
-          if (
-            citation &&
-            !current.sources.some(
-              (s) =>
-                s.source.id === citation.sourceId &&
-                s.locator === citation.locator,
-            )
-          )
-            await api.addCitation(id, citationId, newIdempotencyKey());
-        }
-      }
-      await invalidate();
-      notify.success({
-        title: `Đã tạo bản nháp ${kind === "series" ? "series" : "tập podcast"} “${name.trim()}”.`,
-        description: "Đã lưu vào hệ thống.",
+      const detail = await api.detail(seriesId);
+      wizard.dispatch({
+        type: "updateInformation",
+        value: { historicalEventId: detail.primaryHistoricalEventId ?? "" },
       });
-      onSaved(kind === "series" ? id : seriesId);
-    } catch (e) {
-      setError(
-        `${persistedId ? "Bản nháp đã tạo. " : ""}${e instanceof Error ? e.message : "Không lưu được podcast."} Có thể thử lưu lại để hoàn tất.`,
-      );
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : "Không tải được thông tin series.");
+    }
+  };
+
+  const saveDraft = async (): Promise<void> => {
+    setBusy(true);
+    setError("");
+    try {
+      await wizard.saveInformation();
+      if (wizard.state.scriptDirty) {
+        await wizard.saveScript(wizard.state.scriptDocument);
+      }
+      notify.success({ title: existingEpisode ? "Đã lưu thay đổi." : "Đã lưu bản nháp." });
+      if (existingEpisode) setEditing(false);
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : "Không lưu được bản nháp.");
     } finally {
       setBusy(false);
     }
   };
+
+  const move = (offset: number): void => {
+    const next = stepOrder[currentIndex + offset];
+    if (next) wizard.selectStep(next);
+  };
+
+  const queryError = series.error ?? selected.error ?? event.error;
   return (
-    <CreationPage title="Tạo podcast" onBack={onBack}>
-      <form
-        noValidate
-        onSubmit={(e) => {
-          void submit(e);
-        }}
-        className="space-y-5"
-      >
-        <div className="grid gap-5 lg:grid-cols-2">
-          <div className="space-y-4">
-            <FormField label="Loại podcast" htmlFor="podcast-kind">
-              <ModeratorSelect
-                id="podcast-kind"
-                label="Loại podcast"
-                disabled={Boolean(savedId) || busy}
-                value={kind}
-                onValueChange={(v) => {
-                  if (v === "series" || v === "episode") setKind(v);
-                }}
-                options={[
-                  { value: "series", label: "Series" },
-                  { value: "episode", label: "Tập podcast" },
-                ]}
-                placeholder="Chọn loại"
-              />
-            </FormField>
-            {kind === "episode" ? (
-              <FormField label="Series" htmlFor="podcast-series">
-                <ModeratorSelect
-                  id="podcast-series"
-                  label="Series"
-                  value={seriesId}
-                  disabled={Boolean(savedId) || busy}
-                  onValueChange={setSeriesId}
-                  options={
-                    series.data?.pages.flatMap((p) =>
-                      p.items.map((s) => ({ value: s.id, label: s.title })),
-                    ) ?? []
-                  }
-                  placeholder="Chọn series"
-                />
-                {series.hasNextPage ? (
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    onClick={() => {
-                      void series.fetchNextPage();
-                    }}
-                  >
-                    Tải thêm series
-                  </Button>
-                ) : null}
-              </FormField>
-            ) : null}
-            {kind === "series" ? (
-              <label className="block text-sm">
-                Tìm sự kiện
-                <input
-                  aria-label="Tìm sự kiện"
-                  className={formField}
-                  value={q}
-                  onChange={(e) => setQ(e.target.value)}
-                />
-              </label>
-            ) : null}
-            <FormField label="Sự kiện lịch sử" htmlFor="podcast-event">
-              <ModeratorSelect
-                id="podcast-event"
-                label="Sự kiện lịch sử"
-                value={effectiveEvent}
-                disabled={kind === "episode" || Boolean(savedId) || busy}
-                onValueChange={(v) => {
-                  setEventId(v);
-                  setChosen(new Set());
-                }}
-                options={[
-                  ...(events.data?.pages.flatMap((p) =>
-                    p.items.map((e) => ({
-                      value: e.id,
-                      label: [
-                        e.historicalPhase?.period?.name,
-                        e.historicalPhase?.name,
-                        e.name,
-                      ]
-                        .filter(Boolean)
-                        .join(" / "),
-                    })),
-                  ) ?? []),
-                  ...(event.data &&
-                  !events.data?.pages.some((p) =>
-                    p.items.some((e) => e.id === event.data.id),
-                  )
-                    ? [{ value: event.data.id, label: event.data.name }]
-                    : []),
-                ]}
-                placeholder="Chọn sự kiện lịch sử"
-              />
-            </FormField>
-            {kind === "series" && events.hasNextPage ? (
-              <Button
-                type="button"
-                variant="ghost"
-                onClick={() => {
-                  void events.fetchNextPage();
-                }}
-              >
-                Tải thêm sự kiện
+    <CreationPage
+      title={existingEpisode ? "Chi tiết podcast" : "Tạo podcast"}
+      onBack={onBack}
+      description={existingEpisode ? "Xem lại bốn bước sản xuất của tập podcast." : undefined}
+    >
+      <div className="rounded-xl border border-mod-border bg-mod-surface shadow-sm">
+        {existingEpisode ? (
+          <div className="flex flex-wrap items-center justify-between gap-3 border-b border-mod-border px-4 py-4 sm:px-6">
+            <div>
+              <p className="font-semibold text-mod-text">{wizard.state.title}</p>
+              <p className="mt-1 text-xs text-mod-text-secondary">{editing ? "Đang chỉnh sửa tập podcast" : "Chế độ xem · chọn Chỉnh sửa để thay đổi nội dung"}</p>
+            </div>
+            {!editing ? (
+              <Button type="button" className={primaryAction} onClick={() => setEditing(true)}>
+                <Pencil size={16} aria-hidden="true" /> Chỉnh sửa
               </Button>
             ) : null}
-            {kind === "series" ? (
-              <FormField label="Chủ đề" htmlFor="podcast-topic">
-                <ModeratorSelect
-                  id="podcast-topic"
-                  label="Chủ đề"
-                  value={topicId}
-                  onValueChange={setTopicId}
-                  options={
-                    topics.data?.items.map((t) => ({
-                      value: t.id,
-                      label: t.name,
-                    })) ?? []
-                  }
-                  placeholder="Chọn chủ đề trước khi phát hành"
-                />
-              </FormField>
-            ) : null}
           </div>
-          <div className="space-y-4">
-            <FormField
-              label={kind === "series" ? "Tên series" : "Tên tập podcast"}
-              htmlFor="podcast-name"
-            >
-              <Input
-                id="podcast-name"
-                aria-label="Tên podcast"
-                className={formField}
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                disabled={Boolean(savedId) || busy}
-              />
-            </FormField>
-            <FormField label="Mô tả" htmlFor="podcast-description">
-              <Textarea
-                id="podcast-description"
-                aria-label="Mô tả podcast"
-                className={formField}
-                value={description}
-                disabled={busy}
-                onChange={(e) => setDescription(e.target.value)}
-              />
-            </FormField>
-            {kind === "episode" ? (
-              <FormField label="Kịch bản" htmlFor="podcast-script">
-                <Textarea
-                  id="podcast-script"
-                  aria-label="Kịch bản"
-                  className={formField + " min-h-64"}
-                  value={script}
-                  disabled={busy}
-                  onChange={(e) => setScript(e.target.value)}
-                />
-              </FormField>
-            ) : null}
+        ) : null}
+        <div className="border-b border-mod-border px-4 py-5 sm:px-6">
+          <PodcastWizardStepper
+            activeStep={wizard.state.activeStep}
+            completion={wizard.completion}
+            onSelect={wizard.selectStep}
+          />
+        </div>
+
+        <div className="min-h-[420px] px-4 py-6 sm:px-6">
+          <div hidden={wizard.state.activeStep !== "information"}>
+            <PodcastInformationStep
+              state={wizard.state}
+              readOnly={!editing}
+              seriesName={selected.data?.title ?? existingEpisode?.seriesTitle ?? ""}
+              seriesOptions={
+                series.data?.pages.flatMap((page) =>
+                  page.items.map((item) => ({ value: item.id, label: item.title })),
+                ) ?? []
+              }
+              eventName={event.data?.name ?? ""}
+              busy={busy}
+              hasMoreSeries={Boolean(series.hasNextPage)}
+              error={error || queryError?.message}
+              onLoadMore={() => {
+                void series.fetchNextPage();
+              }}
+              onSelectSeries={(seriesId) => {
+                void handleSelectSeries(seriesId);
+              }}
+              onChange={(value) =>
+                wizard.dispatch({ type: "updateInformation", value })
+              }
+            />
+          </div>
+          <div hidden={wizard.state.activeStep !== "script"}>
+            <PodcastScriptStep
+              wizard={wizard}
+              sources={selected.data?.sources ?? []}
+              readOnly={!editing}
+            />
+          </div>
+          <div hidden={wizard.state.activeStep !== "voice"}>
+            <PodcastVoiceStep wizard={wizard} readOnly={!editing} published={existingEpisode?.status === "PUBLISHED"} />
+          </div>
+          <div hidden={wizard.state.activeStep !== "review"}>
+            <PodcastReviewStep
+              wizard={wizard}
+              series={selected.data}
+              eventName={event.data?.name ?? ""}
+              onPublished={onSaved}
+              readOnly={!editing}
+              existingStatus={existingEpisode?.status}
+            />
           </div>
         </div>
-        {event.data ? (
-          <section className="space-y-2 border-t border-mod-border pt-4">
-            <h2 className="font-semibold">Trích dẫn từ sự kiện</h2>
-            <p className="text-xs text-mod-text-secondary">
-              {event.data.readiness.ready
-                ? "Sự kiện đủ điều kiện làm cơ sở phát hành."
-                : "Có thể tạo nháp; sự kiện cần hoàn tất kiểm duyệt trước khi phát hành."}
-            </p>
-            {kind === "series" ? (
-              event.data.citations.map((c) => (
-                <label key={c.id} className="flex items-start gap-2 text-sm">
-                  <input
-                    type="checkbox"
-                    disabled={busy}
-                    checked={chosen.has(c.id)}
-                    onChange={(e) =>
-                      setChosen((old) => {
-                        const next = new Set(old);
-                        if (e.target.checked) next.add(c.id);
-                        else next.delete(c.id);
-                        return next;
-                      })
-                    }
-                  />
-                  <span>
-                    {c.source.title} · {c.locator || "Chưa có vị trí trích"}
-                  </span>
-                </label>
-              ))
-            ) : (
-              <p className="text-sm">Tập sử dụng nguồn đã chọn trong series.</p>
-            )}
-          </section>
-        ) : null}
-        {events.error || series.error || event.error ? (
-          <p role="alert">
-            {events.error?.message ??
-              series.error?.message ??
-              event.error?.message}
-          </p>
-        ) : null}
-        {error ? (
-          <p role="alert" className="text-sm text-mod-danger">
-            {error}
-          </p>
-        ) : null}
-        <div className="flex justify-end gap-3">
+
+        <footer className="flex flex-wrap items-center justify-between gap-3 border-t border-mod-border px-4 py-4 sm:px-6">
           <Button
             type="button"
             variant="outline"
-            disabled={busy}
-            onClick={onBack}
+            className={secondaryAction}
+            disabled={currentIndex === 0}
+            onClick={() => move(-1)}
           >
-            Hủy
+            <ArrowLeft size={17} aria-hidden="true" />
+            Bước trước
           </Button>
-          <Button type="submit" disabled={busy}>
-            {busy
-              ? "Đang lưu…"
-              : savedId
-                ? "Hoàn tất bản nháp"
-                : "Lưu bản nháp"}
-          </Button>
-        </div>
-      </form>
+          <div className="flex flex-wrap justify-end gap-3">
+            {editing && wizard.state.activeStep !== "review" ? (
+              <Button
+                type="button"
+                variant="outline"
+                className={secondaryAction}
+                disabled={busy}
+                onClick={() => {
+                  void saveDraft();
+                }}
+              >
+                <Save size={17} aria-hidden="true" />
+                {busy ? "Đang lưu…" : existingEpisode ? "Lưu thay đổi" : "Lưu bản nháp"}
+              </Button>
+            ) : null}
+            {currentIndex < stepOrder.length - 1 ? (
+              <Button
+                type="button"
+                className={primaryAction}
+                onClick={() => move(1)}
+              >
+                Bước tiếp theo
+                <ArrowRight size={17} aria-hidden="true" />
+              </Button>
+            ) : null}
+          </div>
+        </footer>
+      </div>
     </CreationPage>
   );
 }

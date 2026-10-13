@@ -11,6 +11,7 @@ export * from "./schemas/content/catalog";
 export * from "./schemas/content/historical-catalog";
 export * from "./schemas/content/series";
 export * from "./schemas/content/episode";
+export * from "./schemas/content/editor-document";
 export * from "./schemas/content/media";
 export * from "./schemas/listening";
 export * from "./types/index";

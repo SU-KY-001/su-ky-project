@@ -2,11 +2,13 @@ import { PublishContentSchema } from "@repo/shared";
 import { z } from "zod";
 import {
   AttachAudioSchema,
+  AttachEpisodeDocumentSchema,
   CreateEntityTagSchema,
   CreateEpisodeSchema,
   CreateSeriesSchema,
   CreateSeriesSourceSchema,
   EpisodeOrderSchema,
+  EpisodeAttachmentSchema,
   NarrationTypeSchema,
   PatchEntityTagSchema,
   PatchEpisodeSchema,
@@ -34,6 +36,10 @@ const SERIES_TAG = "Studio Series";
 const EPISODE_TAG = "Studio Episodes";
 const SERIES = "/api/studio/series";
 const EPISODES = "/api/studio/episodes";
+const episodeAttachment = {
+  name: "EpisodeAttachment",
+  schema: EpisodeAttachmentSchema,
+};
 
 const SeriesIdParamSchema = z.object({ seriesId: z.string().uuid() });
 const NarrationParamSchema = z.object({
@@ -533,6 +539,67 @@ export const studioPaths: Paths = {
       errors: writeErrors("tập", {
         409: "`REQUIRED_FOR_PUBLISHED`: tập đã xuất bản bắt buộc có audio ngôi thứ ba",
       }),
+    }),
+  },
+
+  [`${EPISODES}/{id}/attachments`]: {
+    get: operation({
+      id: "listEpisodeAttachments",
+      tag: EPISODE_TAG,
+      summary: "Tài liệu bổ sung của tập",
+      description: "Liệt kê PDF, DOC và DOCX Moderator đã gắn vào tập podcast.",
+      access: "studio",
+      ...episodeParams,
+      ok: {
+        status: 200,
+        description: "Danh sách tài liệu",
+        schema: {
+          name: "EpisodeAttachmentList",
+          schema: ItemsOf(EpisodeAttachmentSchema),
+        },
+      },
+      errors: { 404: notFound("tập") },
+    }),
+    post: operation({
+      id: "attachEpisodeDocument",
+      tag: EPISODE_TAG,
+      summary: "Gắn tài liệu bổ sung",
+      description:
+        "Gắn media `DOCUMENT` đã `READY` do Moderator upload. Hỗ trợ PDF, DOC và DOCX theo allowlist hệ thống.",
+      access: "studio",
+      ...episodeParams,
+      body: {
+        name: "AttachEpisodeDocument",
+        schema: AttachEpisodeDocumentSchema,
+        example: {
+          assetId: "3f6b0c9e-7c1a-4b53-9e0e-2f5d8a1b4c10",
+          fileName: "tu-lieu-bach-dang.pdf",
+        },
+      },
+      ok: {
+        status: 201,
+        description: "Tài liệu đã gắn",
+        schema: episodeAttachment,
+      },
+      idempotent: true,
+      rate: "write",
+      errors: writeErrors("tập", {
+        409: "`ASSET_IN_USE`: media đã được gắn vào tập khác",
+        422: "`VALIDATION_ERROR`: media không phải DOCUMENT, chưa READY hoặc không thuộc Moderator",
+      }),
+    }),
+  },
+  [`${EPISODES}/{id}/attachments/{childId}`]: {
+    delete: operation({
+      id: "detachEpisodeDocument",
+      tag: EPISODE_TAG,
+      summary: "Gỡ tài liệu bổ sung",
+      description: "Gỡ quan hệ khỏi tập; media trở lại vòng đời dọn file sau thời gian chờ.",
+      access: "studio",
+      ...childParams,
+      ok: NO_CONTENT,
+      rate: "write",
+      errors: writeErrors("tập hoặc tài liệu"),
     }),
   },
 

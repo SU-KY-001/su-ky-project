@@ -33,12 +33,16 @@ const SYSTEM_CONFIGS = [
   ],
   [
     "media.document.allowed_formats",
-    ["pdf"],
+    ["pdf", "doc", "docx"],
     "Allowed source document formats",
   ],
   [
     "media.document.allowed_mime_types",
-    ["application/pdf"],
+    [
+      "application/pdf",
+      "application/msword",
+      "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    ],
     "Allowed source document MIME types",
   ],
   ["media.image.max_bytes", 5242880, "Maximum image upload size"],

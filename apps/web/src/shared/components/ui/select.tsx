@@ -7,7 +7,7 @@ export const Select = SelectPrimitive.Root;
 export const SelectValue = SelectPrimitive.Value;
 
 export function SelectTrigger({ className, children, ...props }: ComponentProps<typeof SelectPrimitive.Trigger>) {
-  return <SelectPrimitive.Trigger data-slot="select-trigger" className={cn("flex h-10 w-full min-w-0 items-center justify-between gap-2 rounded-md border border-input bg-transparent px-3 py-2 text-left text-sm shadow-xs outline-none transition-[color,box-shadow,border-color] focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/50 disabled:cursor-not-allowed disabled:opacity-50 data-[placeholder]:text-muted-foreground [&>span]:min-w-0 [&>span]:truncate", className)} {...props}>{children}<SelectPrimitive.Icon asChild><CaretDown size={16} className="shrink-0 opacity-70" aria-hidden="true" /></SelectPrimitive.Icon></SelectPrimitive.Trigger>;
+  return <SelectPrimitive.Trigger data-slot="select-trigger" className={cn("flex h-10 w-full min-w-0 items-center justify-between gap-2 rounded-md border border-input bg-transparent px-3 py-2 text-left text-sm shadow-xs outline-none transition-[color,background-color,box-shadow,border-color] focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/50 disabled:cursor-not-allowed disabled:border-border disabled:bg-muted disabled:text-muted-foreground disabled:opacity-100 data-[placeholder]:text-muted-foreground [&>span]:min-w-0 [&>span]:truncate", className)} {...props}>{children}<SelectPrimitive.Icon asChild><CaretDown size={16} className="shrink-0 opacity-70" aria-hidden="true" /></SelectPrimitive.Icon></SelectPrimitive.Trigger>;
 }
 
 export function SelectContent({ className, children, position = "popper", ...props }: ComponentProps<typeof SelectPrimitive.Content>) {

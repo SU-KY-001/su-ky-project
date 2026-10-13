@@ -69,7 +69,7 @@ export function compareHistoricalDates(
   return "OVERLAP";
 }
 export function formatHistoricalDate(date: HistoricalDateDto): string {
-  const year = `${Math.abs(date.year)} ${date.year < 0 ? "TCN" : "CN"}`;
+  const year = date.year < 0 ? `${Math.abs(date.year)} TCN` : String(date.year);
   const pad = (n: number) => String(n).padStart(2, "0");
   const value =
     date.precision === "DAY"

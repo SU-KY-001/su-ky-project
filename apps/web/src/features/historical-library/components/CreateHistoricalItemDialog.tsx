@@ -8,6 +8,7 @@ import {
   DialogTitle,
 } from "@/shared/components/ui/dialog";
 import { Input } from "@/shared/components/ui/input";
+import { Textarea } from "@/shared/components/ui/textarea";
 
 export type HistoricalDraftKind = "period" | "stage" | "event";
 
@@ -115,13 +116,13 @@ export function CreateHistoricalItemDialog({
 
           <label className="flex flex-col gap-1.5 text-xs font-bold text-mod-text">
             Mô tả ngắn
-            <textarea
+            <Textarea
+              autoGrow
               value={summary}
               onChange={(event) => setSummary(event.target.value)}
               placeholder={`Tóm tắt vai trò và phạm vi của ${copy.noun} này`}
               required
-              rows={4}
-              className="w-full resize-y rounded-lg border border-mod-border bg-mod-surface px-3 py-2.5 text-sm leading-6 text-mod-text outline-none placeholder:text-mod-text-low focus-visible:ring-0"
+              className="min-h-28 w-full rounded-lg border border-mod-border bg-mod-surface px-3 py-2.5 text-sm leading-6 text-mod-text outline-none placeholder:text-mod-text-low focus-visible:ring-0"
             />
           </label>
 

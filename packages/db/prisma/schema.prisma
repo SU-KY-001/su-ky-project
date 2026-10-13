@@ -359,6 +359,7 @@ model Episode {
   series             Series              @relation(fields: [seriesId], references: [id], onDelete: Restrict)
   adminLockedBy      User?               @relation("EpisodeLocker", fields: [adminLockedById], references: [id], onDelete: SetNull)
   narrations         EpisodeNarration[]
+  attachments        EpisodeAttachment[]
   entityTags         EpisodeEntityTag[]
   quiz               Quiz?
   listeningProgress  ListeningProgress[]
@@ -373,6 +374,8 @@ model EpisodeNarration {
   narrationType     NarrationType       @map("narration_type")
   narratorEntityId  String?             @map("narrator_entity_id") @db.Uuid
   scriptContent     String?             @map("script_content") @db.Text
+  scriptDocument    Json?               @map("script_document")
+  audioAnalysis     Json?               @map("audio_analysis")
   audioAssetId      String?             @unique(map: "episode_narrations_audio_asset_id_key") @map("audio_asset_id") @db.Uuid
   scriptUpdatedAt   DateTime?           @map("script_updated_at") @db.Timestamptz(3)
   audioAttachedAt   DateTime?           @map("audio_attached_at") @db.Timestamptz(3)
@@ -407,11 +410,26 @@ model MediaAsset {
   sourceFile        Source?             @relation("SourceFile")
   listeningProgress ListeningProgress[]
   sourceRevisions   SourceRevision[]    @relation("SourceRevisionFile")
+  episodeAttachment EpisodeAttachment?  @relation("EpisodeAttachmentMedia")
 
   @@index([status, createdAt], map: "media_assets_status_created_at_idx")
   @@index([status, detachedAt], map: "media_assets_status_detached_at_idx")
   @@index([uploadedById], map: "media_assets_uploaded_by_id_idx")
   @@map("media_assets")
+}
+
+model EpisodeAttachment {
+  id           String     @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  episodeId    String     @map("episode_id") @db.Uuid
+  mediaAssetId String     @unique(map: "episode_attachments_media_asset_id_key") @map("media_asset_id") @db.Uuid
+  fileName     String     @map("file_name") @db.VarChar(255)
+  createdAt    DateTime   @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt    DateTime   @updatedAt @map("updated_at") @db.Timestamptz(3)
+  episode      Episode    @relation(fields: [episodeId], references: [id], onDelete: Cascade)
+  mediaAsset   MediaAsset @relation("EpisodeAttachmentMedia", fields: [mediaAssetId], references: [id], onDelete: Restrict)
+
+  @@index([episodeId, createdAt], map: "episode_attachments_episode_id_created_at_idx")
+  @@map("episode_attachments")
 }
 
 model SeriesSource {

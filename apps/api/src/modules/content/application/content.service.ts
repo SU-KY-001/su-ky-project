@@ -1,4 +1,10 @@
 import type { Session } from "../../auth";
+import {
+  AudioAnalysisSchema,
+  EditorDocumentSchema,
+  type AudioAnalysis,
+  type EditorDocument,
+} from "@repo/shared";
 import { DomainError } from "../../../core/errors/domain-error";
 import { insertWithUniqueSlug } from "../../../core/slug";
 import type {
@@ -10,6 +16,7 @@ import type {
 import type {
   ContentStatus,
   EpisodeNarrationDetailEntity,
+  EpisodeAttachmentEntity,
   SeriesSourceWithSourceEntity,
   EpisodeWorkspaceEntity,
   MediaAssetEntity,
@@ -19,9 +26,21 @@ import type {
 } from "../domain/content.entity";
 import { getSystemConfig } from "../../../core/config/system-config";
 import { episodeChecklist, seriesChecklist } from "./content.mappers";
+import {
+  extractCitationSourceIds,
+  extractScriptText,
+} from "./script-document";
 
 /** Scripts are plain text read aloud: markup would be spoken or rendered literally. */
 const HTML_TAG_PATTERN = /<\/?[a-z!][^>]*>/i;
+
+export interface ContentServiceConfig {
+  get(key: "script.max_chars"): Promise<number>;
+}
+
+const defaultContentServiceConfig: ContentServiceConfig = {
+  get: (key) => getSystemConfig(key),
+};
 
 /**
  * Studio orchestration for series/episode content. Ports are injected; Prisma
@@ -33,6 +52,7 @@ export class ContentService {
   constructor(
     private readonly series: SeriesRepository,
     private readonly episodes: EpisodeRepository,
+    private readonly config: ContentServiceConfig = defaultContentServiceConfig,
   ) {}
 
   // --- shared guards (moved verbatim from application/content-access.ts) ---
@@ -117,6 +137,24 @@ export class ContentService {
     }
   }
 
+  private assertDocumentAssetUsable(
+    asset: MediaAssetEntity | null,
+    session: Session,
+  ): void {
+    if (
+      !asset ||
+      asset.kind !== "DOCUMENT" ||
+      asset.status !== "READY" ||
+      (session.user.role !== "admin" && asset.uploadedById !== session.user.id)
+    ) {
+      throw new DomainError(
+        422,
+        "VALIDATION_ERROR",
+        "Document asset is not usable",
+      );
+    }
+  }
+
   private async assertPhaseUsable(
     phaseId: string | null | undefined,
   ): Promise<void> {
@@ -133,7 +171,7 @@ export class ContentService {
     script: string | null | undefined,
   ): Promise<void> {
     if (!script) return;
-    const maxChars = await getSystemConfig("script.max_chars");
+    const maxChars = await this.config.get("script.max_chars");
     if (script.length > maxChars)
       throw new DomainError(
         422,
@@ -606,6 +644,55 @@ export class ContentService {
 
   // --- narrations --------------------------------------------------------------
 
+  async listEpisodeDocuments(
+    session: Session,
+    id: string,
+  ): Promise<EpisodeAttachmentEntity[]> {
+    await this.loadEpisodeForRead(session, id);
+    return this.episodes.listEpisodeAttachments(id);
+  }
+
+  async attachEpisodeDocument(
+    session: Session,
+    id: string,
+    input: { assetId: string; fileName: string },
+  ): Promise<EpisodeAttachmentEntity> {
+    const episode = await this.loadEpisodeForRead(session, id);
+    assertWritable(session, episode.series, episode);
+    this.assertDocumentAssetUsable(
+      await this.series.findMediaAsset(input.assetId),
+      session,
+    );
+    if (await this.episodes.findEpisodeAttachmentUsingAsset(input.assetId)) {
+      throw new DomainError(
+        409,
+        "ASSET_IN_USE",
+        "Document asset is already attached",
+      );
+    }
+    return this.episodes.attachEpisodeDocument({
+      episodeId: id,
+      mediaAssetId: input.assetId,
+      fileName: input.fileName,
+    });
+  }
+
+  async detachEpisodeDocument(
+    session: Session,
+    id: string,
+    attachmentId: string,
+  ): Promise<void> {
+    const episode = await this.loadEpisodeForRead(session, id);
+    assertWritable(session, episode.series, episode);
+    const attachment = await this.episodes.findEpisodeAttachment(
+      id,
+      attachmentId,
+    );
+    if (!attachment)
+      throw new DomainError(404, "NOT_FOUND", "Attachment not found");
+    await this.episodes.detachEpisodeDocument(attachment.id);
+  }
+
   async getNarration(
     session: Session,
     id: string,
@@ -625,6 +712,7 @@ export class ContentService {
     input: {
       baseUpdatedAt?: Date;
       scriptContent?: string | null;
+      scriptDocument?: EditorDocument | null;
       narratorEntityId?: string | null;
     },
   ): Promise<EpisodeNarrationDetailEntity> {
@@ -637,11 +725,44 @@ export class ContentService {
         current.id,
         input.baseUpdatedAt,
       );
-    await this.assertScriptValid(input.scriptContent);
+    let scriptDocument = input.scriptDocument;
+    let scriptContent = input.scriptContent;
+    if (input.scriptDocument === undefined && input.scriptContent !== undefined) {
+      scriptDocument = null;
+    }
+    if (input.scriptDocument !== undefined) {
+      if (input.scriptDocument === null) {
+        scriptContent = null;
+      } else {
+        const parsed = EditorDocumentSchema.safeParse(input.scriptDocument);
+        if (!parsed.success)
+          throw new DomainError(
+            422,
+            "VALIDATION_ERROR",
+            "Script document contains unsupported content",
+          );
+        scriptDocument = parsed.data;
+        scriptContent = extractScriptText(parsed.data);
+        const citationIds = extractCitationSourceIds(parsed.data);
+        if (citationIds.length) {
+          const allowed = new Set(
+            await this.series.listSeriesSourceIds(episode.seriesId),
+          );
+          if (citationIds.some((sourceId) => !allowed.has(sourceId))) {
+            throw new DomainError(
+              422,
+              "VALIDATION_ERROR",
+              "Script cites a source that is not attached to this series",
+            );
+          }
+        }
+      }
+    }
+    await this.assertScriptValid(scriptContent);
     if (
       type === "THIRD_PERSON" &&
       episode.status === "PUBLISHED" &&
-      !input.scriptContent?.trim()
+      !scriptContent?.trim()
     )
       throw new DomainError(
         409,
@@ -668,7 +789,8 @@ export class ContentService {
     return this.episodes.upsertNarration({
       episodeId: id,
       narrationType: type,
-      scriptContent: input.scriptContent,
+      scriptContent,
+      scriptDocument,
       narratorEntityId:
         type === "FIRST_PERSON" ? input.narratorEntityId! : null,
     });
@@ -689,7 +811,11 @@ export class ContentService {
     session: Session,
     id: string,
     type: NarrationType,
-    input: { assetId: string; confirmReplacePublished?: boolean },
+    input: {
+      assetId: string;
+      analysis?: AudioAnalysis;
+      confirmReplacePublished?: boolean;
+    },
   ): Promise<EpisodeNarrationDetailEntity> {
     const episode = await this.loadEpisodeForRead(session, id);
     assertWritable(session, episode.series, episode);
@@ -722,9 +848,13 @@ export class ContentService {
         "Confirm replacing published audio",
       );
     }
+    const analysis = input.analysis
+      ? AudioAnalysisSchema.parse(input.analysis)
+      : undefined;
     return this.episodes.attachAudio(narration.id, {
       previousAudioAssetId: narration.audioAssetId,
       assetId: input.assetId,
+      analysis,
     });
   }
 

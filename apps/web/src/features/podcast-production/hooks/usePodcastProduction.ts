@@ -1,3 +1,4 @@
+import { useCallback } from "react";
 import {
   useInfiniteQuery,
   useQuery,
@@ -29,8 +30,8 @@ export function usePodcastEpisode(id: string) {
 }
 export function usePodcastInvalidation() {
   const c = useQueryClient();
-  return async () => {
+  return useCallback(async () => {
     await c.invalidateQueries({ queryKey: ["podcast-production"] });
     await c.invalidateQueries({ queryKey: ["historical-catalog"] });
-  };
+  }, [c]);
 }

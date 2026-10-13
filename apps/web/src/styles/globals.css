@@ -247,6 +247,76 @@ body {
   .landing-loader-track::after { animation: none; }
 }
 
+.podcast-step-complete {
+  animation: podcast-step-complete 320ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@keyframes podcast-step-complete {
+  0% { transform: scale(0.82); }
+  62% { transform: scale(1.08); }
+  100% { transform: scale(1); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .podcast-step-complete { animation: none; }
+}
+
+.podcast-rich-editor p {
+  margin: 0 0 0.85rem;
+}
+
+.podcast-rich-editor h1,
+.podcast-rich-editor h2,
+.podcast-rich-editor h3 {
+  margin: 1.35rem 0 0.65rem;
+  color: var(--modText);
+  font-weight: 750;
+  line-height: 1.25;
+}
+
+.podcast-rich-editor h1 { font-size: 1.5rem; }
+.podcast-rich-editor h2 { font-size: 1.25rem; }
+.podcast-rich-editor h3 { font-size: 1.08rem; }
+
+.podcast-rich-editor ul,
+.podcast-rich-editor ol {
+  margin: 0.75rem 0;
+  padding-left: 1.5rem;
+}
+
+.podcast-rich-editor ul { list-style: disc; }
+.podcast-rich-editor ol { list-style: decimal; }
+
+.podcast-rich-editor blockquote {
+  margin: 1rem 0;
+  border-left: 3px solid var(--modPrimary);
+  padding-left: 1rem;
+  color: var(--modTextSecondary);
+}
+
+.podcast-rich-editor .is-editor-empty:first-child::before {
+  float: left;
+  height: 0;
+  color: var(--modTextLow);
+  content: attr(data-placeholder);
+  pointer-events: none;
+}
+
+.podcast-source-citation {
+  border-bottom: 1px dashed var(--modPrimary);
+  background: color-mix(in srgb, var(--modPrimary) 8%, transparent);
+}
+
+.podcast-source-citation::after {
+  position: relative;
+  top: -0.3em;
+  margin-left: 0.15rem;
+  color: var(--modPrimary);
+  content: "nguồn";
+  font-size: 0.62em;
+  font-weight: 700;
+}
+
 .app-toast {
   will-change: transform, opacity;
 }
@@ -324,6 +394,12 @@ button {
 }
 
 button:disabled {
+  cursor: not-allowed;
+}
+
+:where(input, textarea, select):disabled,
+:where(input, textarea)[readonly],
+:where([role="combobox"])[aria-disabled="true"] {
   cursor: not-allowed;
 }
 
@@ -443,6 +519,15 @@ img {
   display: none;
   width: 0;
   height: 0;
+}
+
+.mod-review-script {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.mod-review-script::-webkit-scrollbar {
+  display: none;
 }
 
 .mod-select-content [role="option"]:focus-visible {

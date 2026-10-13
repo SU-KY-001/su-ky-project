@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { ContentStatusSchema } from "../common";
 import { SeriesSourceSchema, HistoricalEntityTypeSchema } from "./catalog";
+import { AudioAnalysisSchema, EditorDocumentSchema } from "./editor-document";
 const uuid = z.string().uuid(),
   timestamp = z.coerce.date();
 const LockSchema = z
@@ -96,6 +97,8 @@ export const NarrationSchema = z.object({
   type: z.enum(["THIRD_PERSON", "FIRST_PERSON"]),
   narrator: z.object({ id: uuid, name: z.string() }).nullable(),
   scriptContent: z.string().nullable(),
+  scriptDocument: EditorDocumentSchema.nullable(),
+  audioAnalysis: AudioAnalysisSchema.nullable(),
   wordCount: z.number().int(),
   estimatedDurationMs: z.number().int(),
   audio: z
@@ -115,6 +118,18 @@ export const NarrationSchema = z.object({
     }),
   ),
   updatedAt: timestamp.describe("Gửi lại làm `baseUpdatedAt` khi PUT bản kể"),
+});
+
+export const EpisodeAttachmentSchema = z.object({
+  id: uuid,
+  fileName: z.string(),
+  createdAt: timestamp,
+  asset: z.object({
+    assetId: uuid,
+    format: z.string().nullable(),
+    sizeBytes: z.number().int().nullable(),
+    previewUrl: z.string().nullable(),
+  }),
 });
 
 export const EntityTagSchema = z.object({
@@ -143,6 +158,7 @@ export const EpisodeWorkspaceSchema = z.object({
   publishedAt: timestamp.nullable(),
   updatedAt: timestamp,
   narrations: z.array(NarrationSchema),
+  attachments: z.array(EpisodeAttachmentSchema),
   entityTags: z.array(EntityTagSchema),
   publishChecklist: z.object({
     ready: z.boolean(),
@@ -156,3 +172,4 @@ export const EpisodeWorkspaceSchema = z.object({
 export type StudioSeriesDetailDto = z.infer<typeof SeriesDetailSchema>;
 export type StudioSeriesListItemDto = z.infer<typeof SeriesListItemSchema>;
 export type EpisodeWorkspaceDto = z.infer<typeof EpisodeWorkspaceSchema>;
+export type EpisodeAttachmentDto = z.infer<typeof EpisodeAttachmentSchema>;
