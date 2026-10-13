@@ -1,6 +1,7 @@
 import { Play } from "@phosphor-icons/react";
 import { Link } from "react-router";
 import { cn } from "@/lib/utils";
+import { ShineBorder } from "@/shared/components/ui/shine-border";
 import type { CardOrientation, PodcastItem } from "../types";
 
 interface PodcastCardProps {
@@ -33,6 +34,7 @@ export function PodcastCard({ item, orientation = "portrait", progress, caption 
               <span className="block h-full bg-vermilion" style={{ width: `${progress * 100}%` }} />
             </span>
           ) : null}
+          <ShineBorder borderWidth={2} duration={6} shineColor={["#b8322a", "#b58a3c"]} className="opacity-0 transition-opacity group-hover:opacity-100 group-focus-visible:opacity-100" />
         </div>
         <div className={cn("flex flex-col", SIZE[orientation].split(" ")[0])}>
           <p className="truncate text-sm font-bold text-ink">{item.title}</p>
