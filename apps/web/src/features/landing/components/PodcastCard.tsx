@@ -17,8 +17,8 @@ interface PodcastCardProps {
 }
 
 const SIZE: Record<CardOrientation, string> = {
-  portrait: "w-40 md:w-48 aspect-[2/3]",
-  landscape: "w-72 md:w-80 aspect-video",
+  portrait: "w-44 md:w-56 xl:w-60 aspect-[2/3]",
+  landscape: "w-80 md:w-96 xl:w-[26rem] aspect-video",
 };
 
 // Touch devices have no hover; the popup would open on tap and block navigation.
@@ -26,7 +26,7 @@ const HOVER_CAPABLE = "(hover: hover) and (pointer: fine)";
 // Intent delay: the popup opens only if the pointer rests on the card, so sweeping across a row does not flash popups.
 const HOVER_OPEN_DELAY_MS = 700;
 // Frosted glass: a light tint plus heavy blur, so each badge takes on the colour of the cover under it.
-const cornerBadge = "pointer-events-none absolute rounded-md bg-night/35 px-2 py-1 text-xs font-semibold text-white backdrop-blur-md backdrop-saturate-150 [text-shadow:0_1px_2px_rgb(0_0_0/0.5)]";
+const cornerBadge = "pointer-events-none absolute rounded-md bg-night/35 px-2.5 py-1 text-xs font-semibold text-white backdrop-blur-md backdrop-saturate-150 md:text-sm [text-shadow:0_1px_2px_rgb(0_0_0/0.5)]";
 
 export function PodcastCard({ item, orientation = "portrait", progress, caption }: PodcastCardProps) {
   const coverRef = useRef<HTMLDivElement>(null);
@@ -67,9 +67,9 @@ export function PodcastCard({ item, orientation = "portrait", progress, caption 
             </span>
           ) : null}
         </div>
-        <div className={cn("flex flex-col", SIZE[orientation].split(" ")[0])}>
-          <p className="truncate text-sm font-bold text-ink">{item.title}</p>
-          {caption ? <p className="truncate text-xs text-ink-soft">{caption}</p> : null}
+        <div className="flex w-0 min-w-full flex-col gap-0.5">
+          <p className="truncate text-base font-bold text-ink md:text-lg">{item.title}</p>
+          {caption ? <p className="truncate text-sm text-ink-soft">{caption}</p> : null}
         </div>
       </Link>
       {anchor ? createPortal(<PodcastHoverCard item={item} image={popupImage} anchor={anchor} liked={liked} onToggleLike={() => setLiked((value) => !value)} />, document.body) : null}
