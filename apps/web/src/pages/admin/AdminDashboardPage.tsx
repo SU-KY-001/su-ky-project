@@ -1,5 +1,5 @@
-import { SharedDashboard } from "@/shared/components/dashboard/SharedDashboard";
+import { AdminWorkspace } from "@/features/admin/AdminWorkspace";
 
 export function AdminDashboardPage() {
-  return <SharedDashboard role="admin" />;
+  return <AdminWorkspace />;
 }

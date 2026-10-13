@@ -12,6 +12,7 @@ import { listeningPaths } from "./paths/listening";
 import { mediaPaths } from "./paths/media";
 import { studioPaths } from "./paths/studio";
 import { systemAuthPaths } from "./paths/system-auth";
+import { adminPaths } from "./paths/admin";
 
 const SCALAR_THEME = "saturn";
 
@@ -70,6 +71,7 @@ const TAG_GROUPS = [
 const allPaths: Paths = {
   ...betterAuthPaths,
   ...systemAuthPaths,
+  ...adminPaths,
   ...catalogPaths,
   ...historicalCatalogPaths,
   ...listeningPaths,

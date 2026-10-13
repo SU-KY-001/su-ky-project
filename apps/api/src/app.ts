@@ -13,7 +13,8 @@ import {
 import { renderError } from "./core/errors/error-response";
 import { docsRoute } from "./routes/docs";
 import { healthRoute } from "./routes/health";
-import { adminRoute, auth, currentUserRoute } from "./modules/auth";
+import { auth, currentUserRoute } from "./modules/auth";
+import { adminRoute } from "./modules/admin";
 import { publicCatalogRoute, studioCatalogRoute } from "./modules/catalog";
 import { createStudioContentRoute } from "./modules/content";
 import { mediaRoute, mediaStorage } from "./modules/media";

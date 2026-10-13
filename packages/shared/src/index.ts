@@ -14,6 +14,7 @@ export * from "./schemas/content/episode";
 export * from "./schemas/content/editor-document";
 export * from "./schemas/content/media";
 export * from "./schemas/listening";
+export * from "./schemas/admin";
 export * from "./types/index";
 
 export * from "./schemas/content/studio";
