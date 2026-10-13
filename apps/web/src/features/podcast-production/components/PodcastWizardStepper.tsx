@@ -1,7 +1,8 @@
 import type { ReactElement } from "react";
-import { Check, ClipboardCheck, FileText, Info, Mic } from "lucide-react";
+import { Check, ClipboardCheck, FileText, Info, Mic, PencilLine } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { PodcastWizardStep } from "../podcastWizardState";
+import { AnimatedBeam } from "./AnimatedBeam";
 
 export interface PodcastWizardCompletion {
   information: boolean;
@@ -21,13 +22,15 @@ const definitions = [
   icon: typeof Info;
 }>;
 
-export function buildPodcastWizardSteps(completion: PodcastWizardCompletion) {
+export function buildPodcastWizardSteps(completion: PodcastWizardCompletion, activeStep: PodcastWizardStep) {
   return definitions.map((step, index) => ({
     ...step,
     number: index + 1,
     complete: completion[step.id],
     disabled: false,
-    statusLabel: completion[step.id] ? "Hoàn thành" : "Chưa hoàn thành",
+    statusLabel: step.id === activeStep
+      ? "Đang thao tác"
+      : completion[step.id] ? "Hoàn thành" : "Chưa hoàn thành",
   }));
 }
 
@@ -40,60 +43,51 @@ export function PodcastWizardStepper({
   completion: PodcastWizardCompletion;
   onSelect: (step: PodcastWizardStep) => void;
 }): ReactElement {
-  const steps = buildPodcastWizardSteps(completion);
+  const steps = buildPodcastWizardSteps(completion, activeStep);
+  const activeStepIndex = steps.findIndex((step) => step.id === activeStep);
   return (
     <nav aria-label="Các bước tạo podcast" className="overflow-x-auto">
-      <ol className="grid min-w-[680px] grid-cols-4 gap-0">
-        {steps.map((step, index) => {
-          const Icon = step.icon;
-          const active = activeStep === step.id;
-          return (
-            <li key={step.id} className="relative flex items-center">
-              {index > 0 ? (
-                <span
-                  aria-hidden="true"
-                  className="absolute right-1/2 left-0 top-5 h-px bg-mod-border"
-                />
-              ) : null}
-              {index < steps.length - 1 ? (
-                <span
-                  aria-hidden="true"
-                  className="absolute right-0 left-1/2 top-5 h-px bg-mod-border"
-                />
-              ) : null}
-              <button
-                type="button"
-                aria-current={active ? "step" : undefined}
-                aria-label={`${step.number}. ${step.label} — ${step.statusLabel}`}
-                onClick={() => onSelect(step.id)}
-                className={cn(
-                  "relative z-10 mx-auto flex min-w-32 flex-col items-center gap-2 rounded-lg px-3 py-1 text-center text-sm font-semibold outline-none transition-colors focus-visible:ring-2 focus-visible:ring-mod-primary focus-visible:ring-offset-2",
-                  active ? "text-mod-primary" : "text-mod-text-secondary hover:text-mod-text",
-                )}
-              >
-                <span
+      <div className="relative min-w-[560px]">
+        <AnimatedBeam stepCount={steps.length} activeStepIndex={activeStepIndex} />
+        <ol className="relative grid grid-cols-4 gap-0">
+          {steps.map((step) => {
+            const Icon = step.icon;
+            const active = activeStep === step.id;
+            return (
+              <li key={step.id} className="relative flex justify-center">
+                <button
+                  type="button"
+                  aria-current={active ? "step" : undefined}
+                  aria-label={`${step.number}. ${step.label} — ${step.statusLabel}`}
+                  onClick={() => onSelect(step.id)}
                   className={cn(
-                    "flex size-10 items-center justify-center rounded-full border bg-mod-surface transition-colors",
-                    active && "border-mod-primary bg-mod-primary text-white",
-                    step.complete && !active &&
-                      "podcast-step-complete border-mod-success bg-mod-success text-white",
+                    "group relative z-10 flex min-w-28 flex-col items-center gap-1.5 rounded-lg px-2 py-0.5 text-center text-xs font-medium outline-none transition-colors focus-visible:ring-2 focus-visible:ring-mod-primary focus-visible:ring-offset-2",
+                    active ? "text-mod-primary" : "text-mod-text-secondary hover:text-mod-text",
                   )}
                 >
-                  {step.complete ? (
-                    <Check size={19} aria-hidden="true" />
-                  ) : active ? (
-                    <Icon size={18} aria-hidden="true" />
-                  ) : (
-                    step.number
-                  )}
-                </span>
-                <span>{step.label}</span>
-                <span className="sr-only">{step.statusLabel}</span>
-              </button>
-            </li>
-          );
-        })}
-      </ol>
+                  <span
+                    className={cn(
+                      "relative flex size-8 items-center justify-center rounded-full border bg-mod-surface transition-[background-color,border-color,color,box-shadow] duration-200",
+                      active && "border-mod-primary/45 bg-[color-mix(in_srgb,var(--modPrimary)_10%,var(--modSurface))] text-mod-primary shadow-[0_0_0_3px_color-mix(in_srgb,var(--modPrimary)_10%,transparent),0_3px_8px_color-mix(in_srgb,var(--modPrimary)_16%,transparent)]",
+                      step.complete && !active && "border-mod-success/35 bg-[color-mix(in_srgb,var(--modSuccess)_10%,var(--modSurface))] text-mod-success shadow-[0_2px_6px_color-mix(in_srgb,var(--modSuccess)_10%,transparent)]",
+                      !active && !step.complete && "border-mod-border text-mod-text-secondary shadow-[0_1px_3px_color-mix(in_srgb,var(--modText)_8%,transparent)] group-hover:border-mod-primary/50",
+                    )}
+                  >
+                    {active ? (
+                      <PencilLine size={15} strokeWidth={2} aria-hidden="true" />
+                    ) : step.complete ? (
+                      <Check size={15} strokeWidth={2} aria-hidden="true" />
+                    ) : (
+                      <Icon size={14} strokeWidth={1.8} aria-hidden="true" />
+                    )}
+                  </span>
+                  <span className={cn("leading-5", active && "font-semibold")}>{step.label}</span>
+                </button>
+              </li>
+            );
+          })}
+        </ol>
+      </div>
     </nav>
   );
 }
