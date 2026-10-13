@@ -61,3 +61,32 @@ export interface Citation {
   episode: string;
   href: string;
 }
+
+export type CardOrientation = "portrait" | "landscape";
+
+/** At least one of portraitImage / landscapeImage is expected; the card falls back to the other. */
+export interface PodcastItem {
+  id: string;
+  title: string;
+  period: string;
+  episodeCount: number;
+  duration: string;
+  weeklyListens: number;
+  monthlyListens: number;
+  likes: number;
+  publishedAt: string;
+  portraitImage?: string;
+  landscapeImage?: string;
+  imageAlt: string;
+}
+
+export interface UpcomingPodcast extends PodcastItem {
+  releaseDate: string;
+}
+
+export interface ContinueListeningItem {
+  podcast: PodcastItem;
+  episodeTitle: string;
+  /** 0..1 */
+  progress: number;
+}
