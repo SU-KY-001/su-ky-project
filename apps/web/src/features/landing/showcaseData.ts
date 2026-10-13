@@ -1,20 +1,13 @@
-import bachDangHero from "../../assets/landing/bach-dang-938-hero.jpg";
-import bachDangCard from "../../assets/landing/bach-dang-938-card.jpg";
-import dienBienPhuHero from "../../assets/landing/dien-bien-phu-1954-hero.jpg";
-import dienBienPhuCard from "../../assets/landing/dien-bien-phu-1954-card.jpg";
-import doiMoiHero from "../../assets/landing/doi-moi-1986-hero.jpg";
-import doiMoiCard from "../../assets/landing/doi-moi-1986-card.jpg";
-import haiBaTrungHero from "../../assets/landing/hai-ba-trung-40-hero.jpg";
-import haiBaTrungCard from "../../assets/landing/hai-ba-trung-40-card.jpg";
 import type { ContinueListeningItem, PodcastItem, UpcomingPodcast } from "./types";
 
 // Sample fixtures until the podcast catalog API lands. Rankings are derived by sorting, as the API will do.
-const covers = [
-  { portraitImage: bachDangCard, landscapeImage: bachDangHero, imageAlt: "Trận Bạch Đằng với chiến thuyền đi qua bãi cọc" },
-  { portraitImage: haiBaTrungCard, landscapeImage: haiBaTrungHero, imageAlt: "Hai Bà Trưng dẫn nghĩa quân qua vùng đồng bằng" },
-  { portraitImage: dienBienPhuCard, landscapeImage: dienBienPhuHero, imageAlt: "Bộ đội kéo pháo qua núi rừng Điện Biên" },
-  { portraitImage: doiMoiCard, landscapeImage: doiMoiHero, imageAlt: "Phố Hà Nội cuối thập niên 1980" },
-];
+// Covers are seeded Picsum photos (Unsplash licence) so mock rows stay visually varied; replaced by API cover URLs.
+const PICSUM = "https://picsum.photos/seed";
+const cover = (index: number) => ({
+  portraitImage: `${PICSUM}/su-ky-${index}/400/600`,
+  landscapeImage: `${PICSUM}/su-ky-${index}/640/360`,
+  imageAlt: "Ảnh minh họa podcast",
+});
 
 const catalog: [title: string, period: string][] = [
   ["Bạch Đằng 938", "Thời kỳ tự chủ"],
@@ -50,7 +43,7 @@ export const podcasts: PodcastItem[] = catalog.map(([title, period], index) => (
   monthlyListens: 3000 + ((index * 1511) % 15000),
   likes: 200 + ((index * 389) % 1800),
   publishedAt: `2026-${String(10 - (index % 4)).padStart(2, "0")}-${String(28 - ((index * 3) % 27)).padStart(2, "0")}`,
-  ...covers[index % covers.length],
+  ...cover(index),
 }));
 
 export const upcomingPodcasts: UpcomingPodcast[] = podcasts.slice(10, 20).map((item, index) => ({
