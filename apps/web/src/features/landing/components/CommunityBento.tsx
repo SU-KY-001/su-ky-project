@@ -81,11 +81,8 @@ export function CommunityBento() {
             {topComments.map((item) => (
               <article
                 key={item.id}
-                className="relative isolate flex w-60 shrink-0 snap-start flex-col justify-between gap-3 overflow-hidden rounded-xl border border-bronze/25 p-4 transition-colors hover:border-bronze/60 md:w-68"
+                className="flex w-60 shrink-0 snap-start flex-col justify-between gap-3 overflow-hidden rounded-xl border border-bronze/25 bg-paper-soft/50 p-4 backdrop-blur-md transition-colors hover:border-bronze/60 md:w-68"
               >
-                {/* Blurred cover supplies each tile's colour; the paper scrim keeps the text legible. */}
-                <img src={item.podcastCover} alt="" aria-hidden="true" className="absolute inset-0 -z-20 size-full scale-125 object-cover blur-xl saturate-150" loading="lazy" />
-                <span aria-hidden="true" className="absolute inset-0 -z-10 bg-paper-soft/55" />
                 <div className="flex items-start justify-between gap-3">
                   <div className="flex items-center gap-2.5">
                     <img
