@@ -90,3 +90,46 @@ export interface ContinueListeningItem {
   /** 0..1 */
   progress: number;
 }
+
+export interface BentoComment {
+  id: string;
+  userName: string;
+  userAvatar: string;
+  podcastTitle: string;
+  podcastCover: string;
+  content: string;
+  likes: number;
+  replies: number;
+}
+
+export interface BentoRankItem {
+  id: string;
+  rank: number;
+  title: string;
+  cover: string;
+  trend: "up" | "down";
+}
+
+export interface BentoTopicItem {
+  id: string;
+  rank: number;
+  name: string;
+  trend: "up" | "down";
+  color: string;
+}
+
+export interface BentoRecentComment {
+  id: string;
+  userName: string;
+  userAvatar: string;
+  podcastTitle: string;
+  comment: string;
+}
+
+export interface CommunityBentoData {
+  topComments: BentoComment[];
+  trending: BentoRankItem[];
+  topLiked: BentoRankItem[];
+  hotTopics: BentoTopicItem[];
+  recentComments: BentoRecentComment[];
+}
