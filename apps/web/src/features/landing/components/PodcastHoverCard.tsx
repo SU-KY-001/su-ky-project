@@ -33,7 +33,7 @@ export function PodcastHoverCard({ item, image, anchor, liked, onToggleLike }: P
       animate={{ opacity: 1, scale: 1 }}
       transition={{ duration: reducedMotion ? 0 : OPEN_DURATION_S, ease: "easeOut" }}
       style={{ position: "absolute", left, top, width: HOVER_CARD_WIDTH }}
-      className="z-50 overflow-hidden rounded-lg border-2 border-vermilion bg-night text-paper-soft shadow-2xl"
+      className="z-50 overflow-hidden rounded-lg bg-night text-paper-soft shadow-2xl"
     >
       <div className="relative aspect-video w-full bg-night">
         {image ? <img src={image} alt={item.imageAlt} className="size-full object-cover" decoding="async" /> : null}

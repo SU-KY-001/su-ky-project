@@ -52,6 +52,7 @@ export function PodcastCard({ item, orientation = "portrait", progress, caption 
       <Link to="/login" className="group flex flex-col gap-2 rounded-lg focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-vermilion" aria-label={item.title}>
         <div ref={coverRef} className={cn("relative overflow-hidden rounded-lg bg-night", SIZE[orientation])}>
           {image ? <img src={image} alt={item.imageAlt} className="size-full object-cover" loading="lazy" decoding="async" /> : null}
+          <span aria-hidden="true" className="pointer-events-none absolute inset-0 rounded-lg border-2 border-transparent group-hover:border-vermilion" />
           {progress !== undefined ? (
             <span className="absolute inset-x-0 bottom-0 h-1 bg-white/25" role="progressbar" aria-valuenow={Math.round(progress * 100)} aria-valuemin={0} aria-valuemax={100}>
               <span className="block h-full bg-vermilion" style={{ width: `${progress * 100}%` }} />
