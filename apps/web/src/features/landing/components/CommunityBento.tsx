@@ -43,8 +43,8 @@ export function CommunityBento() {
 
   return (
     <section aria-labelledby="community-bento-title" className="w-full px-5 py-6 md:px-7 md:py-8">
-      {/* Outer container: single thin border, no filled background, matching Rophim's comm-wrap */}
-      <div className="mx-auto flex max-w-[1400px] flex-col rounded-2xl border border-bronze/25 md:rounded-[20px]">
+      {/* Flat panel one tone deeper than the page so it separates without floating; columns are split by borders only. */}
+      <div className="mx-auto flex max-w-[1400px] flex-col rounded-2xl border border-bronze/30 bg-paper-deep/50 md:rounded-[20px]">
         {/* Row 1: Top bình luận */}
         <div className="flex flex-col gap-4 p-5 md:p-6">
           <div className="flex items-center justify-between">
@@ -81,7 +81,7 @@ export function CommunityBento() {
             {topComments.map((item) => (
               <article
                 key={item.id}
-                className="relative flex w-60 shrink-0 snap-start flex-col justify-between gap-3 overflow-hidden rounded-xl border border-bronze/20 bg-paper-soft/40 p-4 transition-colors hover:border-bronze/50 md:w-68"
+                className="flex w-60 shrink-0 snap-start flex-col justify-between gap-3 overflow-hidden rounded-xl border border-bronze/25 bg-paper-soft/50 p-4 backdrop-blur-md transition-colors hover:border-bronze/60 md:w-68"
               >
                 <div className="flex items-start justify-between gap-3">
                   <div className="flex items-center gap-2.5">
@@ -104,9 +104,9 @@ export function CommunityBento() {
                   />
                 </div>
 
-                <p className="line-clamp-2 text-xs leading-relaxed text-ink-soft">{item.content}</p>
+                <p className="line-clamp-2 text-xs font-medium leading-relaxed text-ink">{item.content}</p>
 
-                <div className="flex items-center gap-3 pt-1 text-[11px] text-ink-soft">
+                <div className="flex items-center gap-3 pt-1 text-[11px] font-medium text-ink">
                   <span className="flex items-center gap-1">
                     <ThumbsUp size={12} weight="bold" /> {item.likes}
                   </span>
@@ -157,7 +157,7 @@ export function CommunityBento() {
               ))}
             </ul>
             <Link to="/login" className="mt-auto pt-2 text-right text-[11px] text-ink-soft hover:text-vermilion">
-              Xem thêm →
+              Xem thêm
             </Link>
           </div>
 
@@ -194,7 +194,7 @@ export function CommunityBento() {
               ))}
             </ul>
             <Link to="/login" className="mt-auto pt-2 text-right text-[11px] text-ink-soft hover:text-vermilion">
-              Xem thêm →
+              Xem thêm
             </Link>
           </div>
 
@@ -225,7 +225,7 @@ export function CommunityBento() {
               ))}
             </ul>
             <Link to="/login" className="mt-auto pt-2 text-right text-[11px] text-ink-soft hover:text-vermilion">
-              Xem thêm →
+              Xem thêm
             </Link>
           </div>
 
