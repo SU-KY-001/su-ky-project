@@ -4,7 +4,8 @@ import { DomainError } from "../../core/errors/domain-error";
 import { writeAudit } from "../../core/audit";
 import { SYSTEM_CONFIGS, resetSystemConfigCache } from "../../core/config/system-config";
 import { auth } from "../auth";
-import type { UserRole } from "@repo/shared";
+import { fromLegacyYearRange, type UserRole } from "@repo/shared";
+import { insertWithUniqueSlug } from "../../core/slug";
 
 type AuditContext = { actorId: string; ipAddress: string | null };
 
@@ -137,6 +138,54 @@ export class AdminService {
     const row = await prisma.episode.update({ where: { id }, data });
     await writeAudit(prisma, { ...audit, action: `content.episode_${action}`, resourceType: "episode", resourceId: id, changes: { before: { status: current.status, deletedAt: current.deletedAt }, after: { status: row.status, deletedAt: row.deletedAt } } });
     return row;
+  }
+
+  async listTopics(query: { page: number; limit: number; q?: string; status?: "active" | "inactive" }) {
+    const where: Prisma.TopicWhereInput = { ...(query.q ? { name: { contains: query.q, mode: "insensitive" } } : {}), ...(query.status ? { isActive: query.status === "active" } : {}) };
+    const [items, total] = await Promise.all([prisma.topic.findMany({ where, orderBy: [{ sortOrder: "asc" }, { name: "asc" }], skip: (query.page - 1) * query.limit, take: query.limit }), prisma.topic.count({ where })]);
+    return { items, page: query.page, limit: query.limit, total };
+  }
+
+  async createTopic(input: { name: string; sortOrder: number; isActive: boolean }, audit: AuditContext) {
+    let id = "";
+    await insertWithUniqueSlug(input.name, async (slug) => {
+      const result = await prisma.topic.createMany({ data: [{ ...input, slug, createdById: audit.actorId }], skipDuplicates: true });
+      if (!result.count) return false;
+      id = (await prisma.topic.findUniqueOrThrow({ where: { slug }, select: { id: true } })).id; return true;
+    });
+    const row = await prisma.topic.findUniqueOrThrow({ where: { id } });
+    await writeAudit(prisma, { ...audit, action: "topic.created", resourceType: "topic", resourceId: id, changes: { after: input } }); return row;
+  }
+
+  async patchTopic(id: string, input: { name?: string; sortOrder?: number; isActive?: boolean }, audit: AuditContext) {
+    const current = await prisma.topic.findUnique({ where: { id } }); if (!current) throw new DomainError(404, "NOT_FOUND", "Không tìm thấy chủ đề");
+    const row = await prisma.topic.update({ where: { id }, data: input });
+    await writeAudit(prisma, { ...audit, action: "topic.updated", resourceType: "topic", resourceId: id, changes: { before: current, after: row } as unknown as Prisma.InputJsonValue }); return row;
+  }
+
+  async listHistoricalPeriods(query: { page: number; limit: number; q?: string; status?: "active" | "inactive" }) {
+    const where: Prisma.HistoricalPeriodWhereInput = { deletedAt: null, ...(query.q ? { name: { contains: query.q, mode: "insensitive" } } : {}), ...(query.status ? { isActive: query.status === "active" } : {}) };
+    const [items, total] = await Promise.all([prisma.historicalPeriod.findMany({ where, orderBy: [{ sortOrder: "asc" }, { name: "asc" }], skip: (query.page - 1) * query.limit, take: query.limit }), prisma.historicalPeriod.count({ where })]);
+    return { items, page: query.page, limit: query.limit, total };
+  }
+
+  async createHistoricalPeriod(input: { name: string; summary?: string | null; startYear: number | null; endYear: number | null; sortOrder: number; isActive: boolean }, audit: AuditContext) {
+    let id = ""; const time = fromLegacyYearRange({ startYear: input.startYear, endYear: input.endYear }, "CLOSED") as Prisma.InputJsonValue;
+    await insertWithUniqueSlug(input.name, async (slug) => {
+      const result = await prisma.historicalPeriod.createMany({ data: [{ ...input, slug, time, createdById: audit.actorId }], skipDuplicates: true });
+      if (!result.count) return false;
+      id = (await prisma.historicalPeriod.findUniqueOrThrow({ where: { slug }, select: { id: true } })).id; return true;
+    });
+    const row = await prisma.historicalPeriod.findUniqueOrThrow({ where: { id } });
+    await writeAudit(prisma, { ...audit, action: "historical_period.created", resourceType: "historical_period", resourceId: id, changes: { after: input } }); return row;
+  }
+
+  async patchHistoricalPeriod(id: string, input: { name?: string; summary?: string | null; startYear?: number | null; endYear?: number | null; sortOrder?: number; isActive?: boolean }, audit: AuditContext) {
+    const current = await prisma.historicalPeriod.findFirst({ where: { id, deletedAt: null } }); if (!current) throw new DomainError(404, "NOT_FOUND", "Không tìm thấy thời kỳ lịch sử");
+    const startYear = input.startYear === undefined ? current.startYear : input.startYear; const endYear = input.endYear === undefined ? current.endYear : input.endYear;
+    if (startYear !== null && endYear !== null && startYear > endYear) throw new DomainError(422, "VALIDATION_ERROR", "Năm kết thúc phải lớn hơn hoặc bằng năm bắt đầu");
+    const row = await prisma.historicalPeriod.update({ where: { id }, data: { ...input, time: fromLegacyYearRange({ startYear, endYear }, "CLOSED") as Prisma.InputJsonValue, version: { increment: 1 } } });
+    await writeAudit(prisma, { ...audit, action: "historical_period.updated", resourceType: "historical_period", resourceId: id, changes: { before: current, after: row } as unknown as Prisma.InputJsonValue }); return row;
   }
 
   async listConfigs() {

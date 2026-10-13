@@ -75,6 +75,37 @@ export const AdminContentSeriesSchema = z.object({
   episodes: z.array(AdminContentEpisodeSchema),
 });
 
+export const AdminCatalogQuerySchema = PaginationQuerySchema.extend({
+  q: z.string().trim().max(255).optional(),
+  status: z.enum(["active", "inactive"]).optional(),
+});
+export const AdminTopicInputSchema = z.object({
+  name: z.string().trim().min(1).max(255),
+  sortOrder: z.number().int().min(0).max(32767).default(0),
+  isActive: z.boolean().default(true),
+});
+export const AdminTopicPatchSchema = AdminTopicInputSchema.partial();
+export const AdminTopicSchema = z.object({
+  id: z.string().uuid(), name: z.string(), slug: z.string(), sortOrder: z.number().int(),
+  isActive: z.boolean(), createdAt: z.coerce.date(), updatedAt: z.coerce.date(),
+});
+const adminYear = z.number().int().max(1945).nullable();
+const AdminHistoricalPeriodBaseSchema = z.object({
+  name: z.string().trim().min(1).max(255),
+  summary: z.string().trim().max(5000).nullable().optional(),
+  startYear: adminYear.default(null), endYear: adminYear.default(null),
+  sortOrder: z.number().int().min(0).max(32767).default(0),
+  isActive: z.boolean().default(true),
+});
+const validAdminPeriod = (value: { startYear?: number | null; endYear?: number | null }) => value.startYear == null || value.endYear == null || value.startYear <= value.endYear;
+export const AdminHistoricalPeriodInputSchema = AdminHistoricalPeriodBaseSchema.refine(validAdminPeriod, { path: ["endYear"], message: "Năm kết thúc phải lớn hơn hoặc bằng năm bắt đầu" });
+export const AdminHistoricalPeriodPatchSchema = AdminHistoricalPeriodBaseSchema.partial().refine(validAdminPeriod, { path: ["endYear"], message: "Năm kết thúc phải lớn hơn hoặc bằng năm bắt đầu" });
+export const AdminHistoricalPeriodSchema = z.object({
+  id: z.string().uuid(), name: z.string(), slug: z.string(), summary: z.string().nullable(),
+  startYear: z.number().int().nullable(), endYear: z.number().int().nullable(), sortOrder: z.number().int(),
+  isActive: z.boolean(), createdAt: z.coerce.date(), updatedAt: z.coerce.date(),
+});
+
 export const MissionActivityTypeSchema = z.enum(["COMPLETE_EPISODE", "PASS_QUIZ"]);
 export const MissionTemplateInputSchema = z.object({
   title: z.string().trim().min(1).max(255), description: z.string().trim().max(2000).nullable().optional(),

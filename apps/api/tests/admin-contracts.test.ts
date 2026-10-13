@@ -4,6 +4,9 @@ import {
   AdminBanUserSchema,
   AdminContentActionSchema,
   AdminCreateUserSchema,
+  AdminHistoricalPeriodInputSchema,
+  AdminHistoricalPeriodPatchSchema,
+  AdminTopicInputSchema,
   AdminUpdateUserSchema,
 } from "@repo/shared";
 
@@ -27,5 +30,12 @@ describe("Admin API contracts", () => {
   test("coerces weekly mission dates at the HTTP boundary", () => {
     const result = ActivateWeeklyMissionSchema.parse({ missionTemplateId: "4ea6e5c9-1813-4fe3-ae44-1fe832d981d9", weekStartDate: "2026-10-19T00:00:00.000Z" });
     expect(result.weekStartDate).toBeInstanceOf(Date);
+  });
+
+  test("validates Admin-managed taxonomy fields", () => {
+    expect(AdminTopicInputSchema.safeParse({ name: "Kháng chiến", sortOrder: 1 }).success).toBe(true);
+    expect(AdminHistoricalPeriodInputSchema.safeParse({ name: "Nhà Lý", startYear: 1009, endYear: 1225 }).success).toBe(true);
+    expect(AdminHistoricalPeriodInputSchema.safeParse({ name: "Sai khoảng", startYear: 1225, endYear: 1009 }).success).toBe(false);
+    expect(AdminHistoricalPeriodPatchSchema.safeParse({ endYear: 1946 }).success).toBe(false);
   });
 });

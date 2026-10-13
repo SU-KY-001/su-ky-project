@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { AdminAuditLogSchema, AdminConfigSchema, AdminContentSeriesSchema, AdminCreateUserSchema, AdminDashboardSchema, AdminUpdateUserSchema, AdminUserSchema, MissionActivityTypeSchema, MissionTemplateInputSchema, MissionTemplatePatchSchema, paginatedSchema } from "@repo/shared";
+import { AdminAuditLogSchema, AdminConfigSchema, AdminContentSeriesSchema, AdminCreateUserSchema, AdminDashboardSchema, AdminHistoricalPeriodInputSchema, AdminHistoricalPeriodPatchSchema, AdminHistoricalPeriodSchema, AdminTopicInputSchema, AdminTopicPatchSchema, AdminTopicSchema, AdminUpdateUserSchema, AdminUserSchema, MissionActivityTypeSchema, MissionTemplateInputSchema, MissionTemplatePatchSchema, paginatedSchema } from "@repo/shared";
 import { apiRequest } from "@/lib/apiRequest";
 
 const missionTemplateSchema = z.object({ id: z.string().uuid(), title: z.string(), description: z.string().nullable(), activityType: MissionActivityTypeSchema, targetCount: z.number(), xpReward: z.number(), isActive: z.boolean(), createdAt: z.coerce.date(), updatedAt: z.coerce.date() });
@@ -18,6 +18,12 @@ export const adminService = {
   updateUser: (id: string, input: z.input<typeof AdminUpdateUserSchema>) => apiRequest(`/api/admin/users/${id}`, AdminUserSchema, { method: "PATCH", body: input }),
   banUser: (id: string, reason: string) => apiRequest(`/api/admin/users/${id}/ban`, AdminUserSchema, { method: "POST", body: { reason } }),
   unbanUser: (id: string) => apiRequest(`/api/admin/users/${id}/unban`, AdminUserSchema, { method: "POST" }),
+  topics: () => apiRequest("/api/admin/topics?page=1&limit=100", paginatedSchema(AdminTopicSchema)),
+  createTopic: (input: z.input<typeof AdminTopicInputSchema>) => apiRequest("/api/admin/topics", AdminTopicSchema, { method: "POST", body: input }),
+  patchTopic: (id: string, input: z.input<typeof AdminTopicPatchSchema>) => apiRequest(`/api/admin/topics/${id}`, AdminTopicSchema, { method: "PATCH", body: input }),
+  historicalPeriods: () => apiRequest("/api/admin/historical-periods?page=1&limit=100", paginatedSchema(AdminHistoricalPeriodSchema)),
+  createHistoricalPeriod: (input: z.input<typeof AdminHistoricalPeriodInputSchema>) => apiRequest("/api/admin/historical-periods", AdminHistoricalPeriodSchema, { method: "POST", body: input }),
+  patchHistoricalPeriod: (id: string, input: z.input<typeof AdminHistoricalPeriodPatchSchema>) => apiRequest(`/api/admin/historical-periods/${id}`, AdminHistoricalPeriodSchema, { method: "PATCH", body: input }),
   content: () => apiRequest("/api/admin/content?page=1&limit=50", paginatedSchema(AdminContentSeriesSchema)),
   interveneContent: (kind: "series" | "episodes", id: string, action: "hide" | "trash" | "restore") => apiRequest(`/api/admin/content/${kind}/${id}`, z.unknown(), { method: "POST", body: { action } }),
   configs: () => apiRequest("/api/admin/configs", z.object({ items: z.array(AdminConfigSchema) })),
@@ -30,4 +36,4 @@ export const adminService = {
   activateMission: (missionTemplateId: string, weekStartDate: Date) => apiRequest("/api/admin/weekly-missions", weeklyMissionSchema.omit({ missionTemplate: true, _count: true }), { method: "POST", body: { missionTemplateId, weekStartDate } }),
 };
 
-export type AdminSection = "overview" | "users" | "content" | "missions" | "configs" | "audit";
+export type AdminSection = "overview" | "users" | "catalog" | "content" | "missions" | "configs" | "audit";
