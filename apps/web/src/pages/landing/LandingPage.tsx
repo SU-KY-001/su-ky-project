@@ -49,24 +49,26 @@ export function LandingPage() {
 
   return (
     <>
-    <div id="landing-page" className="relative isolate min-h-screen bg-paper">
-      <LandingHeader />
-      <main>
-        <HeroCarousel />
-        <LandingContentBoundary fallback={<LandingContentError />}>
-          <Suspense fallback={null}>
-            <LandingContent />
-          </Suspense>
-        </LandingContentBoundary>
-      </main>
-      <LandingContentBoundary fallback={<LandingFooterError />}>
-        <Suspense fallback={null}>
-          <LandingFooter />
-        </Suspense>
-      </LandingContentBoundary>
-      <LightRays className="fixed inset-0 z-30 opacity-70" count={6} color="rgba(181, 138, 60, 0.24)" blur={52} speed={22} length="110vh" />
-    </div>
-    <Outlet />
+      <div id="landing-page" className="landing-scroll-area relative isolate bg-paper">
+        <div id="landing-content">
+          <LandingHeader />
+          <main>
+            <HeroCarousel />
+            <LandingContentBoundary fallback={<LandingContentError />}>
+              <Suspense fallback={null}>
+                <LandingContent />
+              </Suspense>
+            </LandingContentBoundary>
+          </main>
+          <LandingContentBoundary fallback={<LandingFooterError />}>
+            <Suspense fallback={null}>
+              <LandingFooter />
+            </Suspense>
+          </LandingContentBoundary>
+        </div>
+        <LightRays className="fixed inset-0 z-30 opacity-70" count={6} color="rgba(181, 138, 60, 0.24)" blur={52} speed={22} length="110vh" />
+      </div>
+      <Outlet />
     </>
   );
 }

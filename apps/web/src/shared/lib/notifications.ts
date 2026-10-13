@@ -7,6 +7,7 @@ export interface AppNotification extends NotificationMessage {
   revision: number;
   status: NotificationStatus;
   duration: number;
+  open: boolean;
 }
 export const notificationDurations: Record<NotificationStatus, number> = {
   success: 4500, error: 8000, warning: 6000, info: 4500, loading: Infinity,
@@ -15,6 +16,7 @@ interface NotificationState {
   notifications: AppNotification[];
   publish: (status: NotificationStatus, message: NotificationMessage, id?: string) => string;
   dismiss: (id?: string) => void;
+  remove: (id: string, revision: number) => void;
 }
 
 export const useNotificationStore = create<NotificationState>((set) => ({
@@ -23,12 +25,13 @@ export const useNotificationStore = create<NotificationState>((set) => ({
     const id = existingId ?? crypto.randomUUID();
     set((state) => {
       const previous = state.notifications.find((notification) => notification.id === id);
-      const notification: AppNotification = { ...message, id, status, duration: notificationDurations[status], revision: (previous?.revision ?? 0) + 1 };
-      return { notifications: [...state.notifications.filter((item) => item.id !== id), notification].slice(-3) };
+      const notification: AppNotification = { ...message, id, status, open: true, duration: notificationDurations[status], revision: (previous?.revision ?? 0) + 1 };
+      return { notifications: (previous ? state.notifications.map((item) => item.id === id ? notification : item) : [...state.notifications, notification]).slice(-3) };
     });
     return id;
   },
-  dismiss: (id) => set((state) => ({ notifications: id ? state.notifications.filter((item) => item.id !== id) : [] })),
+  dismiss: (id) => set((state) => ({ notifications: state.notifications.map((item) => !id || item.id === id ? { ...item, open: false } : item) })),
+  remove: (id, revision) => set((state) => ({ notifications: state.notifications.filter((item) => item.id !== id || item.revision !== revision || item.open) })),
 }));
 
 const publish = (status: NotificationStatus, message: NotificationMessage, id?: string): string => useNotificationStore.getState().publish(status, message, id);

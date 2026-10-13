@@ -1,3 +1,4 @@
+import { BaseVersionSchema } from "@repo/shared";
 import { z } from "zod";
 import {
   CreateSourceSchema,
@@ -36,9 +37,18 @@ const SimilarEntityQuerySchema = z.object({
   type: HistoricalEntityTypeSchema.optional(),
 });
 
-const sourceParams = { pathParams: UuidParamSchema, pathParamDocs: { id: "ID nguồn (UUID)" } } as const;
-const entityParams = { pathParams: UuidParamSchema, pathParamDocs: { id: "ID thực thể lịch sử (UUID)" } } as const;
-const periodList = { name: "HistoricalPeriodList", schema: ItemsOf(HistoricalPeriodSchema) } as const;
+const sourceParams = {
+  pathParams: UuidParamSchema,
+  pathParamDocs: { id: "ID nguồn (UUID)" },
+} as const;
+const entityParams = {
+  pathParams: UuidParamSchema,
+  pathParamDocs: { id: "ID thực thể lịch sử (UUID)" },
+} as const;
+const periodList = {
+  name: "HistoricalPeriodList",
+  schema: ItemsOf(HistoricalPeriodSchema),
+} as const;
 const PERIOD_TREE_DESCRIPTION =
   "Chỉ Thời kỳ/Giai đoạn đang hoạt động, sắp xếp theo thứ tự thời gian. Khoảng năm nửa kín `[startYear, endYear)`: `endYear` loại trừ (năm 43 thuộc Giai đoạn bắt đầu ở 43, không thuộc Giai đoạn kết thúc ở 43); `endYear = null` là còn tiếp diễn, `startYear = null` là không xác định. Năm trước Công nguyên là số âm, không có năm 0.";
 const SOURCE_NOT_FOUND = "`NOT_FOUND`: nguồn không tồn tại";
@@ -50,7 +60,8 @@ export const catalogPaths: Paths = {
       id: "listTopics",
       tag: PUBLIC_TAG,
       summary: "Danh sách chủ đề",
-      description: "Chỉ các chủ đề đang hoạt động. Dùng làm bộ lọc duyệt Series và chọn chủ đề khi biên tập.",
+      description:
+        "Chỉ các chủ đề đang hoạt động. Dùng làm bộ lọc duyệt Series và chọn chủ đề khi biên tập.",
       access: "public",
       ok: {
         status: 200,
@@ -93,7 +104,8 @@ export const catalogPaths: Paths = {
       id: "listSources",
       tag: TAG,
       summary: "Tìm và lọc nguồn",
-      description: "Tìm chứa chuỗi (không phân biệt hoa thường) trong tiêu đề, tiêu đề gốc hoặc tác giả; hoặc khớp đúng ISBN (ISBN được chuẩn hoá trước). Sắp xếp theo tiêu đề. Mặc định ẩn nguồn đã lưu trữ.",
+      description:
+        "Tìm chứa chuỗi (không phân biệt hoa thường) trong tiêu đề, tiêu đề gốc hoặc tác giả; hoặc khớp đúng ISBN (ISBN được chuẩn hoá trước). Sắp xếp theo tiêu đề. Mặc định ẩn nguồn đã lưu trữ.",
       access: "studio",
       query: SourceQuerySchema,
       queryDocs: {
@@ -149,7 +161,11 @@ export const catalogPaths: Paths = {
         "Gợi ý nguồn đã có theo tiêu đề, tác giả hoặc ISBN. Khai báo trước `/{id}` vì `similar` là đường dẫn cố định, không phải ID.",
       access: "studio",
       query: SimilarSourceQuerySchema,
-      queryDocs: { title: "Tiêu đề cần đối chiếu", author: "Tác giả (tuỳ chọn)", isbn: "ISBN (tuỳ chọn)" },
+      queryDocs: {
+        title: "Tiêu đề cần đối chiếu",
+        author: "Tác giả (tuỳ chọn)",
+        isbn: "ISBN (tuỳ chọn)",
+      },
       ok: {
         status: 200,
         description: "Ứng viên gần giống",
@@ -179,10 +195,21 @@ export const catalogPaths: Paths = {
       description: "Gửi các trường cần đổi; trường vắng mặt giữ nguyên.",
       access: "studio",
       ...sourceParams,
-      body: { name: "PatchSource", schema: PatchSourceSchema, example: { publisher: "Nhà xuất bản Văn học" } },
-      ok: { status: 200, description: "Nguồn đã sửa", schema: { name: "Source", schema: SourceDocSchema } },
+      body: {
+        name: "PatchSource",
+        schema: PatchSourceSchema,
+        example: { publisher: "Nhà xuất bản Văn học" },
+      },
+      ok: {
+        status: 200,
+        description: "Nguồn đã sửa",
+        schema: { name: "Source", schema: SourceDocSchema },
+      },
       rate: "write",
-      errors: { 404: SOURCE_NOT_FOUND, 409: "`SOURCE_ISBN_TAKEN`: ISBN trùng nguồn khác" },
+      errors: {
+        404: SOURCE_NOT_FOUND,
+        409: "`SOURCE_ISBN_TAKEN`: ISBN trùng nguồn khác",
+      },
     }),
   },
   [`${SOURCES}/{id}/archive`]: {
@@ -190,10 +217,16 @@ export const catalogPaths: Paths = {
       id: "archiveSource",
       tag: TAG,
       summary: "Lưu trữ nguồn",
-      description: "Ẩn nguồn khỏi kết quả tìm kiếm mặc định và gợi ý nguồn gần giống. Bỏ ẩn bằng `unarchive`.",
+      description:
+        "Ẩn nguồn khỏi kết quả tìm kiếm mặc định và gợi ý nguồn gần giống. Bỏ ẩn bằng `unarchive`.",
       access: "studio",
       ...sourceParams,
-      ok: { status: 200, description: "Nguồn đã lưu trữ", schema: { name: "Source", schema: SourceDocSchema } },
+      body: { name: "CatalogBaseVersion", schema: BaseVersionSchema },
+      ok: {
+        status: 200,
+        description: "Nguồn đã lưu trữ",
+        schema: { name: "Source", schema: SourceDocSchema },
+      },
       rate: "write",
       errors: { 404: SOURCE_NOT_FOUND },
     }),
@@ -205,7 +238,12 @@ export const catalogPaths: Paths = {
       summary: "Bỏ lưu trữ nguồn",
       access: "studio",
       ...sourceParams,
-      ok: { status: 200, description: "Nguồn đã khôi phục", schema: { name: "Source", schema: SourceDocSchema } },
+      body: { name: "CatalogBaseVersion", schema: BaseVersionSchema },
+      ok: {
+        status: 200,
+        description: "Nguồn đã khôi phục",
+        schema: { name: "Source", schema: SourceDocSchema },
+      },
       rate: "write",
       errors: { 404: SOURCE_NOT_FOUND },
     }),
@@ -216,7 +254,8 @@ export const catalogPaths: Paths = {
       id: "listHistoricalEntities",
       tag: TAG,
       summary: "Tìm thực thể lịch sử",
-      description: "Nhân vật hoặc sự kiện lịch sử. Tìm chứa chuỗi trong tên hoặc khớp đúng một tên khác (`aliases`).",
+      description:
+        "Nhân vật hoặc sự kiện lịch sử. Tìm chứa chuỗi trong tên hoặc khớp đúng một tên khác (`aliases`).",
       access: "studio",
       query: HistoricalEntityQuerySchema,
       queryDocs: {
@@ -228,19 +267,29 @@ export const catalogPaths: Paths = {
       ok: {
         status: 200,
         description: "Danh sách phân trang",
-        schema: { name: "HistoricalEntityList", schema: PagedOf(HistoricalEntityDocSchema) },
+        schema: {
+          name: "HistoricalEntityList",
+          schema: PagedOf(HistoricalEntityDocSchema),
+        },
       },
     }),
     post: operation({
       id: "createHistoricalEntity",
       tag: TAG,
       summary: "Tạo thực thể lịch sử",
-      description: "Slug tự sinh từ tên. Nên gọi `similar` trước để tránh tạo trùng.",
+      description:
+        "Slug tự sinh từ tên. Nên gọi `similar` trước để tránh tạo trùng.",
       access: "studio",
       body: {
         name: "HistoricalEntityInput",
         schema: HistoricalEntityInputSchema,
-        example: { entityType: "FIGURE", name: "Trần Hưng Đạo", aliases: ["Trần Quốc Tuấn"], startYear: 1228, endYear: 1300 },
+        example: {
+          entityType: "FIGURE",
+          name: "Trần Hưng Đạo",
+          aliases: ["Trần Quốc Tuấn"],
+          startYear: 1228,
+          endYear: 1300,
+        },
       },
       ok: {
         status: 201,
@@ -257,14 +306,21 @@ export const catalogPaths: Paths = {
       id: "findSimilarHistoricalEntities",
       tag: TAG,
       summary: "Tìm thực thể gần giống",
-      description: "Khai báo trước `/{id}` vì `similar` là đường dẫn cố định, không phải ID.",
+      description:
+        "Khai báo trước `/{id}` vì `similar` là đường dẫn cố định, không phải ID.",
       access: "studio",
       query: SimilarEntityQuerySchema,
-      queryDocs: { name: "Tên cần đối chiếu", type: "`FIGURE` hoặc `EVENT` (tuỳ chọn)" },
+      queryDocs: {
+        name: "Tên cần đối chiếu",
+        type: "`FIGURE` hoặc `EVENT` (tuỳ chọn)",
+      },
       ok: {
         status: 200,
         description: "Ứng viên gần giống",
-        schema: { name: "HistoricalEntityItems", schema: ItemsOf(HistoricalEntityDocSchema) },
+        schema: {
+          name: "HistoricalEntityItems",
+          schema: ItemsOf(HistoricalEntityDocSchema),
+        },
       },
     }),
   },
@@ -288,7 +344,11 @@ export const catalogPaths: Paths = {
       summary: "Sửa thực thể",
       access: "studio",
       ...entityParams,
-      body: { name: "PatchHistoricalEntity", schema: PatchHistoricalEntitySchema, example: { summary: "Quốc công tiết chế" } },
+      body: {
+        name: "PatchHistoricalEntity",
+        schema: PatchHistoricalEntitySchema,
+        example: { summary: "Quốc công tiết chế" },
+      },
       ok: {
         status: 200,
         description: "Thực thể đã sửa",

@@ -14,15 +14,36 @@ export function assertTestDatabase(): void {
   if (!url) throw new Error("DATABASE_URL is required for integration tests");
   const databaseName = new URL(url).pathname.slice(1);
   if (!/test/i.test(databaseName)) {
-    throw new Error(`Refusing to run integration tests against database "${databaseName}": its name must contain "test"`);
+    throw new Error(
+      `Refusing to run integration tests against database "${databaseName}": its name must contain "test"`,
+    );
   }
 }
 
 export function makeSession(userId: string, role: UserRole): Session {
   const now = new Date();
   return {
-    user: { id: userId, name: "Integration User", email: `${userId}@example.com`, emailVerified: true, image: null, role, banned: false, banReason: null, banExpires: null, createdAt: now, updatedAt: now },
-    session: { id: `session-${userId}`, userId, token: `token-${userId}`, expiresAt: new Date(Date.now() + 60_000), createdAt: now, updatedAt: now },
+    user: {
+      id: userId,
+      name: "Integration User",
+      email: `${userId}@example.com`,
+      emailVerified: true,
+      image: null,
+      role,
+      banned: false,
+      banReason: null,
+      banExpires: null,
+      createdAt: now,
+      updatedAt: now,
+    },
+    session: {
+      id: `session-${userId}`,
+      userId,
+      token: `token-${userId}`,
+      expiresAt: new Date(Date.now() + 60_000),
+      createdAt: now,
+      updatedAt: now,
+    },
   };
 }
 
@@ -31,17 +52,70 @@ export function uniqueSuffix(): string {
 }
 
 export async function createModerator(userId: string) {
-  return prisma.user.create({ data: { id: userId, name: "Integration Moderator", email: `${userId}@example.com`, emailVerified: true, role: "moderator" } });
+  return prisma.user.create({
+    data: {
+      id: userId,
+      name: "Integration Moderator",
+      email: `${userId}@example.com`,
+      emailVerified: true,
+      role: "moderator",
+    },
+  });
 }
 
 /** Removes everything a suite created, children first (series/source FKs are RESTRICT). */
 export async function removeFixtures(userId: string): Promise<void> {
-  const series = await prisma.series.findMany({ where: { ownerId: userId }, select: { id: true } });
+  const series = await prisma.series.findMany({
+    where: { ownerId: userId },
+    select: { id: true },
+  });
   const seriesIds = series.map((row) => row.id);
-  const episodes = await prisma.episode.findMany({ where: { seriesId: { in: seriesIds } }, select: { id: true } });
-  await prisma.episodeNarration.deleteMany({ where: { episodeId: { in: episodes.map((row) => row.id) } } });
+  const episodes = await prisma.episode.findMany({
+    where: { seriesId: { in: seriesIds } },
+    select: { id: true },
+  });
+  await prisma.episodeNarration.deleteMany({
+    where: { episodeId: { in: episodes.map((row) => row.id) } },
+  });
   await prisma.episode.deleteMany({ where: { seriesId: { in: seriesIds } } });
   await prisma.series.deleteMany({ where: { id: { in: seriesIds } } });
+  const entityIds = (
+    await prisma.historicalEntity.findMany({
+      where: { createdById: userId },
+      select: { id: true },
+    })
+  ).map((e) => e.id);
+  await prisma.historicalCitation.deleteMany({
+    where: { entityId: { in: entityIds } },
+  });
+  await prisma.historicalEntityRevision.deleteMany({
+    where: { entityId: { in: entityIds } },
+  });
+  await prisma.historicalEntity.deleteMany({
+    where: { id: { in: entityIds } },
+  });
+  await prisma.historicalCitation.deleteMany({
+    where: {
+      OR: [
+        { phase: { createdById: userId } },
+        { period: { createdById: userId } },
+      ],
+    },
+  });
+  await prisma.historicalPhase.deleteMany({ where: { createdById: userId } });
+  await prisma.historicalPeriod.deleteMany({ where: { createdById: userId } });
+  const sourceIds = (
+    await prisma.source.findMany({
+      where: { createdById: userId },
+      select: { id: true },
+    })
+  ).map((s) => s.id);
+  await prisma.historicalCitation.deleteMany({
+    where: { sourceId: { in: sourceIds } },
+  });
+  await prisma.sourceRevision.deleteMany({
+    where: { sourceId: { in: sourceIds } },
+  });
   await prisma.source.deleteMany({ where: { createdById: userId } });
   await prisma.mediaAsset.deleteMany({ where: { uploadedById: userId } });
   await prisma.auditLog.deleteMany({ where: { actorId: userId } });

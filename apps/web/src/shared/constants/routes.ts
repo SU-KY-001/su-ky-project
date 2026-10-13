@@ -24,6 +24,7 @@ export function getRoleHomePath(role: string | null | undefined): string {
 
 export function getPostLoginPath(role: string | null | undefined, from?: AuthRedirectLocation): string {
   const home = getRoleHomePath(role);
+  if (home !== APP_PATHS.home) return home;
   if (!from) return home;
   const { pathname, search = "", hash = "" } = from;
   if (!pathname.startsWith("/") || pathname.startsWith("//") || pathname.includes("\\")) return home;

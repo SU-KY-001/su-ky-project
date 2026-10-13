@@ -7,6 +7,8 @@ const AUDIO_MIME_BY_FORMAT: Record<string, string> = {
 /** Cloudinary raw assets keep their extension inside the public id, so it must be derived from the MIME type up front. */
 const DOCUMENT_EXTENSION_BY_MIME: Record<string, string> = {
   "application/pdf": "pdf",
+  "application/msword": "doc",
+  "application/vnd.openxmlformats-officedocument.wordprocessingml.document": "docx",
 };
 
 export function documentExtension(mimeType: string): string | null {

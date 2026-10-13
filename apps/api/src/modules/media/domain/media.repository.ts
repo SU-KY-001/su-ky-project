@@ -8,7 +8,7 @@ export interface StoredResource {
 }
 
 export interface MediaStorageGateway {
-  signUpload(input: { publicId: string; kind: MediaKind; allowedFormats: string[] }): Promise<{ url: string; fields: Record<string, string | number>; expiresAt: Date }>;
+  signUpload(input: { publicId: string; kind: MediaKind; allowedFormats: string[] }): Promise<{ url: string; fields: Record<string, string>; expiresAt: Date }>;
   fetchResource(publicId: string, kind: MediaKind): Promise<StoredResource | null>;
   destroy(publicId: string, kind: MediaKind): Promise<"deleted" | "not_found">;
   deliveryUrl(asset: Pick<MediaAsset, "publicId" | "kind" | "version" | "format">): string;
