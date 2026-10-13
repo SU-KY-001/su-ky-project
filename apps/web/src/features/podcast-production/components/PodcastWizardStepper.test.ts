@@ -8,7 +8,7 @@ describe("podcast wizard stepper", () => {
       script: true,
       voice: false,
       review: false,
-    });
+    }, "information");
 
     expect(steps.map((step) => step.disabled)).toEqual([
       false,
@@ -17,6 +17,19 @@ describe("podcast wizard stepper", () => {
       false,
     ]);
     expect(steps[1]?.statusLabel).toBe("Hoàn thành");
-    expect(steps[0]?.statusLabel).toBe("Chưa hoàn thành");
+    expect(steps[0]?.statusLabel).toBe("Đang thao tác");
+  });
+
+  it("shows the active step as in progress even when its content is complete", () => {
+    const steps = buildPodcastWizardSteps({
+      information: true,
+      script: true,
+      voice: false,
+      review: false,
+    }, "script");
+
+    expect(steps[0]?.statusLabel).toBe("Hoàn thành");
+    expect(steps[1]?.statusLabel).toBe("Đang thao tác");
+    expect(steps[2]?.statusLabel).toBe("Chưa hoàn thành");
   });
 });

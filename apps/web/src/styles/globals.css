@@ -247,20 +247,6 @@ body {
   .landing-loader-track::after { animation: none; }
 }
 
-.podcast-step-complete {
-  animation: podcast-step-complete 320ms cubic-bezier(0.22, 1, 0.36, 1) both;
-}
-
-@keyframes podcast-step-complete {
-  0% { transform: scale(0.82); }
-  62% { transform: scale(1.08); }
-  100% { transform: scale(1); }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .podcast-step-complete { animation: none; }
-}
-
 .podcast-rich-editor p {
   margin: 0 0 0.85rem;
 }
