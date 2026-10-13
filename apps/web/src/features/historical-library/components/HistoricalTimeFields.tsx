@@ -99,7 +99,7 @@ export function HistoricalTimeFields({ value, onChange, taxonomy = false }: {
       onChange={(at) => update({ kind: "POINT", at })}
       onUnknown={(date) => update(value.kind === "UNKNOWN" ? { kind: "POINT", at: date } : { kind: "UNKNOWN", note: "" })} />}
     {uncertain ? <label className="block space-y-1 text-xs font-semibold">Ghi chú thời gian chưa xác định
-      <Textarea aria-label="Ghi chú thời gian" className={cn(formField, "min-h-16")} value={value.note ?? ""}
+      <Textarea autoGrow aria-label="Ghi chú thời gian" className={cn(formField, "min-h-16")} value={value.note ?? ""}
         onChange={(e) => onChange({ ...value, note: e.target.value })} placeholder="Giải thích mốc chưa xác định hoặc thông tin hiện có từ tài liệu" />
     </label> : null}
     <p className="text-xs text-mod-text-secondary">Không có năm 0.{taxonomy ? " Thời kỳ và giai đoạn sử dụng khoảng năm." : " Chỉ thêm tháng/ngày khi tài liệu xác định được."}</p>

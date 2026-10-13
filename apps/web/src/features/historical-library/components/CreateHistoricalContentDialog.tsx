@@ -274,9 +274,10 @@ export function HistoricalContentForm({
           />
           <FormField label="Mô tả" htmlFor="history-summary">
             <Textarea
+              autoGrow
               id="history-summary"
               aria-label="Mô tả"
-              className={`${formField} min-h-28 resize-y`}
+              className={`${formField} min-h-28`}
               value={summary}
               onChange={(e) => setSummary(e.target.value)}
             />

@@ -1,10 +1,19 @@
-import { Fragment, useState } from "react";
+import { Fragment, useState, type ReactNode } from "react";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import {
   PublicationEvidenceSchema,
   type StudioSeriesDetailDto,
 } from "@repo/shared";
 import { Button } from "@/shared/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/shared/components/ui/dialog";
+import { Input } from "@/shared/components/ui/input";
+import { Textarea } from "@/shared/components/ui/textarea";
 import { TableHead, TableCell, TableRow } from "@/shared/components/ui/table";
 import {
   ModeratorTable,
@@ -12,29 +21,34 @@ import {
   EmptyTableRow,
   tableCell,
   primaryAction,
+  secondaryAction,
 } from "@/features/moderator/components/ModeratorTable";
 import {
   ModeratorTreeNode,
+  ContentKindIcon,
   ContentKindLegend,
 } from "@/features/moderator/components/ModeratorTreeNode";
 import { ModeratorSectionPanel } from "@/features/moderator/components/ModeratorSectionPanel";
 import { ModeratorListToolbar } from "@/features/moderator/components/ModeratorListToolbar";
 import { formField } from "@/features/moderator/components/CreationPage";
+import { ModeratorSelect } from "@/features/moderator/components/ModeratorSelect";
 import { notify } from "@/shared/lib/notifications";
 import { newIdempotencyKey } from "@/lib/idempotency";
 import {
   useHistoricalEntities,
   useHistoricalEvent,
 } from "@/features/historical-library/hooks/useHistoricalCatalog";
-import { uploadCatalogMedia } from "@/features/historical-library/services/catalogMediaService";
 import {
   usePodcastSeries,
   usePodcastSeriesDetail,
-  usePodcastEpisode,
   usePodcastInvalidation,
 } from "./hooks/usePodcastProduction";
-import { podcastProductionService as api } from "./services/podcastProductionService";
+import {
+  NATIONAL_HISTORY_TOPIC_SLUG,
+  podcastProductionService as api,
+} from "./services/podcastProductionService";
 import { PodcastCreation } from "./PodcastCreation";
+import { SeriesCreationDialog } from "./SeriesCreationDialog";
 const checklistLabels: Record<string, string> = {
   TOPIC: "Cần chủ đề",
   HISTORICAL_PHASE: "Cần giai đoạn",
@@ -45,127 +59,27 @@ const checklistLabels: Record<string, string> = {
   THIRD_PERSON_AUDIO: "Cần âm thanh",
   BASIC_INFO: "Cần thông tin tập",
 };
-function EpisodeEditor({ id }: { id: string }) {
-  const q = usePodcastEpisode(id);
+function SeriesEvidence({
+  series,
+  children,
+}: {
+  series: StudioSeriesDetailDto;
+  children: ReactNode;
+}) {
   const invalidate = usePodcastInvalidation();
-  const [script, setScript] = useState<string>();
-  const [file, setFile] = useState<File>();
-  const mutation = useMutation({
-    mutationFn: async (action: "save" | "publish" | "hide" | "audio") => {
-      if (!q.data) return;
-      const third = q.data.narrations.find((n) => n.type === "THIRD_PERSON");
-      if (action === "save")
-        await api.script(id, {
-          scriptContent: script ?? third?.scriptContent ?? "",
-          baseUpdatedAt: third?.updatedAt,
-        });
-      else if (action === "audio") {
-        if (!file) throw new Error("Chọn tệp âm thanh trước.");
-        const asset = await uploadCatalogMedia(file, "AUDIO");
-        await api.audio(id, asset);
-      } else if (action === "publish")
-        await api.publishEpisode(id, q.data.updatedAt);
-      else await api.hideEpisode(id);
-    },
-    onSuccess: async () => {
-      await invalidate();
-      setScript(undefined);
-      notify.success({ title: "Đã cập nhật tập podcast." });
-    },
-  });
-  if (q.isPending) return <p>Đang tải tập…</p>;
-  if (q.error) return <p role="alert">{q.error.message}</p>;
-  const episode = q.data,
-    third = episode.narrations.find((n) => n.type === "THIRD_PERSON");
-  return (
-    <section className="space-y-3">
-      <h2 className="font-semibold">{episode.title}</h2>
-      <p className="text-sm">{episode.description || "Chưa có mô tả."}</p>
-      <label className="block text-sm">
-        Kịch bản
-        <textarea
-          aria-label="Kịch bản tập"
-          className={formField + " min-h-48"}
-          value={script ?? third?.scriptContent ?? ""}
-          onChange={(e) => setScript(e.target.value)}
-        />
-      </label>
-      <Button
-        disabled={mutation.isPending}
-        onClick={() => mutation.mutate("save")}
-      >
-        Lưu kịch bản
-      </Button>
-      <label className="block text-sm">
-        Âm thanh
-        <input
-          type="file"
-          accept="audio/*"
-          className={formField}
-          onChange={(e) => setFile(e.target.files?.[0])}
-        />
-      </label>
-      <Button
-        variant="outline"
-        disabled={!file || mutation.isPending}
-        onClick={() => mutation.mutate("audio")}
-      >
-        Tải và gắn âm thanh
-      </Button>
-      {third?.audio?.previewUrl ? (
-        <audio controls src={third.audio.previewUrl} className="w-full" />
-      ) : null}
-      <ul className="text-xs text-mod-text-secondary">
-        {episode.publishChecklist.items
-          .filter((i) => !i.ok)
-          .map((i) => (
-            <li key={i.key}>{checklistLabels[i.key] ?? i.key}</li>
-          ))}
-        {third?.warnings.map((w) => (
-          <li key={w.key}>
-            {w.key === "SCRIPT_CHANGED_AFTER_AUDIO"
-              ? "Kịch bản đã đổi sau khi gắn âm thanh."
-              : "Thời lượng âm thanh khác thời lượng ước tính."}
-          </li>
-        ))}
-      </ul>
-      <div className="flex gap-2">
-        <Button
-          disabled={mutation.isPending || script !== undefined}
-          onClick={() => mutation.mutate("publish")}
-        >
-          Phát hành tập
-        </Button>
-        {episode.status === "PUBLISHED" ? (
-          <Button
-            variant="outline"
-            disabled={mutation.isPending}
-            onClick={() => mutation.mutate("hide")}
-          >
-            Ẩn tập
-          </Button>
-        ) : null}
-      </div>
-      {mutation.error ? (
-        <p role="alert" className="text-sm text-mod-danger">
-          {mutation.error.message}
-        </p>
-      ) : null}
-    </section>
-  );
-}
-function SeriesEvidence({ series }: { series: StudioSeriesDetailDto }) {
-  const invalidate = usePodcastInvalidation();
-  const event = useHistoricalEvent(series.primaryHistoricalEventId ?? "");
-  const events = useHistoricalEntities();
+  const [editing, setEditing] = useState(false);
+  const [eventId, setEventId] = useState(series.primaryHistoricalEventId ?? "");
+  const [title, setTitle] = useState(series.title);
+  const [description, setDescription] = useState(series.description ?? "");
+  const event = useHistoricalEvent(eventId);
+  const events = useHistoricalEntities({}, editing);
   const topics = useQuery({
     queryKey: ["podcast-production", "topics"],
     queryFn: api.topics,
   });
-  const [eventId, setEventId] = useState(series.primaryHistoricalEventId ?? "");
-  const [topicId, setTopicId] = useState(series.topic?.id ?? "");
-  const [title, setTitle] = useState(series.title);
-  const [description, setDescription] = useState(series.description ?? "");
+  const topic = topics.data?.items.find(
+    (item) => item.slug === NATIONAL_HISTORY_TOPIC_SLUG,
+  );
   const mutation = useMutation({
     mutationFn: async (action: {
       kind: "patch" | "source" | "remove" | "publish" | "hide";
@@ -176,7 +90,7 @@ function SeriesEvidence({ series }: { series: StudioSeriesDetailDto }) {
           title,
           description,
           primaryHistoricalEventId: eventId || null,
-          topicId: topicId || null,
+          topicId: topic?.id ?? series.topic?.id ?? null,
           baseUpdatedAt: series.updatedAt,
         });
       else if (action.kind === "source" && action.id)
@@ -187,216 +101,323 @@ function SeriesEvidence({ series }: { series: StudioSeriesDetailDto }) {
         await api.publishSeries(series.id, series.updatedAt);
       else await api.hideSeries(series.id);
     },
-    onSuccess: async () => {
+    onSuccess: async (_data, action) => {
       await invalidate();
+      if (action.kind === "patch") setEditing(false);
       notify.success({ title: "Đã cập nhật series." });
     },
   });
   const evidence = PublicationEvidenceSchema.safeParse(
     series.publicationEvidence,
   );
+  const eventOptions =
+    events.data?.pages.flatMap((page) =>
+      page.items.map((item) => ({ value: item.id, label: item.name })),
+    ) ?? [];
+  if (event.data && !eventOptions.some((item) => item.value === event.data.id))
+    eventOptions.push({ value: event.data.id, label: event.data.name });
+  const missingChecklist = series.publishChecklist.items.filter((item) => !item.ok);
+
+  const resetEditing = () => {
+    setTitle(series.title);
+    setDescription(series.description ?? "");
+    setEventId(series.primaryHistoricalEventId ?? "");
+    setEditing(false);
+  };
+
   return (
-    <section className="space-y-4" aria-label="Bằng chứng của series">
-      <div className="grid gap-3 sm:grid-cols-2">
-        <label className="text-sm">
-          Tên series
-          <input
-            className={formField}
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-          />
-        </label>
-        <label className="text-sm">
-          Mô tả
-          <textarea
-            className={formField}
-            value={description}
-            onChange={(e) => setDescription(e.target.value)}
-          />
-        </label>
-        <label className="text-sm">
-          Sự kiện chính
-          <select
-            className={formField}
-            value={eventId}
-            onChange={(e) => setEventId(e.target.value)}
-          >
-            <option value="">Chọn sự kiện</option>
-            {events.data?.pages
-              .flatMap((p) => p.items)
-              .map((e) => (
-                <option key={e.id} value={e.id}>
-                  {e.name}
-                </option>
-              ))}
-            {event.data &&
-            !events.data?.pages.some((p) =>
-              p.items.some((e) => e.id === event.data.id),
-            ) ? (
-              <option value={event.data.id}>{event.data.name}</option>
-            ) : null}
-          </select>
-        </label>
-        <label className="text-sm">
-          Chủ đề
-          <select
-            className={formField}
-            value={topicId}
-            onChange={(e) => setTopicId(e.target.value)}
-          >
-            <option value="">Chọn chủ đề</option>
-            {topics.data?.items.map((t) => (
-              <option key={t.id} value={t.id}>
-                {t.name}
-              </option>
-            ))}
-          </select>
-        </label>
-      </div>
-      {events.hasNextPage ? (
-        <Button
-          variant="ghost"
-          onClick={() => {
-            void events.fetchNextPage();
-          }}
+    <>
+      <div className="mod-dialog-scroll-area min-h-0 flex-1 space-y-5 overflow-y-auto overscroll-contain p-5">
+        <section
+          className="rounded-xl border border-mod-kind-series/30 bg-mod-kind-series/5 p-4 sm:p-5"
+          aria-labelledby="series-information-title"
         >
-          Tải thêm sự kiện
-        </Button>
-      ) : null}
-      <Button
-        disabled={mutation.isPending}
-        onClick={() => mutation.mutate({ kind: "patch" })}
-      >
-        Lưu thông tin và phiên bản sự kiện hiện tại
-      </Button>
-      {event.data ? (
-        <>
-          <p className="text-sm">
-            {event.data.name} · {event.data.timeLabel} ·{" "}
-            {event.data.readiness.ready
-              ? "Đủ điều kiện"
-              : "Cần hoàn tất kiểm duyệt"}
-          </p>
-          <h3 className="font-semibold">Nguồn đã chọn cho series</h3>
-          {series.sources.length ? (
-            series.sources.map((s) => (
-              <div
-                key={s.id}
-                className="flex items-center justify-between gap-3 text-sm"
-              >
-                <span>
-                  {s.source.title} · {s.locator}
-                </span>
-                <Button
-                  size="xs"
-                  variant="ghost"
-                  disabled={mutation.isPending}
-                  onClick={() => mutation.mutate({ kind: "remove", id: s.id })}
-                >
-                  Gỡ nguồn
-                </Button>
-              </div>
-            ))
-          ) : (
-            <p className="text-sm">Chưa chọn nguồn.</p>
-          )}
-          <h3 className="font-semibold">Trích dẫn có thể chọn</h3>
-          {event.data.citations.map((c) => (
-            <div
-              key={c.id}
-              className="flex items-center justify-between gap-3 text-sm"
-            >
-              <span>
-                {c.source.title} · {c.locator} ·{" "}
-                {c.outdated
-                  ? "Phiên bản cũ"
-                  : c.source.verificationStatus === "VERIFIED"
-                    ? "Đã xác minh"
-                    : "Chưa xác minh"}
+          <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <span className="inline-flex rounded-full bg-mod-kind-series/15 px-2.5 py-1 text-xs font-bold tracking-wide text-mod-kind-series">
+                SERIES
               </span>
-              <Button
-                size="xs"
-                variant="outline"
-                disabled={
-                  mutation.isPending ||
-                  series.sources.some(
-                    (s) =>
-                      s.source.id === c.sourceId && s.locator === c.locator,
-                  )
-                }
-                onClick={() => mutation.mutate({ kind: "source", id: c.id })}
-              >
-                Chọn trích dẫn
-              </Button>
+              <h2 id="series-information-title" className="mt-2 text-lg font-bold text-mod-text">
+                Thông tin series
+              </h2>
             </div>
-          ))}
-        </>
-      ) : null}
-      <ul className="text-xs text-mod-text-secondary">
-        {series.publishChecklist.items
-          .filter((i) => !i.ok)
-          .map((i) => (
-            <li key={i.key}>{checklistLabels[i.key] ?? i.key}</li>
-          ))}
-      </ul>
-      <div className="flex gap-2">
-        <Button
-          disabled={mutation.isPending}
-          onClick={() => mutation.mutate({ kind: "publish" })}
-        >
-          Phát hành series
-        </Button>
-        {series.status === "PUBLISHED" ? (
-          <Button
-            variant="outline"
-            disabled={mutation.isPending}
-            onClick={() => mutation.mutate({ kind: "hide" })}
-          >
-            Ẩn series
-          </Button>
+            <span className="rounded-full border border-mod-kind-series/25 bg-mod-surface px-3 py-1 text-xs font-semibold text-mod-kind-series">
+              {series.status === "PUBLISHED" ? "Đã phát hành" : series.status === "HIDDEN" ? "Đã ẩn" : "Bản nháp"}
+            </span>
+          </div>
+
+          {editing ? (
+            <div className="grid items-start gap-4 sm:grid-cols-2">
+              <label className="text-sm font-medium text-mod-text">
+                Tên series
+                <Input
+                  className={formField}
+                  value={title}
+                  disabled={mutation.isPending}
+                  onChange={(changeEvent) => setTitle(changeEvent.target.value)}
+                />
+              </label>
+              <label className="text-sm font-medium text-mod-text">
+                Sự kiện chính
+                <ModeratorSelect
+                  label="Sự kiện chính"
+                  value={eventId}
+                  disabled={mutation.isPending}
+                  onValueChange={setEventId}
+                  options={eventOptions}
+                  placeholder="Chọn sự kiện"
+                />
+              </label>
+              <label className="text-sm font-medium text-mod-text sm:col-span-2">
+                Mô tả
+                <Textarea
+                  autoGrow
+                  className={`${formField} min-h-24`}
+                  value={description}
+                  disabled={mutation.isPending}
+                  onChange={(changeEvent) => setDescription(changeEvent.target.value)}
+                />
+              </label>
+              <div className="sm:col-span-2">
+                <p className="text-sm font-medium text-mod-text">Chủ đề</p>
+                <p className="mt-1 rounded-lg border border-mod-border bg-mod-surface px-3 py-3 text-sm text-mod-text">
+                  Lịch sử dân tộc
+                </p>
+              </div>
+              {events.hasNextPage ? (
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="ghost"
+                  className="w-fit text-mod-kind-series hover:bg-mod-kind-series/10 hover:text-mod-kind-series"
+                  disabled={mutation.isPending}
+                  onClick={() => void events.fetchNextPage()}
+                >
+                  Tải thêm sự kiện
+                </Button>
+              ) : null}
+            </div>
+          ) : (
+            <dl className="grid gap-x-6 gap-y-4 sm:grid-cols-2">
+              <div>
+                <dt className="text-xs font-semibold uppercase tracking-wide text-mod-text-secondary">Tên series</dt>
+                <dd className="mt-1 font-semibold text-mod-text">{series.title}</dd>
+              </div>
+              <div>
+                <dt className="text-xs font-semibold uppercase tracking-wide text-mod-text-secondary">Chủ đề</dt>
+                <dd className="mt-1 text-mod-text">Lịch sử dân tộc</dd>
+              </div>
+              <div className="sm:col-span-2">
+                <dt className="text-xs font-semibold uppercase tracking-wide text-mod-text-secondary">Mô tả</dt>
+                <dd className="mt-1 whitespace-pre-wrap leading-6 text-mod-text">{series.description || "Chưa có mô tả."}</dd>
+              </div>
+              <div className="sm:col-span-2 rounded-lg border border-mod-kind-series/20 bg-mod-surface/80 p-3">
+                <dt className="text-xs font-semibold uppercase tracking-wide text-mod-text-secondary">Sự kiện chính</dt>
+                <dd className="mt-1 font-semibold text-mod-text">{event.data?.name ?? "Chưa chọn sự kiện"}</dd>
+                {event.data ? (
+                  <p className="mt-1 text-sm text-mod-text-secondary">
+                    {event.data.timeLabel} · {event.data.readiness.ready ? "Đủ điều kiện" : "Cần hoàn tất kiểm duyệt"}
+                  </p>
+                ) : null}
+              </div>
+            </dl>
+          )}
+        </section>
+
+        {event.data ? (
+          <section className="rounded-xl border border-mod-border bg-mod-surface p-4 sm:p-5" aria-labelledby="series-sources-title">
+            <div className="mb-4">
+              <h2 id="series-sources-title" className="font-bold text-mod-text">Nguồn tư liệu</h2>
+              <p className="mt-1 text-sm text-mod-text-secondary">Các trích dẫn được gắn với series và sự kiện chính.</p>
+            </div>
+            <div className="space-y-2">
+              <h3 className="text-sm font-semibold text-mod-text">Nguồn đã chọn</h3>
+              {series.sources.length ? series.sources.map((source) => (
+                <div key={source.id} className="flex items-center justify-between gap-3 rounded-lg bg-mod-canvas-accent px-3 py-2.5 text-sm">
+                  <span className="min-w-0 text-mod-text"><strong>{source.source.title}</strong>{source.locator ? ` · ${source.locator}` : ""}</span>
+                  {editing ? (
+                    <Button
+                      type="button"
+                      size="xs"
+                      variant="ghost"
+                      className="text-mod-danger hover:bg-mod-danger/10 hover:text-mod-danger"
+                      disabled={mutation.isPending}
+                      onClick={() => mutation.mutate({ kind: "remove", id: source.id })}
+                    >
+                      Gỡ
+                    </Button>
+                  ) : null}
+                </div>
+              )) : <p className="rounded-lg border border-dashed border-mod-border p-3 text-sm text-mod-text-secondary">Chưa chọn nguồn.</p>}
+            </div>
+
+            {editing ? (
+              <div className="mt-5 space-y-2">
+                <h3 className="text-sm font-semibold text-mod-text">Trích dẫn có thể chọn</h3>
+                {event.data.citations.length ? event.data.citations.map((citation) => {
+                  const selected = series.sources.some((source) => source.source.id === citation.sourceId && source.locator === citation.locator);
+                  return (
+                    <div key={citation.id} className="flex items-center justify-between gap-3 rounded-lg border border-mod-border px-3 py-2.5 text-sm">
+                      <div className="min-w-0">
+                        <p className="font-medium text-mod-text">{citation.source.title}</p>
+                        <p className="mt-0.5 text-xs text-mod-text-secondary">
+                          {citation.locator || "Chưa có vị trí trích"} · {citation.outdated ? "Phiên bản cũ" : citation.source.verificationStatus === "VERIFIED" ? "Đã xác minh" : "Chưa xác minh"}
+                        </p>
+                      </div>
+                      <Button
+                        type="button"
+                        size="xs"
+                        variant="outline"
+                        disabled={mutation.isPending || selected}
+                        onClick={() => mutation.mutate({ kind: "source", id: citation.id })}
+                      >
+                        {selected ? "Đã chọn" : "Chọn"}
+                      </Button>
+                    </div>
+                  );
+                }) : <p className="text-sm text-mod-text-secondary">Sự kiện chưa có trích dẫn.</p>}
+              </div>
+            ) : null}
+          </section>
         ) : null}
+
+        {missingChecklist.length ? (
+          <section className="rounded-xl border border-mod-attention/30 bg-mod-attention/5 p-4" aria-label="Điều kiện cần hoàn tất">
+            <h2 className="text-sm font-bold text-mod-text">Điều kiện cần hoàn tất</h2>
+            <ul className="mt-2 grid gap-1 text-sm text-mod-text-secondary sm:grid-cols-2">
+              {missingChecklist.map((item) => <li key={item.key}>• {checklistLabels[item.key] ?? item.key}</li>)}
+            </ul>
+          </section>
+        ) : null}
+
+        {children}
+
+        {evidence.success ? (
+          <details className="rounded-xl border border-mod-border bg-mod-surface p-4">
+            <summary className="cursor-pointer text-sm font-semibold text-mod-text">
+              Bằng chứng phát hành · {new Date(evidence.data.asOf).toLocaleString("vi-VN")}
+            </summary>
+            <div className="mt-3 space-y-1 text-sm text-mod-text-secondary">
+              <p>{evidence.data.event.name} · phiên bản {evidence.data.event.version}</p>
+              {evidence.data.sources.map((source, index) => (
+                <p key={index}>{source.source.title} · {source.locator} · nguồn v{source.sourceVersion}</p>
+              ))}
+            </div>
+          </details>
+        ) : null}
+
+        {mutation.error ? <p role="alert" className="text-sm text-mod-danger">{mutation.error.message}</p> : null}
       </div>
-      {evidence.success ? (
-        <details>
-          <summary className="text-sm">
-            Bằng chứng phát hành ngày{" "}
-            {new Date(evidence.data.asOf).toLocaleString("vi-VN")}
-          </summary>
-          <p className="text-sm">
-            {evidence.data.event.name} · phiên bản {evidence.data.event.version}
-          </p>
-          {evidence.data.sources.map((s, i) => (
-            <p key={i} className="text-sm">
-              {s.source.title} · {s.locator} · nguồn v{s.sourceVersion}
-            </p>
-          ))}
-        </details>
-      ) : null}
-      {mutation.error ? (
-        <p role="alert" className="text-sm text-mod-danger">
-          {mutation.error.message}
-        </p>
-      ) : null}
-    </section>
+
+      <footer className="flex shrink-0 justify-end gap-3 border-t border-mod-border bg-mod-surface px-5 py-3">
+        {editing ? (
+          <>
+            <Button type="button" variant="outline" className={secondaryAction} disabled={mutation.isPending} onClick={resetEditing}>
+              Hủy chỉnh sửa
+            </Button>
+            <Button type="button" className={primaryAction} disabled={mutation.isPending || !title.trim()} onClick={() => mutation.mutate({ kind: "patch" })}>
+              {mutation.isPending ? "Đang lưu…" : "Lưu thay đổi"}
+            </Button>
+          </>
+        ) : (
+          <>
+            <Button
+              type="button"
+              variant="outline"
+              className="border-mod-kind-series/40 bg-mod-kind-series/5 text-mod-kind-series hover:bg-mod-kind-series/15 hover:text-mod-kind-series"
+              disabled={mutation.isPending}
+              onClick={() => setEditing(true)}
+            >
+              Chỉnh sửa
+            </Button>
+            <Button
+              type="button"
+              className={primaryAction}
+              disabled={mutation.isPending}
+              onClick={() => mutation.mutate({ kind: series.status === "PUBLISHED" ? "hide" : "publish" })}
+            >
+              {mutation.isPending ? "Đang xử lý…" : series.status === "PUBLISHED" ? "Ẩn series" : "Phát hành series"}
+            </Button>
+          </>
+        )}
+      </footer>
+    </>
   );
 }
+
+function SeriesDetailDialog({ id, onEditEpisode }: { id: string; onEditEpisode: (id: string) => void }) {
+  const series = usePodcastSeriesDetail(id);
+
+  return (
+    <DialogContent className="flex max-h-[calc(100dvh-2rem)] max-w-4xl flex-col gap-0 overflow-hidden border-mod-border bg-mod-surface p-0 font-moderator text-mod-text sm:p-0">
+      <DialogHeader className="shrink-0 border-b border-mod-border px-5 py-4 pr-16">
+        <DialogTitle>Chi tiết series</DialogTitle>
+        <DialogDescription className="text-mod-text-secondary">
+          Xem thông tin series và các tập podcast thuộc series này.
+        </DialogDescription>
+      </DialogHeader>
+      {series.isPending ? <div className="p-5"><p className="text-sm text-mod-text-secondary">Đang tải series…</p></div> : null}
+      {series.error ? <div className="p-5"><p role="alert" className="text-sm text-mod-danger">{series.error.message}</p></div> : null}
+      {series.data ? (
+        <SeriesEvidence series={series.data}>
+          <section
+            className="rounded-xl border border-mod-kind-episode/30 bg-mod-kind-episode/5 p-4 sm:p-5"
+            aria-labelledby="series-episodes-title"
+          >
+            <div className="mb-4">
+              <span className="inline-flex rounded-full bg-mod-kind-episode/15 px-2.5 py-1 text-xs font-bold tracking-wide text-mod-kind-episode">
+                TẬP PODCAST
+              </span>
+              <h2 id="series-episodes-title" className="mt-2 text-lg font-bold text-mod-text">Các tập trong series</h2>
+              <p className="mt-1 text-sm text-mod-text-secondary">{series.data.episodes.length} tập podcast</p>
+            </div>
+            {series.data.episodes.length ? (
+              <div className="space-y-2">
+                {series.data.episodes.map((episode) => (
+                  <div key={episode.id} className="overflow-hidden rounded-lg border border-mod-kind-episode/25 bg-mod-surface">
+                    <div className="flex flex-wrap items-center gap-3 px-4 py-3">
+                      <div className="min-w-0 flex-1">
+                        <p className="font-semibold text-mod-text">{episode.title}</p>
+                        <p className="mt-1 text-xs text-mod-text-secondary">
+                          Tập {episode.sortOrder} · {episode.status === "PUBLISHED" ? "Đã phát hành" : episode.status === "HIDDEN" ? "Đã ẩn" : "Bản nháp"}
+                        </p>
+                      </div>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        className="border-mod-kind-episode/30 text-mod-kind-episode hover:bg-mod-kind-episode/10 hover:text-mod-kind-episode"
+                        onClick={() => onEditEpisode(episode.id)}
+                      >
+                        Xem tập
+                      </Button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : <p className="rounded-lg border border-dashed border-mod-kind-episode/30 bg-mod-surface/70 p-4 text-sm text-mod-text-secondary">Series chưa có tập podcast.</p>}
+          </section>
+        </SeriesEvidence>
+      ) : null}
+    </DialogContent>
+  );
+}
+
 function SeriesBranch({
   id,
-  selected,
-  onSelect,
+  onEditEpisode,
   status,
 }: {
   id: string;
-  selected: string | null;
-  onSelect: (id: string | null) => void;
+  onEditEpisode: (id: string) => void;
   status: string;
 }) {
   const q = usePodcastSeriesDetail(id);
   if (q.isPending)
-    return <EmptyTableRow columns={5}>Đang tải nhánh…</EmptyTableRow>;
+    return <EmptyTableRow columns={6}>Đang tải danh sách tập…</EmptyTableRow>;
   if (q.error)
     return (
-      <EmptyTableRow columns={5}>
+      <EmptyTableRow columns={6}>
         <span role="alert">{q.error.message}</span>
       </EmptyTableRow>
     );
@@ -405,30 +426,13 @@ function SeriesBranch({
   );
   return (
     <>
-      <TableRow>
-        <TableCell colSpan={5} className="bg-mod-canvas-accent/30 p-5">
-          <SeriesEvidence
-            key={q.data.updatedAt.toISOString()}
-            series={q.data}
-          />
-        </TableCell>
-      </TableRow>
-      {episodes.map((e, i) => (
-        <Fragment key={e.id}>
-          <InteractiveTableRow
-            expanded={selected === e.id}
-            onActivate={() => onSelect(selected === e.id ? null : e.id)}
-            className="mod-tree-child"
-          >
+      {episodes.map((e) => (
+          <TableRow key={e.id} className="mod-tree-child">
             <TableHead scope="row" className={tableCell}>
-              <ModeratorTreeNode
-                kind="episode"
-                depth={1}
-                last={i === episodes.length - 1}
-                name={e.title}
-                open={selected === e.id}
-                onClick={() => onSelect(selected === e.id ? null : e.id)}
-              />
+              <div className="flex items-center gap-2.5 pl-7">
+                <ContentKindIcon kind="episode" />
+                <span className="mod-tree-name">{e.title}</span>
+              </div>
             </TableHead>
             <TableCell className={tableCell}>{e.sortOrder}</TableCell>
             <TableCell className={tableCell}>
@@ -444,18 +448,20 @@ function SeriesBranch({
                   ? "Đã ẩn"
                   : "Bản nháp"}
             </TableCell>
-          </InteractiveTableRow>
-          {selected === e.id ? (
-            <TableRow>
-              <TableCell colSpan={5} className="p-5">
-                <EpisodeEditor id={e.id} />
-              </TableCell>
-            </TableRow>
-          ) : null}
-        </Fragment>
+            <TableCell className={tableCell}>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => onEditEpisode(e.id)}
+              >
+                Chỉnh sửa
+              </Button>
+            </TableCell>
+          </TableRow>
       ))}
       {!episodes.length ? (
-        <EmptyTableRow columns={5}>
+        <EmptyTableRow columns={6}>
           Series này chưa có tập podcast phù hợp.
         </EmptyTableRow>
       ) : null}
@@ -467,24 +473,28 @@ export function PodcastWorkspace({
 }: {
   initialKind?: "series" | "episode";
 }) {
-  const [creating, setCreating] = useState(initialKind !== undefined);
+  const [creation, setCreation] = useState<"series" | "episode" | null>(
+    initialKind ?? null,
+  );
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
-  const [selected, setSelected] = useState<string | null>(null);
+  const [editingEpisodeId, setEditingEpisodeId] = useState<string | null>(null);
+  const [detailSeriesId, setDetailSeriesId] = useState<string | null>(null);
   const [q, setQ] = useState("");
   const [status, setStatus] = useState("all");
   const series = usePodcastSeries(q);
   const rows = series.data?.pages.flatMap((p) => p.items) ?? [];
-  if (creating)
+  const finishCreation = () => {
+    setCreation(null);
+    setEditingEpisodeId(null);
+    setQ("");
+    setStatus("all");
+  };
+  if (creation === "episode" || editingEpisodeId)
     return (
       <PodcastCreation
-        onBack={() => setCreating(false)}
-        initialKind={initialKind}
-        onSaved={(id) => {
-          setCreating(false);
-          setExpanded((old) => new Set(old).add(id));
-          setQ("");
-          setStatus("all");
-        }}
+        episodeId={editingEpisodeId ?? undefined}
+        onBack={() => { setCreation(null); setEditingEpisodeId(null); }}
+        onSaved={finishCreation}
       />
     );
   const toggle = (id: string) =>
@@ -495,52 +505,62 @@ export function PodcastWorkspace({
       return next;
     });
   return (
-    <section className="space-y-5 font-moderator">
-      <header>
-        <h1 className="text-2xl font-bold">Sản xuất podcast</h1>
-        <p className="mt-1 text-sm text-mod-text-secondary">
-          Series, tập và trích dẫn lịch sử dùng trong nội dung.
-        </p>
-      </header>
-      <ModeratorSectionPanel
-        title="Danh sách series và tập podcast"
-        eyebrow="SẢN XUẤT PODCAST"
-        summary={`${series.data?.pages[0]?.total ?? 0} series`}
-        toolbar={
-          <ModeratorListToolbar
-            searchLabel="Tìm series"
-            searchValue={q}
-            onSearchChange={setQ}
-            filters={[
-              {
-                id: "status",
-                label: "Trạng thái",
-                value: status,
-                onValueChange: setStatus,
-                options: [
-                  { value: "all", label: "Tất cả trạng thái" },
-                  { value: "DRAFT", label: "Bản nháp" },
-                  { value: "PUBLISHED", label: "Đã phát hành" },
-                  { value: "HIDDEN", label: "Đã ẩn" },
-                ],
-              },
-            ]}
-            actions={
-              <Button
-                className={primaryAction}
-                onClick={() => setCreating(true)}
-              >
-                Tạo podcast
-              </Button>
-            }
-          />
-        }
-      >
+    <>
+      <section className="space-y-5 font-moderator">
+        <header>
+          <h1 className="text-2xl font-bold">Sản xuất podcast</h1>
+          <p className="mt-1 text-sm text-mod-text-secondary">
+            Series, tập và trích dẫn lịch sử dùng trong nội dung.
+          </p>
+        </header>
+        <ModeratorSectionPanel
+          title="Danh sách series và tập podcast"
+          eyebrow="SẢN XUẤT PODCAST"
+          summary={`${series.data?.pages[0]?.total ?? 0} series`}
+          toolbar={
+            <ModeratorListToolbar
+              searchLabel="Tìm series"
+              searchValue={q}
+              onSearchChange={setQ}
+              filters={[
+                {
+                  id: "status",
+                  label: "Trạng thái",
+                  value: status,
+                  onValueChange: setStatus,
+                  options: [
+                    { value: "all", label: "Tất cả trạng thái" },
+                    { value: "DRAFT", label: "Bản nháp" },
+                    { value: "PUBLISHED", label: "Đã phát hành" },
+                    { value: "HIDDEN", label: "Đã ẩn" },
+                  ],
+                },
+              ]}
+              actions={
+                <>
+                  <Button
+                    variant="outline"
+                    className={secondaryAction}
+                    onClick={() => setCreation("series")}
+                  >
+                    Tạo series
+                  </Button>
+                  <Button
+                    className={primaryAction}
+                    onClick={() => setCreation("episode")}
+                  >
+                    Tạo podcast
+                  </Button>
+                </>
+              }
+            />
+          }
+        >
         <ModeratorTable
           embedded
           caption="Series và các tập podcast"
-          columns={["Nội dung", "Số tập", "Kịch bản", "Âm thanh", "Trạng thái"]}
-          minWidth={960}
+          columns={["Nội dung", "Số tập", "Kịch bản", "Âm thanh", "Trạng thái", "Thao tác"]}
+          minWidth={1080}
         >
           {rows.map((s) => (
             <Fragment key={s.id}>
@@ -569,19 +589,28 @@ export function PodcastWorkspace({
                       ? "Đã ẩn"
                       : "Bản nháp"}
                 </TableCell>
+                <TableCell className={tableCell}>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setDetailSeriesId(s.id)}
+                  >
+                    Xem chi tiết
+                  </Button>
+                </TableCell>
               </InteractiveTableRow>
               {expanded.has(s.id) ? (
                 <SeriesBranch
                   id={s.id}
-                  selected={selected}
-                  onSelect={setSelected}
+                  onEditEpisode={setEditingEpisodeId}
                   status={status}
                 />
               ) : null}
             </Fragment>
           ))}
           {series.isPending || series.error || !rows.length ? (
-            <EmptyTableRow columns={5}>
+            <EmptyTableRow columns={6}>
               {series.isPending ? (
                 "Đang tải…"
               ) : series.error ? (
@@ -593,7 +622,7 @@ export function PodcastWorkspace({
           ) : null}
           {series.hasNextPage ? (
             <TableRow>
-              <TableCell colSpan={5}>
+              <TableCell colSpan={6}>
                 <Button
                   variant="ghost"
                   onClick={() => {
@@ -607,7 +636,29 @@ export function PodcastWorkspace({
           ) : null}
         </ModeratorTable>
         <ContentKindLegend kinds={["series", "episode"]} />
-      </ModeratorSectionPanel>
-    </section>
+        </ModeratorSectionPanel>
+      </section>
+      <Dialog
+        open={creation === "series"}
+        onOpenChange={(open) => {
+          if (!open) setCreation(null);
+        }}
+      >
+        {creation === "series" ? (
+          <SeriesCreationDialog
+            onBack={() => setCreation(null)}
+            onSaved={finishCreation}
+          />
+        ) : null}
+      </Dialog>
+      <Dialog
+        open={Boolean(detailSeriesId)}
+        onOpenChange={(open) => {
+          if (!open) setDetailSeriesId(null);
+        }}
+      >
+        {detailSeriesId ? <SeriesDetailDialog id={detailSeriesId} onEditEpisode={(id) => { setDetailSeriesId(null); setEditingEpisodeId(id); }} /> : null}
+      </Dialog>
+    </>
   );
 }

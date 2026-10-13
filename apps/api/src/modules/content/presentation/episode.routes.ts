@@ -1,6 +1,7 @@
 import { PublishContentSchema } from "@repo/shared";
 import {
   AttachAudioSchema,
+  AttachEpisodeDocumentSchema,
   CreateEntityTagSchema,
   CreateEpisodeSchema,
   NarrationTypeSchema,
@@ -21,6 +22,7 @@ import { requireAuth, requireRole } from "../../auth";
 import type { MediaStorageGateway } from "../../media";
 import {
   mapEntityTag,
+  mapEpisodeAttachment,
   mapNarration,
   mapWorkspace,
 } from "../application/content.mappers";
@@ -213,6 +215,47 @@ export function createEpisodeRoute(
         const session = c.get("session")!;
         const { id, type } = c.req.valid("param");
         await service.detachAudio(session, id, type);
+        return c.body(null, 204);
+      },
+    )
+    .get(
+      "/episodes/:id/attachments",
+      zValidator("param", idParam, throwOnInvalid),
+      async (c) => {
+        const session = c.get("session")!;
+        const items = await service.listEpisodeDocuments(
+          session,
+          c.req.valid("param").id,
+        );
+        return c.json({
+          items: items.map((item) => mapEpisodeAttachment(item, storage)),
+        });
+      },
+    )
+    .post(
+      "/episodes/:id/attachments",
+      idempotency(),
+      rateLimit("write"),
+      zValidator("param", idParam, throwOnInvalid),
+      zValidator("json", AttachEpisodeDocumentSchema, throwOnInvalid),
+      async (c) => {
+        const session = c.get("session")!;
+        const attachment = await service.attachEpisodeDocument(
+          session,
+          c.req.valid("param").id,
+          c.req.valid("json"),
+        );
+        return c.json(mapEpisodeAttachment(attachment, storage), 201);
+      },
+    )
+    .delete(
+      "/episodes/:id/attachments/:childId",
+      rateLimit("write"),
+      zValidator("param", childParam, throwOnInvalid),
+      async (c) => {
+        const session = c.get("session")!;
+        const { id, childId } = c.req.valid("param");
+        await service.detachEpisodeDocument(session, id, childId);
         return c.body(null, 204);
       },
     )

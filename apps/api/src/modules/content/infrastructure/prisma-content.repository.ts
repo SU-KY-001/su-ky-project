@@ -10,6 +10,7 @@ import { DomainError } from "../../../core/errors/domain-error";
 import { insertWithUniqueSlug } from "../../../core/slug";
 import type {
   AppendEpisodeInput,
+  AttachAudioInput,
   CreateSeriesDraftInput,
   CreateSeriesInput,
   EpisodePatch,
@@ -193,6 +194,10 @@ const episodeInclude = {
       audioAsset: true,
     },
   },
+  attachments: {
+    orderBy: { createdAt: "asc" as const },
+    include: { mediaAsset: true },
+  },
   entityTags: {
     include: { entity: { select: { id: true, entityType: true, name: true } } },
   },
@@ -205,6 +210,9 @@ const narrationInclude = {
   narratorEntity: { select: { id: true, name: true } },
   audioAsset: true,
 } satisfies Prisma.EpisodeNarrationInclude;
+const episodeAttachmentInclude = {
+  mediaAsset: true,
+} satisfies Prisma.EpisodeAttachmentInclude;
 
 // --- SeriesRepository ------------------------------------------------------------
 
@@ -718,6 +726,60 @@ export class PrismaEpisodeRepository implements EpisodeRepository {
     });
   }
 
+  async listEpisodeAttachments(episodeId: string) {
+    return prisma.episodeAttachment.findMany({
+      where: { episodeId },
+      orderBy: { createdAt: "asc" },
+      include: episodeAttachmentInclude,
+    });
+  }
+
+  async findEpisodeAttachment(episodeId: string, attachmentId: string) {
+    return prisma.episodeAttachment.findFirst({
+      where: { id: attachmentId, episodeId },
+      include: episodeAttachmentInclude,
+    });
+  }
+
+  async findEpisodeAttachmentUsingAsset(assetId: string) {
+    return prisma.episodeAttachment.findUnique({
+      where: { mediaAssetId: assetId },
+      include: episodeAttachmentInclude,
+    });
+  }
+
+  async attachEpisodeDocument(input: {
+    episodeId: string;
+    mediaAssetId: string;
+    fileName: string;
+  }) {
+    return prisma.$transaction(async (tx) => {
+      await lockEpisodeAndSeries(tx, input.episodeId);
+      await tx.mediaAsset.update({
+        where: { id: input.mediaAssetId },
+        data: { detachedAt: null },
+      });
+      return tx.episodeAttachment.create({
+        data: input,
+        include: episodeAttachmentInclude,
+      });
+    });
+  }
+
+  async detachEpisodeDocument(attachmentId: string): Promise<void> {
+    await prisma.$transaction(async (tx) => {
+      const attachment = await tx.episodeAttachment.findUniqueOrThrow({
+        where: { id: attachmentId },
+      });
+      await lockEpisodeAndSeries(tx, attachment.episodeId);
+      await tx.episodeAttachment.delete({ where: { id: attachmentId } });
+      await tx.mediaAsset.update({
+        where: { id: attachment.mediaAssetId },
+        data: { detachedAt: new Date() },
+      });
+    });
+  }
+
   async findNarrationByType(
     episodeId: string,
     narrationType: NarrationType,
@@ -769,11 +831,19 @@ export class PrismaEpisodeRepository implements EpisodeRepository {
           episodeId: input.episodeId,
           narrationType: input.narrationType,
           scriptContent: input.scriptContent,
+          scriptDocument:
+            input.scriptDocument === null
+              ? Prisma.DbNull
+              : (input.scriptDocument as Prisma.InputJsonValue | undefined),
           narratorEntityId: input.narratorEntityId,
           scriptUpdatedAt: new Date(),
         },
         update: {
           scriptContent: input.scriptContent,
+          scriptDocument:
+            input.scriptDocument === null
+              ? Prisma.DbNull
+              : (input.scriptDocument as Prisma.InputJsonValue | undefined),
           narratorEntityId: input.narratorEntityId,
           scriptUpdatedAt: new Date(),
         },
@@ -790,7 +860,7 @@ export class PrismaEpisodeRepository implements EpisodeRepository {
 
   async attachAudio(
     narrationId: string,
-    input: { previousAudioAssetId: string | null; assetId: string },
+    input: AttachAudioInput,
   ): Promise<EpisodeNarrationDetailEntity> {
     await prisma.$transaction(async (tx) => {
       const narration = await tx.episodeNarration.findUniqueOrThrow({
@@ -811,7 +881,11 @@ export class PrismaEpisodeRepository implements EpisodeRepository {
       });
       await tx.episodeNarration.update({
         where: { id: narrationId },
-        data: { audioAssetId: input.assetId, audioAttachedAt: new Date() },
+        data: {
+          audioAssetId: input.assetId,
+          audioAnalysis: input.analysis as Prisma.InputJsonValue | undefined,
+          audioAttachedAt: new Date(),
+        },
       });
     });
     return prisma.episodeNarration.findUniqueOrThrow({

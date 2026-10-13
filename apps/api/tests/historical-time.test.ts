@@ -85,7 +85,15 @@ describe("historical time", () => {
           approximate: false,
         },
       }),
-    ).toBe("02/09/1945 CN");
+    ).toBe("02/09/1945");
+    expect(
+      formatHistoricalTime({
+        kind: "RANGE",
+        start: year(-179),
+        end: year(938),
+        endState: "KNOWN",
+      }),
+    ).toBe("179 TCN – 938");
     expect(
       compareHistoricalDates(year(1945), {
         year: 1945,

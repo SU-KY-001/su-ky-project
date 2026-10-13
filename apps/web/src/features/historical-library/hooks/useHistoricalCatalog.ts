@@ -31,13 +31,18 @@ export function useHistoricalPeriods(f: CatalogFilter = {}) {
   });
 }
 export function useHistoricalPhases(
-  periodId: string,
+  periodId: string | undefined,
   f: CatalogFilter = {},
   enabled = true,
 ) {
   return useInfiniteQuery({
     queryKey: [...catalogKeys.root, "phases", periodId, f],
-    queryFn: ({ pageParam }) => api.phases({ ...f, periodId, page: pageParam }),
+    queryFn: ({ pageParam }) =>
+      api.phases({
+        ...f,
+        ...(periodId ? { periodId } : {}),
+        page: pageParam,
+      }),
     initialPageParam: 1,
     getNextPageParam: next,
     enabled,

@@ -71,11 +71,23 @@ export interface EpisodeNarrationEntity {
   narrationType: NarrationType;
   narratorEntityId: string | null;
   scriptContent: string | null;
+  scriptDocument: unknown | null;
+  audioAnalysis: unknown | null;
   audioAssetId: string | null;
   scriptUpdatedAt: Date | null;
   audioAttachedAt: Date | null;
   createdAt: Date;
   updatedAt: Date;
+}
+
+export interface EpisodeAttachmentEntity {
+  id: string;
+  episodeId: string;
+  mediaAssetId: string;
+  fileName: string;
+  createdAt: Date;
+  updatedAt: Date;
+  mediaAsset: MediaAssetEntity;
 }
 
 export interface SeriesSourceEntity {
@@ -172,6 +184,7 @@ export type EpisodeWithSeriesEntity = EpisodeEntity & { series: SeriesEntity };
 /** Full studio workspace payload row: episode + series + narrations/tags. */
 export type EpisodeWorkspaceEntity = EpisodeWithSeriesEntity & {
   narrations: EpisodeNarrationDetailEntity[];
+  attachments: EpisodeAttachmentEntity[];
   entityTags: EpisodeEntityTagWithEntityEntity[];
 };
 

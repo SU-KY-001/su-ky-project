@@ -80,6 +80,7 @@ export function SourceVerification({ source }: { source: CatalogSourceDto }) {
           <label className="block text-sm">
             Nhận xét nguồn
             <Textarea
+              autoGrow
               className={field}
               value={note}
               onChange={(e) => setNote(e.target.value)}
@@ -588,6 +589,7 @@ export function HistoricalSourceFields({
             <label className="block text-sm">
               Đoạn trích
               <Textarea
+                autoGrow
                 className={field}
                 value={excerpt}
                 onChange={(e) => setExcerpt(e.target.value)}
@@ -596,6 +598,7 @@ export function HistoricalSourceFields({
             <label className="block text-sm">
               Ghi chú nội bộ
               <Textarea
+                autoGrow
                 className={field}
                 value={note}
                 onChange={(e) => setNote(e.target.value)}

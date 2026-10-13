@@ -10,6 +10,9 @@ import {
   PatchSeriesSchema,
   PatchEpisodeSchema,
   PutNarrationSchema,
+  AttachAudioSchema,
+  AttachEpisodeDocumentSchema,
+  EpisodeAttachmentSchema,
 } from "@repo/shared";
 import { client } from "@/lib/client";
 import { ApiError } from "@/lib/apiError";
@@ -23,6 +26,7 @@ async function parse<S extends z.ZodTypeAny>(
   return schema.parse(r.status === 204 ? undefined : await r.json());
 }
 const headers = (key: string) => ({ headers: { "Idempotency-Key": key } });
+export const NATIONAL_HISTORY_TOPIC_SLUG = "lich-su-dan-toc";
 export const podcastProductionService = {
   series: (q = "", page = 1) =>
     parse(
@@ -64,13 +68,40 @@ export const podcastProductionService = {
       }),
       NarrationSchema,
     ),
-  audio: (id: string, assetId: string) =>
+  audio: (
+    id: string,
+    json: z.input<typeof AttachAudioSchema>,
+  ) =>
     parse(
       studio.episodes[":id"].narrations[":type"].audio.$put({
         param: { id, type: "THIRD_PERSON" },
-        json: { assetId },
+        json,
       }),
       NarrationSchema,
+    ),
+  attachments: (id: string) =>
+    parse(
+      studio.episodes[":id"].attachments.$get({ param: { id } }),
+      z.object({ items: z.array(EpisodeAttachmentSchema) }),
+    ),
+  attachDocument: (
+    id: string,
+    json: z.input<typeof AttachEpisodeDocumentSchema>,
+    key: string,
+  ) =>
+    parse(
+      studio.episodes[":id"].attachments.$post(
+        { param: { id }, json },
+        headers(key),
+      ),
+      EpisodeAttachmentSchema,
+    ),
+  removeDocument: (id: string, childId: string) =>
+    parse(
+      studio.episodes[":id"].attachments[":childId"].$delete({
+        param: { id, childId },
+      }),
+      z.void(),
     ),
   addCitation: (id: string, historicalCitationId: string, key: string) =>
     parse(
@@ -117,7 +148,9 @@ export const podcastProductionService = {
     parse(
       client.api.topics.$get(),
       z.object({
-        items: z.array(z.object({ id: z.string(), name: z.string() })),
+        items: z.array(
+          z.object({ id: z.string(), slug: z.string(), name: z.string() }),
+        ),
       }),
     ),
 };

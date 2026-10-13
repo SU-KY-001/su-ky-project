@@ -1,14 +1,38 @@
 import { z } from "zod";
-import { SourceTierSchema } from "@repo/shared";
+import {
+  AudioAnalysisSchema,
+  EditorDocumentSchema,
+  SourceTierSchema,
+} from "@repo/shared";
 import { getSystemConfig } from "../../../core/config/system-config";
 import type { MediaStorageGateway } from "../../media";
 import type {
   EpisodeNarrationDetailEntity,
+  EpisodeAttachmentEntity,
   EpisodeWorkspaceEntity,
   SeriesDetailEntity,
   SeriesListItemEntity,
   SeriesSourceWithSourceEntity,
 } from "../domain/content.entity";
+
+export function mapEpisodeAttachment(
+  attachment: EpisodeAttachmentEntity,
+  storage?: MediaStorageGateway,
+) {
+  return {
+    id: attachment.id,
+    fileName: attachment.fileName,
+    createdAt: attachment.createdAt,
+    asset: {
+      assetId: attachment.mediaAsset.id,
+      format: attachment.mediaAsset.format,
+      sizeBytes: attachment.mediaAsset.sizeBytes
+        ? Number(attachment.mediaAsset.sizeBytes)
+        : null,
+      previewUrl: storage?.deliveryUrl(attachment.mediaAsset) ?? null,
+    },
+  };
+}
 
 export function mapSeriesSource(
   item: SeriesSourceWithSourceEntity,
@@ -78,6 +102,10 @@ export async function mapNarration(
     ? Math.round((wordCount / wordsPerMinute) * 60_000)
     : 0;
   const warnings: Array<{ key: string; ratio?: number }> = [];
+  const scriptDocument = EditorDocumentSchema.safeParse(
+    narration.scriptDocument,
+  );
+  const audioAnalysis = AudioAnalysisSchema.safeParse(narration.audioAnalysis);
   if (
     narration.scriptUpdatedAt &&
     narration.audioAttachedAt &&
@@ -98,6 +126,8 @@ export async function mapNarration(
     type: narration.narrationType,
     narrator: narration.narratorEntity ?? null,
     scriptContent: narration.scriptContent,
+    scriptDocument: scriptDocument.success ? scriptDocument.data : null,
+    audioAnalysis: audioAnalysis.success ? audioAnalysis.data : null,
     wordCount,
     estimatedDurationMs,
     audio: narration.audioAsset
@@ -261,6 +291,9 @@ export async function mapWorkspace(
     updatedAt: episode.updatedAt,
     narrations: await Promise.all(
       episode.narrations.map((item) => mapNarration(item, storage)),
+    ),
+    attachments: episode.attachments.map((item) =>
+      mapEpisodeAttachment(item, storage),
     ),
     entityTags: episode.entityTags.map(mapEntityTag),
     publishChecklist: episodeChecklist(episode),

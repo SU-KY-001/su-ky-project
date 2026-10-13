@@ -1,6 +1,7 @@
 import type {
   ContentStatus,
   EpisodeEntity,
+  EpisodeAttachmentEntity,
   EpisodeEntityTagEntity,
   EpisodeEntityTagWithEntityEntity,
   EpisodeNarrationDetailEntity,
@@ -16,6 +17,7 @@ import type {
   SeriesSourceEntity,
   SeriesSourceWithSourceEntity,
 } from "./content.entity";
+import type { AudioAnalysis, EditorDocument } from "@repo/shared";
 
 export interface CreateSeriesDraftInput {
   ownerId: string;
@@ -89,12 +91,14 @@ export interface UpsertNarrationInput {
   narrationType: NarrationType;
   /** Passed through verbatim: `undefined` keeps the stored content (Prisma semantics). */
   scriptContent?: string | null;
+  scriptDocument?: EditorDocument | null;
   narratorEntityId: string | null;
 }
 
 export interface AttachAudioInput {
   previousAudioAssetId: string | null;
   assetId: string;
+  analysis?: AudioAnalysis;
 }
 
 export interface UpdateEntityTagInput {
@@ -195,6 +199,21 @@ export interface EpisodeRepository {
   trashEpisode(id: string, statusBeforeDelete: ContentStatus): Promise<void>;
   restoreEpisode(id: string, restoredStatus: ContentStatus): Promise<void>;
 
+  listEpisodeAttachments(episodeId: string): Promise<EpisodeAttachmentEntity[]>;
+  findEpisodeAttachment(
+    episodeId: string,
+    attachmentId: string,
+  ): Promise<EpisodeAttachmentEntity | null>;
+  findEpisodeAttachmentUsingAsset(
+    assetId: string,
+  ): Promise<EpisodeAttachmentEntity | null>;
+  attachEpisodeDocument(input: {
+    episodeId: string;
+    mediaAssetId: string;
+    fileName: string;
+  }): Promise<EpisodeAttachmentEntity>;
+  detachEpisodeDocument(attachmentId: string): Promise<void>;
+
   findNarrationByType(
     episodeId: string,
     narrationType: NarrationType,
@@ -242,6 +261,7 @@ export interface EpisodeRepository {
 }
 
 export type {
+  EpisodeAttachmentEntity,
   EpisodeEntity,
   EpisodeEntityTagEntity,
   EpisodeEntityTagWithEntityEntity,

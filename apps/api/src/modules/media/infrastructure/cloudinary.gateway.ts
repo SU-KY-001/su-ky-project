@@ -48,7 +48,7 @@ export class CloudinaryGateway implements MediaStorageGateway {
     const ttl = await getSystemConfig("media.upload_ticket_ttl_seconds");
     return {
       url: `https://api.cloudinary.com/v1_1/${env.CLOUDINARY_CLOUD_NAME}/${resourceType(input.kind)}/upload`,
-      fields: { api_key: env.CLOUDINARY_API_KEY!, timestamp, signature, public_id: input.publicId, type, resource_type: resourceType(input.kind), allowed_formats: allowedFormats },
+      fields: { api_key: env.CLOUDINARY_API_KEY!, timestamp: String(timestamp), signature, public_id: input.publicId, type, resource_type: resourceType(input.kind), allowed_formats: allowedFormats },
       expiresAt: new Date((timestamp + ttl) * 1000),
     };
   }
