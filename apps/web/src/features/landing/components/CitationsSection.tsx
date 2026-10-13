@@ -2,6 +2,7 @@ import { ArrowSquareOut, BookOpenText } from "@phosphor-icons/react";
 import { citations } from "../data";
 import { SectionFrame, SectionHeading } from "./SectionFrame";
 
+/** @deprecated Replaced by LandingShowcase; no longer imported by the landing page. */
 export function CitationsSection() {
   return (
     <SectionFrame labelledBy="citations-heading">

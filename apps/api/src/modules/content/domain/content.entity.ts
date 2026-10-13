@@ -8,10 +8,26 @@ export type ContentStatus = "DRAFT" | "PUBLISHED" | "HIDDEN";
 export type NarrationType = "THIRD_PERSON" | "FIRST_PERSON";
 export type TagOrigin = "AI" | "MODERATOR";
 export type EntityTagStatus = "SUGGESTED" | "CONFIRMED" | "REJECTED";
-export type SourceTier = "TIER_1_CHINH_SU" | "TIER_2_KHAO_CO" | "TIER_3_KHOA_HOC" | "TIER_4_DA_SU";
+export type SourceTier =
+  | "TIER_1_CHINH_SU"
+  | "TIER_2_KHAO_CO"
+  | "TIER_3_KHOA_HOC"
+  | "TIER_4_DA_SU";
 export type HistoricalEntityType = "FIGURE" | "EVENT";
 
 export interface SeriesEntity {
+  primaryHistoricalEventId?: string | null;
+  historicalEntityRevisionId?: string | null;
+  publicationEvidence?: unknown;
+  evidenceCurrentStates?: Record<
+    string,
+    {
+      verificationStatus: string;
+      version: number;
+      verifiedVersion: number | null;
+      archived: boolean;
+    }
+  >;
   id: string;
   ownerId: string;
   topicId: string | null;
@@ -55,11 +71,23 @@ export interface EpisodeNarrationEntity {
   narrationType: NarrationType;
   narratorEntityId: string | null;
   scriptContent: string | null;
+  scriptDocument: unknown | null;
+  audioAnalysis: unknown | null;
   audioAssetId: string | null;
   scriptUpdatedAt: Date | null;
   audioAttachedAt: Date | null;
   createdAt: Date;
   updatedAt: Date;
+}
+
+export interface EpisodeAttachmentEntity {
+  id: string;
+  episodeId: string;
+  mediaAssetId: string;
+  fileName: string;
+  createdAt: Date;
+  updatedAt: Date;
+  mediaAsset: MediaAssetEntity;
 }
 
 export interface SeriesSourceEntity {
@@ -120,14 +148,29 @@ export type EpisodeNarrationDetailEntity = EpisodeNarrationEntity & {
 };
 
 export type SeriesSourceWithSourceEntity = SeriesSourceEntity & {
+  sourceRevisionId?: string | null;
+  historicalCitationId?: string | null;
+  sourceRevision?: {
+    version: number;
+    snapshot: unknown;
+    fileAsset: Pick<
+      MediaAssetEntity,
+      "id" | "publicId" | "kind" | "version" | "format"
+    > | null;
+  } | null;
   source: {
+    version?: number;
+    verificationStatus?: string;
     id: string;
     tier: SourceTier;
     title: string;
     author: string | null;
     publicationYear: number | null;
     url: string | null;
-    fileAsset: Pick<MediaAssetEntity, "publicId" | "kind" | "version" | "format"> | null;
+    fileAsset: Pick<
+      MediaAssetEntity,
+      "publicId" | "kind" | "version" | "format"
+    > | null;
   };
 };
 
@@ -141,18 +184,25 @@ export type EpisodeWithSeriesEntity = EpisodeEntity & { series: SeriesEntity };
 /** Full studio workspace payload row: episode + series + narrations/tags. */
 export type EpisodeWorkspaceEntity = EpisodeWithSeriesEntity & {
   narrations: EpisodeNarrationDetailEntity[];
+  attachments: EpisodeAttachmentEntity[];
   entityTags: EpisodeEntityTagWithEntityEntity[];
 };
 
 /** Episode row as included in the series detail query. */
 export type EpisodeDetailRowEntity = EpisodeEntity & {
-  narrations: Array<EpisodeNarrationEntity & { audioAsset: MediaAssetEntity | null }>;
+  narrations: Array<
+    EpisodeNarrationEntity & { audioAsset: MediaAssetEntity | null }
+  >;
 };
 
 /** Full series detail row (the `seriesInclude` query payload). */
 export type SeriesDetailEntity = SeriesEntity & {
   topic: { id: string; name: string } | null;
-  historicalPhase: { id: string; name: string; period: { id: string; name: string } } | null;
+  historicalPhase: {
+    id: string;
+    name: string;
+    period: { id: string; name: string };
+  } | null;
   owner: { id: string; name: string };
   coverImageAsset: MediaAssetEntity | null;
   episodes: EpisodeDetailRowEntity[];

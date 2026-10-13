@@ -1,5 +1,5 @@
 import { PgBoss } from "pg-boss";
-import { prisma } from "@repo/db";
+import { prisma, type Prisma } from "@repo/db";
 import { getSystemConfig } from "../config/system-config";
 import { logger } from "../logger";
 import type { MediaStorageGateway } from "../../modules/media";
@@ -18,10 +18,7 @@ export async function cleanupDetachedMedia(storage: MediaStorageGateway): Promis
   const graceHours = await getSystemConfig("media.cleanup_grace_hours");
   const batchSize = await getSystemConfig("media.cleanup_batch_size");
   const cutoff = new Date(Date.now() - graceHours * 60 * 60 * 1000);
-  const assets = await prisma.mediaAsset.findMany({ where: {
-    status: { not: "DELETED" }, narrationAudio: null, seriesCover: { none: {} }, sourceFile: null,
-    OR: [{ detachedAt: { lt: cutoff } }, { detachedAt: null, createdAt: { lt: cutoff } }],
-  }, take: batchSize, orderBy: { createdAt: "asc" } });
+  const assets = await prisma.mediaAsset.findMany({ where: detachedMediaWhere(cutoff), take: batchSize, orderBy: { createdAt: "asc" } });
   for (const asset of assets) {
     try {
       await storage.destroy(asset.publicId, asset.kind);
@@ -30,6 +27,14 @@ export async function cleanupDetachedMedia(storage: MediaStorageGateway): Promis
       logger.warn({ err: error, assetId: asset.id }, "Media cleanup failed");
     }
   }
+}
+
+export function detachedMediaWhere(cutoff: Date): Prisma.MediaAssetWhereInput {
+  return {
+    status: { not: "DELETED" }, narrationAudio: null, seriesCover: { none: {} }, sourceFile: null, sourceRevisions: {none:{}},
+    episodeAttachment: null,
+    OR: [{ detachedAt: { lt: cutoff } }, { detachedAt: null, createdAt: { lt: cutoff } }],
+  };
 }
 
 export async function startMaintenanceJobs(connectionString: string, storage: MediaStorageGateway): Promise<void> {

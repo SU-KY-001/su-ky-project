@@ -82,9 +82,9 @@ describe("post-login navigation", () => {
     expect(getPostLoginPath("admin")).toBe("/admin");
   });
 
-  it("keeps authorized return paths and permits the public homepage", () => {
+  it("keeps authorized return paths and sends staff homepage returns to their dashboard", () => {
     expect(getPostLoginPath("moderator", { pathname: "/moderator/podcast", search: "?page=2", hash: "#episodes" })).toBe("/moderator");
-    expect(getPostLoginPath("admin", { pathname: "/" })).toBe("/");
+    expect(getPostLoginPath("admin", { pathname: "/" })).toBe("/admin");
   });
 
   it("rejects login, external, and unauthorized return paths", () => {

@@ -51,7 +51,7 @@ export function CreatePodcastPage({ series, periods, onBack, onSubmit, initialKi
           <CardHeader><CardTitle>Thông tin podcast</CardTitle><CardDescription className="text-mod-text-secondary">Tên, mô tả và kịch bản của nội dung.</CardDescription></CardHeader>
           <CardContent className="flex flex-col gap-5">
             <FormField label={kind === "series" ? "Tên series" : "Tên tập podcast"} htmlFor="podcast-name"><Input id="podcast-name" required aria-label="Tên podcast" className={formField} value={name} onChange={(event) => setName(event.target.value)} /></FormField>
-            <FormField label="Mô tả" htmlFor="podcast-description"><Textarea id="podcast-description" required aria-label="Mô tả podcast" className={formField + " min-h-40 resize-y leading-6"} rows={5} value={description} onChange={(event) => setDescription(event.target.value)} /></FormField>
+            <FormField label="Mô tả" htmlFor="podcast-description"><Textarea autoGrow id="podcast-description" required aria-label="Mô tả podcast" className={formField + " min-h-40 leading-6"} value={description} onChange={(event) => setDescription(event.target.value)} /></FormField>
             {kind === "episode" ? <FormField label="Kịch bản" htmlFor="podcast-script" hint="Có thể bổ sung kịch bản sau khi lưu bản nháp."><Textarea id="podcast-script" aria-label="Kịch bản" className={formField + " min-h-64 resize-y leading-6"} rows={12} value={script} onChange={(event) => setScript(event.target.value)} placeholder="Nhập kịch bản cho tập podcast" /></FormField> : null}
           </CardContent>
         </Card>

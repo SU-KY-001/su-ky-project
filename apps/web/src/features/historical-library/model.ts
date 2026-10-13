@@ -8,7 +8,8 @@ import type {
   SelectedHistoryNode,
 } from "./types";
 
-const normalize = (value: string): string => value.trim().toLocaleLowerCase("vi-VN");
+const normalize = (value: string): string =>
+  value.trim().toLocaleLowerCase("vi-VN");
 
 const includesQuery = (values: string[], query: string): boolean =>
   values.some((value) => normalize(value).includes(query));
@@ -22,19 +23,35 @@ export function filterHistoricalLibrary(
   const hasQuery = normalizedQuery.length > 0;
 
   return periods.flatMap((period) => {
-    const periodMatches = hasQuery && includesQuery([period.name, period.timeLabel, period.summary], normalizedQuery);
+    const periodMatches =
+      hasQuery &&
+      includesQuery(
+        [period.name, period.timeLabel, period.summary],
+        normalizedQuery,
+      );
     const stages = period.stages.flatMap((stage) => {
-      const stageMatches = hasQuery && includesQuery([stage.name, stage.timeLabel, stage.summary], normalizedQuery);
-      const events = stage.events.filter((event) => {
-        const statusMatches = status === "all" || event.status === status;
-        const textMatches = !hasQuery || periodMatches || stageMatches || includesQuery(
-          [event.name, event.timeLabel, event.summary],
+      const stageMatches =
+        hasQuery &&
+        includesQuery(
+          [stage.name, stage.timeLabel, stage.summary],
           normalizedQuery,
         );
+      const events = stage.events.filter((event) => {
+        const statusMatches = status === "all" || event.status === status;
+        const textMatches =
+          !hasQuery ||
+          periodMatches ||
+          stageMatches ||
+          includesQuery(
+            [event.name, event.timeLabel, event.summary],
+            normalizedQuery,
+          );
         return statusMatches && textMatches;
       });
 
-      const keepStage = events.length > 0 || (status === "all" && (stageMatches || periodMatches));
+      const keepStage =
+        events.length > 0 ||
+        (status === "all" && (stageMatches || periodMatches));
       return keepStage ? [{ ...stage, events }] : [];
     });
 
@@ -57,7 +74,9 @@ export function findSelectedNode(
         return { type: "stage", node: stage, period, stage };
       }
 
-      const event = stage.events.find((item) => selection.type === "event" && item.id === selection.id);
+      const event = stage.events.find(
+        (item) => selection.type === "event" && item.id === selection.id,
+      );
       if (event) return { type: "event", node: event, period, stage, event };
     }
   }
@@ -65,7 +84,9 @@ export function findSelectedNode(
   return null;
 }
 
-export function firstLibrarySelection(periods: HistoricalPeriod[]): HistorySelection | null {
+export function firstLibrarySelection(
+  periods: HistoricalPeriod[],
+): HistorySelection | null {
   const firstPeriod = periods[0];
   return firstPeriod ? { type: "period", id: firstPeriod.id } : null;
 }
@@ -79,25 +100,41 @@ export function summarizeLibrary(periods: HistoricalPeriod[]): LibrarySummary {
     stages: stages.length,
     events: events.length,
     missingSources: events.filter((event) => event.sources.length === 0).length,
-    readyForPodcast: events.filter((event) => event.status === "complete").length,
+    readyForPodcast: events.filter((event) => event.status === "complete")
+      .length,
   };
 }
 
-export function countPeriodContents(period: HistoricalPeriod): { stages: number; events: number } {
+export function countPeriodContents(period: HistoricalPeriod): {
+  stages: number;
+  events: number;
+} {
   return {
     stages: period.stages.length,
-    events: period.stages.reduce((total, stage) => total + stage.events.length, 0),
+    events: period.stages.reduce(
+      (total, stage) => total + stage.events.length,
+      0,
+    ),
   };
 }
 
-export function statusCounts(events: HistoricalEvent[]): Record<LibraryStatus, number> {
+export function statusCounts(
+  events: HistoricalEvent[],
+): Record<LibraryStatus, number> {
   return events.reduce<Record<LibraryStatus, number>>(
-    (counts, event) => ({ ...counts, [event.status]: counts[event.status] + 1 }),
+    (counts, event) => ({
+      ...counts,
+      [event.status]: counts[event.status] + 1,
+    }),
     { draft: 0, missing_source: 0, needs_review: 0, complete: 0 },
   );
 }
 
-export function createSessionPeriod(input: { name: string; timeLabel: string; summary: string }): HistoricalPeriod {
+export function createSessionPeriod(input: {
+  name: string;
+  timeLabel: string;
+  summary: string;
+}): HistoricalPeriod {
   return {
     id: crypto.randomUUID(),
     ...input,
@@ -106,7 +143,11 @@ export function createSessionPeriod(input: { name: string; timeLabel: string; su
   };
 }
 
-export function createSessionStage(input: { name: string; timeLabel: string; summary: string }): HistoricalStage {
+export function createSessionStage(input: {
+  name: string;
+  timeLabel: string;
+  summary: string;
+}): HistoricalStage {
   return {
     id: crypto.randomUUID(),
     ...input,
@@ -115,7 +156,11 @@ export function createSessionStage(input: { name: string; timeLabel: string; sum
   };
 }
 
-export function createSessionEvent(input: { name: string; timeLabel: string; summary: string }): HistoricalEvent {
+export function createSessionEvent(input: {
+  name: string;
+  timeLabel: string;
+  summary: string;
+}): HistoricalEvent {
   return {
     id: crypto.randomUUID(),
     ...input,
@@ -125,4 +170,3 @@ export function createSessionEvent(input: { name: string; timeLabel: string; sum
     updatedAt: new Intl.DateTimeFormat("vi-VN").format(new Date()),
   };
 }
-

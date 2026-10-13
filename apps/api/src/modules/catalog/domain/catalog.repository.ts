@@ -15,6 +15,7 @@ import type {
  */
 
 export interface SourceListQuery {
+  verificationStatus?: "PENDING" | "VERIFIED" | "REJECTED";
   page: number;
   limit: number;
   includeArchived: boolean;
@@ -63,6 +64,7 @@ export interface CreateSourceData {
 
 /** Patch passed through to update — undefined keys leave columns untouched. */
 export interface PatchSourceData {
+  baseVersion?: number;
   tier?: SourceTier;
   title?: string;
   originalTitle?: string | null;
@@ -107,19 +109,36 @@ export interface TaxonomyRepository {
  * `requireSource` mirrors findUniqueOrThrow (throws on missing, as today).
  */
 export interface SourceRepository {
-  listSources(query: SourceListQuery): Promise<{ items: Source[]; total: number }>;
+  listSources(
+    query: SourceListQuery,
+  ): Promise<{ items: Source[]; total: number }>;
   findSimilarSources(query: SimilarSourceQuery): Promise<Source[]>;
   getSource(id: string): Promise<Source | null>;
   getSourceWithUsage(id: string): Promise<SourceWithUsage | null>;
   createSource(data: CreateSourceData): Promise<boolean>;
   findSourceIdByIsbn(isbn: string | null): Promise<string | null>;
-  findSourceIdByIsbnExcept(isbn: string, exceptId: string): Promise<string | null>;
+  findSourceIdByIsbnExcept(
+    isbn: string,
+    exceptId: string,
+  ): Promise<string | null>;
   /** Source already holding the uploaded file `assetId` (excluding `exceptId`), if any. */
-  findSourceIdByFileAsset(assetId: string, exceptId?: string): Promise<string | null>;
+  findSourceIdByFileAsset(
+    assetId: string,
+    exceptId?: string,
+  ): Promise<string | null>;
   findMediaAsset(id: string): Promise<SourceFileCandidate | null>;
   requireSource(id: string): Promise<Source>;
-  updateSource(id: string, data: PatchSourceData): Promise<Source>;
-  setSourceArchivedAt(id: string, archivedAt: Date | null): Promise<Source>;
+  updateSource(
+    id: string,
+    data: PatchSourceData,
+    actorId?: string,
+  ): Promise<Source>;
+  setSourceArchivedAt(
+    id: string,
+    archivedAt: Date | null,
+    baseVersion?: number,
+    actorId?: string,
+  ): Promise<Source>;
 }
 
 /**
@@ -128,10 +147,20 @@ export interface SourceRepository {
  * taken (caller retries with a suffixed slug via insertWithUniqueSlug).
  */
 export interface HistoricalEntityRepository {
-  listEntities(query: HistoricalEntityListQuery): Promise<{ items: HistoricalEntity[]; total: number }>;
-  findSimilarEntities(query: SimilarHistoricalEntityQuery): Promise<HistoricalEntity[]>;
+  listEntities(
+    query: HistoricalEntityListQuery,
+  ): Promise<{ items: HistoricalEntity[]; total: number }>;
+  findSimilarEntities(
+    query: SimilarHistoricalEntityQuery,
+  ): Promise<HistoricalEntity[]>;
   getEntity(id: string): Promise<HistoricalEntity | null>;
   requireEntity(id: string): Promise<HistoricalEntity>;
-  tryInsertWithSlug(slug: string, data: CreateHistoricalEntityData): Promise<string | null>;
-  updateEntity(id: string, data: PatchHistoricalEntityData): Promise<HistoricalEntity>;
+  tryInsertWithSlug(
+    slug: string,
+    data: CreateHistoricalEntityData,
+  ): Promise<string | null>;
+  updateEntity(
+    id: string,
+    data: PatchHistoricalEntityData,
+  ): Promise<HistoricalEntity>;
 }

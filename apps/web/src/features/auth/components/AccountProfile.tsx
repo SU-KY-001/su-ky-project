@@ -1,4 +1,4 @@
-import { CaretDown, CircleNotch, SignOut, UserCircle } from "@phosphor-icons/react";
+import { CaretDown, CircleNotch, SignOut, SquaresFour, UserCircle } from "@phosphor-icons/react";
 import { DropdownMenu } from "radix-ui";
 import { Link } from "react-router";
 import type { ReactElement } from "react";
@@ -42,7 +42,7 @@ export function AccountProfile({ variant = "header" }: { variant?: "header" | "m
   }
 
   return (
-    <DropdownMenu.Root>
+    <DropdownMenu.Root modal={false}>
       <DropdownMenu.Trigger asChild>
         <Button variant="outline" aria-label={`Hồ sơ của ${user.name}`} className="max-w-56 gap-2 rounded-lg border-line bg-paper-soft px-3 text-ink hover:bg-paper-deep hover:text-ink">
           <UserCircle size={21} aria-hidden="true" />
@@ -51,7 +51,7 @@ export function AccountProfile({ variant = "header" }: { variant?: "header" | "m
         </Button>
       </DropdownMenu.Trigger>
       <DropdownMenu.Portal>
-        <DropdownMenu.Content align="end" sideOffset={8} className="z-[60] w-64 max-w-[calc(100vw-2rem)] rounded-lg border border-line bg-paper-soft p-2 text-ink shadow-lg">
+        <DropdownMenu.Content align="end" side="bottom" sideOffset={8} collisionPadding={16} className="z-[60] w-60 max-w-[calc(100vw-2rem)] rounded-lg border border-line bg-paper-soft p-1.5 text-left text-ink shadow-lg outline-none">
           <DropdownMenu.Label className="min-w-0 px-3 py-2">
             <p className="truncate text-sm font-semibold">{user.name}</p>
             <p className="truncate text-xs text-ink-soft">{user.email}</p>
@@ -59,11 +59,11 @@ export function AccountProfile({ variant = "header" }: { variant?: "header" | "m
           <DropdownMenu.Separator className="my-1 h-px bg-line" />
           {homePath !== APP_PATHS.home ? (
             <DropdownMenu.Item asChild>
-              <Link to={homePath} className="flex min-h-10 items-center rounded-md px-3 text-sm outline-none data-[highlighted]:bg-paper-deep">Mở bảng điều khiển</Link>
+              <Link to={homePath} className="grid min-h-10 grid-cols-[18px_1fr] items-center gap-2 rounded-md px-3 text-sm outline-none data-[highlighted]:bg-paper-deep"><SquaresFour size={18} aria-hidden="true" /><span>Mở bảng điều khiển</span></Link>
             </DropdownMenu.Item>
           ) : null}
-          <DropdownMenu.Item disabled={isPending} onSelect={(event) => { event.preventDefault(); logout(); }} className="flex min-h-10 cursor-pointer items-center gap-2 rounded-md px-3 text-sm text-vermilion outline-none data-[highlighted]:bg-vermilion/10 data-[disabled]:pointer-events-none data-[disabled]:opacity-50">
-            <SignOut size={17} aria-hidden="true" />{isPending ? "Đang đăng xuất…" : "Đăng xuất"}
+          <DropdownMenu.Item disabled={isPending} onSelect={(event) => { event.preventDefault(); logout(); }} className="grid min-h-10 cursor-pointer grid-cols-[18px_1fr] items-center gap-2 rounded-md px-3 text-sm text-vermilion outline-none data-[highlighted]:bg-vermilion/10 data-[disabled]:pointer-events-none data-[disabled]:opacity-50">
+            <SignOut size={18} aria-hidden="true" /><span>{isPending ? "Đang đăng xuất…" : "Đăng xuất"}</span>
           </DropdownMenu.Item>
           {error ? <p role="alert" className="px-3 py-2 text-xs leading-5 text-vermilion">{error}</p> : null}
         </DropdownMenu.Content>

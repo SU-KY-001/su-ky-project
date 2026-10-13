@@ -4,6 +4,7 @@ import { Button } from "@/shared/components/ui/button";
 import { SectionFrame, SectionHeading } from "./SectionFrame";
 import { scrollToLandingTarget } from "../hooks/useLandingMotion";
 
+/** @deprecated Replaced by LandingShowcase; no longer imported by the landing page. */
 export function LearningSection() {
   const [flipped, setFlipped] = useState(false);
 

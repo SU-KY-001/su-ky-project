@@ -2,7 +2,7 @@ import type { ComponentProps, ReactNode } from "react";
 import { cn } from "@/lib/utils";
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell, TableCaption } from "@/shared/components/ui/table";
 
-export const tableCell = "px-4 py-3.5 align-top text-mod-text";
+export const tableCell = "px-4 py-3.5 align-middle text-mod-text";
 export const tableAction = "mod-table-row-action h-auto min-h-8 w-full justify-start whitespace-normal rounded px-1 py-1 text-left font-semibold text-mod-primary hover:text-mod-primary focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-mod-primary";
 export const branchAction = "mod-table-row-action flex h-auto min-h-8 w-full items-start justify-start gap-2 whitespace-normal rounded px-1 py-1 text-left font-semibold text-mod-text hover:text-mod-text focus-visible:outline focus-visible:outline-2 focus-visible:outline-mod-primary";
 export const primaryAction = "inline-flex min-h-10 items-center justify-center gap-2 rounded-lg bg-mod-primary px-4 text-sm font-bold text-white hover:bg-mod-primary/90 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-mod-primary";
@@ -30,6 +30,6 @@ export function InteractiveTableRow({ onActivate, expanded, className, ...props 
   }} />;
 }
 
-export function EmptyTableRow({ columns, children }: { columns: number; children: ReactNode }) {
-  return <TableRow><TableCell colSpan={columns} className="px-4 py-12 text-center text-sm text-mod-text-secondary">{children}</TableCell></TableRow>;
+export function EmptyTableRow({ columns, children, compact = false }: { columns: number; children: ReactNode; compact?: boolean }) {
+  return <TableRow><TableCell colSpan={columns} className={cn("px-4 text-center text-sm text-mod-text-secondary", compact ? "py-3" : "py-12")}>{children}</TableCell></TableRow>;
 }

@@ -3,6 +3,7 @@ interface InkWaveformProps {
   dark: boolean;
 }
 
+/** @deprecated Only used by deprecated NarrativeDemo. */
 export function InkWaveform({ active, dark }: InkWaveformProps) {
   return (
     <svg viewBox="0 0 720 86" width="100%" height="86" role="img" aria-label="Minh họa dạng sóng lời kể">

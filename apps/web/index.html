@@ -8,83 +8,64 @@
       content="Podcast lịch sử Việt Nam kể lại những sự kiện lớn qua tiếng nói của sử gia và người trong cuộc."
     />
     <meta name="theme-color" content="#14110F" />
+    <link rel="preload" as="image" href="/src/public/brand-su-ky-viet-nam.png" />
     <link
       rel="icon"
       type="image/png"
       href="/src/public/logo-su-ky-viet-nam.png"
     />
-    <title>Sử Ký - Podcast lịch sử Việt Nam</title>
-    <script>
-      if (window.location.pathname === "/") {
-        document.documentElement.classList.add("landing-boot-pending");
-        document.documentElement.dataset.landingBootStartedAt = String(
-          performance.now(),
-        );
-      }
-    </script>
     <style>
-      #landing-boot-loader {
-        position: fixed;
-        z-index: 9999;
-        inset: 0;
-        display: none;
+      html,
+      body {
+        min-height: 100%;
+        margin: 0;
+        background: #f4ecdc;
+      }
+
+      #root {
+        min-height: 100vh;
+      }
+
+      .app-boot-loader {
+        box-sizing: border-box;
+        display: grid;
+        min-height: 100vh;
         place-items: center;
         padding: 24px;
-        background: #f4ecdc;
         color: #1c1714;
-        transition: opacity 460ms cubic-bezier(0.22, 1, 0.36, 1);
+        font-family: "Be Vietnam Pro", ui-sans-serif, system-ui, sans-serif;
       }
 
-      html.landing-boot-pending #landing-boot-loader {
-        display: grid;
-      }
-
-      html.landing-boot-exiting #landing-boot-loader {
-        opacity: 0;
-      }
-
-      .landing-boot-content {
+      .app-boot-loader__content {
         display: flex;
-        width: min(100%, 360px);
+        width: 100%;
+        max-width: 360px;
         flex-direction: column;
         align-items: center;
         gap: 16px;
         text-align: center;
-        transform-origin: center;
-        transition:
-          opacity 460ms cubic-bezier(0.22, 1, 0.36, 1),
-          transform 460ms cubic-bezier(0.22, 1, 0.36, 1);
       }
 
-      html.landing-boot-exiting .landing-boot-content {
-        opacity: 0;
-        transform: scale(0.88);
-      }
-
-      .landing-boot-content img {
-        display: block;
+      .app-boot-loader__content img {
         width: 220px;
         height: 110px;
-        max-width: 80vw;
+        max-width: 100%;
         object-fit: contain;
       }
 
-      .landing-boot-title {
-        margin: 0;
-        font:
-          700 18px/1.4 system-ui,
-          sans-serif;
+      .app-boot-loader__content strong {
+        font-size: 18px;
+        line-height: 1.4;
       }
 
-      .landing-boot-copy {
+      .app-boot-loader__content p {
         margin: 0;
         color: #5b4e44;
-        font:
-          400 14px/1.6 system-ui,
-          sans-serif;
+        font-size: 14px;
+        line-height: 1.6;
       }
 
-      .landing-boot-track {
+      .app-boot-loader__track {
         position: relative;
         width: 132px;
         height: 3px;
@@ -93,61 +74,37 @@
         background: #e9dcc2;
       }
 
-      .landing-boot-track::after {
+      .app-boot-loader__track::after {
         position: absolute;
         inset: 0;
         border-radius: inherit;
         background: linear-gradient(90deg, transparent, #b8322a, transparent);
         content: "";
-        animation: landing-boot-shimmer 1.5s ease-in-out infinite;
+        animation: app-boot-loader-shimmer 1.5s ease-in-out infinite;
       }
 
-      @keyframes landing-boot-shimmer {
-        from {
-          transform: translateX(-100%);
-        }
-        to {
-          transform: translateX(100%);
-        }
+      @keyframes app-boot-loader-shimmer {
+        from { transform: translateX(-100%); }
+        to { transform: translateX(100%); }
       }
 
       @media (prefers-reduced-motion: reduce) {
-        #landing-boot-loader,
-        .landing-boot-content {
-          transition-duration: 1ms;
-        }
-        html.landing-boot-exiting .landing-boot-content {
-          transform: none;
-        }
-        .landing-boot-track::after {
-          animation: none;
-        }
+        .app-boot-loader__track::after { animation: none; }
       }
     </style>
+    <title>Sử Ký - Podcast lịch sử Việt Nam</title>
   </head>
   <body>
-    <div
-      id="landing-boot-loader"
-      role="status"
-      aria-live="polite"
-      aria-atomic="true"
-    >
-      <div class="landing-boot-content">
-        <img
-          src="/src/public/brand-su-ky-viet-nam.png"
-          width="220"
-          height="110"
-          alt="Sử Ký - Podcast lịch sử Việt Nam"
-          fetchpriority="high"
-        />
-        <p class="landing-boot-title">Đang mở Sử Ký</p>
-        <p class="landing-boot-copy">
-          Đang chuẩn bị không gian nghe lịch sử Việt Nam.
-        </p>
-        <span class="landing-boot-track" aria-hidden="true"></span>
-      </div>
+    <div id="root">
+      <main class="app-boot-loader">
+        <div class="app-boot-loader__content" role="status" aria-live="polite" aria-atomic="true">
+          <img src="/src/public/brand-su-ky-viet-nam.png" width="220" height="110" alt="Sử Ký - Podcast lịch sử Việt Nam" />
+          <strong>Đang mở Sử Ký</strong>
+          <p>Đang chuẩn bị không gian nghe lịch sử Việt Nam.</p>
+          <span class="app-boot-loader__track" aria-hidden="true"></span>
+        </div>
+      </main>
     </div>
-    <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>
