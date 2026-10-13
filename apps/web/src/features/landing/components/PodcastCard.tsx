@@ -25,8 +25,8 @@ const SIZE: Record<CardOrientation, string> = {
 const HOVER_CAPABLE = "(hover: hover) and (pointer: fine)";
 // Intent delay: the popup opens only if the pointer rests on the card, so sweeping across a row does not flash popups.
 const HOVER_OPEN_DELAY_MS = 700;
-// Translucent corner labels stay legible on any cover colour.
-const cornerBadge = "pointer-events-none absolute rounded-md bg-night/70 px-2 py-1 text-xs font-semibold text-paper-soft backdrop-blur-sm";
+// Frosted glass: a light tint plus heavy blur, so each badge takes on the colour of the cover under it.
+const cornerBadge = "pointer-events-none absolute rounded-md bg-night/35 px-2 py-1 text-xs font-semibold text-white backdrop-blur-md backdrop-saturate-150 [text-shadow:0_1px_2px_rgb(0_0_0/0.5)]";
 
 export function PodcastCard({ item, orientation = "portrait", progress, caption }: PodcastCardProps) {
   const coverRef = useRef<HTMLDivElement>(null);
