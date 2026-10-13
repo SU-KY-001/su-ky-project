@@ -6,6 +6,7 @@ import { MagicCard } from "@/shared/components/ui/magic-card";
 import { featuredSeries } from "../data";
 import { SectionFrame, SectionHeading } from "./SectionFrame";
 
+/** @deprecated Replaced by LandingShowcase; no longer imported by the landing page. */
 export function FeaturedSeries() {
   const [selectedId, setSelectedId] = useState(featuredSeries[0].id);
   const series = featuredSeries.find((item) => item.id === selectedId) ?? featuredSeries[0];

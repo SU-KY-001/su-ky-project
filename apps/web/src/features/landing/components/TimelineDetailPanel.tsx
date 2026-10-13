@@ -8,6 +8,7 @@ interface TimelineDetailPanelProps {
   event: TimelineEvent;
 }
 
+/** @deprecated Only used by deprecated GlobalTimeline. */
 export function TimelineDetailPanel({ event }: TimelineDetailPanelProps) {
   const session = useCurrentUser();
   return (
