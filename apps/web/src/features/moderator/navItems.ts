@@ -43,6 +43,3 @@ export function moderatorWorkspaceNav(activePath: string): ShellNavItem[] {
     { id: "moderator-schedule", label: "Lịch phát hành", icon: CalendarBlank, active: activePath === MODERATOR_SCHEDULE_PATH, to: MODERATOR_SCHEDULE_PATH },
   ];
 }
-
-export const scriptWorkflowPageNav = (): ShellNavItem[] => moderatorWorkspaceNav(PODCAST_PRODUCTION_PATH);
-export const historicalLibraryPageNav = (): ShellNavItem[] => moderatorWorkspaceNav(MODERATOR_DASHBOARD_PATH);

@@ -1,9 +1,7 @@
-import { useEffect, useState, type ReactNode } from "react";
+import { useState, type ReactNode } from "react";
 import { Link } from "react-router";
 import {
   ArrowUpRight,
-  CheckCircle,
-  Copy,
   List,
   UsersThree,
   type Icon,
@@ -12,11 +10,8 @@ import brandLogo from "@/public/brand-su-ky-viet-nam.png";
 import { Button } from "@/shared/components/ui/button";
 import { Separator } from "@/shared/components/ui/separator";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/shared/components/ui/sheet";
-import { useModeratorToastStore } from "../toastStore";
 import { ModeratorText } from "./ModeratorText";
 
-const TOAST_MS = 3200;
-const ERROR_TOAST_MS = 8000;
 const NAV_LINK_CLASS =
   "relative flex min-h-11 items-center gap-[11px] rounded-[10px] px-3 text-sm no-underline transition-colors hover:bg-mod-canvas-accent focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-mod-primary";
 
@@ -87,47 +82,8 @@ function SidebarContents({ nav, onNavigated }: { nav: ShellNavItem[]; onNavigate
   );
 }
 
-function ModeratorToastView() {
-  const toast = useModeratorToastStore((state) => state.toast);
-  const clear = useModeratorToastStore((state) => state.clear);
-  const show = useModeratorToastStore((state) => state.show);
-
-  useEffect(() => {
-    if (!toast) return undefined;
-    const timeout = window.setTimeout(clear, toast.requestId ? ERROR_TOAST_MS : TOAST_MS);
-    return () => window.clearTimeout(timeout);
-  }, [toast, clear]);
-
-  if (!toast) return null;
-  const { requestId } = toast;
-
-  return (
-    <div className="mod-toast" role="status" aria-live="polite">
-      <CheckCircle size={17} color="var(--modSuccess)" weight="fill" aria-hidden={true} />
-      <div className="flex flex-1 flex-col gap-1">
-        <ModeratorText className="text-xs font-semibold text-white">{toast.message}</ModeratorText>
-        {requestId ? <ModeratorText className="text-[11px] text-white/80">Mã yêu cầu: {requestId}</ModeratorText> : null}
-      </div>
-      {requestId ? (
-        <Button
-          variant="ghost"
-          size="icon"
-          className="size-9 text-white hover:bg-white/10 hover:text-white"
-          aria-label="Sao chép mã yêu cầu"
-          onClick={() => {
-            void navigator.clipboard.writeText(requestId).then(() => show("Đã sao chép mã yêu cầu."));
-          }}
-        >
-          <Copy size={16} aria-hidden={true} />
-        </Button>
-      ) : null}
-    </div>
-  );
-}
-
 export function ModeratorShell({ nav, children }: ModeratorShellProps) {
   const [drawerOpen, setDrawerOpen] = useState(false);
-  const showToast = useModeratorToastStore((state) => state.show);
   const closeDrawer = () => setDrawerOpen(false);
 
   return (
@@ -159,8 +115,6 @@ export function ModeratorShell({ nav, children }: ModeratorShellProps) {
           <main className="mod-main-content">{children}</main>
         </div>
       </div>
-
-      <ModeratorToastView />
     </div>
   );
 }
