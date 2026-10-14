@@ -52,6 +52,12 @@ bun run db:deploy
 bun run db:seed
 ```
 
+Để nạp series/tập/nguồn mẫu cho trang moderator (qua HTTP API, API phải đang chạy), đặt `SEED_MOD_EMAIL`, `SEED_MOD_PASSWORD` của một tài khoản moderator **đã có trong DB** và `SEED_SOURCE_URL_BASE` (URL gốc cho link nguồn mẫu) rồi chạy:
+```bash
+cd apps/api && bun run seed:content
+```
+Script không tạo tài khoản. Mỗi lần chạy nó đọc trạng thái hiện có và chỉ tạo phần còn thiếu (series, từng tập, từng bản kể), nên chạy lại an toàn kể cả sau khi lần trước lỗi giữa chừng. Series chỉ hiện với tài khoản đã seed.
+
 ### 4. Khởi động Môi trường Development
 ```bash
 bun run dev
