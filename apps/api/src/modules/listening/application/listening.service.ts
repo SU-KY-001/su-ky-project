@@ -11,7 +11,6 @@ import { DomainError } from "../../../core/errors/domain-error";
 import { audioMimeType, type MediaStorageGateway } from "../../media";
 import type { SeriesSourceWithSource } from "../domain/listening.entity";
 import type { ListeningRepository } from "../domain/listening.repository";
-import { mondayInVietnam } from "../../gamification/gamification.service";
 
 const BASE64_PATTERN =
   /^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$/;
@@ -251,7 +250,6 @@ export class ListeningService {
       bitmap: padded,
       totalSeconds,
       now,
-      weekStartDate: mondayInVietnam(now),
       xpPerEpisodeCompletion,
       completionRatio,
       budget: (elapsedSeconds: number) =>

@@ -1,91 +1,144 @@
-import { useMemo, useState, type FormEvent, type ReactNode } from "react";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Article, Books, ChartBar, Gear, List, ListChecks, Scroll, Users } from "@phosphor-icons/react";
+import { useState } from "react";
+import {
+  Article,
+  Books,
+  ChartBar,
+  Gear,
+  List,
+  ListChecks,
+  Scroll,
+  Users,
+} from "@phosphor-icons/react";
+import { Button } from "@/shared/components/ui/button";
+import { Separator } from "@/shared/components/ui/separator";
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from "@/shared/components/ui/sheet";
 import brandLogo from "@/public/brand-su-ky-viet-nam.png";
 import { AccountProfile } from "@/features/auth";
-import { Button } from "@/shared/components/ui/button";
-import { Input } from "@/shared/components/ui/input";
-import { Separator } from "@/shared/components/ui/separator";
-import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/shared/components/ui/sheet";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/shared/components/ui/table";
-import { notify } from "@/shared/lib/notifications";
-import { errorMessage } from "@/lib/apiError";
-import { adminService, type AdminSection } from "./adminService";
+import type { AdminSection } from "./adminService";
+import { OverviewPanel } from "./OverviewPanel";
+import { UsersPanel } from "./UsersPanel";
+import { ContentPanel } from "./ContentPanel";
+import { CatalogPanel } from "./CatalogPanel";
+import { ConfigPanel } from "./ConfigPanel";
+import { AuditPanel } from "./AuditPanel";
+import { MissionsPanel } from "./MissionsPanel";
 
 const sections = [
-  { id: "overview", label: "Tổng quan", icon: ChartBar }, { id: "users", label: "Tài khoản", icon: Users },
-  { id: "catalog", label: "Danh mục", icon: Books }, { id: "content", label: "Nội dung", icon: Article }, { id: "missions", label: "Nhiệm vụ", icon: ListChecks },
-  { id: "configs", label: "Cấu hình", icon: Gear }, { id: "audit", label: "Nhật ký", icon: Scroll },
+  { id: "overview", label: "Tổng quan", icon: ChartBar },
+  { id: "users", label: "Tài khoản", icon: Users },
+  { id: "catalog", label: "Danh mục", icon: Books },
+  { id: "content", label: "Nội dung", icon: Article },
+  { id: "missions", label: "Nhiệm vụ", icon: ListChecks },
+  { id: "configs", label: "Cấu hình", icon: Gear },
+  { id: "audit", label: "Nhật ký", icon: Scroll },
 ] as const;
 
-function Sidebar({ active, onSelect }: { active: AdminSection; onSelect: (value: AdminSection) => void }) {
-  return <><img src={brandLogo} alt="Sử Ký Việt Nam" className="h-auto w-[170px]" /><p className="mt-2 px-1 text-[10px] font-bold text-ink-soft">KHÔNG GIAN QUẢN TRỊ</p><nav className="mt-6 flex flex-col gap-1.5" aria-label="Điều hướng admin">{sections.map(({ id, label, icon: Icon }) => <button key={id} type="button" onClick={() => onSelect(id)} className={`relative flex min-h-11 items-center gap-3 rounded-lg px-3 text-left text-sm font-semibold ${active === id ? "bg-paper-deep text-ink" : "text-ink-soft hover:bg-paper-deep/50"}`}><Icon size={18} weight={active === id ? "fill" : "regular"} className={active === id ? "text-vermilion" : ""} />{label}</button>)}</nav><div className="mt-auto space-y-4"><Separator className="bg-line" /><AccountProfile variant="admin" /></div></>;
+function Sidebar({
+  active,
+  onSelect,
+}: {
+  active: AdminSection;
+  onSelect: (value: AdminSection) => void;
+}) {
+  return (
+    <>
+      <img src={brandLogo} alt="Sử Ký Việt Nam" className="h-auto w-[170px]" />
+      <p className="mt-2 px-1 text-[10px] font-bold text-ink-soft">
+        KHÔNG GIAN QUẢN TRỊ
+      </p>
+      <nav className="mt-6 flex flex-col gap-1.5" aria-label="Điều hướng admin">
+        {sections.map(({ id, label, icon: Icon }) => (
+          <button
+            key={id}
+            type="button"
+            onClick={() => onSelect(id)}
+            className={`relative flex min-h-11 items-center gap-3 rounded-lg px-3 text-left text-sm font-semibold ${active === id ? "bg-paper-deep text-ink" : "text-ink-soft hover:bg-paper-deep/50"}`}
+          >
+            <Icon
+              size={18}
+              weight={active === id ? "fill" : "regular"}
+              className={active === id ? "text-vermilion" : ""}
+            />
+            {label}
+          </button>
+        ))}
+      </nav>
+      <div className="mt-auto space-y-4">
+        <Separator className="bg-line" />
+        <AccountProfile variant="admin" />
+      </div>
+    </>
+  );
 }
 
-function State({ children }: { children: ReactNode }) { return <p className="rounded-xl border border-mod-border bg-mod-surface p-5 text-sm text-mod-text-secondary">{children}</p>; }
-function SectionTitle({ title, description }: { title: string; description: string }) { return <header><h1 className="text-2xl font-bold text-mod-text">{title}</h1><p className="mt-1 text-sm text-mod-text-secondary">{description}</p></header>; }
-function Card({ label, value }: { label: string; value: number }) { return <article className="rounded-xl border border-mod-border bg-mod-surface p-5"><p className="text-sm text-mod-text-secondary">{label}</p><p className="mt-2 text-3xl font-bold text-mod-text">{new Intl.NumberFormat("vi-VN").format(value)}</p></article>; }
-
-function Overview() {
-  const q = useQuery({ queryKey: ["admin", "dashboard"], queryFn: adminService.dashboard });
-  if (q.isPending) return <State>Đang tải thống kê…</State>; if (q.error) return <State>{q.error.message}</State>;
-  const d = q.data; const cards = [["Tổng tài khoản", d.users.total], ["Moderator", d.users.moderators], ["Tài khoản bị khóa", d.users.banned], ["Series", d.content.series], ["Episode", d.content.episodes], ["Người đã nghe", d.listening.totalListeners], ["Episode hoàn thành", d.listening.completedEpisodes], ["Thao tác 7 ngày", d.operations.auditEventsLast7Days]] as const;
-  return <div className="space-y-5"><SectionTitle title="Tổng quan hệ thống" description="Tình trạng tài khoản, nội dung và hoạt động nghe trên toàn hệ thống." /><div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">{cards.map(([label, value]) => <Card key={label} label={label} value={value} />)}</div></div>;
+function Content({ section }: { section: AdminSection }) {
+  if (section === "users") return <UsersPanel />;
+  if (section === "catalog") return <CatalogPanel />;
+  if (section === "content") return <ContentPanel />;
+  if (section === "missions") return <MissionsPanel />;
+  if (section === "configs") return <ConfigPanel />;
+  if (section === "audit") return <AuditPanel />;
+  return <OverviewPanel />;
 }
-
-function UsersPanel() {
-  const client = useQueryClient(); const [q, setQ] = useState(""); const [role, setRole] = useState(""); const [status, setStatus] = useState("");
-  const users = useQuery({ queryKey: ["admin", "users", q, role, status], queryFn: () => adminService.users({ q, role: role || undefined, status: status || undefined }) });
-  const change = useMutation({ mutationFn: async (input: { kind: "role" | "ban" | "unban"; id: string; role?: "user" | "moderator" | "admin" }) => input.kind === "role" ? adminService.updateUser(input.id, { role: input.role }) : input.kind === "ban" ? adminService.banUser(input.id, "Khóa bởi Admin") : adminService.unbanUser(input.id), onSuccess: async () => { notify.success({ title: "Đã cập nhật tài khoản." }); await client.invalidateQueries({ queryKey: ["admin"] }); }, onError: (error) => notify.error({ title: "Không thể cập nhật tài khoản.", description: errorMessage(error) }) });
-  const create = useMutation({ mutationFn: adminService.createUser, onSuccess: async () => { notify.success({ title: "Đã tạo tài khoản." }); await client.invalidateQueries({ queryKey: ["admin", "users"] }); }, onError: (error) => notify.error({ title: "Không thể tạo tài khoản.", description: errorMessage(error) }) });
-  const submit = (event: FormEvent<HTMLFormElement>) => { event.preventDefault(); const data = new FormData(event.currentTarget); create.mutate({ name: String(data.get("name")), email: String(data.get("email")), password: String(data.get("password")), role: String(data.get("role")) as "user" | "moderator" | "admin" }); event.currentTarget.reset(); };
-  return <div className="space-y-5"><SectionTitle title="Quản lý tài khoản" description="Tạo tài khoản, đổi role và kiểm soát quyền đăng nhập." /><form onSubmit={submit} className="grid gap-3 rounded-xl border border-mod-border bg-mod-surface p-4 md:grid-cols-5"><Input required name="name" placeholder="Tên hiển thị" /><Input required name="email" type="email" placeholder="Email" /><Input required name="password" type="password" minLength={8} placeholder="Mật khẩu ban đầu" /><select name="role" className="rounded-md border border-mod-border bg-white px-3 text-sm"><option value="user">User</option><option value="moderator">Moderator</option><option value="admin">Admin</option></select><Button disabled={create.isPending}>Tạo tài khoản</Button></form><div className="flex flex-wrap gap-3"><Input className="max-w-sm" value={q} onChange={(e) => setQ(e.target.value)} placeholder="Tìm tên hoặc email" /><select value={role} onChange={(e) => setRole(e.target.value)} className="rounded-md border border-mod-border bg-white px-3 text-sm"><option value="">Mọi role</option><option value="user">User</option><option value="moderator">Moderator</option><option value="admin">Admin</option></select><select value={status} onChange={(e) => setStatus(e.target.value)} className="rounded-md border border-mod-border bg-white px-3 text-sm"><option value="">Mọi trạng thái</option><option value="active">Đang hoạt động</option><option value="banned">Đã khóa</option></select></div>{users.isPending ? <State>Đang tải tài khoản…</State> : users.error ? <State>{users.error.message}</State> : <div className="overflow-x-auto rounded-xl border border-mod-border bg-mod-surface"><Table><TableHeader><TableRow><TableHead>Tài khoản</TableHead><TableHead>Role</TableHead><TableHead>Trạng thái</TableHead><TableHead>XP</TableHead><TableHead>Thao tác</TableHead></TableRow></TableHeader><TableBody>{users.data.items.map((user) => <TableRow key={user.id}><TableCell><strong>{user.name}</strong><span className="block text-xs text-mod-text-secondary">{user.email}</span></TableCell><TableCell><select aria-label={`Role của ${user.name}`} value={user.role} onChange={(e) => change.mutate({ kind: "role", id: user.id, role: e.target.value as "user" | "moderator" | "admin" })} className="rounded border border-mod-border bg-white px-2 py-1"><option value="user">User</option><option value="moderator">Moderator</option><option value="admin">Admin</option></select></TableCell><TableCell>{user.banned ? <span className="text-mod-danger">Đã khóa</span> : <span className="text-mod-success">Hoạt động</span>}</TableCell><TableCell>{user.totalXp}</TableCell><TableCell><Button size="sm" variant="outline" onClick={() => change.mutate({ kind: user.banned ? "unban" : "ban", id: user.id })}>{user.banned ? "Mở khóa" : "Khóa"}</Button></TableCell></TableRow>)}</TableBody></Table></div>}</div>;
-}
-
-function ContentPanel() {
-  const client = useQueryClient(); const series = useQuery({ queryKey: ["admin", "content"], queryFn: adminService.content });
-  const act = useMutation({ mutationFn: (input: { kind: "series" | "episodes"; id: string; action: "hide" | "trash" | "restore" }) => adminService.interveneContent(input.kind, input.id, input.action), onSuccess: async () => { notify.success({ title: "Đã cập nhật trạng thái nội dung." }); await client.invalidateQueries({ queryKey: ["admin", "content"] }); }, onError: (error) => notify.error({ title: "Không thể cập nhật nội dung.", description: errorMessage(error) }) });
-  const actions = (kind: "series" | "episodes", item: { id: string; status: string; deletedAt: Date | null }) => item.deletedAt
-    ? <Button size="sm" variant="outline" disabled={act.isPending} onClick={() => act.mutate({ kind, id: item.id, action: "restore" })}>Khôi phục</Button>
-    : <div className="flex gap-2"><Button size="sm" variant="outline" disabled={item.status === "HIDDEN" || act.isPending} onClick={() => act.mutate({ kind, id: item.id, action: "hide" })}>Ẩn & khóa</Button><Button size="sm" variant="outline" disabled={act.isPending} onClick={() => act.mutate({ kind, id: item.id, action: "trash" })}>Thùng rác</Button></div>;
-  return <div className="space-y-5"><SectionTitle title="Kiểm soát nội dung" description="Ẩn hoặc đưa nội dung vào thùng rác. Nội dung bị Admin khóa không thể được Moderator tự mở lại." />{series.isPending ? <State>Đang tải nội dung…</State> : series.error ? <State>{series.error.message}</State> : <div className="space-y-3">{series.data.items.map((item) => <article key={item.id} className="rounded-xl border border-mod-border bg-mod-surface p-4"><div className="flex flex-wrap items-center justify-between gap-3"><div><h2 className="font-bold">{item.title}</h2><p className="text-xs text-mod-text-secondary">{item.owner.name} · {item.deletedAt ? "Trong thùng rác" : item.status} · {item.episodes.length} episode</p></div>{actions("series", item)}</div>{item.episodes.length > 0 && <div className="mt-4 space-y-2 border-t border-mod-border pt-3">{item.episodes.map((episode) => <div key={episode.id} className="flex flex-wrap items-center justify-between gap-3 rounded-lg bg-paper-soft px-3 py-2"><span className="text-sm"><strong>{episode.title}</strong> · {episode.deletedAt ? "Trong thùng rác" : episode.status}</span>{actions("episodes", episode)}</div>)}</div>}</article>)}</div>}</div>;
-}
-
-function CatalogPanel() {
-  const client = useQueryClient(); const topics = useQuery({ queryKey: ["admin", "topics"], queryFn: adminService.topics }); const periods = useQuery({ queryKey: ["admin", "historical-periods"], queryFn: adminService.historicalPeriods });
-  const refresh = async () => { await client.invalidateQueries({ queryKey: ["admin", "topics"] }); await client.invalidateQueries({ queryKey: ["admin", "historical-periods"] }); };
-  const createTopic = useMutation({ mutationFn: adminService.createTopic, onSuccess: async () => { notify.success({ title: "Đã tạo chủ đề." }); await refresh(); }, onError: (error) => notify.error({ title: "Không thể tạo chủ đề.", description: errorMessage(error) }) });
-  const createPeriod = useMutation({ mutationFn: adminService.createHistoricalPeriod, onSuccess: async () => { notify.success({ title: "Đã tạo thời kỳ." }); await refresh(); }, onError: (error) => notify.error({ title: "Không thể tạo thời kỳ.", description: errorMessage(error) }) });
-  const toggle = useMutation({ mutationFn: (input: { kind: "topic" | "period"; id: string; isActive: boolean }) => input.kind === "topic" ? adminService.patchTopic(input.id, { isActive: input.isActive }) : adminService.patchHistoricalPeriod(input.id, { isActive: input.isActive }), onSuccess: refresh, onError: (error) => notify.error({ title: "Không thể cập nhật danh mục.", description: errorMessage(error) }) });
-  const topicSubmit = (event: FormEvent<HTMLFormElement>) => { event.preventDefault(); const form = event.currentTarget; const data = new FormData(form); createTopic.mutate({ name: String(data.get("name")), sortOrder: Number(data.get("sortOrder")), isActive: true }); form.reset(); };
-  const periodSubmit = (event: FormEvent<HTMLFormElement>) => { event.preventDefault(); const form = event.currentTarget; const data = new FormData(form); const year = (key: string) => data.get(key) === "" ? null : Number(data.get(key)); createPeriod.mutate({ name: String(data.get("name")), summary: String(data.get("summary")) || null, startYear: year("startYear"), endYear: year("endYear"), sortOrder: Number(data.get("sortOrder")), isActive: true }); form.reset(); };
-  return <div className="space-y-6"><SectionTitle title="Chủ đề và thời kỳ lịch sử" description="Admin quản lý danh mục dùng để phân loại; Moderator chỉ chọn các mục đang hoạt động." /><section className="space-y-3"><h2 className="text-lg font-bold">Chủ đề</h2><form onSubmit={topicSubmit} className="grid gap-3 rounded-xl border border-mod-border bg-mod-surface p-4 md:grid-cols-[1fr_140px_auto]"><Input required name="name" placeholder="Tên chủ đề" /><Input required name="sortOrder" type="number" min={0} defaultValue={0} /><Button disabled={createTopic.isPending}>Thêm chủ đề</Button></form>{topics.isPending ? <State>Đang tải chủ đề…</State> : topics.error ? <State>{topics.error.message}</State> : <div className="grid gap-2 sm:grid-cols-2">{topics.data.items.map((item) => <article key={item.id} className="flex items-center justify-between rounded-xl border border-mod-border bg-mod-surface p-4"><div><strong>{item.name}</strong><p className="text-xs text-mod-text-secondary">Thứ tự {item.sortOrder} · {item.isActive ? "Đang dùng" : "Đã tắt"}</p></div><Button size="sm" variant="outline" onClick={() => toggle.mutate({ kind: "topic", id: item.id, isActive: !item.isActive })}>{item.isActive ? "Tắt" : "Bật"}</Button></article>)}</div>}</section><section className="space-y-3"><h2 className="text-lg font-bold">Thời kỳ lịch sử</h2><form onSubmit={periodSubmit} className="grid gap-3 rounded-xl border border-mod-border bg-mod-surface p-4 lg:grid-cols-6"><Input required name="name" placeholder="Tên thời kỳ" /><Input name="summary" placeholder="Mô tả ngắn" /><Input name="startYear" type="number" max={1945} placeholder="Năm bắt đầu" /><Input name="endYear" type="number" max={1945} placeholder="Năm kết thúc" /><Input required name="sortOrder" type="number" min={0} defaultValue={0} /><Button disabled={createPeriod.isPending}>Thêm thời kỳ</Button></form>{periods.isPending ? <State>Đang tải thời kỳ…</State> : periods.error ? <State>{periods.error.message}</State> : <div className="grid gap-2 sm:grid-cols-2">{periods.data.items.map((item) => <article key={item.id} className="flex items-center justify-between rounded-xl border border-mod-border bg-mod-surface p-4"><div><strong>{item.name}</strong><p className="text-xs text-mod-text-secondary">{item.startYear ?? "?"} – {item.endYear ?? "?"} · {item.isActive ? "Đang dùng" : "Đã tắt"}</p></div><Button size="sm" variant="outline" onClick={() => toggle.mutate({ kind: "period", id: item.id, isActive: !item.isActive })}>{item.isActive ? "Tắt" : "Bật"}</Button></article>)}</div>}</section></div>;
-}
-
-function ConfigPanel() {
-  const client = useQueryClient(); const configs = useQuery({ queryKey: ["admin", "configs"], queryFn: adminService.configs }); const [drafts, setDrafts] = useState<Record<string, string>>({});
-  const save = useMutation({ mutationFn: ({ key, raw, current }: { key: string; raw: string; current: unknown }) => { let value: unknown = raw; if (typeof current !== "string") { try { value = JSON.parse(raw); } catch { value = raw; } } return adminService.updateConfig(key, value); }, onSuccess: async () => { notify.success({ title: "Đã lưu cấu hình." }); await client.invalidateQueries({ queryKey: ["admin", "configs"] }); }, onError: (error) => notify.error({ title: "Giá trị không hợp lệ.", description: errorMessage(error) }) });
-  return <div className="space-y-5"><SectionTitle title="Cấu hình hệ thống" description="Chỉ các khóa đã được backend cho phép và kiểm tra kiểu dữ liệu mới có thể cập nhật." />{configs.isPending ? <State>Đang tải cấu hình…</State> : configs.error ? <State>{configs.error.message}</State> : <div className="space-y-3">{configs.data.items.map((item) => { const displayed = typeof item.value === "string" ? item.value : JSON.stringify(item.value); const raw = drafts[item.key] ?? displayed; return <article key={item.key} className="grid gap-3 rounded-xl border border-mod-border bg-mod-surface p-4 lg:grid-cols-[1.2fr_1fr_auto]"><div><strong className="text-sm text-mod-text">{item.key}</strong><p className="mt-1 text-xs text-mod-text-secondary">{item.description}</p></div><Input value={raw} onChange={(e) => setDrafts((old) => ({ ...old, [item.key]: e.target.value }))} /><Button variant="outline" onClick={() => save.mutate({ key: item.key, raw, current: item.value })}>Lưu</Button></article>; })}</div>}</div>;
-}
-
-function AuditPanel() {
-  const [action, setAction] = useState(""); const [from, setFrom] = useState(""); const [to, setTo] = useState(""); const audit = useQuery({ queryKey: ["admin", "audit", action, from, to], queryFn: () => adminService.audit({ action, from: from || undefined, to: to ? `${to}T23:59:59.999Z` : undefined }) });
-  return <div className="space-y-5"><SectionTitle title="Nhật ký quản trị" description="Lịch sử thao tác của Admin và Moderator; dữ liệu chỉ đọc." /><div className="flex flex-wrap gap-3"><Input className="max-w-xs" value={action} onChange={(e) => setAction(e.target.value)} placeholder="Lọc theo hành động" /><Input type="date" value={from} onChange={(e) => setFrom(e.target.value)} /><Input type="date" value={to} onChange={(e) => setTo(e.target.value)} /></div>{audit.isPending ? <State>Đang tải nhật ký…</State> : audit.error ? <State>{audit.error.message}</State> : <div className="overflow-x-auto rounded-xl border border-mod-border bg-mod-surface"><Table><TableHeader><TableRow><TableHead>Thời gian</TableHead><TableHead>Người thực hiện</TableHead><TableHead>Hành động</TableHead><TableHead>Đối tượng</TableHead></TableRow></TableHeader><TableBody>{audit.data.items.map((item) => <TableRow key={item.id}><TableCell>{item.createdAt.toLocaleString("vi-VN")}</TableCell><TableCell>{item.actor?.name ?? "Hệ thống"}<span className="block text-xs text-mod-text-secondary">{item.actor?.email}</span></TableCell><TableCell className="font-medium">{item.action}</TableCell><TableCell>{item.resourceType}<span className="block max-w-52 truncate text-xs text-mod-text-secondary">{item.resourceId}</span></TableCell></TableRow>)}</TableBody></Table></div>}</div>;
-}
-
-function MissionsPanel() {
-  const client = useQueryClient(); const templates = useQuery({ queryKey: ["admin", "mission-templates"], queryFn: adminService.missionTemplates }); const weekly = useQuery({ queryKey: ["admin", "weekly-missions"], queryFn: adminService.weeklyMissions });
-  const create = useMutation({ mutationFn: adminService.createMissionTemplate, onSuccess: async () => { notify.success({ title: "Đã tạo mẫu nhiệm vụ." }); await client.invalidateQueries({ queryKey: ["admin", "mission-templates"] }); }, onError: (error) => notify.error({ title: "Không thể tạo mẫu.", description: errorMessage(error) }) });
-  const activate = useMutation({ mutationFn: ({ id, date }: { id: string; date: Date }) => adminService.activateMission(id, date), onSuccess: async () => { notify.success({ title: "Đã kích hoạt nhiệm vụ tuần." }); await client.invalidateQueries({ queryKey: ["admin", "weekly-missions"] }); }, onError: (error) => notify.error({ title: "Không thể kích hoạt.", description: errorMessage(error) }) });
-  const submit = (event: FormEvent<HTMLFormElement>) => { event.preventDefault(); const data = new FormData(event.currentTarget); create.mutate({ title: String(data.get("title")), description: String(data.get("description")) || null, activityType: String(data.get("activityType")) as "COMPLETE_EPISODE" | "PASS_QUIZ", targetCount: Number(data.get("targetCount")), xpReward: Number(data.get("xpReward")) }); event.currentTarget.reset(); };
-  const nextMonday = useMemo(() => { const d = new Date(); d.setUTCHours(0, 0, 0, 0); const days = (8 - d.getUTCDay()) % 7 || 7; d.setUTCDate(d.getUTCDate() + days); return d; }, []);
-  return <div className="space-y-5"><SectionTitle title="Nhiệm vụ tuần" description="Tạo mẫu tái sử dụng và chủ động kích hoạt cho từng tuần." /><form onSubmit={submit} className="grid gap-3 rounded-xl border border-mod-border bg-mod-surface p-4 md:grid-cols-6"><Input required name="title" placeholder="Tên nhiệm vụ" /><Input name="description" placeholder="Mô tả" /><select name="activityType" className="rounded-md border border-mod-border bg-white px-3 text-sm"><option value="COMPLETE_EPISODE">Hoàn thành Episode</option><option value="PASS_QUIZ">Vượt Quiz</option></select><Input required name="targetCount" type="number" min={1} defaultValue={1} /><Input required name="xpReward" type="number" min={0} defaultValue={20} /><Button>Tạo mẫu</Button></form>{templates.isPending ? <State>Đang tải mẫu…</State> : templates.error ? <State>{templates.error.message}</State> : <div className="grid gap-3 lg:grid-cols-2">{templates.data.items.map((item) => <article key={item.id} className="rounded-xl border border-mod-border bg-mod-surface p-4"><div className="flex items-start justify-between gap-4"><div><h2 className="font-bold">{item.title}</h2><p className="mt-1 text-sm text-mod-text-secondary">{item.activityType === "COMPLETE_EPISODE" ? "Hoàn thành Episode" : "Vượt Quiz"} · mục tiêu {item.targetCount} · {item.xpReward} XP</p></div><Button size="sm" disabled={!item.isActive || activate.isPending} onClick={() => activate.mutate({ id: item.id, date: nextMonday })}>Kích hoạt tuần tới</Button></div></article>)}</div>}<h2 className="text-lg font-bold">Đã kích hoạt</h2>{weekly.data?.items.length ? <div className="overflow-x-auto rounded-xl border border-mod-border bg-mod-surface"><Table><TableHeader><TableRow><TableHead>Nhiệm vụ</TableHead><TableHead>Tuần bắt đầu</TableHead><TableHead>Mục tiêu</TableHead><TableHead>Người tham gia</TableHead></TableRow></TableHeader><TableBody>{weekly.data.items.map((item) => <TableRow key={item.id}><TableCell>{item.title}</TableCell><TableCell>{item.weekStartDate.toLocaleDateString("vi-VN")}</TableCell><TableCell>{item.targetCount}</TableCell><TableCell>{item._count.userMissions}</TableCell></TableRow>)}</TableBody></Table></div> : <State>Chưa có nhiệm vụ tuần.</State>}</div>;
-}
-
-function Content({ section }: { section: AdminSection }) { if (section === "users") return <UsersPanel />; if (section === "catalog") return <CatalogPanel />; if (section === "content") return <ContentPanel />; if (section === "missions") return <MissionsPanel />; if (section === "configs") return <ConfigPanel />; if (section === "audit") return <AuditPanel />; return <Overview />; }
 
 export function AdminWorkspace() {
-  const [section, setSection] = useState<AdminSection>("overview"); const [drawer, setDrawer] = useState(false); const current = sections.find((item) => item.id === section)!;
-  const select = (value: AdminSection) => { setSection(value); setDrawer(false); };
-  return <div className="mod-layout-root font-sans text-ink"><div className="mod-layout-shell"><aside className="mod-sidebar"><Sidebar active={section} onSelect={select} /></aside><div className="mod-main-column"><header className="mod-header"><div className="flex items-center gap-3"><Sheet open={drawer} onOpenChange={setDrawer}><SheetTrigger asChild><Button variant="outline" size="icon" className="mod-mobile-only"><List size={18} /></Button></SheetTrigger><SheetContent side="left" className="flex w-[286px] flex-col bg-paper-soft p-5"><SheetHeader><SheetTitle>Quản trị Sử Ký</SheetTitle></SheetHeader><Sidebar active={section} onSelect={select} /></SheetContent></Sheet><div><p className="text-xs text-ink-soft">Admin / <strong>{current.label}</strong></p><p className="text-xs text-ink-soft">Không gian quản trị hệ thống Sử Ký</p></div></div></header><main className="mod-main-content"><Content section={section} /></main></div></div></div>;
+  const [section, setSection] = useState<AdminSection>("overview");
+  const [drawer, setDrawer] = useState(false);
+  const current = sections.find((item) => item.id === section)!;
+  const select = (value: AdminSection) => {
+    setSection(value);
+    setDrawer(false);
+  };
+  return (
+    <div className="mod-layout-root font-sans text-ink">
+      <div className="mod-layout-shell">
+        <aside className="mod-sidebar">
+          <Sidebar active={section} onSelect={select} />
+        </aside>
+        <div className="mod-main-column">
+          <header className="mod-header">
+            <div className="flex items-center gap-3">
+              <Sheet open={drawer} onOpenChange={setDrawer}>
+                <SheetTrigger asChild>
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    className="mod-mobile-only"
+                  >
+                    <List size={18} />
+                  </Button>
+                </SheetTrigger>
+                <SheetContent
+                  side="left"
+                  className="flex w-[286px] flex-col bg-paper-soft p-5"
+                >
+                  <SheetHeader>
+                    <SheetTitle>Quản trị Sử Ký</SheetTitle>
+                  </SheetHeader>
+                  <Sidebar active={section} onSelect={select} />
+                </SheetContent>
+              </Sheet>
+              <div>
+                <p className="text-xs text-ink-soft">
+                  Admin / <strong>{current.label}</strong>
+                </p>
+                <p className="text-xs text-ink-soft">
+                  Không gian quản trị hệ thống Sử Ký
+                </p>
+              </div>
+            </div>
+          </header>
+          <main className="mod-main-content">
+            <Content section={section} />
+          </main>
+        </div>
+      </div>
+    </div>
+  );
 }

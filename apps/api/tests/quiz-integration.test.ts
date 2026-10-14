@@ -27,10 +27,20 @@ const quizInput = {
   ],
 };
 
-async function expectDomainError(promise: Promise<unknown>, status: DomainError["status"], code: DomainError["code"]) {
-  const error = await promise.then(() => null, (e: unknown) => e);
+async function expectDomainError(
+  promise: Promise<unknown>,
+  status: DomainError["status"],
+  code: DomainError["code"],
+) {
+  const error = await promise.then(
+    () => null,
+    (e: unknown) => e,
+  );
   expect(error).toBeInstanceOf(DomainError);
-  expect({ status: (error as DomainError).status, code: (error as DomainError).code }).toEqual({ status, code });
+  expect({
+    status: (error as DomainError).status,
+    code: (error as DomainError).code,
+  }).toEqual({ status, code });
 }
 
 describe.skipIf(!RUN_INTEGRATION)("quiz + admin mutations (database)", () => {
@@ -38,11 +48,15 @@ describe.skipIf(!RUN_INTEGRATION)("quiz + admin mutations (database)", () => {
   const moderatorId = `it-mod-${runId}`;
   const learnerId = `it-learner-${runId}`;
   const adminId = `it-admin-${runId}`;
+  const rollbackUserId = `it-rollback-${runId}`;
   const service = new GamificationService();
   const admin = new AdminService();
   let seriesId = "";
 
-  async function makeEpisode(name: string, data: { deletedAt?: Date; adminLockedAt?: Date } = {}) {
+  async function makeEpisode(
+    name: string,
+    data: { deletedAt?: Date; adminLockedAt?: Date } = {},
+  ) {
     return prisma.episode.create({
       data: {
         seriesId,
@@ -60,13 +74,37 @@ describe.skipIf(!RUN_INTEGRATION)("quiz + admin mutations (database)", () => {
     await createModerator(moderatorId);
     await prisma.user.createMany({
       data: [
-        { id: learnerId, name: "Learner", email: `${learnerId}@example.com`, emailVerified: true, role: "user" },
-        { id: adminId, name: "Admin", email: `${adminId}@example.com`, emailVerified: true, role: "admin" },
+        {
+          id: learnerId,
+          name: "Learner",
+          email: `${learnerId}@example.com`,
+          emailVerified: true,
+          role: "user",
+        },
+        {
+          id: adminId,
+          name: "Admin",
+          email: `${adminId}@example.com`,
+          emailVerified: true,
+          role: "admin",
+        },
+        {
+          id: rollbackUserId,
+          name: "Rollback",
+          email: `${rollbackUserId}@example.com`,
+          emailVerified: true,
+          role: "user",
+        },
       ],
     });
     seriesId = (
       await prisma.series.create({
-        data: { ownerId: moderatorId, title: `it-${runId}`, slug: `it-series-${runId}`, status: "PUBLISHED" },
+        data: {
+          ownerId: moderatorId,
+          title: `it-${runId}`,
+          slug: `it-series-${runId}`,
+          status: "PUBLISHED",
+        },
       })
     ).id;
   });
@@ -75,7 +113,9 @@ describe.skipIf(!RUN_INTEGRATION)("quiz + admin mutations (database)", () => {
     await prisma.xpAward.deleteMany({ where: { userId: learnerId } });
     await prisma.auditLog.deleteMany({ where: { actorId: adminId } });
     await removeFixtures(moderatorId);
-    await prisma.user.deleteMany({ where: { id: { in: [learnerId, adminId] } } });
+    await prisma.user.deleteMany({
+      where: { id: { in: [learnerId, adminId, rollbackUserId] } },
+    });
   });
 
   it("hides the quiz and rejects attempts once the episode is trashed", async () => {
@@ -83,11 +123,25 @@ describe.skipIf(!RUN_INTEGRATION)("quiz + admin mutations (database)", () => {
     const quiz = await service.upsertQuiz(episode.id, moderatorId, quizInput);
     expect((await service.getPublishedQuiz(episode.slug)).id).toBe(quiz.id);
 
-    await prisma.episode.update({ where: { id: episode.id }, data: { deletedAt: new Date() } });
+    await prisma.episode.update({
+      where: { id: episode.id },
+      data: { deletedAt: new Date() },
+    });
 
-    await expectDomainError(service.getPublishedQuiz(episode.slug), 404, "NOT_FOUND");
     await expectDomainError(
-      service.submitAttempt(quiz.id, learnerId, { answers: [{ questionId: quiz.questions[0]!.id, optionId: quiz.questions[0]!.options[0]!.id }] }),
+      service.getPublishedQuiz(episode.slug),
+      404,
+      "NOT_FOUND",
+    );
+    await expectDomainError(
+      service.submitAttempt(quiz.id, learnerId, {
+        answers: [
+          {
+            questionId: quiz.questions[0]!.id,
+            optionId: quiz.questions[0]!.options[0]!.id,
+          },
+        ],
+      }),
       404,
       "NOT_FOUND",
     );
@@ -95,10 +149,18 @@ describe.skipIf(!RUN_INTEGRATION)("quiz + admin mutations (database)", () => {
 
   it("blocks moderator quiz edits on admin-locked or trashed content", async () => {
     const locked = await makeEpisode("locked", { adminLockedAt: new Date() });
-    await expectDomainError(service.upsertQuiz(locked.id, moderatorId, quizInput), 403, "CONTENT_LOCKED");
+    await expectDomainError(
+      service.upsertQuiz(locked.id, moderatorId, quizInput),
+      403,
+      "CONTENT_LOCKED",
+    );
 
     const trashed = await makeEpisode("trashed", { deletedAt: new Date() });
-    await expectDomainError(service.upsertQuiz(trashed.id, moderatorId, quizInput), 409, "CONTENT_IN_TRASH");
+    await expectDomainError(
+      service.upsertQuiz(trashed.id, moderatorId, quizInput),
+      409,
+      "CONTENT_IN_TRASH",
+    );
   });
 
   it("awards quiz XP once and only on a pass", async () => {
@@ -107,56 +169,128 @@ describe.skipIf(!RUN_INTEGRATION)("quiz + admin mutations (database)", () => {
     const question = quiz.questions[0]!;
     const right = question.options.find((o) => o.label === "A")!.id;
     const wrong = question.options.find((o) => o.label === "B")!.id;
-    const attempt = (optionId: string) => service.submitAttempt(quiz.id, learnerId, { answers: [{ questionId: question.id, optionId }] });
+    const attempt = (optionId: string) =>
+      service.submitAttempt(quiz.id, learnerId, {
+        answers: [{ questionId: question.id, optionId }],
+      });
 
     const failed = await attempt(wrong);
-    expect({ passed: failed.isPassed, xp: failed.xpAwarded }).toEqual({ passed: false, xp: 0 });
+    expect({ passed: failed.isPassed, xp: failed.xpAwarded }).toEqual({
+      passed: false,
+      xp: 0,
+    });
 
     const first = await attempt(right);
     const second = await attempt(right);
-    expect({ xp: first.xpAwarded, again: second.xpAwarded }).toEqual({ xp: QUIZ_XP, again: 0 });
+    expect({ xp: first.xpAwarded, again: second.xpAwarded }).toEqual({
+      xp: QUIZ_XP,
+      again: 0,
+    });
     expect(second.totalXp).toBe(QUIZ_XP);
 
-    await expectDomainError(service.upsertQuiz(episode.id, moderatorId, quizInput), 409, "CONFLICT");
+    await expectDomainError(
+      service.upsertQuiz(episode.id, moderatorId, quizInput),
+      409,
+      "CONFLICT",
+    );
   });
 
   it("maps only 'not found' to 404 and writes the audit row with the ban", async () => {
     await expectDomainError(
-      admin.banUser("00000000-0000-0000-0000-000000000000", { reason: "x" }, { actorId: adminId, ipAddress: null }),
+      admin.banUser(
+        "00000000-0000-0000-0000-000000000000",
+        { reason: "x" },
+        { actorId: adminId, ipAddress: null },
+      ),
       404,
       "NOT_FOUND",
     );
-    await admin.banUser(learnerId, { reason: "spam" }, { actorId: adminId, ipAddress: null });
-    const audit = await prisma.auditLog.findFirst({ where: { actorId: adminId, action: "user.banned", resourceId: learnerId } });
-    expect((await prisma.user.findUniqueOrThrow({ where: { id: learnerId } })).banned).toBe(true);
+    await admin.banUser(
+      learnerId,
+      { reason: "spam" },
+      { actorId: adminId, ipAddress: null },
+    );
+    const audit = await prisma.auditLog.findFirst({
+      where: { actorId: adminId, action: "user.banned", resourceId: learnerId },
+    });
+    expect(
+      (await prisma.user.findUniqueOrThrow({ where: { id: learnerId } }))
+        .banned,
+    ).toBe(true);
     expect(audit).not.toBeNull();
+  });
+
+  it("rolls back the mutation when the audit write fails", async () => {
+    const ghostActor = `it-ghost-${runId}`;
+    await expect(
+      admin.banUser(
+        rollbackUserId,
+        { reason: "spam" },
+        { actorId: ghostActor, ipAddress: null },
+      ),
+    ).rejects.toThrow();
+    const user = await prisma.user.findUniqueOrThrow({
+      where: { id: rollbackUserId },
+    });
+    expect(user.banned).toBe(false);
   });
 
   it("rejects weekly missions that do not start at Monday 00:00 UTC", async () => {
     const template = await admin.createMissionTemplate(
-      { title: `t-${runId}`, activityType: "PASS_QUIZ", targetCount: 1, xpReward: 5 },
+      {
+        title: `t-${runId}`,
+        activityType: "PASS_QUIZ",
+        targetCount: 1,
+        xpReward: 5,
+      },
       { actorId: adminId, ipAddress: null },
     );
     const audit = { actorId: adminId, ipAddress: null };
     try {
       await expectDomainError(
-        admin.activateWeeklyMission({ missionTemplateId: template.id, weekStartDate: new Date("2026-10-12T10:00:00Z") }, audit),
+        admin.activateWeeklyMission(
+          {
+            missionTemplateId: template.id,
+            weekStartDate: new Date("2026-10-12T10:00:00Z"),
+          },
+          audit,
+        ),
         422,
         "VALIDATION_ERROR",
       );
       await expectDomainError(
-        admin.activateWeeklyMission({ missionTemplateId: template.id, weekStartDate: new Date("2026-10-13T00:00:00Z") }, audit),
+        admin.activateWeeklyMission(
+          {
+            missionTemplateId: template.id,
+            weekStartDate: new Date("2026-10-13T00:00:00Z"),
+          },
+          audit,
+        ),
         422,
         "VALIDATION_ERROR",
       );
-      await admin.activateWeeklyMission({ missionTemplateId: template.id, weekStartDate: new Date("2026-10-12T00:00:00Z") }, audit);
+      await admin.activateWeeklyMission(
+        {
+          missionTemplateId: template.id,
+          weekStartDate: new Date("2026-10-12T00:00:00Z"),
+        },
+        audit,
+      );
       await expectDomainError(
-        admin.activateWeeklyMission({ missionTemplateId: template.id, weekStartDate: new Date("2026-10-12T00:00:00Z") }, audit),
+        admin.activateWeeklyMission(
+          {
+            missionTemplateId: template.id,
+            weekStartDate: new Date("2026-10-12T00:00:00Z"),
+          },
+          audit,
+        ),
         409,
         "CONFLICT",
       );
     } finally {
-      await prisma.weeklyMission.deleteMany({ where: { missionTemplateId: template.id } });
+      await prisma.weeklyMission.deleteMany({
+        where: { missionTemplateId: template.id },
+      });
       await prisma.missionTemplate.delete({ where: { id: template.id } });
     }
   });
