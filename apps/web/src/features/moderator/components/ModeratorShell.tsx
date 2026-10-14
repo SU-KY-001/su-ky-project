@@ -159,8 +159,6 @@ export function ModeratorShell({ nav, children }: ModeratorShellProps) {
           <main className="mod-main-content">{children}</main>
         </div>
       </div>
-
-      <ModeratorToastView />
     </div>
   );
 }
