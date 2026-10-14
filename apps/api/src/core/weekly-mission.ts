@@ -3,6 +3,7 @@ import type { Prisma } from "@repo/db";
 const MS_PER_HOUR = 60 * 60 * 1000;
 const HOURS_PER_DAY = 24;
 const DAYS_PER_WEEK = 7;
+const MONDAY_UTC_DAY = 1;
 // Asia/Ho_Chi_Minh has no DST, so a fixed offset is exact.
 const VIETNAM_UTC_OFFSET_HOURS = 7;
 const VIETNAM_OFFSET_MS = VIETNAM_UTC_OFFSET_HOURS * MS_PER_HOUR;
@@ -21,7 +22,8 @@ export interface MissionProgressSummary {
 
 export function mondayInVietnam(now: Date): Date {
   const local = new Date(now.getTime() + VIETNAM_OFFSET_MS);
-  const daysSinceMonday = (local.getUTCDay() + 6) % 7;
+  const daysSinceMonday =
+    (local.getUTCDay() + DAYS_PER_WEEK - MONDAY_UTC_DAY) % DAYS_PER_WEEK;
   // Stored as PostgreSQL DATE; UTC midnight represents the Vietnam calendar date.
   return new Date(
     Date.UTC(

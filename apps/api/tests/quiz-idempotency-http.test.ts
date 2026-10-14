@@ -11,6 +11,8 @@ import {
   uniqueSuffix,
 } from "./support/integration";
 
+const TEST_SESSION_TTL_MS = 60_000;
+
 const quizInput = {
   passScorePercent: 100,
   questions: [
@@ -63,7 +65,7 @@ describe.skipIf(!RUN_INTEGRATION)("quiz attempt idempotency (HTTP)", () => {
         id: crypto.randomUUID(),
         userId: learnerId,
         token,
-        expiresAt: new Date(Date.now() + 60_000),
+        expiresAt: new Date(Date.now() + TEST_SESSION_TTL_MS),
       },
     });
     const series = await prisma.series.create({
