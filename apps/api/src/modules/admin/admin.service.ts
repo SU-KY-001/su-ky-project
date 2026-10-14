@@ -1,13 +1,26 @@
-import { prisma, type Prisma } from "@repo/db";
+import { Prisma, prisma } from "@repo/db";
 import { z } from "zod";
 import { DomainError } from "../../core/errors/domain-error";
 import { writeAudit } from "../../core/audit";
 import { SYSTEM_CONFIGS, resetSystemConfigCache } from "../../core/config/system-config";
 import { auth } from "../auth";
-import { fromLegacyYearRange, type UserRole } from "@repo/shared";
+import { fromLegacyYearRange, type MissionTemplatePatchSchema, type UserRole } from "@repo/shared";
 import { insertWithUniqueSlug } from "../../core/slug";
 
 type AuditContext = { actorId: string; ipAddress: string | null };
+
+const DAY_MS = 24 * 60 * 60 * 1000;
+const AUDIT_WINDOW_MS = 7 * DAY_MS;
+
+/** Maps only the given Prisma error code to a domain error; anything else (DB down, timeout) propagates. */
+async function mapPrismaError<T>(run: () => Promise<T>, code: "P2025" | "P2002", mapped: DomainError): Promise<T> {
+  try {
+    return await run();
+  } catch (error) {
+    if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === code) throw mapped;
+    throw error;
+  }
+}
 
 const configDescriptions: Record<keyof typeof SYSTEM_CONFIGS, string> = {
   "xp.episode_completion": "XP nhận khi hoàn thành một Episode",
@@ -43,7 +56,7 @@ const configDescriptions: Record<keyof typeof SYSTEM_CONFIGS, string> = {
 
 export class AdminService {
   async dashboard() {
-    const since = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+    const since = new Date(Date.now() - AUDIT_WINDOW_MS);
     const [total, active, banned, moderators, series, episodes, publishedSeries, publishedEpisodes, listeners, completed, progress, audit, templates, missions] = await Promise.all([
       prisma.user.count(), prisma.user.count({ where: { banned: false } }), prisma.user.count({ where: { banned: true } }), prisma.user.count({ where: { role: "moderator" } }),
       prisma.series.count({ where: { deletedAt: null } }), prisma.episode.count({ where: { deletedAt: null } }),
@@ -70,35 +83,50 @@ export class AdminService {
 
   async createUser(input: { name: string; email: string; password: string; role: UserRole }, audit: AuditContext) {
     if (await prisma.user.findUnique({ where: { email: input.email } })) throw new DomainError(409, "CONFLICT", "Email đã được sử dụng");
+    // signUpEmail is Better Auth's own write and cannot join the Prisma transaction; only role + audit are atomic.
     await auth.api.signUpEmail({ body: { name: input.name, email: input.email, password: input.password } });
-    const user = await prisma.user.update({ where: { email: input.email }, data: { role: input.role } });
-    await writeAudit(prisma, { ...audit, action: "user.created", resourceType: "user", resourceId: user.id, changes: { name: user.name, email: user.email, role: user.role } });
-    return user;
+    return prisma.$transaction(async (tx) => {
+      const user = await tx.user.update({ where: { email: input.email }, data: { role: input.role } });
+      await writeAudit(tx, { ...audit, action: "user.created", resourceType: "user", resourceId: user.id, changes: { name: user.name, email: user.email, role: user.role } });
+      return user;
+    });
   }
 
   async updateUser(id: string, input: { name?: string; role?: UserRole }, audit: AuditContext) {
     const current = await prisma.user.findUnique({ where: { id } });
     if (!current) throw new DomainError(404, "NOT_FOUND", "Không tìm thấy tài khoản");
     if (id === audit.actorId && input.role && input.role !== "admin") throw new DomainError(409, "BAD_REQUEST", "Admin không thể tự hạ quyền của mình");
-    const user = await prisma.user.update({ where: { id }, data: input });
-    await writeAudit(prisma, { ...audit, action: input.role && input.role !== current.role ? "user.role_changed" : "user.updated", resourceType: "user", resourceId: id, changes: { before: { name: current.name, role: current.role }, after: { name: user.name, role: user.role } } });
-    return user;
+    return prisma.$transaction(async (tx) => {
+      const user = await tx.user.update({ where: { id }, data: input });
+      await writeAudit(tx, { ...audit, action: input.role && input.role !== current.role ? "user.role_changed" : "user.updated", resourceType: "user", resourceId: id, changes: { before: { name: current.name, role: current.role }, after: { name: user.name, role: user.role } } });
+      return user;
+    });
   }
 
   async banUser(id: string, input: { reason: string; expiresAt?: Date | null }, audit: AuditContext) {
     if (id === audit.actorId) throw new DomainError(409, "BAD_REQUEST", "Admin không thể tự khóa tài khoản của mình");
-    const user = await prisma.user.update({ where: { id }, data: { banned: true, banReason: input.reason, banExpires: input.expiresAt ?? null } }).catch(() => null);
-    if (!user) throw new DomainError(404, "NOT_FOUND", "Không tìm thấy tài khoản");
-    await prisma.session.deleteMany({ where: { userId: id } });
-    await writeAudit(prisma, { ...audit, action: "user.banned", resourceType: "user", resourceId: id, changes: { reason: input.reason, expiresAt: input.expiresAt?.toISOString() ?? null } });
-    return user;
+    return mapPrismaError(
+      () => prisma.$transaction(async (tx) => {
+        const user = await tx.user.update({ where: { id }, data: { banned: true, banReason: input.reason, banExpires: input.expiresAt ?? null } });
+        await tx.session.deleteMany({ where: { userId: id } });
+        await writeAudit(tx, { ...audit, action: "user.banned", resourceType: "user", resourceId: id, changes: { reason: input.reason, expiresAt: input.expiresAt?.toISOString() ?? null } });
+        return user;
+      }),
+      "P2025",
+      new DomainError(404, "NOT_FOUND", "Không tìm thấy tài khoản"),
+    );
   }
 
   async unbanUser(id: string, audit: AuditContext) {
-    const user = await prisma.user.update({ where: { id }, data: { banned: false, banReason: null, banExpires: null } }).catch(() => null);
-    if (!user) throw new DomainError(404, "NOT_FOUND", "Không tìm thấy tài khoản");
-    await writeAudit(prisma, { ...audit, action: "user.unbanned", resourceType: "user", resourceId: id, changes: {} });
-    return user;
+    return mapPrismaError(
+      () => prisma.$transaction(async (tx) => {
+        const user = await tx.user.update({ where: { id }, data: { banned: false, banReason: null, banExpires: null } });
+        await writeAudit(tx, { ...audit, action: "user.unbanned", resourceType: "user", resourceId: id, changes: {} });
+        return user;
+      }),
+      "P2025",
+      new DomainError(404, "NOT_FOUND", "Không tìm thấy tài khoản"),
+    );
   }
 
   async listContent(query: { page: number; limit: number; q?: string; status?: "DRAFT" | "PUBLISHED" | "HIDDEN" | "DELETED" }) {
@@ -124,9 +152,11 @@ export class AdminService {
         : action === "trash"
           ? { deletedAt: now, statusBeforeDelete: current.status, adminLockedAt: now, adminLockedBy: { connect: { id: audit.actorId } } }
           : { deletedAt: null, status: current.statusBeforeDelete ?? "DRAFT", statusBeforeDelete: null, adminLockedAt: null, adminLockedBy: { disconnect: true } };
-      const row = await prisma.series.update({ where: { id }, data });
-      await writeAudit(prisma, { ...audit, action: `content.series_${action}`, resourceType: "series", resourceId: id, changes: { before: { status: current.status, deletedAt: current.deletedAt }, after: { status: row.status, deletedAt: row.deletedAt } } });
-      return row;
+      return prisma.$transaction(async (tx) => {
+        const row = await tx.series.update({ where: { id }, data });
+        await writeAudit(tx, { ...audit, action: `content.series_${action}`, resourceType: "series", resourceId: id, changes: { before: { status: current.status, deletedAt: current.deletedAt }, after: { status: row.status, deletedAt: row.deletedAt } } });
+        return row;
+      });
     }
     const current = await prisma.episode.findUnique({ where: { id }, include: { series: { select: { deletedAt: true } } } });
     if (!current) throw new DomainError(404, "NOT_FOUND", "Không tìm thấy episode");
@@ -136,9 +166,11 @@ export class AdminService {
       : action === "trash"
         ? { deletedAt: now, statusBeforeDelete: current.status, adminLockedAt: now, adminLockedBy: { connect: { id: audit.actorId } } }
         : { deletedAt: null, status: current.statusBeforeDelete ?? "DRAFT", statusBeforeDelete: null, adminLockedAt: null, adminLockedBy: { disconnect: true } };
-    const row = await prisma.episode.update({ where: { id }, data });
-    await writeAudit(prisma, { ...audit, action: `content.episode_${action}`, resourceType: "episode", resourceId: id, changes: { before: { status: current.status, deletedAt: current.deletedAt }, after: { status: row.status, deletedAt: row.deletedAt } } });
-    return row;
+    return prisma.$transaction(async (tx) => {
+      const row = await tx.episode.update({ where: { id }, data });
+      await writeAudit(tx, { ...audit, action: `content.episode_${action}`, resourceType: "episode", resourceId: id, changes: { before: { status: current.status, deletedAt: current.deletedAt }, after: { status: row.status, deletedAt: row.deletedAt } } });
+      return row;
+    });
   }
 
   async listTopics(query: { page: number; limit: number; q?: string; status?: "active" | "inactive" }) {
@@ -148,20 +180,28 @@ export class AdminService {
   }
 
   async createTopic(input: { name: string; sortOrder: number; isActive: boolean }, audit: AuditContext) {
-    let id = "";
-    await insertWithUniqueSlug(input.name, async (slug) => {
-      const result = await prisma.topic.createMany({ data: [{ ...input, slug, createdById: audit.actorId }], skipDuplicates: true });
-      if (!result.count) return false;
-      id = (await prisma.topic.findUniqueOrThrow({ where: { slug }, select: { id: true } })).id; return true;
+    return prisma.$transaction(async (tx) => {
+      let id = "";
+      await insertWithUniqueSlug(input.name, async (slug) => {
+        const result = await tx.topic.createMany({ data: [{ ...input, slug, createdById: audit.actorId }], skipDuplicates: true });
+        if (!result.count) return false;
+        id = (await tx.topic.findUniqueOrThrow({ where: { slug }, select: { id: true } })).id;
+        return true;
+      });
+      const row = await tx.topic.findUniqueOrThrow({ where: { id } });
+      await writeAudit(tx, { ...audit, action: "topic.created", resourceType: "topic", resourceId: id, changes: { after: input } });
+      return row;
     });
-    const row = await prisma.topic.findUniqueOrThrow({ where: { id } });
-    await writeAudit(prisma, { ...audit, action: "topic.created", resourceType: "topic", resourceId: id, changes: { after: input } }); return row;
   }
 
   async patchTopic(id: string, input: { name?: string; sortOrder?: number; isActive?: boolean }, audit: AuditContext) {
-    const current = await prisma.topic.findUnique({ where: { id } }); if (!current) throw new DomainError(404, "NOT_FOUND", "Không tìm thấy chủ đề");
-    const row = await prisma.topic.update({ where: { id }, data: input });
-    await writeAudit(prisma, { ...audit, action: "topic.updated", resourceType: "topic", resourceId: id, changes: { before: current, after: row } as unknown as Prisma.InputJsonValue }); return row;
+    const current = await prisma.topic.findUnique({ where: { id } });
+    if (!current) throw new DomainError(404, "NOT_FOUND", "Không tìm thấy chủ đề");
+    return prisma.$transaction(async (tx) => {
+      const row = await tx.topic.update({ where: { id }, data: input });
+      await writeAudit(tx, { ...audit, action: "topic.updated", resourceType: "topic", resourceId: id, changes: { before: current, after: row } as unknown as Prisma.InputJsonValue });
+      return row;
+    });
   }
 
   async listHistoricalPeriods(query: { page: number; limit: number; q?: string; status?: "active" | "inactive" }) {
@@ -171,22 +211,32 @@ export class AdminService {
   }
 
   async createHistoricalPeriod(input: { name: string; summary?: string | null; startYear: number | null; endYear: number | null; sortOrder: number; isActive: boolean }, audit: AuditContext) {
-    let id = ""; const time = fromLegacyYearRange({ startYear: input.startYear, endYear: input.endYear }, "CLOSED") as Prisma.InputJsonValue;
-    await insertWithUniqueSlug(input.name, async (slug) => {
-      const result = await prisma.historicalPeriod.createMany({ data: [{ ...input, slug, time, createdById: audit.actorId }], skipDuplicates: true });
-      if (!result.count) return false;
-      id = (await prisma.historicalPeriod.findUniqueOrThrow({ where: { slug }, select: { id: true } })).id; return true;
+    const time = fromLegacyYearRange({ startYear: input.startYear, endYear: input.endYear }, "CLOSED") as Prisma.InputJsonValue;
+    return prisma.$transaction(async (tx) => {
+      let id = "";
+      await insertWithUniqueSlug(input.name, async (slug) => {
+        const result = await tx.historicalPeriod.createMany({ data: [{ ...input, slug, time, createdById: audit.actorId }], skipDuplicates: true });
+        if (!result.count) return false;
+        id = (await tx.historicalPeriod.findUniqueOrThrow({ where: { slug }, select: { id: true } })).id;
+        return true;
+      });
+      const row = await tx.historicalPeriod.findUniqueOrThrow({ where: { id } });
+      await writeAudit(tx, { ...audit, action: "historical_period.created", resourceType: "historical_period", resourceId: id, changes: { after: input } });
+      return row;
     });
-    const row = await prisma.historicalPeriod.findUniqueOrThrow({ where: { id } });
-    await writeAudit(prisma, { ...audit, action: "historical_period.created", resourceType: "historical_period", resourceId: id, changes: { after: input } }); return row;
   }
 
   async patchHistoricalPeriod(id: string, input: { name?: string; summary?: string | null; startYear?: number | null; endYear?: number | null; sortOrder?: number; isActive?: boolean }, audit: AuditContext) {
-    const current = await prisma.historicalPeriod.findFirst({ where: { id, deletedAt: null } }); if (!current) throw new DomainError(404, "NOT_FOUND", "Không tìm thấy thời kỳ lịch sử");
-    const startYear = input.startYear === undefined ? current.startYear : input.startYear; const endYear = input.endYear === undefined ? current.endYear : input.endYear;
+    const current = await prisma.historicalPeriod.findFirst({ where: { id, deletedAt: null } });
+    if (!current) throw new DomainError(404, "NOT_FOUND", "Không tìm thấy thời kỳ lịch sử");
+    const startYear = input.startYear === undefined ? current.startYear : input.startYear;
+    const endYear = input.endYear === undefined ? current.endYear : input.endYear;
     if (startYear !== null && endYear !== null && startYear > endYear) throw new DomainError(422, "VALIDATION_ERROR", "Năm kết thúc phải lớn hơn hoặc bằng năm bắt đầu");
-    const row = await prisma.historicalPeriod.update({ where: { id }, data: { ...input, time: fromLegacyYearRange({ startYear, endYear }, "CLOSED") as Prisma.InputJsonValue, version: { increment: 1 } } });
-    await writeAudit(prisma, { ...audit, action: "historical_period.updated", resourceType: "historical_period", resourceId: id, changes: { before: current, after: row } as unknown as Prisma.InputJsonValue }); return row;
+    return prisma.$transaction(async (tx) => {
+      const row = await tx.historicalPeriod.update({ where: { id }, data: { ...input, time: fromLegacyYearRange({ startYear, endYear }, "CLOSED") as Prisma.InputJsonValue, version: { increment: 1 } } });
+      await writeAudit(tx, { ...audit, action: "historical_period.updated", resourceType: "historical_period", resourceId: id, changes: { before: current, after: row } as unknown as Prisma.InputJsonValue });
+      return row;
+    });
   }
 
   async listConfigs() {
@@ -204,9 +254,11 @@ export class AdminService {
     const parsed = (definition.schema as z.ZodType<unknown>).safeParse(value);
     if (!parsed.success) throw new DomainError(422, "VALIDATION_ERROR", "Giá trị cấu hình không hợp lệ");
     const previous = await prisma.systemConfig.findUnique({ where: { key } });
-    await prisma.systemConfig.upsert({ where: { key }, create: { key, value: parsed.data as Prisma.InputJsonValue, description: configDescriptions[key as keyof typeof SYSTEM_CONFIGS], updatedById: audit.actorId }, update: { value: parsed.data as Prisma.InputJsonValue, updatedById: audit.actorId } });
+    await prisma.$transaction(async (tx) => {
+      await tx.systemConfig.upsert({ where: { key }, create: { key, value: parsed.data as Prisma.InputJsonValue, description: configDescriptions[key as keyof typeof SYSTEM_CONFIGS], updatedById: audit.actorId }, update: { value: parsed.data as Prisma.InputJsonValue, updatedById: audit.actorId } });
+      await writeAudit(tx, { ...audit, action: "system_config.updated", resourceType: "system_config", resourceId: key, changes: { before: previous?.value ?? null, after: parsed.data as Prisma.InputJsonValue } });
+    });
     resetSystemConfigCache();
-    await writeAudit(prisma, { ...audit, action: "system_config.updated", resourceType: "system_config", resourceId: key, changes: { before: previous?.value ?? null, after: parsed.data as Prisma.InputJsonValue } });
     return (await this.listConfigs()).find((item) => item.key === key)!;
   }
 
@@ -218,19 +270,37 @@ export class AdminService {
 
   listMissionTemplates() { return prisma.missionTemplate.findMany({ orderBy: { updatedAt: "desc" } }); }
   async createMissionTemplate(input: { title: string; description?: string | null; activityType: "COMPLETE_EPISODE" | "PASS_QUIZ"; targetCount: number; xpReward: number }, audit: AuditContext) {
-    const row = await prisma.missionTemplate.create({ data: { ...input, createdById: audit.actorId } });
-    await writeAudit(prisma, { ...audit, action: "mission_template.created", resourceType: "mission_template", resourceId: row.id, changes: input }); return row;
+    return prisma.$transaction(async (tx) => {
+      const row = await tx.missionTemplate.create({ data: { ...input, createdById: audit.actorId } });
+      await writeAudit(tx, { ...audit, action: "mission_template.created", resourceType: "mission_template", resourceId: row.id, changes: input });
+      return row;
+    });
   }
-  async patchMissionTemplate(id: string, input: Prisma.MissionTemplateUpdateInput, audit: AuditContext) {
-    const row = await prisma.missionTemplate.update({ where: { id }, data: input }).catch(() => null); if (!row) throw new DomainError(404, "NOT_FOUND", "Không tìm thấy mẫu nhiệm vụ");
-    await writeAudit(prisma, { ...audit, action: "mission_template.updated", resourceType: "mission_template", resourceId: id, changes: input as Prisma.InputJsonValue }); return row;
+  async patchMissionTemplate(id: string, input: z.infer<typeof MissionTemplatePatchSchema>, audit: AuditContext) {
+    return mapPrismaError(
+      () => prisma.$transaction(async (tx) => {
+        const row = await tx.missionTemplate.update({ where: { id }, data: input });
+        await writeAudit(tx, { ...audit, action: "mission_template.updated", resourceType: "mission_template", resourceId: id, changes: input as Prisma.InputJsonValue });
+        return row;
+      }),
+      "P2025",
+      new DomainError(404, "NOT_FOUND", "Không tìm thấy mẫu nhiệm vụ"),
+    );
   }
   listWeeklyMissions() { return prisma.weeklyMission.findMany({ include: { missionTemplate: true, _count: { select: { userMissions: true } } }, orderBy: { weekStartDate: "desc" } }); }
   async activateWeeklyMission(input: { missionTemplateId: string; weekStartDate: Date }, audit: AuditContext) {
-    const day = input.weekStartDate.getUTCDay(); if (day !== 1) throw new DomainError(422, "VALIDATION_ERROR", "Tuần nhiệm vụ phải bắt đầu vào thứ Hai");
-    const template = await prisma.missionTemplate.findUnique({ where: { id: input.missionTemplateId } }); if (!template || !template.isActive) throw new DomainError(422, "VALIDATION_ERROR", "Mẫu nhiệm vụ không khả dụng");
-    const row = await prisma.weeklyMission.create({ data: { missionTemplateId: template.id, weekStartDate: input.weekStartDate, title: template.title, activityType: template.activityType, targetCount: template.targetCount, xpReward: template.xpReward, activatedAt: new Date(), activatedById: audit.actorId } }).catch(() => null);
-    if (!row) throw new DomainError(409, "CONFLICT", "Mẫu nhiệm vụ đã được kích hoạt cho tuần này");
-    await writeAudit(prisma, { ...audit, action: "weekly_mission.activated", resourceType: "weekly_mission", resourceId: row.id, changes: { missionTemplateId: template.id, weekStartDate: input.weekStartDate.toISOString() } }); return row;
+    const { weekStartDate } = input;
+    if (weekStartDate.getUTCDay() !== 1 || weekStartDate.getTime() % DAY_MS !== 0) throw new DomainError(422, "VALIDATION_ERROR", "Tuần nhiệm vụ phải bắt đầu vào 00:00 UTC thứ Hai");
+    const template = await prisma.missionTemplate.findUnique({ where: { id: input.missionTemplateId } });
+    if (!template || !template.isActive) throw new DomainError(422, "VALIDATION_ERROR", "Mẫu nhiệm vụ không khả dụng");
+    return mapPrismaError(
+      () => prisma.$transaction(async (tx) => {
+        const row = await tx.weeklyMission.create({ data: { missionTemplateId: template.id, weekStartDate, title: template.title, activityType: template.activityType, targetCount: template.targetCount, xpReward: template.xpReward, activatedAt: new Date(), activatedById: audit.actorId } });
+        await writeAudit(tx, { ...audit, action: "weekly_mission.activated", resourceType: "weekly_mission", resourceId: row.id, changes: { missionTemplateId: template.id, weekStartDate: weekStartDate.toISOString() } });
+        return row;
+      }),
+      "P2002",
+      new DomainError(409, "CONFLICT", "Mẫu nhiệm vụ đã được kích hoạt cho tuần này"),
+    );
   }
 }

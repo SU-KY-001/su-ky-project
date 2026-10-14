@@ -15,10 +15,11 @@ export function mondayInVietnam(now: Date): Date {
 
 const quizInclude = {
   questions: { orderBy: { sortOrder: "asc" as const }, include: { options: { orderBy: { optionLabel: "asc" as const } } } },
-};
+} satisfies Prisma.QuizInclude;
 
-function publicQuiz(row: Awaited<ReturnType<typeof prisma.quiz.findUniqueOrThrow>>) {
-  const quiz = row as typeof row & { questions: Array<{ id: string; questionText: string; sortOrder: number; options: Array<{ id: string; optionLabel: string; optionText: string }> }> };
+const PUBLISHED_EPISODE = { status: "PUBLISHED" as const, deletedAt: null, series: { status: "PUBLISHED" as const, deletedAt: null } };
+
+function publicQuiz(quiz: Prisma.QuizGetPayload<{ include: typeof quizInclude }>) {
   return {
     id: quiz.id,
     episodeId: quiz.episodeId,
@@ -90,7 +91,7 @@ export class GamificationService {
 
   async getPublishedQuiz(episodeSlug: string) {
     const quiz = await prisma.quiz.findFirst({
-      where: { episode: { slug: episodeSlug, status: "PUBLISHED", series: { status: "PUBLISHED" } } },
+      where: { episode: { slug: episodeSlug, ...PUBLISHED_EPISODE } },
       include: quizInclude,
     });
     if (!quiz) throw new DomainError(404, "NOT_FOUND", "Không tìm thấy quiz khả dụng");
@@ -102,7 +103,7 @@ export class GamificationService {
     const now = new Date();
     return prisma.$transaction(async (db) => {
       const quiz = await db.quiz.findFirst({
-        where: { id: quizId, episode: { status: "PUBLISHED", series: { status: "PUBLISHED" } } },
+        where: { id: quizId, episode: PUBLISHED_EPISODE },
         include: quizInclude,
       });
       if (!quiz) throw new DomainError(404, "NOT_FOUND", "Không tìm thấy quiz khả dụng");
@@ -158,8 +159,13 @@ export class GamificationService {
   }
 
   private async assertOwnedEpisode(episodeId: string, moderatorId: string) {
-    const episode = await prisma.episode.findFirst({ where: { id: episodeId, series: { ownerId: moderatorId } }, select: { id: true } });
+    const episode = await prisma.episode.findFirst({
+      where: { id: episodeId, series: { ownerId: moderatorId } },
+      select: { deletedAt: true, adminLockedAt: true, series: { select: { deletedAt: true, adminLockedAt: true } } },
+    });
     if (!episode) throw new DomainError(404, "NOT_FOUND", "Không tìm thấy tập thuộc quyền quản lý");
+    if (episode.deletedAt || episode.series.deletedAt) throw new DomainError(409, "CONTENT_IN_TRASH", "Content is in trash");
+    if (episode.adminLockedAt || episode.series.adminLockedAt) throw new DomainError(403, "CONTENT_LOCKED", "Content is locked by an administrator");
   }
 
   private async progressQuizMissions(db: Prisma.TransactionClient, userId: string, quizId: string, now: Date) {
