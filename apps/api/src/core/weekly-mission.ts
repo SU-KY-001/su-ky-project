@@ -1,7 +1,12 @@
 import type { Prisma } from "@repo/db";
 
-const VIETNAM_OFFSET_MS = 7 * 60 * 60 * 1000;
-export const WEEK_MS = 7 * 24 * 60 * 60 * 1000;
+const MS_PER_HOUR = 60 * 60 * 1000;
+const HOURS_PER_DAY = 24;
+const DAYS_PER_WEEK = 7;
+// Asia/Ho_Chi_Minh has no DST, so a fixed offset is exact.
+const VIETNAM_UTC_OFFSET_HOURS = 7;
+const VIETNAM_OFFSET_MS = VIETNAM_UTC_OFFSET_HOURS * MS_PER_HOUR;
+export const WEEK_MS = DAYS_PER_WEEK * HOURS_PER_DAY * MS_PER_HOUR;
 
 export type MissionActivityType = "COMPLETE_EPISODE" | "PASS_QUIZ";
 
