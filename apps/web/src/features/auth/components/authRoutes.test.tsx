@@ -35,7 +35,6 @@ beforeAll(async () => {
   ({ createRoot } = await import("react-dom/client"));
   ({ appRoutes, router: browserRouter } = await import("@/app/router"));
   await Promise.all([
-    import("@/pages/moderator/ModeratorWorkspacePage"),
     import("@/pages/moderator/ModeratorTimelinePage"),
     import("@/pages/moderator/PodcastProductionPage"),
     import("@/pages/moderator/ModeratorLibraryFeaturePage"),
