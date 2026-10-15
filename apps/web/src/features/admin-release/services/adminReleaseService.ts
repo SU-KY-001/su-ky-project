@@ -1,6 +1,7 @@
 import {
   ReleaseDashboardSchema,
   ReleaseModeratorListSchema,
+  ReleaseModeratorWorkloadListSchema,
   ReleaseProgressListSchema,
   ReleaseSchedulePageSchema,
   ReleaseScheduleRecordSchema,
@@ -31,6 +32,8 @@ export interface ReleaseScheduleFilter {
   status?: ReleaseScheduleStatus;
   from?: string;
   to?: string;
+  q?: string;
+  moderatorId?: string;
   page?: number;
   limit?: number;
 }
@@ -47,6 +50,8 @@ export const adminReleaseService = {
           status: filter.status,
           from: filter.from,
           to: filter.to,
+          q: filter.q,
+          moderatorId: filter.moderatorId,
           page: String(filter.page ?? 1),
           limit: String(filter.limit ?? 50),
         },
@@ -90,6 +95,13 @@ export const adminReleaseService = {
     ),
   progress: (id: string) =>
     parse(admin[":id"].progress.$get({ param: { id } }), ReleaseProgressListSchema),
+  workload: () =>
+    parse(admin.workload.$get(), ReleaseModeratorWorkloadListSchema),
+  checkReadiness: (id: string) =>
+    parse(
+      admin[":id"]["check-readiness"].$post({ param: { id } }),
+      ReleaseScheduleRecordSchema,
+    ),
   publishNow: async (id: string) => {
     const response = await admin[":id"]["publish-now"].$post({ param: { id } });
     if (!response.ok) throw await ApiError.fromResponse(response);
