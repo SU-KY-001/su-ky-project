@@ -25,7 +25,7 @@ it("presents release operations with approved business terminology", async () =>
             status: "READY_TO_PUBLISH",
             scheduledAt: "2026-10-20T13:00:00.000Z",
             productionDeadline: "2026-10-19T13:00:00.000Z",
-            assignments: [],
+            assignments: [{ moderatorId: "moderator-1", moderator: { name: "Nguyễn Minh Anh" } }],
           },
         ]}
       />,
@@ -37,4 +37,6 @@ it("presents release operations with approved business terminology", async () =>
   expect(host.textContent).toContain("Có nguy cơ trễ");
   expect(host.textContent).toContain("Cần xử lý");
   expect(host.textContent).not.toContain("Audit log");
+  expect(host.querySelector('[data-card-badge-type="name"]')?.textContent).toBe("Nguyễn Minh Anh");
+  expect(host.querySelector('[data-card-badge-type="status"]')?.textContent).toBe("Sẵn sàng phát hành");
 });

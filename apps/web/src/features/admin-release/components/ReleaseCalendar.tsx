@@ -1,5 +1,6 @@
 import { CalendarBlank } from "@phosphor-icons/react";
 import type { ReleaseScheduleRecord } from "@repo/shared";
+import { CardBadge, cardBadgeToneForStatus } from "@/shared/components/dashboard/CardBadge";
 
 const statusCopy: Record<string, string> = {
   SCHEDULED: "Đang sản xuất",
@@ -57,11 +58,13 @@ export function ReleaseCalendar({
                 </time>
                 <span className="min-w-0">
                   <span className="block truncate text-sm font-bold text-mod-text">{item.title}</span>
-                  <span className="mt-1 block truncate text-xs text-mod-text-secondary">
-                    {item.assignments.map((entry) => entry.moderator.name).join(", ") || "Chưa phân công"}
+                  <span className="mt-1.5 flex flex-wrap gap-1.5">
+                    {item.assignments.length ? item.assignments.map((entry) => (
+                      <CardBadge key={entry.moderatorId} type="name">{entry.moderator.name}</CardBadge>
+                    )) : <CardBadge type="name">Chưa phân công</CardBadge>}
                   </span>
                 </span>
-                <span className="text-xs font-semibold text-mod-text-secondary">{statusCopy[item.status]}</span>
+                <CardBadge type="status" tone={cardBadgeToneForStatus(item.status)}>{statusCopy[item.status] ?? item.status}</CardBadge>
               </button>
             ))}
           </div>

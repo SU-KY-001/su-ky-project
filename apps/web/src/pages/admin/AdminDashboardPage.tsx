@@ -16,6 +16,8 @@ import { AdminReleaseDashboard } from "@/features/admin-release/components/Admin
 import { ReleaseWorkspace } from "@/features/admin-release/components/ReleaseWorkspace";
 import { ReleaseHistory } from "@/features/admin-release/components/ReleaseHistory";
 import { useAdminReleaseSchedules } from "@/features/admin-release/hooks/useAdminReleases";
+import type { ReleaseScheduleRecord } from "@repo/shared";
+import { CardBadge } from "@/shared/components/dashboard/CardBadge";
 
 type AdminSection =
   | "overview"
@@ -50,23 +52,33 @@ function adminNavigation(active: AdminSection, select: (section: AdminSection) =
 }
 
 function ReleaseObservation({ mode }: { mode: "coordination" | "reviews" }) {
-  const schedules = useAdminReleaseSchedules({ page: 1, limit: 50 });
-  if (schedules.isPending) return <div className="ui-skeleton min-h-[360px] rounded-[16px]" />;
-  if (schedules.isError) return <p role="alert" className="text-sm text-vermilion">Không tải được dữ liệu điều phối.</p>;
+  const query = useAdminReleaseSchedules({ page: 1, limit: 50 });
+  if (query.isPending) return <div className="ui-skeleton min-h-[360px] rounded-[16px]" />;
+  if (query.isError) return <p role="alert" className="text-sm text-vermilion">Không tải được dữ liệu điều phối.</p>;
+  return <ReleaseObservationView mode={mode} schedules={query.data.items} />;
+}
+
+export function ReleaseObservationView({
+  mode,
+  schedules,
+}: {
+  mode: "coordination" | "reviews";
+  schedules: ReleaseScheduleRecord[];
+}) {
   if (mode === "reviews") {
-    const queue = schedules.data.items.filter((schedule) => schedule.reviews[0]?.status === "IN_REVIEW");
+    const queue = schedules.filter((schedule) => schedule.reviews[0]?.status === "IN_REVIEW");
     return (
       <div className="flex flex-col gap-6">
         <DashboardHeader eyebrow="KIỂM DUYỆT" title="Hàng chờ kiểm duyệt" description="Admin theo dõi tiến độ; Moderator độc lập thực hiện quyết định kiểm duyệt." />
         <DashboardPanel title="Đang chờ duyệt" description={`${queue.length} podcast đang chờ Moderator kiểm duyệt`}>
-          {queue.length ? <div className="flex flex-col gap-2">{queue.map((schedule) => <article key={schedule.id} className="grid gap-2 rounded-[12px] bg-mod-canvas p-4 sm:grid-cols-[minmax(0,1fr)_auto]"><div><h2 className="text-sm font-bold text-mod-text">{schedule.title}</h2><p className="mt-1 text-xs text-mod-text-secondary">Phiên bản {schedule.reviews[0]?.revision}</p></div><span className="text-xs font-semibold text-mod-primary">Chờ kiểm duyệt</span></article>)}</div> : <p className="py-10 text-center text-sm text-mod-text-secondary">Không có podcast đang chờ duyệt.</p>}
+          {queue.length ? <div className="flex flex-col gap-2">{queue.map((schedule) => <article key={schedule.id} className="grid gap-2 rounded-[12px] bg-mod-canvas p-4 sm:grid-cols-[minmax(0,1fr)_auto]"><div><h2 className="text-sm font-bold text-mod-text">{schedule.title}</h2><p className="mt-1 text-xs text-mod-text-secondary">Phiên bản {schedule.reviews[0]?.revision}</p></div><CardBadge type="status" tone="info">Chờ kiểm duyệt</CardBadge></article>)}</div> : <p className="py-10 text-center text-sm text-mod-text-secondary">Không có podcast đang chờ duyệt.</p>}
         </DashboardPanel>
       </div>
     );
   }
   const loads = new Map<string, { name: string; open: number; nearDeadline: number }>();
   const nextDay = Date.now() + 24 * 60 * 60 * 1000;
-  for (const schedule of schedules.data.items.filter((item) => !["RELEASED", "CANCELLED"].includes(item.status))) {
+  for (const schedule of schedules.filter((item) => !["RELEASED", "CANCELLED"].includes(item.status))) {
     for (const assignment of schedule.assignments) {
       const current = loads.get(assignment.moderatorId) ?? { name: assignment.moderator.name, open: 0, nearDeadline: 0 };
       current.open += 1;
@@ -78,7 +90,7 @@ function ReleaseObservation({ mode }: { mode: "coordination" | "reviews" }) {
     <div className="flex flex-col gap-6">
       <DashboardHeader eyebrow="PHÂN CÔNG" title="Điều phối sản xuất" description="Theo dõi tải công việc của Moderator theo toàn bộ podcast được giao." />
       <DashboardPanel title="Tải công việc Moderator" description="Nhiệm vụ đang mở và gần hạn trong 24 giờ">
-        {loads.size ? <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">{[...loads.entries()].map(([id, load]) => <article key={id} className="rounded-[14px] border border-mod-border bg-mod-canvas p-4"><h2 className="text-sm font-bold text-mod-text">{load.name}</h2><dl className="mt-4 grid grid-cols-2 gap-3"><div><dt className="text-xs text-mod-text-secondary">Đang mở</dt><dd className="mt-1 text-2xl font-bold text-mod-text">{load.open}</dd></div><div><dt className="text-xs text-mod-text-secondary">Gần hạn</dt><dd className="mt-1 text-2xl font-bold text-vermilion">{load.nearDeadline}</dd></div></dl></article>)}</div> : <p className="py-10 text-center text-sm text-mod-text-secondary">Chưa có nhiệm vụ đang mở.</p>}
+        {loads.size ? <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">{[...loads.entries()].map(([id, load]) => <article key={id} className="rounded-[14px] border border-mod-border bg-mod-canvas p-4"><CardBadge type="name">{load.name}</CardBadge><dl className="mt-4 grid grid-cols-2 gap-3"><div><dt className="text-xs text-mod-text-secondary">Đang mở</dt><dd className="mt-1 text-2xl font-bold text-mod-text">{load.open}</dd></div><div><dt className="text-xs text-mod-text-secondary">Gần hạn</dt><dd className="mt-1 text-2xl font-bold text-vermilion">{load.nearDeadline}</dd></div></dl></article>)}</div> : <p className="py-10 text-center text-sm text-mod-text-secondary">Chưa có nhiệm vụ đang mở.</p>}
       </DashboardPanel>
     </div>
   );

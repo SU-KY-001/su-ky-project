@@ -4,6 +4,7 @@ import { Button } from "@/shared/components/ui/button";
 import { DashboardHeader } from "@/shared/components/dashboard/DashboardOverview";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { moderatorReleaseService } from "../services/moderatorReleaseService";
+import { CardBadge, cardBadgeToneForStatus } from "@/shared/components/dashboard/CardBadge";
 
 export interface ModeratorAssignmentSummary {
   id: string;
@@ -103,8 +104,8 @@ export function ModeratorAssignmentsView({
               <article key={assignment.id} className="flex min-h-[238px] flex-col rounded-[16px] border border-mod-border bg-mod-surface p-5 shadow-[0_8px_22px_rgba(15,23,42,.03)]">
                 <div className="flex items-start justify-between gap-3">
                   <div>
-                    <p className="text-xs font-semibold text-mod-primary">{stateCopy[assignment.status] ?? assignment.status}</p>
-                    <h2 className="mt-1 text-lg font-extrabold tracking-tight text-mod-text">{assignment.title}</h2>
+                    <CardBadge type="status" tone={cardBadgeToneForStatus(assignment.status)}>{stateCopy[assignment.status] ?? assignment.status}</CardBadge>
+                    <h2 className="mt-2 text-lg font-extrabold tracking-tight text-mod-text">{assignment.title}</h2>
                   </div>
                   {assignment.status === "RELEASED" ? <CheckCircle size={22} className="text-mod-primary" /> : <ClockCountdown size={22} className="text-mod-text-low" />}
                 </div>

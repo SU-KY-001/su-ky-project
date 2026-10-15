@@ -35,6 +35,7 @@ it("shows assigned production work and submits its current revision", async () =
   });
   expect(host.textContent).toContain("Nhiệm vụ của tôi");
   expect(host.textContent).toContain("Dấu chân Trường Sơn");
+  expect(host.querySelector('[data-card-badge-type="status"]')?.textContent).toBe("Đang sản xuất");
   await act(async () => {
     (host.querySelector("button") as HTMLButtonElement).click();
   });

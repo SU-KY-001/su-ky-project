@@ -12,6 +12,7 @@ import {
 import { useAdminReleaseDashboard, useAdminReleaseSchedules } from "../hooks/useAdminReleases";
 import { Button } from "@/shared/components/ui/button";
 import { Plus } from "@phosphor-icons/react";
+import { CardBadge, cardBadgeToneForStatus } from "@/shared/components/dashboard/CardBadge";
 
 export interface AdminReleaseMetrics {
   upcoming: number;
@@ -161,15 +162,21 @@ export function AdminReleaseDashboardView({
                     <tr key={item.id} className="border-b border-mod-border/70 last:border-0">
                       <td className="py-3.5 pr-4 font-semibold text-mod-text">{item.title}</td>
                       <td className="py-3.5 pr-4 text-mod-text-secondary">
-                        {item.assignments.map((assignment) => assignment.moderator?.name).filter(Boolean).join(", ") || "Chưa phân công"}
+                        <div className="flex flex-wrap gap-1.5">
+                          {item.assignments.length ? item.assignments.map((assignment) => assignment.moderator?.name ? (
+                            <CardBadge key={assignment.moderatorId ?? assignment.moderator.name} type="name">
+                              {assignment.moderator.name}
+                            </CardBadge>
+                          ) : null) : <CardBadge type="name">Chưa phân công</CardBadge>}
+                        </div>
                       </td>
                       <td className="py-3.5 pr-4 tabular-nums text-mod-text-secondary">
                         {formatDateTime(item.scheduledAt)}
                       </td>
                       <td className="py-3.5">
-                        <span className="font-semibold text-mod-text">
+                        <CardBadge type="status" tone={cardBadgeToneForStatus(item.status)}>
                           {statusLabels[item.status] ?? item.status}
-                        </span>
+                        </CardBadge>
                       </td>
                     </tr>
                   ))}
@@ -195,9 +202,9 @@ export function AdminReleaseDashboardView({
               {urgent.slice(0, 5).map((item) => (
                 <article key={item.id} className="rounded-[12px] border border-vermilion/20 bg-vermilion/5 p-3.5">
                   <p className="text-sm font-bold text-mod-text">{item.title}</p>
-                  <p className="mt-1 text-xs text-mod-text-secondary">
+                  <CardBadge type="status" tone={cardBadgeToneForStatus(item.status)} className="mt-2">
                     {statusLabels[item.status] ?? item.status}
-                  </p>
+                  </CardBadge>
                 </article>
               ))}
             </div>

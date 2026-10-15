@@ -5,6 +5,7 @@ import { MetricCard } from "./MetricCard";
 import { ModeratorText } from "./ModeratorText";
 import { QuickActions } from "./QuickActions";
 import type { ModeratorQuickAction } from "../types";
+import { CardBadge } from "@/shared/components/dashboard/CardBadge";
 
 export function ModeratorDashboard({ greetingLabel, onAction }: { greetingLabel: string; onAction?: (id: ModeratorQuickAction["id"]) => void }) {
   const [today] = useState(() => new Date());
@@ -26,7 +27,10 @@ export function ModeratorDashboard({ greetingLabel, onAction }: { greetingLabel:
             {currentDate}
           </time>
           <ModeratorText as="h1" className="text-3xl font-extrabold leading-tight tracking-tight text-mod-text max-[620px]:text-2xl">Tổng quan nội dung</ModeratorText>
-          <ModeratorText className="text-sm text-mod-text-secondary">Chào mừng trở lại, {greetingLabel}.</ModeratorText>
+          <div className="flex flex-wrap items-center gap-2">
+            <ModeratorText className="text-sm text-mod-text-secondary">Chào mừng trở lại,</ModeratorText>
+            <CardBadge type="name">{greetingLabel}</CardBadge>
+          </div>
         </header>
 
         <div className="mod-metric-grid">

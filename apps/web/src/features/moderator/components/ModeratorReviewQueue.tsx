@@ -4,6 +4,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { DashboardHeader } from "@/shared/components/dashboard/DashboardOverview";
 import { Button } from "@/shared/components/ui/button";
 import { moderatorReleaseService } from "../services/moderatorReleaseService";
+import { CardBadge } from "@/shared/components/dashboard/CardBadge";
 
 interface ReviewQueueSchedule {
   id: string;
@@ -56,8 +57,11 @@ export function ModeratorReviewQueueView({
               <article key={schedule.id} className="rounded-[16px] border border-mod-border bg-mod-surface p-5 shadow-[0_8px_22px_rgba(15,23,42,.03)]">
                 <div className="flex items-start justify-between gap-3">
                   <div>
-                    <p className="text-xs font-semibold text-mod-primary">Phiên bản {revision}</p>
-                    <h2 className="mt-1 text-lg font-extrabold tracking-tight text-mod-text">{schedule.title}</h2>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <CardBadge type="status" tone="info">Chờ kiểm duyệt</CardBadge>
+                      <span className="text-xs font-semibold text-mod-text-secondary">Phiên bản {revision}</span>
+                    </div>
+                    <h2 className="mt-2 text-lg font-extrabold tracking-tight text-mod-text">{schedule.title}</h2>
                     <p className="mt-1 text-sm text-mod-text-secondary">{schedule.episode.title}</p>
                   </div>
                   <ClockCountdown size={22} className="text-mod-text-low" />
