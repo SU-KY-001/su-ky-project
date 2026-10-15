@@ -11,6 +11,7 @@ const copy = {
   character: "Ta nhìn con nước lên và biết thời khắc đã gần. Những hàng cọc nằm im dưới sóng, còn quân sĩ chỉ chờ một hiệu lệnh.",
 };
 
+/** @deprecated Replaced by LandingShowcase; no longer imported by the landing page. */
 export function NarrativeDemo() {
   const [mode, setMode] = useState<NarrativeMode>("historian");
   const [playing, setPlaying] = useState(false);

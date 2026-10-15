@@ -6,6 +6,7 @@ interface SectionFrameProps extends PropsWithChildren {
   labelledBy?: string;
 }
 
+/** @deprecated Only used by deprecated landing sections. */
 export function SectionFrame({ children, id, labelledBy }: SectionFrameProps) {
   return (
     <section

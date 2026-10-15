@@ -10,6 +10,7 @@ import { SectionFrame, SectionHeading } from "./SectionFrame";
 const filters = ["Tất cả", "Quân sự", "Khởi nghĩa", "Đời sống"];
 const characters = ["Ngô Quyền", "Trưng Trắc", "Người lính", "Người Hà Nội"];
 
+/** @deprecated Replaced by LandingShowcase; no longer imported by the landing page. */
 export function DiscoverySection() {
   const [query, setQuery] = useState("");
   const [filter, setFilter] = useState("Tất cả");

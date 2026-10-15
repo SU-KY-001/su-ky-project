@@ -9,6 +9,7 @@ import { TimelineDetailPanel } from "./TimelineDetailPanel";
 
 const periods = ["Tất cả", "Nguyên thủy", "Cổ đại", "Phong kiến", "Cận đại", "Hiện đại"];
 
+/** @deprecated Replaced by LandingShowcase; no longer imported by the landing page. */
 export function GlobalTimeline() {
   const [period, setPeriod] = useState("Tất cả");
   const [selected, setSelected] = useState<TimelineEvent>(timelineEvents[2]);

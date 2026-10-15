@@ -1,6 +1,9 @@
 import { useState, type ReactNode } from "react";
+import { Link } from "react-router";
 import {
+  ArrowUpRight,
   List,
+  UsersThree,
   type Icon,
 } from "@phosphor-icons/react";
 import brandLogo from "@/public/brand-su-ky-viet-nam.png";
@@ -8,7 +11,6 @@ import { Button } from "@/shared/components/ui/button";
 import { Separator } from "@/shared/components/ui/separator";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/shared/components/ui/sheet";
 import { ModeratorText } from "./ModeratorText";
-import { AccountProfile } from "@/features/auth";
 
 const NAV_LINK_CLASS =
   "relative flex min-h-11 items-center gap-[11px] rounded-[10px] px-3 text-sm no-underline transition-colors hover:bg-mod-canvas-accent focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-mod-primary";
@@ -19,6 +21,8 @@ export type ShellNavItem = {
   icon?: Icon;
   active: boolean;
   groupStart?: boolean;
+  /** Route target. Omit for in-page anchors handled by `onSelect`. */
+  to?: string;
   onSelect?: () => void;
 };
 
@@ -43,7 +47,8 @@ function NavLink({ item, onNavigated }: { item: ShellNavItem; onNavigated: () =>
     </>
   );
 
-  return <button type="button" onClick={() => { item.onSelect?.(); onNavigated(); }} aria-current={item.active ? "page" : undefined} className={`${className} w-full text-left`}>{content}</button>;
+  if (item.to) return <Link to={item.to} onClick={onNavigated} aria-current={item.active ? "page" : undefined} className={className}>{content}</Link>;
+  return <a href={`#${item.id}`} onClick={(event) => { event.preventDefault(); item.onSelect?.(); onNavigated(); }} aria-current={item.active ? "location" : undefined} className={className}>{content}</a>;
 }
 
 function SidebarContents({ nav, onNavigated }: { nav: ShellNavItem[]; onNavigated: () => void }) {
@@ -62,7 +67,16 @@ function SidebarContents({ nav, onNavigated }: { nav: ShellNavItem[]; onNavigate
 
       <div className="mt-auto flex flex-col gap-4">
         <Separator className="bg-mod-border" />
-        <AccountProfile variant="moderator" />
+        <div className="flex items-center gap-[11px] px-1">
+          <span className="grid size-[38px] place-items-center rounded-full border border-mod-border bg-mod-surface-glass"><UsersThree size={17} color="var(--modTextSecondary)" aria-hidden="true" /></span>
+          <span className="flex min-w-0 flex-1 flex-col gap-0.5">
+            <ModeratorText className="truncate text-sm font-bold text-mod-text">Điều hành Sử Ký</ModeratorText>
+            <ModeratorText className="text-xs text-mod-text-secondary">Moderator</ModeratorText>
+          </span>
+        </div>
+        <a href="/" className="flex min-h-10 items-center gap-2 rounded-md px-2.5 text-xs font-semibold text-mod-text-secondary no-underline hover:bg-mod-canvas-accent focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-mod-primary">
+          <ArrowUpRight size={15} aria-hidden="true" /><span>Mở trang Sử Ký</span>
+        </a>
       </div>
     </>
   );
@@ -101,8 +115,6 @@ export function ModeratorShell({ nav, children }: ModeratorShellProps) {
           <main className="mod-main-content">{children}</main>
         </div>
       </div>
-
     </div>
   );
 }
-
