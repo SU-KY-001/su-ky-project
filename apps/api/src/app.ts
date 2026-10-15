@@ -18,6 +18,8 @@ import { publicCatalogRoute, studioCatalogRoute } from "./modules/catalog";
 import { createStudioContentRoute } from "./modules/content";
 import { mediaRoute, mediaStorage } from "./modules/media";
 import { meListeningRoute, publicListeningRoute } from "./modules/listening";
+import { createReleaseRoutes } from "./modules/releases/presentation/release.routes";
+import { releaseService } from "./modules/releases";
 import type { AppEnv } from "./types";
 const MAX_REQUEST_BODY_BYTES = 10 * 1024 * 1024;
 
@@ -68,6 +70,8 @@ export const routes = app
   .route("/api/studio", createStudioContentRoute(mediaStorage))
   .route("/api/studio/media-assets", mediaRoute)
   .route("/api/admin", adminRoute)
+  .route("/api/admin/releases", createReleaseRoutes(releaseService).admin)
+  .route("/api/studio/releases", createReleaseRoutes(releaseService).studio)
   .route("/health", healthRoute)
   .route("/api/timeline", timelineRoute);
 

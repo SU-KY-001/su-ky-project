@@ -63,6 +63,7 @@ export interface UpdateSeriesInput {
 
 export interface SeriesListFilter {
   ownerId: string | null;
+  viewerId?: string | null;
   status: ContentStatus | "TRASH" | null;
   q: string | null;
   page: number;
@@ -109,6 +110,8 @@ export interface UpdateEntityTagInput {
 
 export interface SeriesRepository {
   findSeriesById(id: string): Promise<SeriesEntity | null>;
+  isActiveReleaseCollaboratorForSeries?(seriesId: string, moderatorId: string): Promise<boolean>;
+  isActiveReleaseCollaboratorForEpisode?(episodeId: string, moderatorId: string): Promise<boolean>;
   getSeriesDetail(id: string): Promise<SeriesDetailEntity | null>;
   findSeriesUpdatedAt(id: string): Promise<Date | null>;
   /** True when another series already holds `slug` (excluding `excludeId`). */
@@ -190,7 +193,7 @@ export interface EpisodeRepository {
   reorderEpisodes(orderedIds: string[], seriesId: string): Promise<void>;
   updateEpisode(id: string, patch: EpisodePatch): Promise<void>;
   publishEpisodeWithEvidence(
-    actorId: string,
+    actorId: string | null,
     id: string,
     baseUpdatedAt: Date,
   ): Promise<void>;

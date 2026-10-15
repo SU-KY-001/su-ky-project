@@ -5,6 +5,7 @@ export * from "./schemas/historical-time";
 export * from "./schemas/timeline";
 export * from "./schemas/auth";
 export * from "./schemas/health";
+export * from "./schemas/release";
 export * from "./schemas/common";
 export * from "./schemas/problem";
 export * from "./schemas/content/catalog";

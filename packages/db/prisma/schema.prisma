@@ -15,6 +15,27 @@ enum ContentStatus {
   @@map("content_status")
 }
 
+enum ReleaseScheduleStatus {
+  SCHEDULED
+  READY_TO_PUBLISH
+  PUBLISHING
+  RELEASED
+  BLOCKED
+  FAILED
+  CANCELLED
+
+  @@map("release_schedule_status")
+}
+
+enum EpisodeReviewStatus {
+  DRAFT
+  IN_REVIEW
+  CHANGES_REQUESTED
+  APPROVED
+
+  @@map("episode_review_status")
+}
+
 enum NarrationType {
   THIRD_PERSON
   FIRST_PERSON
@@ -101,24 +122,30 @@ model User {
 
   accounts                Account[]
   sessions                Session[]
-  topics                  Topic[]             @relation("TopicCreator")
-  historicalPeriods       HistoricalPeriod[]  @relation("HistoricalPeriodCreator")
-  historicalEntities      HistoricalEntity[]  @relation("HistoricalEntityCreator")
-  sources                 Source[]            @relation("SourceCreator")
-  ownedSeries             Series[]            @relation("SeriesOwner")
-  lockedSeries            Series[]            @relation("SeriesLocker")
-  lockedEpisodes          Episode[]           @relation("EpisodeLocker")
-  uploadedMediaAssets     MediaAsset[]        @relation("MediaUploader")
-  confirmedEntityTags     EpisodeEntityTag[]  @relation("EntityTagConfirmer")
+  topics                  Topic[]                @relation("TopicCreator")
+  historicalPeriods       HistoricalPeriod[]     @relation("HistoricalPeriodCreator")
+  historicalEntities      HistoricalEntity[]     @relation("HistoricalEntityCreator")
+  sources                 Source[]               @relation("SourceCreator")
+  ownedSeries             Series[]               @relation("SeriesOwner")
+  lockedSeries            Series[]               @relation("SeriesLocker")
+  lockedEpisodes          Episode[]              @relation("EpisodeLocker")
+  uploadedMediaAssets     MediaAsset[]           @relation("MediaUploader")
+  confirmedEntityTags     EpisodeEntityTag[]     @relation("EntityTagConfirmer")
   quizAttempts            QuizAttempt[]
   listeningProgress       ListeningProgress[]
-  missionTemplates        MissionTemplate[]   @relation("MissionTemplateCreator")
-  activatedWeeklyMissions WeeklyMission[]     @relation("WeeklyMissionActivator")
+  missionTemplates        MissionTemplate[]      @relation("MissionTemplateCreator")
+  activatedWeeklyMissions WeeklyMission[]        @relation("WeeklyMissionActivator")
   userWeeklyMissions      UserWeeklyMission[]
   xpAwards                XpAward[]
   idempotencyKeys         IdempotencyKey[]
-  updatedSystemConfigs    SystemConfig[]      @relation("SystemConfigUpdater")
-  auditLogs               AuditLog[]          @relation("AuditActor")
+  updatedSystemConfigs    SystemConfig[]         @relation("SystemConfigUpdater")
+  auditLogs               AuditLog[]             @relation("AuditActor")
+  releaseSchedules        ReleaseSchedule[]      @relation("ReleaseScheduleCreator")
+  releaseAssignments      ProductionAssignment[] @relation("ReleaseAssignee")
+  assignedReleaseWork     ProductionAssignment[] @relation("ReleaseAssigner")
+  submittedEpisodeReviews EpisodeReview[]        @relation("EpisodeReviewSubmitter")
+  reviewedEpisodes        EpisodeReview[]        @relation("EpisodeReviewer")
+  releaseReminders        ReleaseReminder[]      @relation("ReleaseReminderRecipient")
 
   @@map("users")
 }
@@ -356,6 +383,7 @@ model Episode {
   deletedAt          DateTime?           @map("deleted_at") @db.Timestamptz(3)
   createdAt          DateTime            @default(now()) @map("created_at") @db.Timestamptz(3)
   updatedAt          DateTime            @updatedAt @map("updated_at") @db.Timestamptz(3)
+  contentRevision    Int                 @default(1) @map("content_revision")
   series             Series              @relation(fields: [seriesId], references: [id], onDelete: Restrict)
   adminLockedBy      User?               @relation("EpisodeLocker", fields: [adminLockedById], references: [id], onDelete: SetNull)
   narrations         EpisodeNarration[]
@@ -363,9 +391,104 @@ model Episode {
   entityTags         EpisodeEntityTag[]
   quiz               Quiz?
   listeningProgress  ListeningProgress[]
+  releaseSchedules   ReleaseSchedule[]
+  reviews            EpisodeReview[]
 
   @@index([seriesId, sortOrder], map: "episodes_series_id_sort_order_idx")
   @@map("episodes")
+}
+
+model ReleaseSchedule {
+  id                 String                 @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  episodeId          String?                @map("episode_id") @db.Uuid
+  title              String                 @db.VarChar(255)
+  productionDeadline DateTime               @map("production_deadline") @db.Timestamptz(3)
+  scheduledAt        DateTime               @map("scheduled_at") @db.Timestamptz(3)
+  status             ReleaseScheduleStatus  @default(SCHEDULED)
+  version            Int                    @default(1)
+  createdById        String                 @map("created_by_id") @db.VarChar(36)
+  publishedAt        DateTime?              @map("published_at") @db.Timestamptz(3)
+  cancelledAt        DateTime?              @map("cancelled_at") @db.Timestamptz(3)
+  failureCode        String?                @map("failure_code") @db.VarChar(64)
+  failureMessage     String?                @map("failure_message") @db.Text
+  createdAt          DateTime               @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt          DateTime               @updatedAt @map("updated_at") @db.Timestamptz(3)
+  episode            Episode?               @relation(fields: [episodeId], references: [id], onDelete: Restrict)
+  createdBy          User                   @relation("ReleaseScheduleCreator", fields: [createdById], references: [id], onDelete: Restrict)
+  assignments        ProductionAssignment[]
+  reviews            EpisodeReview[]
+  reminders          ReleaseReminder[]
+
+  @@index([status, scheduledAt], map: "release_schedules_status_scheduled_at_idx")
+  @@index([episodeId, status], map: "release_schedules_episode_id_status_idx")
+  @@map("release_schedules")
+}
+
+model ProductionAssignment {
+  scheduleId   String          @map("schedule_id") @db.Uuid
+  moderatorId  String          @map("moderator_id") @db.VarChar(36)
+  assignedById String          @map("assigned_by_id") @db.VarChar(36)
+  assignedAt   DateTime        @default(now()) @map("assigned_at") @db.Timestamptz(3)
+  removedAt    DateTime?       @map("removed_at") @db.Timestamptz(3)
+  schedule     ReleaseSchedule @relation(fields: [scheduleId], references: [id], onDelete: Cascade)
+  moderator    User            @relation("ReleaseAssignee", fields: [moderatorId], references: [id], onDelete: Restrict)
+  assignedBy   User            @relation("ReleaseAssigner", fields: [assignedById], references: [id], onDelete: Restrict)
+
+  @@id([scheduleId, moderatorId, assignedAt])
+  @@index([moderatorId, removedAt], map: "production_assignments_moderator_active_idx")
+  @@map("production_assignments")
+}
+
+model EpisodeReview {
+  id            String              @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  scheduleId    String              @map("schedule_id") @db.Uuid
+  episodeId     String              @map("episode_id") @db.Uuid
+  revision      Int
+  status        EpisodeReviewStatus @default(IN_REVIEW)
+  submittedById String              @map("submitted_by_id") @db.VarChar(36)
+  submittedAt   DateTime            @default(now()) @map("submitted_at") @db.Timestamptz(3)
+  reviewedById  String?             @map("reviewed_by_id") @db.VarChar(36)
+  reviewedAt    DateTime?           @map("reviewed_at") @db.Timestamptz(3)
+  reviewNote    String?             @map("review_note") @db.Text
+  schedule      ReleaseSchedule     @relation(fields: [scheduleId], references: [id], onDelete: Cascade)
+  episode       Episode             @relation(fields: [episodeId], references: [id], onDelete: Cascade)
+  submittedBy   User                @relation("EpisodeReviewSubmitter", fields: [submittedById], references: [id], onDelete: Restrict)
+  reviewedBy    User?               @relation("EpisodeReviewer", fields: [reviewedById], references: [id], onDelete: SetNull)
+
+  @@unique([episodeId, revision], map: "episode_reviews_episode_revision_key")
+  @@index([scheduleId, status], map: "episode_reviews_schedule_status_idx")
+  @@map("episode_reviews")
+}
+
+model OutboxEvent {
+  id            String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  eventType     String    @map("event_type") @db.VarChar(100)
+  aggregateType String    @map("aggregate_type") @db.VarChar(64)
+  aggregateId   String    @map("aggregate_id") @db.VarChar(128)
+  payload       Json
+  createdAt     DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
+  dispatchedAt  DateTime? @map("dispatched_at") @db.Timestamptz(3)
+  attempts      Int       @default(0)
+  lastError     String?   @map("last_error") @db.Text
+
+  @@index([dispatchedAt, createdAt], map: "outbox_events_dispatch_idx")
+  @@index([aggregateType, aggregateId], map: "outbox_events_aggregate_idx")
+  @@map("outbox_events")
+}
+
+model ReleaseReminder {
+  id              String          @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  scheduleId      String          @map("schedule_id") @db.Uuid
+  moderatorId     String          @map("moderator_id") @db.VarChar(36)
+  scheduleVersion Int             @map("schedule_version")
+  message         String          @db.Text
+  createdAt       DateTime        @default(now()) @map("created_at") @db.Timestamptz(3)
+  schedule        ReleaseSchedule @relation(fields: [scheduleId], references: [id], onDelete: Cascade)
+  moderator       User            @relation("ReleaseReminderRecipient", fields: [moderatorId], references: [id], onDelete: Cascade)
+
+  @@unique([scheduleId, moderatorId, scheduleVersion], map: "release_reminders_schedule_moderator_version_key")
+  @@index([moderatorId, createdAt], map: "release_reminders_moderator_created_at_idx")
+  @@map("release_reminders")
 }
 
 model EpisodeNarration {
@@ -663,15 +786,20 @@ model SystemConfig {
 }
 
 model AuditLog {
-  id           String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  actorId      String?  @map("actor_id") @db.VarChar(36)
-  action       String   @db.VarChar(64)
-  resourceType String   @map("resource_type") @db.VarChar(64)
-  resourceId   String   @map("resource_id") @db.VarChar(128)
-  changes      Json     @default("{}")
-  ipAddress    String?  @map("ip_address") @db.VarChar(45)
-  createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
-  actor        User?    @relation("AuditActor", fields: [actorId], references: [id], onDelete: SetNull)
+  id            String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  actorId       String?  @map("actor_id") @db.VarChar(36)
+  action        String   @db.VarChar(64)
+  resourceType  String   @map("resource_type") @db.VarChar(64)
+  resourceId    String   @map("resource_id") @db.VarChar(128)
+  changes       Json     @default("{}")
+  ipAddress     String?  @map("ip_address") @db.VarChar(45)
+  actorType     String   @default("USER") @map("actor_type") @db.VarChar(16)
+  correlationId String?  @map("correlation_id") @db.VarChar(64)
+  jobId         String?  @map("job_id") @db.VarChar(128)
+  fromStatus    String?  @map("from_status") @db.VarChar(64)
+  toStatus      String?  @map("to_status") @db.VarChar(64)
+  createdAt     DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  actor         User?    @relation("AuditActor", fields: [actorId], references: [id], onDelete: SetNull)
 
   @@index([resourceType, resourceId], map: "audit_logs_resource_type_resource_id_idx")
   @@index([actorId, createdAt], map: "audit_logs_actor_id_created_at_idx")

@@ -195,7 +195,7 @@ export async function collectHistoricalEvidence(
   };
 }
 export async function publishWithHistoricalEvidence(
-  actorId: string,
+  actorId: string | null,
   id: string,
   baseUpdatedAt: Date,
   kind: "series" | "episode",
@@ -227,10 +227,12 @@ export async function publishWithHistoricalEvidence(
         "STALE_WRITE",
         "Podcast đã thay đổi; tải lại trước khi phát hành",
       );
-    const actor = await tx.user.findUnique({
-      where: { id: actorId },
-      select: { role: true },
-    });
+    const actor = actorId
+      ? await tx.user.findUnique({
+          where: { id: actorId },
+          select: { role: true },
+        })
+      : null;
     if (
       series.deletedAt ||
       episode?.deletedAt ||
@@ -313,6 +315,7 @@ export async function publishWithHistoricalEvidence(
       });
     await writeAudit(tx, {
       actorId,
+      actorType: actorId ? "USER" : "SYSTEM",
       action: `${kind}.published`,
       resourceType: kind,
       resourceId: id,

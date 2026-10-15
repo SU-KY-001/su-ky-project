@@ -59,9 +59,15 @@ export class ContentService {
 
   async loadSeriesForRead(session: Session, id: string) {
     const series = await this.series.findSeriesById(id);
+    const isCollaborator = Boolean(
+      series &&
+      session.user.role !== "admin" &&
+      series.ownerId !== session.user.id &&
+      await this.series.isActiveReleaseCollaboratorForSeries?.(id, session.user.id),
+    );
     if (
       !series ||
-      (session.user.role !== "admin" && series.ownerId !== session.user.id)
+      (session.user.role !== "admin" && series.ownerId !== session.user.id && !isCollaborator)
     ) {
       throw new DomainError(404, "NOT_FOUND", "Series not found");
     }
@@ -70,10 +76,17 @@ export class ContentService {
 
   async loadEpisodeForRead(session: Session, id: string) {
     const episode = await this.episodes.findEpisodeWithSeries(id);
+    const isCollaborator = Boolean(
+      episode &&
+      session.user.role !== "admin" &&
+      episode.series.ownerId !== session.user.id &&
+      await this.series.isActiveReleaseCollaboratorForEpisode?.(id, session.user.id),
+    );
     if (
       !episode ||
       (session.user.role !== "admin" &&
-        episode.series.ownerId !== session.user.id)
+        episode.series.ownerId !== session.user.id &&
+        !isCollaborator)
     ) {
       throw new DomainError(404, "NOT_FOUND", "Episode not found");
     }
@@ -219,7 +232,8 @@ export class ContentService {
       ownerId:
         session.user.role === "admin"
           ? (filter.ownerId ?? null)
-          : session.user.id,
+          : null,
+      viewerId: session.user.role === "admin" ? null : session.user.id,
       status:
         (filter.status as ContentStatus | "TRASH" | null | undefined) ?? null,
       q: filter.q ?? null,
@@ -574,6 +588,12 @@ export class ContentService {
     id: string,
     baseUpdatedAt?: Date,
   ): Promise<EpisodeWorkspaceEntity> {
+    if (session.user.role !== "admin")
+      throw new DomainError(
+        403,
+        "FORBIDDEN",
+        "Podcast phải được gửi duyệt và phát hành theo lịch",
+      );
     const current = await this.loadEpisodeForRead(session, id);
     assertWritable(session, current.series, current);
     const episode = await this.getEpisodeWorkspace(id);

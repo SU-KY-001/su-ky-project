@@ -13,9 +13,9 @@ export function parseAllowedOrigins(): string[] {
 export function trustedAuthOrigins(): string[] {
   const configured = parseAllowedOrigins().filter((origin) => origin !== WILDCARD_ORIGIN);
 
-  // Vite serves the web app on port 3000 in this repo. Keep Better Auth's
-  // origin check aligned with the CORS middleware's localhost dev allowance.
-  if (process.env.NODE_ENV !== "production") {
+  // When no value is configured, trust both development ports used by this
+  // repo. An explicit allowlist stays authoritative in every environment.
+  if (process.env.NODE_ENV !== "production" && !process.env.CORS_ORIGIN?.trim()) {
     configured.push("http://localhost:3000", "http://localhost:5173");
   }
 

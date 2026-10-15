@@ -2,6 +2,7 @@ import type { DbClient, Prisma } from "@repo/db";
 
 export interface AuditInput {
   actorId: string | null;
+  actorType?: "USER" | "ADMIN" | "MODERATOR" | "SYSTEM";
   action: string;
   resourceType: string;
   resourceId: string;

@@ -13,5 +13,12 @@ Object.defineProperties(globalThis, {
   window: { configurable: true, value: testWindow },
   document: { configurable: true, value: testWindow.document },
   navigator: { configurable: true, value: testWindow.navigator },
+  Event: { configurable: true, value: testWindow.Event },
+  CustomEvent: { configurable: true, value: testWindow.CustomEvent },
+  FocusEvent: { configurable: true, value: testWindow.FocusEvent },
+  InputEvent: { configurable: true, value: testWindow.InputEvent },
+  KeyboardEvent: { configurable: true, value: testWindow.KeyboardEvent },
+  MouseEvent: { configurable: true, value: testWindow.MouseEvent },
+  PointerEvent: { configurable: true, value: testWindow.PointerEvent },
   IS_REACT_ACT_ENVIRONMENT: { configurable: true, value: true },
 });

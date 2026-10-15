@@ -1,4 +1,5 @@
 import { useState } from "react";
+import type { ComponentPropsWithoutRef, ElementType } from "react";
 import {
   Article,
   CalendarBlank,
@@ -7,7 +8,7 @@ import {
   ListChecks,
 } from "@phosphor-icons/react";
 import brandLogo from "@/public/brand-su-ky-viet-nam.png";
-import { ModeratorText } from "@/features/moderator/components/ModeratorText";
+import { cn } from "@/lib/utils";
 import { Button } from "@/shared/components/ui/button";
 import { Separator } from "@/shared/components/ui/separator";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/shared/components/ui/sheet";
@@ -19,6 +20,15 @@ const sidebarItems = [
   { id: "tasks", label: "Nhiệm vụ", icon: ListChecks },
   { id: "release-schedule", label: "Lịch phát hành", icon: CalendarBlank },
 ] as const;
+
+function DashboardText<T extends ElementType = "span">({
+  as,
+  className,
+  ...props
+}: { as?: T } & Omit<ComponentPropsWithoutRef<T>, "as">) {
+  const Component = as ?? "span";
+  return <Component className={cn("font-sans", className)} {...props} />;
+}
 
 export type DashboardRole = "admin" | "moderator";
 
@@ -53,14 +63,14 @@ function SidebarContents({ role }: { role: DashboardRole }) {
       <div className="flex items-center px-2 py-1">
         <div className="flex min-w-0 flex-col gap-1">
           <img src={brandLogo} alt="Sử Ký Việt Nam" className="h-auto w-[170px] max-w-full object-contain" />
-          <ModeratorText className="pl-1 text-[9px] font-medium tracking-wide text-ink-soft">
+          <DashboardText className="pl-1 text-[9px] font-medium tracking-wide text-ink-soft">
             KHÔNG GIAN ĐIỀU HÀNH
-          </ModeratorText>
+          </DashboardText>
         </div>
       </div>
 
       <nav className="mt-6 flex flex-col gap-1.5" aria-label={labels.navigationLabel}>
-        <ModeratorText className="mb-1 px-3 text-[10px] font-bold text-ink-soft">MENU CHÍNH</ModeratorText>
+        <DashboardText className="mb-1 px-3 text-[10px] font-bold text-ink-soft">MENU CHÍNH</DashboardText>
         {sidebarItems.map((item) => {
           const isActive = item.id === "statistics";
           const Icon = item.icon;
@@ -117,11 +127,11 @@ export function SharedDashboard({ role }: { role: DashboardRole }) {
 
               <div className="flex min-w-0 flex-col gap-1">
                 <div className="flex items-center gap-1.5">
-                  <ModeratorText className="truncate text-xs text-ink-soft">Workspace</ModeratorText>
-                  <ModeratorText className="text-xs text-ink-soft">/</ModeratorText>
-                  <ModeratorText className="truncate text-xs font-bold text-ink">Tổng quan</ModeratorText>
+                  <DashboardText className="truncate text-xs text-ink-soft">Workspace</DashboardText>
+                  <DashboardText className="text-xs text-ink-soft">/</DashboardText>
+                  <DashboardText className="truncate text-xs font-bold text-ink">Tổng quan</DashboardText>
                 </div>
-                <ModeratorText className="mod-header-description text-xs text-ink-soft">{labels.headerDescription}</ModeratorText>
+                <DashboardText className="mod-header-description text-xs text-ink-soft">{labels.headerDescription}</DashboardText>
               </div>
             </div>
           </header>
