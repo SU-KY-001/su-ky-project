@@ -6,7 +6,7 @@ import { DomainError } from "../../core/errors/domain-error";
 import {
   recordMissionActivity,
   mondayInVietnam,
-  WEEK_MS,
+  vietnamWeekWindow,
 } from "../../core/weekly-mission";
 
 const quizInclude = {
@@ -74,11 +74,15 @@ export class GamificationService {
   ) {
     await this.assertOwnedEpisode(episodeId, moderatorId);
     return prisma.$transaction(async (db) => {
+      // Episode row serialises concurrent upserts, including the first create where no quiz row exists to lock yet.
+      await db.$queryRaw`SELECT 1 FROM episodes WHERE id = ${episodeId}::uuid FOR UPDATE`;
       const existing = await db.quiz.findUnique({
         where: { episodeId },
         select: { id: true },
       });
       if (existing) {
+        // Serialises with submitAttempt (FOR SHARE) so the attempt count below stays true until commit.
+        await db.$queryRaw`SELECT 1 FROM quizzes WHERE id = ${existing.id}::uuid FOR UPDATE`;
         if (await db.quizAttempt.count({ where: { quizId: existing.id } })) {
           throw new DomainError(
             409,
@@ -123,19 +127,22 @@ export class GamificationService {
 
   async deleteQuiz(episodeId: string, moderatorId: string) {
     await this.assertOwnedEpisode(episodeId, moderatorId);
-    const quiz = await prisma.quiz.findUnique({
-      where: { episodeId },
-      select: { id: true },
+    await prisma.$transaction(async (db) => {
+      const quiz = await db.quiz.findUnique({
+        where: { episodeId },
+        select: { id: true },
+      });
+      if (!quiz) throw new DomainError(404, "NOT_FOUND", "Tập chưa có quiz");
+      await db.$queryRaw`SELECT 1 FROM quizzes WHERE id = ${quiz.id}::uuid FOR UPDATE`;
+      if (await db.quizAttempt.count({ where: { quizId: quiz.id } })) {
+        throw new DomainError(
+          409,
+          "CONFLICT",
+          "Không thể xóa quiz đã có lượt làm",
+        );
+      }
+      await db.quiz.delete({ where: { id: quiz.id } });
     });
-    if (!quiz) throw new DomainError(404, "NOT_FOUND", "Tập chưa có quiz");
-    if (await prisma.quizAttempt.count({ where: { quizId: quiz.id } })) {
-      throw new DomainError(
-        409,
-        "CONFLICT",
-        "Không thể xóa quiz đã có lượt làm",
-      );
-    }
-    await prisma.quiz.delete({ where: { id: quiz.id } });
   }
 
   async getPublishedQuiz(episodeSlug: string) {
@@ -156,6 +163,9 @@ export class GamificationService {
     const quizXp = await getSystemConfig("xp.quiz_pass");
     const now = new Date();
     return prisma.$transaction(async (db) => {
+      // Shared lock before any read: an editor holding FOR UPDATE finishes first,
+      // so the questions/options read below can never be stale.
+      await db.$queryRaw`SELECT 1 FROM quizzes WHERE id = ${quizId}::uuid FOR SHARE`;
       const quiz = await db.quiz.findFirst({
         where: { id: quizId, episode: PUBLISHED_EPISODE },
         include: quizInclude,
@@ -265,12 +275,11 @@ export class GamificationService {
 
   async listWeeklyMissions(userId: string, requestedWeek?: Date) {
     const now = new Date();
-    const weekStartDate = requestedWeek
-      ? mondayInVietnam(requestedWeek)
-      : mondayInVietnam(now);
-    const weekEndDate = new Date(weekStartDate.getTime() + WEEK_MS);
+    const storedWeekDate = mondayInVietnam(requestedWeek ?? now);
+    const { start: weekStartDate, end: weekEndDate } =
+      vietnamWeekWindow(storedWeekDate);
     const rows = await prisma.weeklyMission.findMany({
-      where: { weekStartDate, activatedAt: { lte: now } },
+      where: { weekStartDate: storedWeekDate, activatedAt: { lte: now } },
       include: { userMissions: { where: { userId }, take: 1 } },
       orderBy: { activatedAt: "asc" },
     });

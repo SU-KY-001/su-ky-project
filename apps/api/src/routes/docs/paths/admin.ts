@@ -131,7 +131,7 @@ export const adminPaths: Paths = {
       ok: { status: 200, description: "Tài khoản đã cập nhật", schema: user },
       errors: {
         404: "`NOT_FOUND`: tài khoản không tồn tại",
-        409: "`BAD_REQUEST`: Admin đang đăng nhập không thể tự hạ quyền",
+        409: "`CONFLICT`: Admin đang đăng nhập không thể tự hạ quyền",
       },
     }),
   },
@@ -147,7 +147,7 @@ export const adminPaths: Paths = {
       ok: { status: 200, description: "Tài khoản đã khóa", schema: user },
       errors: {
         404: "`NOT_FOUND`: tài khoản không tồn tại",
-        409: "`BAD_REQUEST`: không thể tự khóa",
+        409: "`CONFLICT`: không thể tự khóa",
       },
     }),
   },

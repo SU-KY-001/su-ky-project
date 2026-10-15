@@ -12,6 +12,20 @@ import {
 } from "./support/integration";
 
 const QUIZ_XP = 10;
+// Each poll is a DB round trip (no wall-clock wait); the loop ends as soon as a backend running the
+// expected lock statement is reported as waiting on a lock.
+const MAX_LOCK_POLLS = 10_000;
+
+async function waitForBlockedBackend(mode: "SHARE" | "UPDATE") {
+  const pattern = `%FROM quizzes%FOR ${mode}%`;
+  for (let poll = 0; poll < MAX_LOCK_POLLS; poll += 1) {
+    const [row] = await prisma.$queryRaw<Array<{ n: number }>>`
+      SELECT count(*)::int AS n FROM pg_stat_activity
+      WHERE datname = current_database() AND wait_event_type = 'Lock' AND query LIKE ${pattern}`;
+    if (row && row.n > 0) return;
+  }
+  throw new Error(`No backend became blocked on a quiz FOR ${mode} lock`);
+}
 
 const quizInput = {
   passScorePercent: 100,
@@ -293,5 +307,81 @@ describe.skipIf(!RUN_INTEGRATION)("quiz + admin mutations (database)", () => {
       });
       await prisma.missionTemplate.delete({ where: { id: template.id } });
     }
+  });
+
+  it("makes a submit wait for an in-flight quiz edit instead of grading stale questions", async () => {
+    const episode = await makeEpisode("lock-submit");
+    const quiz = await service.upsertQuiz(episode.id, moderatorId, quizInput);
+    const oldQuestion = quiz.questions[0]!;
+    const oldOption = oldQuestion.options[0]!.id;
+
+    let submit: Promise<unknown> = Promise.resolve();
+    let submitSettled = false;
+    await prisma.$transaction(async (tx) => {
+      await tx.$queryRaw`SELECT 1 FROM quizzes WHERE id = ${quiz.id}::uuid FOR UPDATE`;
+      await tx.quizQuestion.deleteMany({ where: { quizId: quiz.id } });
+      submit = service
+        .submitAttempt(quiz.id, learnerId, {
+          answers: [{ questionId: oldQuestion.id, optionId: oldOption }],
+        })
+        .finally(() => {
+          submitSettled = true;
+        });
+      submit.catch(() => undefined);
+      await waitForBlockedBackend("SHARE");
+      expect(submitSettled).toBe(false);
+    });
+    await expectDomainError(submit, 422, "VALIDATION_ERROR");
+    expect(await prisma.quizAttempt.count({ where: { quizId: quiz.id } })).toBe(
+      0,
+    );
+  });
+
+  it("makes a quiz edit wait for an in-flight submit and then refuse because an attempt exists", async () => {
+    const episode = await makeEpisode("lock-edit");
+    const quiz = await service.upsertQuiz(episode.id, moderatorId, quizInput);
+    const question = quiz.questions[0]!;
+    const optionId = question.options[0]!.id;
+
+    let edit: Promise<unknown> = Promise.resolve();
+    let editSettled = false;
+    await prisma.$transaction(async (tx) => {
+      await tx.$queryRaw`SELECT 1 FROM quizzes WHERE id = ${quiz.id}::uuid FOR SHARE`;
+      edit = service
+        .upsertQuiz(episode.id, moderatorId, quizInput)
+        .finally(() => {
+          editSettled = true;
+        });
+      edit.catch(() => undefined);
+      await waitForBlockedBackend("UPDATE");
+      expect(editSettled).toBe(false);
+      await tx.quizAttempt.create({
+        data: {
+          quizId: quiz.id,
+          userId: learnerId,
+          answers: [{ questionId: question.id, optionId }],
+          scorePercent: 100,
+          isPassed: true,
+        },
+      });
+    });
+    await expectDomainError(edit, 409, "CONFLICT");
+    expect(
+      (await prisma.quizQuestion.findMany({ where: { quizId: quiz.id } })).map(
+        (q) => q.id,
+      ),
+    ).toEqual([question.id]);
+  });
+
+  it("lets two concurrent first saves both succeed instead of failing on the unique episode_id", async () => {
+    const episode = await makeEpisode("lock-create");
+    const results = await Promise.all([
+      service.upsertQuiz(episode.id, moderatorId, quizInput),
+      service.upsertQuiz(episode.id, moderatorId, quizInput),
+    ]);
+    expect(results[0].episodeId).toBe(results[1].episodeId);
+    expect(await prisma.quiz.count({ where: { episodeId: episode.id } })).toBe(
+      1,
+    );
   });
 });

@@ -191,7 +191,7 @@ export class AdminService {
     if (id === audit.actorId && input.role && input.role !== "admin")
       throw new DomainError(
         409,
-        "BAD_REQUEST",
+        "CONFLICT",
         "Admin không thể tự hạ quyền của mình",
       );
     return prisma.$transaction(async (tx) => {
@@ -221,7 +221,7 @@ export class AdminService {
     if (id === audit.actorId)
       throw new DomainError(
         409,
-        "BAD_REQUEST",
+        "CONFLICT",
         "Admin không thể tự khóa tài khoản của mình",
       );
     return mapPrismaError(

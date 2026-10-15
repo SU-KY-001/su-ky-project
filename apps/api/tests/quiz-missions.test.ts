@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
 import { SubmitQuizAttemptSchema, UpsertQuizSchema } from "@repo/shared";
-import { mondayInVietnam } from "../src/core/weekly-mission";
+import { mondayInVietnam, vietnamWeekWindow } from "../src/core/weekly-mission";
 
 const validQuiz = {
   passScorePercent: 80,
@@ -49,5 +49,13 @@ describe("Quiz and weekly mission contracts", () => {
     expect(
       mondayInVietnam(new Date("2026-10-25T16:59:59.000Z")).toISOString(),
     ).toBe("2026-10-19T00:00:00.000Z");
+  });
+
+  test("reports the week as Monday 00:00 to next Monday 00:00 Vietnam time", () => {
+    const { start, end } = vietnamWeekWindow(
+      new Date("2026-10-12T00:00:00.000Z"),
+    );
+    expect(start.toISOString()).toBe("2026-10-11T17:00:00.000Z");
+    expect(end.toISOString()).toBe("2026-10-18T17:00:00.000Z");
   });
 });

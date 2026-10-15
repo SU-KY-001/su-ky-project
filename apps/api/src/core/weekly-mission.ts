@@ -35,6 +35,18 @@ export function mondayInVietnam(now: Date): Date {
 }
 
 /**
+ * Exact instants of a Vietnam week. The stored `weekStartDate` is only a calendar-date sentinel
+ * (UTC midnight of the Vietnam date), so the real window is shifted back by the Vietnam offset.
+ */
+export function vietnamWeekWindow(storedWeekDate: Date): {
+  start: Date;
+  end: Date;
+} {
+  const start = new Date(storedWeekDate.getTime() - VIETNAM_OFFSET_MS);
+  return { start, end: new Date(start.getTime() + WEEK_MS) };
+}
+
+/**
  * Counts one distinct content item towards every active mission of `activityType` in the
  * current Vietnam week and pays out mission XP once, on the call that reaches the target.
  * Must run inside the caller's transaction so progress and XP commit together.
