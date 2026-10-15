@@ -21,7 +21,9 @@ afterEach(() => {
 
 it("queries each board status separately and preserves totals", async () => {
   const list = mock(async (filter: Parameters<typeof adminReleaseService.list>[0] = {}) => ({
-    items: [],
+    items: [{
+      id: `${filter.status}-${filter.page ?? 1}`,
+    } as ReleaseScheduleRecord],
     page: filter.page ?? 1,
     limit: filter.limit ?? 50,
     total: filter.status === "SCHEDULED" ? 7 : 1,
@@ -43,7 +45,7 @@ it("queries each board status separately and preserves totals", async () => {
   await act(async () => {
     for (let attempt = 0; attempt < 50; attempt += 1) {
       if (
-        list.mock.calls.length === 4 &&
+        list.mock.calls.length === 5 &&
         queryClient?.isFetching() === 0 &&
         board?.columns.SCHEDULED.total === 7
       )
@@ -53,9 +55,16 @@ it("queries each board status separately and preserves totals", async () => {
     await new Promise((resolve) => setTimeout(resolve, 5));
   });
 
-  expect(list).toHaveBeenCalledTimes(4);
-  expect(list.mock.calls[0]?.[0]).toMatchObject({ status: "SCHEDULED", q: "sử ký", page: 2 });
+  expect(list).toHaveBeenCalledTimes(5);
+  expect(list.mock.calls.map(([filter]) => filter)).toEqual(expect.arrayContaining([
+    expect.objectContaining({ status: "SCHEDULED", q: "sử ký", page: 1 }),
+    expect.objectContaining({ status: "SCHEDULED", q: "sử ký", page: 2 }),
+  ]));
   expect(board?.columns.SCHEDULED.total).toBe(7);
+  expect(board?.columns.SCHEDULED.items.map(({ id }) => id)).toEqual([
+    "SCHEDULED-1",
+    "SCHEDULED-2",
+  ]);
 });
 
 it("invalidates the release root after a readiness action succeeds", async () => {

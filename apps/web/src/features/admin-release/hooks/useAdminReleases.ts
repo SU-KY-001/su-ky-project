@@ -46,27 +46,33 @@ export function useAdminReleaseBoard(
   pages: Partial<Record<ReleaseBoardStatus, number>> = {},
   service = adminReleaseService,
 ) {
-  return useQueries({
-    queries: RELEASE_BOARD_COLUMNS.map(({ status }) => {
-      const columnFilter: ReleaseScheduleFilter = {
+  const requests = RELEASE_BOARD_COLUMNS.flatMap(({ status }) =>
+    Array.from({ length: pages[status] ?? 1 }, (_, index) => ({
+      status,
+      page: index + 1,
+      filter: {
         ...filter,
         status,
-        page: pages[status] ?? 1,
-      };
-      return {
-        queryKey: adminReleaseKeys.list(columnFilter),
-        queryFn: () => service.list(columnFilter),
-      };
-    }),
+        page: index + 1,
+      } satisfies ReleaseScheduleFilter,
+    })),
+  );
+  return useQueries({
+    queries: requests.map(({ filter: columnFilter }) => ({
+      queryKey: adminReleaseKeys.list(columnFilter),
+      queryFn: () => service.list(columnFilter),
+    })),
     combine: (results) => {
       const columns = Object.fromEntries(
-        RELEASE_BOARD_COLUMNS.map(({ status }, index) => {
-          const result = results[index];
+        RELEASE_BOARD_COLUMNS.map(({ status }) => {
+          const columnResults = results.filter(
+            (_, index) => requests[index]?.status === status,
+          );
           return [status, {
-            items: result?.data?.items ?? [],
-            total: result?.data?.total ?? 0,
-            isPending: result?.isPending ?? false,
-            error: result?.error ?? null,
+            items: columnResults.flatMap(({ data }) => data?.items ?? []),
+            total: columnResults.find(({ data }) => data)?.data?.total ?? 0,
+            isPending: columnResults.some(({ isPending }) => isPending),
+            error: columnResults.find(({ error }) => error)?.error ?? null,
           }];
         }),
       ) as Record<ReleaseBoardStatus, {
@@ -94,6 +100,7 @@ export function useAdminReleaseAttention(
         ...filter,
         status,
         page: 1,
+        limit: 50,
       };
       return {
         queryKey: adminReleaseKeys.list(attentionFilter),
