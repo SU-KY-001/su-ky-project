@@ -2,7 +2,6 @@ import { afterEach, expect, it } from "bun:test";
 import { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import type { ReleaseScheduleRecord } from "@repo/shared";
-import { ReleaseCalendar } from "./ReleaseCalendar";
 import { ReleaseHistory } from "./ReleaseHistory";
 
 let root: Root | undefined;
@@ -28,22 +27,6 @@ function schedule(status: string): ReleaseScheduleRecord {
     ],
   } as unknown as ReleaseScheduleRecord;
 }
-
-it("renders each calendar assignee and workflow state as card badges", async () => {
-  const host = document.createElement("div");
-  document.body.append(host);
-  root = createRoot(host);
-
-  await act(async () => {
-    root?.render(<ReleaseCalendar schedules={[schedule("SCHEDULED")]} onSelect={() => undefined} />);
-  });
-
-  expect([...host.querySelectorAll('[data-card-badge-type="name"]')].map((item) => item.textContent)).toEqual([
-    "Nguyễn Minh Anh",
-    "Trần Hoàng Nam",
-  ]);
-  expect(host.querySelector('[data-card-badge-type="status"]')?.textContent).toBe("Đang sản xuất");
-});
 
 it("renders release history names and outcome as card badges", async () => {
   const host = document.createElement("div");

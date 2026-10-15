@@ -150,7 +150,16 @@ class FakeReleaseRepository {
   }
   async setStatus(input: Parameters<ReleaseRepository["setStatus"]>[0]) {
     if (!input.from.includes(this.current.status)) return false;
-    this.current = { ...this.current, status: input.to };
+    this.current = {
+      ...this.current,
+      status: input.to,
+      failureCode:
+        input.failureCode === undefined ? this.current.failureCode : input.failureCode,
+      failureMessage:
+        input.failureMessage === undefined
+          ? this.current.failureMessage
+          : input.failureMessage,
+    };
     this.statusTransitions.push({
       to: input.to,
       action: input.action,
@@ -322,6 +331,29 @@ describe("release service", () => {
       code: "INVALID_STATE_TRANSITION",
     });
     expect(repository.statusTransitions).toHaveLength(0);
+  });
+
+  it("re-evaluates a blocked schedule after Admin fixes its release conditions", async () => {
+    const { releaseService, repository } = service();
+    repository.current = schedule({
+      status: "BLOCKED",
+      failureCode: "CHECKLIST_INCOMPLETE",
+      failureMessage: "CHECKLIST_INCOMPLETE",
+    });
+
+    const result = await releaseService.checkReadiness(
+      session("admin-1", "admin"),
+      "schedule-1",
+      "correlation-unblock",
+    );
+
+    expect(result.status).toBe("READY_TO_PUBLISH");
+    expect(result.failureCode).toBeNull();
+    expect(repository.statusTransitions.at(-1)).toEqual({
+      to: "READY_TO_PUBLISH",
+      actorType: "ADMIN",
+      action: "release.manual_ready",
+    });
   });
 
   it("blocks a due schedule when approval belongs to an older revision", async () => {

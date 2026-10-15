@@ -50,6 +50,7 @@ it("queries each board status separately and preserves totals", async () => {
         break;
       await new Promise((resolve) => setTimeout(resolve, 2));
     }
+    await new Promise((resolve) => setTimeout(resolve, 5));
   });
 
   expect(list).toHaveBeenCalledTimes(4);

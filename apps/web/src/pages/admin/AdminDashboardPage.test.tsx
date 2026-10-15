@@ -2,7 +2,7 @@ import { afterEach, expect, it } from "bun:test";
 import { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import type { ReleaseScheduleRecord } from "@repo/shared";
-import { ReleaseObservationView } from "./AdminDashboardPage";
+import { adminNavigation, ReleaseObservationView } from "./AdminDashboardPage";
 
 let root: Root | undefined;
 
@@ -21,16 +21,11 @@ const schedules = [{
   reviews: [{ status: "IN_REVIEW", revision: 4 }],
 }] as unknown as ReleaseScheduleRecord[];
 
-it("uses a name badge for moderator workload", async () => {
-  const host = document.createElement("div");
-  document.body.append(host);
-  root = createRoot(host);
-
-  await act(async () => {
-    root?.render(<ReleaseObservationView mode="coordination" schedules={schedules} />);
-  });
-
-  expect(host.querySelector('[data-card-badge-type="name"]')?.textContent).toBe("Nguyễn Minh Anh");
+it("keeps release schedules and review queue without a separate coordination item", () => {
+  const labels = adminNavigation("overview", () => undefined).map(({ label }) => label);
+  expect(labels).toContain("Lịch phát hành");
+  expect(labels).toContain("Hàng chờ kiểm duyệt");
+  expect(labels).not.toContain("Điều phối sản xuất");
 });
 
 it("uses a status badge for the review queue", async () => {
@@ -39,7 +34,7 @@ it("uses a status badge for the review queue", async () => {
   root = createRoot(host);
 
   await act(async () => {
-    root?.render(<ReleaseObservationView mode="reviews" schedules={schedules} />);
+    root?.render(<ReleaseObservationView schedules={schedules} />);
   });
 
   expect(host.querySelector('[data-card-badge-type="status"]')?.textContent).toBe("Chờ kiểm duyệt");

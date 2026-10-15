@@ -23,18 +23,21 @@ export function useAdminReleaseDashboard() {
   return useQuery({ queryKey: adminReleaseKeys.dashboard, queryFn: adminReleaseService.dashboard });
 }
 
-export function useAdminReleaseSchedules(filter: ReleaseScheduleFilter = {}) {
-  return useQuery({ queryKey: adminReleaseKeys.list(filter), queryFn: () => adminReleaseService.list(filter) });
+export function useAdminReleaseSchedules(
+  filter: ReleaseScheduleFilter = {},
+  service = adminReleaseService,
+) {
+  return useQuery({ queryKey: adminReleaseKeys.list(filter), queryFn: () => service.list(filter) });
 }
 
-export function useReleaseModerators() {
-  return useQuery({ queryKey: adminReleaseKeys.moderators, queryFn: adminReleaseService.moderators });
+export function useReleaseModerators(service = adminReleaseService) {
+  return useQuery({ queryKey: adminReleaseKeys.moderators, queryFn: service.moderators });
 }
 
-export function useAdminReleaseWorkload() {
+export function useAdminReleaseWorkload(service = adminReleaseService) {
   return useQuery({
     queryKey: adminReleaseKeys.workload,
-    queryFn: adminReleaseService.workload,
+    queryFn: service.workload,
   });
 }
 
@@ -83,6 +86,7 @@ export function useAdminReleaseBoard(
 
 export function useAdminReleaseAttention(
   filter: Omit<ReleaseScheduleFilter, "status" | "page"> = {},
+  service = adminReleaseService,
 ) {
   return useQueries({
     queries: (["BLOCKED", "FAILED"] as const).map((status) => {
@@ -93,7 +97,7 @@ export function useAdminReleaseAttention(
       };
       return {
         queryKey: adminReleaseKeys.list(attentionFilter),
-        queryFn: () => adminReleaseService.list(attentionFilter),
+        queryFn: () => service.list(attentionFilter),
       };
     }),
     combine: (results) => ({
@@ -105,10 +109,10 @@ export function useAdminReleaseAttention(
   });
 }
 
-export function useReleaseProgress(id: string | null) {
+export function useReleaseProgress(id: string | null, service = adminReleaseService) {
   return useQuery({
     queryKey: adminReleaseKeys.progress(id ?? ""),
-    queryFn: () => adminReleaseService.progress(id!),
+    queryFn: () => service.progress(id!),
     enabled: Boolean(id),
   });
 }

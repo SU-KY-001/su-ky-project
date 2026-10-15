@@ -217,11 +217,11 @@ export class ReleaseService {
   ): Promise<ReleaseScheduleEntity> {
     assertAdmin(session);
     const schedule = requireSchedule(await this.repository.findSchedule(scheduleId));
-    if (schedule.status !== "SCHEDULED")
+    if (!["SCHEDULED", "BLOCKED"].includes(schedule.status))
       throw new DomainError(
         409,
         "INVALID_STATE_TRANSITION",
-        "Chỉ lịch đã lên lịch mới có thể chuyển sang sẵn sàng phát hành",
+        "Chỉ lịch đã lên lịch hoặc đang bị chặn mới có thể đánh giá sẵn sàng",
       );
 
     const review = await this.repository.findLatestReview(scheduleId);
@@ -248,7 +248,7 @@ export class ReleaseService {
 
     const changed = await this.repository.setStatus({
       scheduleId,
-      from: ["SCHEDULED"],
+      from: ["SCHEDULED", "BLOCKED"],
       to: "READY_TO_PUBLISH",
       actorId: session.user.id,
       actorType: "ADMIN",
