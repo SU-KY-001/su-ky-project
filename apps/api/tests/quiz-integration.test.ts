@@ -14,14 +14,15 @@ import {
 const QUIZ_XP = 10;
 // Each poll is a DB round trip (no wall-clock wait); the loop ends as soon as a backend running the
 // expected lock statement is reported as waiting on a lock.
-const MAX_LOCK_POLLS = 10_000;
+const MAX_LOCK_POLLS = 2_000;
 
 async function waitForBlockedBackend(mode: "SHARE" | "UPDATE") {
   const pattern = `%FROM quizzes%FOR ${mode}%`;
   for (let poll = 0; poll < MAX_LOCK_POLLS; poll += 1) {
     const [row] = await prisma.$queryRaw<Array<{ n: number }>>`
       SELECT count(*)::int AS n FROM pg_stat_activity
-      WHERE datname = current_database() AND wait_event_type = 'Lock' AND query LIKE ${pattern}`;
+      WHERE datname = current_database() AND pid <> pg_backend_pid() AND state = 'active'
+        AND wait_event_type = 'Lock' AND query LIKE ${pattern}`;
     if (row && row.n > 0) return;
   }
   throw new Error(`No backend became blocked on a quiz FOR ${mode} lock`);
@@ -232,6 +233,25 @@ describe.skipIf(!RUN_INTEGRATION)("quiz + admin mutations (database)", () => {
         .banned,
     ).toBe(true);
     expect(audit).not.toBeNull();
+  });
+
+  it("refuses an admin demoting or banning their own account with 409 CONFLICT", async () => {
+    const self = { actorId: adminId, ipAddress: null };
+    await expectDomainError(
+      admin.updateUser(adminId, { role: "user" }, self),
+      409,
+      "CONFLICT",
+    );
+    await expectDomainError(
+      admin.banUser(adminId, { reason: "self" }, self),
+      409,
+      "CONFLICT",
+    );
+    const row = await prisma.user.findUniqueOrThrow({ where: { id: adminId } });
+    expect({ role: row.role, banned: row.banned }).toEqual({
+      role: "admin",
+      banned: false,
+    });
   });
 
   it("rolls back the mutation when the audit write fails", async () => {
