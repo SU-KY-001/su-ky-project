@@ -61,6 +61,8 @@ function createHarness(maxChars = 60_000, allowedSourceIds: string[] = []) {
     format: "mp3",
     sizeBytes: 2048n,
     durationMs: 42_000,
+    widthPx: null,
+    heightPx: null,
     uploadedById: ownerId,
     createdAt: new Date(),
     verifiedAt: new Date(),

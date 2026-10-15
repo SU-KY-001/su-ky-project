@@ -54,13 +54,14 @@ export class MediaService {
     try {
       const resource = await this.storage.fetchResource(asset.publicId, asset.kind);
       if (!resource) throw new DomainError(409, "MEDIA_NOT_UPLOADED", "Uploaded media was not found");
-      const invalid = !config.formats.includes(resource.format.toLowerCase()) || resource.bytes > BigInt(config.maxBytes) || (asset.kind === "AUDIO" && (!resource.durationMs || resource.durationMs <= 0));
+      const missingImageSize = asset.kind === "IMAGE" && !((resource.widthPx ?? 0) > 0 && (resource.heightPx ?? 0) > 0);
+      const invalid = missingImageSize || !config.formats.includes(resource.format.toLowerCase()) || resource.bytes > BigInt(config.maxBytes) || (asset.kind === "AUDIO" && (!resource.durationMs || resource.durationMs <= 0));
       if (invalid) {
         await this.storage.destroy(asset.publicId, asset.kind);
         await this.repository.updateStatus(id, { status: "DELETED", deletedAt: new Date() });
         throw new DomainError(422, "MEDIA_INVALID", "Uploaded media is invalid");
       }
-      const updated = await this.repository.updateStatus(id, { status: "READY", version: resource.version, format: resource.format.toLowerCase(), sizeBytes: resource.bytes, durationMs: resource.durationMs, verifiedAt: new Date() });
+      const updated = await this.repository.updateStatus(id, { status: "READY", version: resource.version, format: resource.format.toLowerCase(), sizeBytes: resource.bytes, durationMs: resource.durationMs, widthPx: resource.widthPx, heightPx: resource.heightPx, verifiedAt: new Date() });
       return this.map(updated);
     } catch (error) { return this.providerError(error); }
   }

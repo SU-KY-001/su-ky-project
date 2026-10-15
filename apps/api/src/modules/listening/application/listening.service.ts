@@ -295,6 +295,9 @@ export class ListeningService {
         cover: series.coverImageAsset
           ? { url: this.storage.deliveryUrl(series.coverImageAsset) }
           : null,
+        coverLandscape: series.coverLandscapeAsset
+          ? { url: this.storage.deliveryUrl(series.coverLandscapeAsset) }
+          : null,
         episodeCount: series._count.episodes,
         publishedAt: series.publishedAt,
       })),
@@ -322,6 +325,9 @@ export class ListeningService {
       endYear: series.endYear,
       cover: series.coverImageAsset
         ? { url: this.storage.deliveryUrl(series.coverImageAsset) }
+        : null,
+      coverLandscape: series.coverLandscapeAsset
+        ? { url: this.storage.deliveryUrl(series.coverLandscapeAsset) }
         : null,
       ...this.mapPublicationEvidence(series, series.sources),
       episodes: series.episodes.map((episode) => ({
@@ -376,6 +382,9 @@ export class ListeningService {
         endYear: episode.series.endYear,
         cover: episode.series.coverImageAsset
           ? { url: this.storage.deliveryUrl(episode.series.coverImageAsset) }
+          : null,
+        coverLandscape: episode.series.coverLandscapeAsset
+          ? { url: this.storage.deliveryUrl(episode.series.coverLandscapeAsset) }
           : null,
         ...this.mapPublicationEvidence(episode.series, episode.series.sources),
       },

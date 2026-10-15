@@ -101,9 +101,11 @@ export class ContentService {
     }
   }
 
+  /** Dimensions are null only for assets verified before width/height were stored; those are not rejected. */
   private assertCoverAssetUsable(
     asset: MediaAssetEntity | null,
     session: Session,
+    orientation: "portrait" | "landscape" = "portrait",
   ): void {
     if (
       !asset ||
@@ -115,6 +117,16 @@ export class ContentService {
         422,
         "VALIDATION_ERROR",
         "Cover image asset is not usable",
+      );
+    }
+    const { widthPx, heightPx } = asset;
+    if (widthPx == null || heightPx == null) return;
+    const fits = orientation === "portrait" ? heightPx > widthPx : widthPx > heightPx;
+    if (!fits) {
+      throw new DomainError(
+        422,
+        "VALIDATION_ERROR",
+        `Cover image must be ${orientation} (got ${widthPx}x${heightPx})`,
       );
     }
   }
@@ -246,6 +258,7 @@ export class ContentService {
       startYear?: number | null;
       endYear?: number | null;
       coverImageAssetId?: string | null;
+      coverLandscapeAssetId?: string | null;
     },
     ipAddress: string | null,
   ): Promise<SeriesDetailEntity> {
@@ -254,6 +267,13 @@ export class ContentService {
       this.assertCoverAssetUsable(
         await this.series.findMediaAsset(input.coverImageAssetId),
         session,
+      );
+    }
+    if (input.coverLandscapeAssetId) {
+      this.assertCoverAssetUsable(
+        await this.series.findMediaAsset(input.coverLandscapeAssetId),
+        session,
+        "landscape",
       );
     }
     const created = await this.series.createSeries({
@@ -286,6 +306,7 @@ export class ContentService {
       startYear?: number | null;
       endYear?: number | null;
       coverImageAssetId?: string | null;
+      coverLandscapeAssetId?: string | null;
       baseUpdatedAt?: Date;
     },
     ipAddress: string | null,
@@ -314,10 +335,18 @@ export class ContentService {
         session,
       );
     }
+    if (patch.coverLandscapeAssetId) {
+      this.assertCoverAssetUsable(
+        await this.series.findMediaAsset(patch.coverLandscapeAssetId),
+        session,
+        "landscape",
+      );
+    }
     const update: UpdateSeriesInput = {
       id,
       patch,
       previousCoverImageAssetId: current.coverImageAssetId,
+      previousCoverLandscapeAssetId: current.coverLandscapeAssetId,
       before: current,
       after: patch,
       actorId: session.user.id,

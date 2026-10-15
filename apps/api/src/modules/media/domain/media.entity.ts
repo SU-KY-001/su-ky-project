@@ -15,6 +15,8 @@ export interface MediaAsset {
   format: string | null;
   sizeBytes: bigint | null;
   durationMs: number | null;
+  widthPx: number | null;
+  heightPx: number | null;
   uploadedById: string;
   createdAt: Date;
   verifiedAt: Date | null;
