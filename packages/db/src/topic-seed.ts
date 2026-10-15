@@ -10,11 +10,8 @@ export async function seedTopics(db: DbClient): Promise<void> {
   const topic = await db.topic.upsert({
     where: { slug: NATIONAL_HISTORY_TOPIC.slug },
     create: NATIONAL_HISTORY_TOPIC,
-    update: {
-      name: NATIONAL_HISTORY_TOPIC.name,
-      sortOrder: NATIONAL_HISTORY_TOPIC.sortOrder,
-      isActive: true,
-    },
+    // Admins can rename topics; a re-seed only guarantees the topic is active, never reverts their edits.
+    update: { isActive: true },
   });
   await db.topic.updateMany({
     where: { slug: { not: NATIONAL_HISTORY_TOPIC.slug } },

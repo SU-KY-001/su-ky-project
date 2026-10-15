@@ -42,6 +42,8 @@ export const SYSTEM_CONFIGS = {
 export type SystemConfigKey = keyof typeof SYSTEM_CONFIGS;
 type ConfigValue<K extends SystemConfigKey> = z.infer<(typeof SYSTEM_CONFIGS)[K]["schema"]>;
 
+// Per-process cache: an admin update clears only the instance that handled it, so other instances
+// may serve the old value for up to this TTL. Accepted eventual consistency; documented in the admin OpenAPI contract.
 const SYSTEM_CONFIG_CACHE_TTL_MS = 60_000;
 const cache = new Map<SystemConfigKey, { value: unknown; expiresAt: number }>();
 const warnedMissing = new Set<SystemConfigKey>();

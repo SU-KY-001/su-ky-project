@@ -14,7 +14,7 @@ import {
 const QUIZ_XP = 10;
 // Each poll is a DB round trip (no wall-clock wait); the loop ends as soon as a backend running the
 // expected lock statement is reported as waiting on a lock.
-const MAX_LOCK_POLLS = 2_000;
+const MAX_LOCK_POLLS = 500;
 
 async function waitForBlockedBackend(mode: "SHARE" | "UPDATE") {
   const pattern = `%FROM quizzes%FOR ${mode}%`;

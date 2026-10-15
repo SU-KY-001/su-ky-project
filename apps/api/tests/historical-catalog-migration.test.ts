@@ -6,7 +6,7 @@ import {
   createModerator,
 } from "./support/integration";
 import { seedHistoricalPeriods } from "@repo/db/historical-seed";
-import { seedTopics } from "@repo/db/topic-seed";
+import { NATIONAL_HISTORY_TOPIC, seedTopics } from "@repo/db/topic-seed";
 
 describe.skipIf(!RUN_INTEGRATION)("historical catalog migration", () => {
   it("stores prehistory and rejects ambiguous citation owners", async () => {
@@ -92,7 +92,7 @@ describe.skipIf(!RUN_INTEGRATION)("historical catalog migration", () => {
       await prisma.$transaction(async (tx) => {
         await seedTopics(tx);
         const topic = await tx.topic.findUniqueOrThrow({
-          where: { slug: "quan-su" },
+          where: { slug: NATIONAL_HISTORY_TOPIC.slug },
         });
         await tx.topic.update({
           where: { id: topic.id },

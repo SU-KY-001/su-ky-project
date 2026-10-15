@@ -331,6 +331,8 @@ export const adminPaths: Paths = {
       id: "updateAdminConfig",
       tag: TAG,
       summary: "Cập nhật cấu hình",
+      description:
+        "Giá trị mới có hiệu lực ngay trên instance nhận yêu cầu. Các instance API khác có thể còn dùng giá trị cũ tối đa 60 giây (TTL cache cấu hình).",
       access: "admin",
       pathParams: configKey,
       pathParamDocs: { key: "Khóa cấu hình trong allowlist" },

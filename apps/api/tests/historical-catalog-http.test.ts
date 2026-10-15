@@ -15,11 +15,12 @@ import {
 describe.skipIf(!RUN_INTEGRATION)("historical catalog HTTP", () => {
   const a = crypto.randomUUID(),
     b = crypto.randomUUID(),
-    user = crypto.randomUUID();
+    user = crypto.randomUUID(),
+    admin = crypto.randomUUID();
   const tokens = new Map<string, string>();
   beforeAll(async () => {
     assertTestDatabase();
-    for (const id of [a, b, user]) {
+    for (const id of [a, b, user, admin]) {
       await createModerator(id);
       const token = crypto.randomUUID();
       tokens.set(id, token);
@@ -33,9 +34,10 @@ describe.skipIf(!RUN_INTEGRATION)("historical catalog HTTP", () => {
       });
     }
     await prisma.user.update({ where: { id: user }, data: { role: "user" } });
+    await prisma.user.update({ where: { id: admin }, data: { role: "admin" } });
   });
   afterAll(async () => {
-    for (const id of [a, b, user]) await removeFixtures(id);
+    for (const id of [a, b, user, admin]) await removeFixtures(id);
   });
   const headers = (id: string) => ({
     Authorization: `Bearer ${tokens.get(id)}`,
@@ -86,7 +88,7 @@ describe.skipIf(!RUN_INTEGRATION)("historical catalog HTTP", () => {
     const create = () =>
       app.request("/api/studio/historical-periods", {
         method: "POST",
-        headers: { ...headers(a), "Idempotency-Key": key },
+        headers: { ...headers(admin), "Idempotency-Key": key },
         body,
       });
     const first = await create();
@@ -112,7 +114,7 @@ describe.skipIf(!RUN_INTEGRATION)("historical catalog HTTP", () => {
           body: JSON.stringify({ name: "Cấm sửa", baseVersion: 1 }),
         })
       ).status,
-    ).toBe(404);
+    ).toBe(403);
     const phaseRes = await app.request("/api/studio/historical-phases", {
       method: "POST",
       headers: { ...headers(a), "Idempotency-Key": crypto.randomUUID() },
@@ -138,7 +140,7 @@ describe.skipIf(!RUN_INTEGRATION)("historical catalog HTTP", () => {
       (
         await app.request(`/api/studio/historical-periods/${period.id}`, {
           method: "DELETE",
-          headers: headers(a),
+          headers: headers(admin),
           body: JSON.stringify({ baseVersion: 1 }),
         })
       ).status,
