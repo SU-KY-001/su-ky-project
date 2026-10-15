@@ -311,6 +311,7 @@ model Series {
   slug                       String                    @unique @db.VarChar(280)
   description                String?                   @db.Text
   coverImageAssetId          String?                   @map("cover_image_asset_id") @db.Uuid
+  coverLandscapeAssetId      String?                   @map("cover_landscape_asset_id") @db.Uuid
   startYear                  Int?                      @map("start_year") @db.Integer
   endYear                    Int?                      @map("end_year") @db.Integer
   status                     ContentStatus             @default(DRAFT)
@@ -325,6 +326,7 @@ model Series {
   topic                      Topic?                    @relation(fields: [topicId], references: [id], onDelete: Restrict)
   historicalPhase            HistoricalPhase?          @relation(fields: [historicalPhaseId], references: [id], onDelete: Restrict)
   coverImageAsset            MediaAsset?               @relation("SeriesCover", fields: [coverImageAssetId], references: [id], onDelete: Restrict)
+  coverLandscapeAsset        MediaAsset?               @relation("SeriesCoverLandscape", fields: [coverLandscapeAssetId], references: [id], onDelete: Restrict)
   adminLockedBy              User?                     @relation("SeriesLocker", fields: [adminLockedById], references: [id], onDelete: SetNull)
   episodes                   Episode[]
   sources                    SeriesSource[]
@@ -399,6 +401,8 @@ model MediaAsset {
   format            String?             @db.VarChar(10)
   sizeBytes         BigInt?             @map("size_bytes")
   durationMs        Int?                @map("duration_ms")
+  widthPx           Int?                @map("width_px")
+  heightPx          Int?                @map("height_px")
   uploadedById      String              @map("uploaded_by_id") @db.VarChar(36)
   createdAt         DateTime            @default(now()) @map("created_at") @db.Timestamptz(3)
   verifiedAt        DateTime?           @map("verified_at") @db.Timestamptz(3)
@@ -406,6 +410,7 @@ model MediaAsset {
   deletedAt         DateTime?           @map("deleted_at") @db.Timestamptz(3)
   uploadedBy        User                @relation("MediaUploader", fields: [uploadedById], references: [id], onDelete: Restrict)
   seriesCover       Series[]            @relation("SeriesCover")
+  seriesCoverLandscape Series[]         @relation("SeriesCoverLandscape")
   narrationAudio    EpisodeNarration?   @relation("NarrationAudio")
   sourceFile        Source?             @relation("SourceFile")
   listeningProgress ListeningProgress[]

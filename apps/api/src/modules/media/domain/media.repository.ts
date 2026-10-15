@@ -5,6 +5,8 @@ export interface StoredResource {
   format: string;
   bytes: bigint;
   durationMs: number | null;
+  widthPx: number | null;
+  heightPx: number | null;
 }
 
 export interface MediaStorageGateway {
@@ -37,6 +39,8 @@ export interface UpdateMediaAssetData {
   format?: string;
   sizeBytes?: bigint;
   durationMs?: number | null;
+  widthPx?: number | null;
+  heightPx?: number | null;
 }
 
 export interface MediaRepository {

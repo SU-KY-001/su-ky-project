@@ -54,6 +54,7 @@ export interface SeriesEntity {
   slug: string;
   description: string | null;
   coverImageAssetId: string | null;
+  coverLandscapeAssetId: string | null;
   startYear: number | null;
   endYear: number | null;
   status: ContentStatus;
@@ -153,6 +154,7 @@ export interface ListeningProgressEntity {
 /** Public series list row: cover asset plus published-episode count. */
 export interface SeriesWithCoverAndCount extends SeriesEntity {
   coverImageAsset: MediaAssetEntity | null;
+  coverLandscapeAsset: MediaAssetEntity | null;
   _count: { episodes: number };
 }
 
@@ -168,6 +170,7 @@ export interface EpisodeWithNarrations extends EpisodeEntity {
 /** /series/:slug row: cover asset plus all published episodes with narrations. */
 export interface SeriesDetailEntity extends SeriesEntity {
   coverImageAsset: MediaAssetEntity | null;
+  coverLandscapeAsset: MediaAssetEntity | null;
   episodes: EpisodeWithNarrations[];
   sources: SeriesSourceWithSource[];
 }
@@ -210,6 +213,7 @@ export interface SeriesEpisodeRef {
 /** Series projection embedded in /episodes/:slug: cover asset + published siblings. */
 export interface SeriesDetailRef extends SeriesEntity {
   coverImageAsset: MediaAssetEntity | null;
+  coverLandscapeAsset: MediaAssetEntity | null;
   episodes: SeriesEpisodeRef[];
   sources: SeriesSourceWithSource[];
 }

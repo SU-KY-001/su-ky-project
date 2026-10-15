@@ -145,6 +145,7 @@ async function lockEpisodeAndSeries(
 
 const seriesListInclude = {
   coverImageAsset: true,
+  coverLandscapeAsset: true,
   episodes: { where: { deletedAt: null }, select: { status: true } },
 } satisfies Prisma.SeriesInclude;
 
@@ -178,6 +179,7 @@ const seriesDetailInclude = {
   },
   owner: { select: { id: true, name: true } },
   coverImageAsset: true,
+  coverLandscapeAsset: true,
   episodes: {
     where: { deletedAt: null },
     orderBy: { sortOrder: "asc" as const },
@@ -308,6 +310,11 @@ export class PrismaSeriesRepository implements SeriesRepository {
           where: { id: row.coverImageAssetId },
           data: { detachedAt: null },
         });
+      if (row.coverLandscapeAssetId)
+        await tx.mediaAsset.update({
+          where: { id: row.coverLandscapeAssetId },
+          data: { detachedAt: null },
+        });
       await writeAudit(tx, {
         actorId: input.actorId,
         action: "series.created",
@@ -345,6 +352,7 @@ export class PrismaSeriesRepository implements SeriesRepository {
           "Giai đoạn phải theo sự kiện chính",
         );
       if (
+        input.patch.coverImageAssetId !== undefined &&
         input.previousCoverImageAssetId &&
         input.previousCoverImageAssetId !== input.patch.coverImageAssetId
       ) {
@@ -356,6 +364,21 @@ export class PrismaSeriesRepository implements SeriesRepository {
       if (input.patch.coverImageAssetId)
         await tx.mediaAsset.update({
           where: { id: input.patch.coverImageAssetId },
+          data: { detachedAt: null },
+        });
+      if (
+        input.patch.coverLandscapeAssetId !== undefined &&
+        input.previousCoverLandscapeAssetId &&
+        input.previousCoverLandscapeAssetId !== input.patch.coverLandscapeAssetId
+      ) {
+        await tx.mediaAsset.update({
+          where: { id: input.previousCoverLandscapeAssetId },
+          data: { detachedAt: new Date() },
+        });
+      }
+      if (input.patch.coverLandscapeAssetId)
+        await tx.mediaAsset.update({
+          where: { id: input.patch.coverLandscapeAssetId },
           data: { detachedAt: null },
         });
       await tx.series.update({

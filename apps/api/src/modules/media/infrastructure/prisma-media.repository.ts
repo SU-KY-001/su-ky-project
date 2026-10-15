@@ -11,6 +11,8 @@ function toMediaAsset(row: MediaAssetRow): MediaAsset {
     format: row.format,
     sizeBytes: row.sizeBytes,
     durationMs: row.durationMs,
+    widthPx: row.widthPx,
+    heightPx: row.heightPx,
     uploadedById: row.uploadedById,
     createdAt: row.createdAt,
     verifiedAt: row.verifiedAt,

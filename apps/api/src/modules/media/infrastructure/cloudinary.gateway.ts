@@ -59,7 +59,7 @@ export class CloudinaryGateway implements MediaStorageGateway {
     this.configured();
     try {
       const result = await this.withTimeout(cloudinary.api.resource(publicId, { resource_type: resourceType(kind), type: cloudinaryType(kind), media_metadata: true }));
-      return { version: BigInt(result.version), format: formatOf(result, publicId), bytes: BigInt(result.bytes), durationMs: typeof result.duration === "number" ? Math.round(result.duration * 1000) : null };
+      return { version: BigInt(result.version), format: formatOf(result, publicId), bytes: BigInt(result.bytes), durationMs: typeof result.duration === "number" ? Math.round(result.duration * 1000) : null, widthPx: typeof result.width === "number" ? result.width : null, heightPx: typeof result.height === "number" ? result.height : null };
     } catch (error) {
       if (typeof error === "object" && error && "http_code" in error && error.http_code === 404) return null;
       if (error instanceof MediaProviderError) throw error;

@@ -187,6 +187,7 @@ export const PublicSeriesListItemDocSchema = z.object({
   startYear: z.number().int().nullable(),
   endYear: z.number().int().nullable(),
   cover: PublicCoverSchema,
+  coverLandscape: PublicCoverSchema,
   episodeCount: z.number().int(),
   publishedAt: timestamp.nullable(),
 });
@@ -221,6 +222,7 @@ export const PublicSeriesDetailDocSchema = z.object({
   startYear: z.number().int().nullable(),
   endYear: z.number().int().nullable(),
   cover: PublicCoverSchema,
+  coverLandscape: PublicCoverSchema,
   sources: z.array(PublicSeriesSourceDocSchema),
   episodes: z.array(
     z.object({
@@ -273,6 +275,7 @@ export const PublicEpisodeDetailDocSchema = z.object({
     startYear: z.number().int().nullable(),
     endYear: z.number().int().nullable(),
     cover: PublicCoverSchema,
+    coverLandscape: PublicCoverSchema,
     sources: z
       .array(PublicSeriesSourceDocSchema)
       .describe("Trích dẫn thuộc series; mọi tập của series dùng chung"),

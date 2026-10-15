@@ -30,6 +30,8 @@ function media(overrides: Partial<MediaAssetEntity> = {}): MediaAssetEntity {
     format: "pdf",
     sizeBytes: 1200n,
     durationMs: null,
+    widthPx: null,
+    heightPx: null,
     uploadedById: ownerId,
     createdAt: new Date("2026-10-13T01:00:00.000Z"),
     verifiedAt: new Date("2026-10-13T01:01:00.000Z"),

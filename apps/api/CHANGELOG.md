@@ -5,6 +5,12 @@ Nhãn: `BREAKING` (code cũ gọi sẽ lỗi hoặc sai), `ADDITIVE` (mới, kh�
 
 ## [Unreleased]
 
+### ADDITIVE — Ảnh nền ngang của Series (2026-10-15)
+- `POST/PATCH /api/studio/series` nhận thêm `coverLandscapeAssetId` (uuid | `null` = gỡ). Response Studio (list + detail) và public (`/api/series`, `/api/series/:slug`, `/api/episodes/:slug` → `series`) thêm `coverLandscape` cùng dạng với `cover` (`null` khi chưa có). `cover` giữ nguyên, nay là ảnh **đứng**.
+- Upload như cover: `POST /api/studio/media-assets` (`kind: "IMAGE"`) → upload → verify → gắn asset vào `coverLandscapeAssetId`.
+- BEHAVIOR: server lưu `width/height` lúc verify và kiểm hướng khi gắn: `coverImageAssetId` cần ảnh đứng (cao > rộng), `coverLandscapeAssetId` cần ảnh ngang (rộng > cao), ảnh vuông bị từ chối; sai hướng trả `422 VALIDATION_ERROR`. Ảnh đã verify trước bản này (chưa có kích thước) không bị chặn.
+- Audio episode không đổi: ticket → upload → verify → `PUT /api/studio/episodes/:id/narrations/:type/audio`.
+
 ## [0.1.0] - 2026-10-15 — Admin, Quiz và nhiệm vụ tuần (PR #13, chờ merge vào `dev`)
 
 Bản `0.x`: thay đổi BREAKING tăng MINOR (`0.0.1` → `0.1.0`). `GET /health` và `info.version` của OpenAPI đọc từ `package.json` nên tự đổi theo.

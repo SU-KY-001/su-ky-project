@@ -36,6 +36,7 @@ export interface SeriesEntity {
   slug: string;
   description: string | null;
   coverImageAssetId: string | null;
+  coverLandscapeAssetId: string | null;
   startYear: number | null;
   endYear: number | null;
   status: ContentStatus;
@@ -134,6 +135,8 @@ export interface MediaAssetEntity {
   format: string | null;
   sizeBytes: bigint | null;
   durationMs: number | null;
+  widthPx: number | null;
+  heightPx: number | null;
   uploadedById: string;
   createdAt: Date;
   verifiedAt: Date | null;
@@ -205,6 +208,7 @@ export type SeriesDetailEntity = SeriesEntity & {
   } | null;
   owner: { id: string; name: string };
   coverImageAsset: MediaAssetEntity | null;
+  coverLandscapeAsset: MediaAssetEntity | null;
   episodes: EpisodeDetailRowEntity[];
   sources: SeriesSourceWithSourceEntity[];
 };
@@ -212,5 +216,6 @@ export type SeriesDetailEntity = SeriesEntity & {
 /** Series row as included in the studio list query. */
 export type SeriesListItemEntity = SeriesEntity & {
   coverImageAsset: MediaAssetEntity | null;
+  coverLandscapeAsset: MediaAssetEntity | null;
   episodes: { status: ContentStatus }[];
 };

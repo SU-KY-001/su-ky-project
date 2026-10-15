@@ -6,13 +6,14 @@ mock.module("../src/core/env", () => ({
 }));
 
 const seen: Record<string, unknown>[] = [];
+let response: Record<string, unknown> = { version: 1791632728, format: "mp3", bytes: 48944, duration: 3.030204 };
 mock.module("cloudinary", () => ({
   v2: {
     config: () => {},
     api: {
       resource: async (_id: string, opts: Record<string, unknown>) => {
         seen.push(opts);
-        return { version: 1791632728, format: "mp3", bytes: 48944, duration: 3.030204 };
+        return response;
       },
     },
     uploader: { destroy: async () => ({ result: "ok" }) },
@@ -27,5 +28,13 @@ describe("CloudinaryGateway.fetchResource", () => {
     const resource = await gateway.fetchResource("su-ky/audio/test-id", "AUDIO");
     expect(seen[0]?.media_metadata).toBe(true);
     expect(resource?.durationMs).toBe(3030);
+  });
+
+  it("maps image width/height and leaves them null when Cloudinary omits them", async () => {
+    const gateway = new CloudinaryGateway();
+    response = { version: 1, format: "jpg", bytes: 1000, width: 600, height: 900 };
+    expect(await gateway.fetchResource("su-ky/image/a", "IMAGE")).toMatchObject({ widthPx: 600, heightPx: 900 });
+    response = { version: 1, format: "jpg", bytes: 1000 };
+    expect(await gateway.fetchResource("su-ky/image/b", "IMAGE")).toMatchObject({ widthPx: null, heightPx: null });
   });
 });
