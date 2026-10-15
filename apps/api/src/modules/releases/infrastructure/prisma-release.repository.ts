@@ -487,9 +487,71 @@ export class PrismaReleaseRepository implements ReleaseRepository {
     return { upcoming, ready, atRisk, needsAttention };
   }
 
+  async listModeratorWorkload(now: Date, nearDeadlineBefore: Date) {
+    const activeStatuses: ReleaseScheduleStatus[] = [
+      "SCHEDULED",
+      "READY_TO_PUBLISH",
+      "PUBLISHING",
+      "BLOCKED",
+      "FAILED",
+    ];
+    const [openRows, nearDeadlineRows] = await prisma.$transaction([
+      prisma.productionAssignment.groupBy({
+        by: ["moderatorId"],
+        orderBy: { moderatorId: "asc" },
+        where: {
+          removedAt: null,
+          schedule: { status: { in: activeStatuses } },
+        },
+        _count: { moderatorId: true },
+      }),
+      prisma.productionAssignment.groupBy({
+        by: ["moderatorId"],
+        orderBy: { moderatorId: "asc" },
+        where: {
+          removedAt: null,
+          schedule: {
+            status: { in: activeStatuses },
+            productionDeadline: { gte: now, lte: nearDeadlineBefore },
+          },
+        },
+        _count: { moderatorId: true },
+      }),
+    ]);
+    const openByModerator = new Map(
+      openRows.map((row) => [
+        row.moderatorId,
+        typeof row._count === "object" ? row._count.moderatorId ?? 0 : 0,
+      ]),
+    );
+    const nearDeadlineByModerator = new Map(
+      nearDeadlineRows.map((row) => [
+        row.moderatorId,
+        typeof row._count === "object" ? row._count.moderatorId ?? 0 : 0,
+      ]),
+    );
+    const moderators = await prisma.user.findMany({
+      where: { id: { in: [...openByModerator.keys()] } },
+      orderBy: [{ name: "asc" }, { id: "asc" }],
+      select: { id: true, name: true },
+    });
+    return moderators.map((moderator) => ({
+      moderatorId: moderator.id,
+      name: moderator.name,
+      open: openByModerator.get(moderator.id) ?? 0,
+      nearDeadline: nearDeadlineByModerator.get(moderator.id) ?? 0,
+    }));
+  }
+
   async listSchedules(filter: ReleaseScheduleListFilter) {
     const where: Prisma.ReleaseScheduleWhereInput = {
       status: filter.status,
+      title: filter.q
+        ? { contains: filter.q, mode: "insensitive" }
+        : undefined,
+      assignments: filter.moderatorId
+        ? { some: { moderatorId: filter.moderatorId, removedAt: null } }
+        : undefined,
       scheduledAt:
         filter.from || filter.to
           ? { gte: filter.from, lte: filter.to }

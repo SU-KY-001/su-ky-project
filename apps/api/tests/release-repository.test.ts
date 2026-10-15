@@ -9,6 +9,7 @@ const adminId = `release-admin-${suffix}`;
 const firstModeratorId = `release-mod-a-${suffix}`;
 const secondModeratorId = `release-mod-b-${suffix}`;
 let scheduleId = "";
+const scheduleIds: string[] = [];
 let seriesId = "";
 let episodeId = "";
 
@@ -41,11 +42,11 @@ suite("release repository", () => {
 
   afterAll(async () => {
     if (!RUN_INTEGRATION) return;
-    if (scheduleId) {
-      await prisma.releaseSchedule.deleteMany({ where: { id: scheduleId } });
-      await prisma.outboxEvent.deleteMany({ where: { aggregateId: scheduleId } });
+    if (scheduleIds.length > 0) {
+      await prisma.releaseSchedule.deleteMany({ where: { id: { in: scheduleIds } } });
+      await prisma.outboxEvent.deleteMany({ where: { aggregateId: { in: scheduleIds } } });
       await prisma.auditLog.deleteMany({
-        where: { resourceType: "release_schedule", resourceId: scheduleId },
+        where: { resourceType: "release_schedule", resourceId: { in: scheduleIds } },
       });
     }
     if (episodeId) await prisma.episode.deleteMany({ where: { id: episodeId } });
@@ -66,6 +67,7 @@ suite("release repository", () => {
       correlationId: `create-${suffix}`,
     });
     scheduleId = created.id;
+    scheduleIds.push(created.id);
 
     expect(created.status).toBe("SCHEDULED");
     expect(created.assignments.map((item) => item.moderatorId)).toEqual([firstModeratorId]);
@@ -109,5 +111,66 @@ suite("release repository", () => {
 
     expect(await repository.claimForPublishing(scheduleId, 1)).toBe(true);
     expect(await repository.claimForPublishing(scheduleId, 1)).toBe(false);
+  });
+
+  it("filters schedules and aggregates active moderator workload", async () => {
+    const fixtures = await Promise.all([
+      prisma.releaseSchedule.create({
+        data: {
+          title: "Biên niên Trường Sơn",
+          productionDeadline: new Date("2026-10-21T10:00:00.000Z"),
+          scheduledAt: new Date("2026-10-22T13:00:00.000Z"),
+          status: "SCHEDULED",
+          createdById: adminId,
+          assignments: { create: { moderatorId: firstModeratorId, assignedById: adminId } },
+        },
+      }),
+      prisma.releaseSchedule.create({
+        data: {
+          title: "Dòng chảy biển đảo",
+          productionDeadline: new Date("2026-10-23T13:00:00.000Z"),
+          scheduledAt: new Date("2026-10-24T13:00:00.000Z"),
+          status: "READY_TO_PUBLISH",
+          createdById: adminId,
+          assignments: { create: { moderatorId: secondModeratorId, assignedById: adminId } },
+        },
+      }),
+      prisma.releaseSchedule.create({
+        data: {
+          title: "Trường Sơn đã phát",
+          productionDeadline: new Date("2026-10-21T09:00:00.000Z"),
+          scheduledAt: new Date("2026-10-21T12:00:00.000Z"),
+          status: "RELEASED",
+          createdById: adminId,
+          assignments: { create: { moderatorId: secondModeratorId, assignedById: adminId } },
+        },
+      }),
+    ]);
+    scheduleIds.push(...fixtures.map(({ id }) => id));
+    const repository = new PrismaReleaseRepository();
+
+    const byTitle = await repository.listSchedules({
+      q: "tRƯỜnG sƠn",
+      status: "SCHEDULED",
+      page: 1,
+      limit: 20,
+    });
+    expect(byTitle.items.map(({ title }) => title)).toEqual(["Biên niên Trường Sơn"]);
+
+    const byModerator = await repository.listSchedules({
+      moderatorId: secondModeratorId,
+      status: "READY_TO_PUBLISH",
+      page: 1,
+      limit: 20,
+    });
+    expect(byModerator.items.map(({ title }) => title)).toEqual(["Dòng chảy biển đảo"]);
+
+    expect(await repository.listModeratorWorkload(
+      new Date("2026-10-20T13:00:00.000Z"),
+      new Date("2026-10-21T13:00:00.000Z"),
+    )).toEqual([
+      { moderatorId: firstModeratorId, name: "Moderator A", open: 1, nearDeadline: 1 },
+      { moderatorId: secondModeratorId, name: "Moderator B", open: 2, nearDeadline: 0 },
+    ]);
   });
 });

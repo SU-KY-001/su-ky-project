@@ -1,5 +1,6 @@
 import type {
   EpisodeReviewStatus,
+  ReleaseModeratorWorkload,
   ReleaseScheduleStatus,
 } from "@repo/shared";
 
@@ -139,6 +140,8 @@ export interface ReleaseScheduleListFilter {
   status?: ReleaseScheduleStatus;
   from?: Date;
   to?: Date;
+  q?: string;
+  moderatorId?: string;
   page: number;
   limit: number;
 }
@@ -180,6 +183,10 @@ export interface ReleaseRepository {
   listDueScheduleIds(now: Date, limit?: number): Promise<Array<{ id: string; version: number }>>;
   listStuckPublishingIds(before: Date, limit?: number): Promise<Array<{ id: string; version: number }>>;
   dashboardCounts(now: Date, atRiskAfter: Date): Promise<ReleaseDashboardCounts>;
+  listModeratorWorkload(
+    now: Date,
+    nearDeadlineBefore: Date,
+  ): Promise<ReleaseModeratorWorkload[]>;
   listSchedules(filter: ReleaseScheduleListFilter): Promise<{
     items: ReleaseScheduleEntity[];
     total: number;

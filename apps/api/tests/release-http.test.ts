@@ -6,6 +6,7 @@ import { createReleaseRoutes } from "../src/modules/releases/presentation/releas
 import type { ReleaseService } from "../src/modules/releases/application/release.service";
 import type { AppEnv } from "../src/types";
 import { errorHandler } from "../src/core/middleware";
+import { ReleaseScheduleQuerySchema } from "@repo/shared";
 
 const scheduleId = "00000000-0000-4000-8000-000000000001";
 
@@ -35,6 +36,14 @@ function createTestApp(service: Record<string, (...args: any[]) => any>) {
 }
 
 describe("release HTTP routes", () => {
+  it("accepts trimmed search and moderator filters", () => {
+    expect(ReleaseScheduleQuerySchema.parse({
+      q: "  trường sơn  ",
+      moderatorId: "moderator-1",
+    })).toMatchObject({ q: "trường sơn", moderatorId: "moderator-1" });
+    expect(() => ReleaseScheduleQuerySchema.parse({ q: "x".repeat(256) })).toThrow();
+  });
+
   it("validates and creates an Admin release schedule", async () => {
     const calls: unknown[][] = [];
     const app = createTestApp({
@@ -95,6 +104,24 @@ describe("release HTTP routes", () => {
     expect(calls).toHaveLength(1);
     expect((calls[0]?.[0] as Session).user.role).toBe("admin");
     expect(calls[0]?.slice(1)).toEqual([scheduleId, "request-1"]);
+  });
+
+  it("returns moderator workload for the Admin workspace", async () => {
+    const calls: unknown[][] = [];
+    const app = createTestApp({
+      workload: (...args: unknown[]) => {
+        calls.push(args);
+        return [{ moderatorId: "moderator-1", name: "Moderator A", open: 3, nearDeadline: 1 }];
+      },
+    });
+
+    const response = await app.request("/api/admin/releases/workload");
+
+    expect(response.status).toBe(200);
+    expect(await response.json()).toEqual({
+      items: [{ moderatorId: "moderator-1", name: "Moderator A", open: 3, nearDeadline: 1 }],
+    });
+    expect((calls[0]?.[0] as Session).user.role).toBe("admin");
   });
 
   it("returns assigned work and submits the current revision for review", async () => {

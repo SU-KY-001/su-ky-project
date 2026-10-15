@@ -63,6 +63,8 @@ export const ReleaseScheduleQuerySchema = PaginationQuerySchema.extend({
   status: ReleaseScheduleStatusSchema.optional(),
   from: z.coerce.date().optional(),
   to: z.coerce.date().optional(),
+  q: z.string().trim().min(1).max(255).optional(),
+  moderatorId: z.string().min(1).max(36).optional(),
 });
 
 export const ReleaseAssignmentSchema = z.object({
@@ -162,6 +164,17 @@ export const ReleaseModeratorListSchema = z.object({
   })),
 });
 
+export const ReleaseModeratorWorkloadSchema = z.object({
+  moderatorId: z.string(),
+  name: z.string(),
+  open: z.number().int().nonnegative(),
+  nearDeadline: z.number().int().nonnegative(),
+});
+
+export const ReleaseModeratorWorkloadListSchema = z.object({
+  items: z.array(ReleaseModeratorWorkloadSchema),
+});
+
 export const AssignableEpisodeListSchema = z.object({
   items: z.array(z.object({
     id: z.string().uuid(),
@@ -193,3 +206,4 @@ export type ReviewEpisodeInput = z.infer<typeof ReviewEpisodeSchema>;
 export type ReleaseScheduleRecord = z.infer<typeof ReleaseScheduleRecordSchema>;
 export type ReleaseProgressEvent = z.infer<typeof ReleaseProgressEventSchema>;
 export type ReleaseDashboard = z.infer<typeof ReleaseDashboardSchema>;
+export type ReleaseModeratorWorkload = z.infer<typeof ReleaseModeratorWorkloadSchema>;

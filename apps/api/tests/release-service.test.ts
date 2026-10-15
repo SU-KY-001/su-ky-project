@@ -108,6 +108,7 @@ class FakeReleaseRepository {
   audits: string[] = [];
   createdReviews: EpisodeReviewEntity[] = [];
   decisions: Array<{ status: string; reviewer: string }> = [];
+  workloadArgs: Array<{ now: Date; nearDeadlineBefore: Date }> = [];
 
   async createSchedule(input: Parameters<ReleaseRepository["createSchedule"]>[0]) {
     this.current = schedule({
@@ -166,6 +167,10 @@ class FakeReleaseRepository {
   async appendAudit(input: Parameters<ReleaseRepository["appendAudit"]>[0]) {
     this.audits.push(input.action);
   }
+  async listModeratorWorkload(nowAt: Date, nearDeadlineBefore: Date) {
+    this.workloadArgs.push({ now: nowAt, nearDeadlineBefore });
+    return [{ moderatorId: "mod-author", name: "Author", open: 2, nearDeadline: 1 }];
+  }
 }
 
 function service(
@@ -194,6 +199,21 @@ describe("release service", () => {
       scheduledAt: new Date("2026-10-20T13:00:00.000Z"),
       moderatorIds: ["mod-author"],
     }, "correlation-1")).rejects.toMatchObject({ status: 403 });
+  });
+
+  it("returns Admin workload for the next 24 hours", async () => {
+    const { releaseService, repository } = service();
+
+    expect(await releaseService.workload(session("admin-1", "admin"))).toEqual([
+      { moderatorId: "mod-author", name: "Author", open: 2, nearDeadline: 1 },
+    ]);
+    expect(repository.workloadArgs).toEqual([{
+      now,
+      nearDeadlineBefore: new Date("2026-10-21T13:00:00.000Z"),
+    }]);
+    await expect(
+      releaseService.workload(session("mod-author", "moderator")),
+    ).rejects.toMatchObject({ status: 403, code: "FORBIDDEN" });
   });
 
   it("accepts review submission only from an assigned moderator at the current revision", async () => {

@@ -17,6 +17,7 @@ import {
   PagedOf,
   ReleaseActionResultDocSchema,
   ReleaseDashboardDocSchema,
+  ReleaseModeratorWorkloadDocSchema,
   ReleaseProgressDocSchema,
   ReleaseScheduleDocSchema,
   ReleaseStatusResultDocSchema,
@@ -93,6 +94,24 @@ export const releasePaths: Paths = {
         status: 200,
         description: "Moderator đang hoạt động",
         schema: { name: "ReleaseModeratorList", schema: ReleaseModeratorListSchema },
+      },
+    }),
+  },
+  [`${ADMIN}/workload`]: {
+    get: operation({
+      id: "getReleaseModeratorWorkload",
+      tag: TAG,
+      summary: "Khối lượng điều phối theo Moderator",
+      description:
+        "Đếm lịch đang mở và lịch có hạn sản xuất trong 24 giờ tới theo từng Moderator.",
+      access: "admin",
+      ok: {
+        status: 200,
+        description: "Khối lượng sản xuất đang mở",
+        schema: {
+          name: "ReleaseModeratorWorkloadList",
+          schema: ItemsOf(ReleaseModeratorWorkloadDocSchema),
+        },
       },
     }),
   },

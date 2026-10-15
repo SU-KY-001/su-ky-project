@@ -58,6 +58,9 @@ export function createReleaseRoutes(
     .get("/moderators", async (c) =>
       c.json({ items: await service.moderators(c.get("session")!) }),
     )
+    .get("/workload", async (c) =>
+      c.json({ items: await service.workload(c.get("session")!) }),
+    )
     .post(
       "/:id/check-readiness",
       guards.write,

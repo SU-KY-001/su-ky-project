@@ -435,6 +435,8 @@ export class ReleaseService {
       status?: Parameters<ReleaseRepository["listSchedules"]>[0]["status"];
       from?: Date;
       to?: Date;
+      q?: string;
+      moderatorId?: string;
       page: number;
       limit: number;
     },
@@ -459,6 +461,15 @@ export class ReleaseService {
     return this.repository.dashboardCounts(
       current,
       new Date(current.getTime() + 2 * 60 * 60 * 1000),
+    );
+  }
+
+  async workload(session: Session) {
+    assertAdmin(session);
+    const current = this.clock();
+    return this.repository.listModeratorWorkload(
+      current,
+      new Date(current.getTime() + 24 * 60 * 60 * 1000),
     );
   }
 

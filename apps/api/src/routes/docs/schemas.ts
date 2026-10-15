@@ -4,6 +4,7 @@ import {
   ContentStatusSchema,
   EpisodeReviewStatusSchema,
   HistoricalEntityTypeSchema,
+  ReleaseModeratorWorkloadSchema,
   ReleaseScheduleStatusSchema,
   SeriesSourceSchema,
   SourceTierSchema,
@@ -102,6 +103,8 @@ export const ReleaseDashboardDocSchema = z.object({
   atRisk: z.number().int().nonnegative(),
   needsAttention: z.number().int().nonnegative(),
 });
+
+export const ReleaseModeratorWorkloadDocSchema = ReleaseModeratorWorkloadSchema;
 
 export const ReleaseActionResultDocSchema = z.object({
   result: z.enum(["WAITING", "BLOCKED", "IGNORED", "RELEASED", "RETRY", "FAILED"]),
