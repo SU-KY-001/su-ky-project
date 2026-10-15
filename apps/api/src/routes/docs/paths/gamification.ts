@@ -12,6 +12,8 @@ import { operation, type Paths } from "../operation";
 
 const QUIZ_TAG = "Quiz";
 const MISSION_TAG = "Missions";
+const LOCKED = "`CONTENT_LOCKED`: Admin đã khoá tập hoặc Series, chỉ Admin sửa được";
+const IN_TRASH = "`CONTENT_IN_TRASH`: tập hoặc Series đang ở thùng rác";
 const EpisodeIdParam = z.object({ episodeId: z.string().uuid() });
 const QuizIdParam = z.object({ quizId: z.string().uuid() });
 const SlugParam = z.object({ slug: z.string().min(1) });
@@ -49,7 +51,9 @@ export const gamificationPaths: Paths = {
         schema: { name: "StudioQuiz", schema: StudioQuizSchema },
       },
       errors: {
+        403: LOCKED,
         404: "`NOT_FOUND`: tập không thuộc Moderator hoặc chưa có quiz",
+        409: IN_TRASH,
       },
     }),
     put: operation({
@@ -69,8 +73,9 @@ export const gamificationPaths: Paths = {
         schema: { name: "PublicQuiz", schema: PublicQuizSchema },
       },
       errors: {
+        403: LOCKED,
         404: "`NOT_FOUND`: tập không thuộc Moderator",
-        409: "`CONFLICT`: quiz đã có lượt làm",
+        409: `${IN_TRASH}; hoặc \`CONFLICT\`: quiz đã có lượt làm`,
       },
     }),
     delete: operation({
@@ -83,8 +88,9 @@ export const gamificationPaths: Paths = {
       rate: "write",
       ok: { status: 204, description: "Đã xóa quiz" },
       errors: {
+        403: LOCKED,
         404: "`NOT_FOUND`: tập không thuộc Moderator hoặc chưa có quiz",
-        409: "`CONFLICT`: quiz đã có lượt làm",
+        409: `${IN_TRASH}; hoặc \`CONFLICT\`: quiz đã có lượt làm`,
       },
     }),
   },
@@ -137,7 +143,7 @@ export const gamificationPaths: Paths = {
       tag: MISSION_TAG,
       summary: "Danh sách nhiệm vụ tuần của tôi",
       description:
-        "Mặc định là tuần hiện tại, tính từ thứ Hai 00:00 đến thứ Hai kế tiếp theo múi giờ Việt Nam.",
+        "Mặc định là tuần hiện tại, tính từ thứ Hai 00:00 đến thứ Hai kế tiếp theo múi giờ Việt Nam. `weekStartDate` và `weekEndDate` trong response là thời điểm chính xác (ISO 8601 UTC) của cửa sổ tuần; `status` là `EXPIRED` khi nhiệm vụ chưa hoàn thành mà tuần đã kết thúc.",
       access: "user",
       query: WeeklyMissionQuerySchema,
       queryDocs: {
