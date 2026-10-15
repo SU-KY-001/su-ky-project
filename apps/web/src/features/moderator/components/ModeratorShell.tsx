@@ -3,10 +3,10 @@ import { Link } from "react-router";
 import {
   ArrowUpRight,
   List,
-  UsersThree,
   type Icon,
 } from "@phosphor-icons/react";
 import brandLogo from "@/public/brand-su-ky-viet-nam.png";
+import { AccountProfile } from "@/features/auth";
 import { Button } from "@/shared/components/ui/button";
 import { Separator } from "@/shared/components/ui/separator";
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/shared/components/ui/sheet";
@@ -67,13 +67,7 @@ function SidebarContents({ nav, onNavigated }: { nav: ShellNavItem[]; onNavigate
 
       <div className="mt-auto flex flex-col gap-4">
         <Separator className="bg-mod-border" />
-        <div className="flex items-center gap-[11px] px-1">
-          <span className="grid size-[38px] place-items-center rounded-full border border-mod-border bg-mod-surface-glass"><UsersThree size={17} color="var(--modTextSecondary)" aria-hidden="true" /></span>
-          <span className="flex min-w-0 flex-1 flex-col gap-0.5">
-            <ModeratorText className="truncate text-sm font-bold text-mod-text">Điều hành Sử Ký</ModeratorText>
-            <ModeratorText className="text-xs text-mod-text-secondary">Moderator</ModeratorText>
-          </span>
-        </div>
+        <AccountProfile variant="moderator" />
         <a href="/" className="flex min-h-10 items-center gap-2 rounded-md px-2.5 text-xs font-semibold text-mod-text-secondary no-underline hover:bg-mod-canvas-accent focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-mod-primary">
           <ArrowUpRight size={15} aria-hidden="true" /><span>Mở trang Sử Ký</span>
         </a>

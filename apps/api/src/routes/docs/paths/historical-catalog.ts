@@ -57,6 +57,7 @@ const resources = [
 ] as const;
 for (const r of resources) {
   const base = `/api/studio/${r.path}`;
+  const writeAccess = r.path === "historical-periods" ? "admin" : "studio";
   const schema = { name: r.name, schema: r.schema };
   const editingAccess = r.path === "historical-entities"
     ? "Người tạo hoặc admin được biên tập."
@@ -80,7 +81,7 @@ for (const r of resources) {
       id: `create${r.name}`,
       tag: "Studio Catalog",
       summary: `Tạo ${r.label}`,
-      access: "studio",
+      access: writeAccess,
       idempotent: true,
       rate: "write",
       body: { name: r.name + "Create", schema: r.create },
@@ -108,7 +109,7 @@ for (const r of resources) {
       tag: "Studio Catalog",
       summary: `Sửa ${r.label}`,
       description: editingAccess,
-      access: "studio",
+      access: writeAccess,
       pathParams: id,
       rate: "write",
       body: { name: r.name + "Patch", schema: r.patch },
@@ -124,7 +125,7 @@ for (const r of resources) {
       tag: "Studio Catalog",
       summary: `Xóa mềm ${r.label}`,
       description: editingAccess,
-      access: "studio",
+      access: writeAccess,
       pathParams: id,
       rate: "write",
       body: { name: "HistoricalBaseVersion", schema: BaseVersionSchema },
@@ -138,7 +139,7 @@ for (const r of resources) {
       tag: "Studio Catalog",
       summary: `Khôi phục ${r.label}`,
       description: editingAccess,
-      access: "studio",
+      access: writeAccess,
       pathParams: id,
       rate: "write",
       body: { name: "HistoricalBaseVersion", schema: BaseVersionSchema },

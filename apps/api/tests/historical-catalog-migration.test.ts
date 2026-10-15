@@ -6,7 +6,7 @@ import {
   createModerator,
 } from "./support/integration";
 import { seedHistoricalPeriods } from "@repo/db/historical-seed";
-import { seedTopics } from "@repo/db/topic-seed";
+import { NATIONAL_HISTORY_TOPIC, seedTopics } from "@repo/db/topic-seed";
 
 describe.skipIf(!RUN_INTEGRATION)("historical catalog migration", () => {
   it("stores prehistory and rejects ambiguous citation owners", async () => {
@@ -92,16 +92,16 @@ describe.skipIf(!RUN_INTEGRATION)("historical catalog migration", () => {
       await prisma.$transaction(async (tx) => {
         await seedTopics(tx);
         const topic = await tx.topic.findUniqueOrThrow({
-          where: { slug: "quan-su" },
+          where: { slug: NATIONAL_HISTORY_TOPIC.slug },
         });
         await tx.topic.update({
           where: { id: topic.id },
-          data: { name: "Chủ đề đã biên tập" },
+          data: { name: "Chủ đề đã biên tập", sortOrder: 99 },
         });
         await seedTopics(tx);
         expect(
-          (await tx.topic.findUniqueOrThrow({ where: { id: topic.id } })).name,
-        ).toBe("Chủ đề đã biên tập");
+          await tx.topic.findUniqueOrThrow({ where: { id: topic.id } }),
+        ).toMatchObject({ name: "Chủ đề đã biên tập", sortOrder: 99 });
         await seedHistoricalPeriods(tx);
         const original = await tx.historicalPeriod.findFirstOrThrow({
           where: { slug: "tien-su-so-su" },
@@ -124,6 +124,62 @@ describe.skipIf(!RUN_INTEGRATION)("historical catalog migration", () => {
           kind: "UNKNOWN",
           note: "Đang đối chiếu tư liệu",
         });
+        throw rollback;
+      });
+    } catch (e) {
+      if (e !== rollback) throw e;
+    }
+  });
+
+  it("re-seeding keeps custom topics active and existing series topic assignments", async () => {
+    assertTestDatabase();
+    const rollback = new Error("rollback seed topic fixture");
+    const suffix = crypto.randomUUID();
+    try {
+      await prisma.$transaction(async (tx) => {
+        const owner = await tx.user.create({
+          data: {
+            id: suffix,
+            name: "Owner",
+            email: `seed-owner-${suffix}@example.com`,
+            emailVerified: true,
+            role: "moderator",
+          },
+        });
+        const custom = await tx.topic.create({
+          data: { name: "Tùy chỉnh", slug: `custom-${suffix}`, sortOrder: 9 },
+        });
+        const assigned = await tx.series.create({
+          data: {
+            ownerId: owner.id,
+            topicId: custom.id,
+            title: "assigned",
+            slug: `seed-assigned-${suffix}`,
+          },
+        });
+        const unassigned = await tx.series.create({
+          data: {
+            ownerId: owner.id,
+            title: "unassigned",
+            slug: `seed-unassigned-${suffix}`,
+          },
+        });
+        await seedTopics(tx);
+        const national = await tx.topic.findUniqueOrThrow({
+          where: { slug: NATIONAL_HISTORY_TOPIC.slug },
+        });
+        expect(
+          (await tx.topic.findUniqueOrThrow({ where: { id: custom.id } }))
+            .isActive,
+        ).toBe(true);
+        expect(
+          (await tx.series.findUniqueOrThrow({ where: { id: assigned.id } }))
+            .topicId,
+        ).toBe(custom.id);
+        expect(
+          (await tx.series.findUniqueOrThrow({ where: { id: unassigned.id } }))
+            .topicId,
+        ).toBe(national.id);
         throw rollback;
       });
     } catch (e) {

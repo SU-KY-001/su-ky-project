@@ -6,4 +6,4 @@ export {
   requireRole,
   requireAdmin,
 } from "./auth.middleware";
-export { currentUserRoute, adminRoute } from "./auth.routes";
+export { currentUserRoute } from "./auth.routes";

@@ -15,7 +15,7 @@ Spec OpenAPI 3.1 của toàn bộ API, viết bằng TypeScript. Phục vụ `GE
 | `components.ts` | `securitySchemes`, parameter `Idempotency-Key`, response lỗi dùng chung |
 | `registry.ts` | `component(name, zod)` đăng ký schema vào `components.schemas`; `toJsonSchema`; `parametersFrom` |
 | `schemas.ts` | Schema zod **chỉ để mô tả response** mà handler tự dựng object (không có schema trong `@repo/shared`) |
-| `paths/*.ts` | Path theo module: `system-auth`, `catalog`, `listening`, `studio` (Series và tập), `media` |
+| `paths/*.ts` | Path theo module: `system-auth`, `admin`, `catalog`, `historical-catalog`, `listening`, `gamification` (Quiz và nhiệm vụ tuần), `studio` (Series và tập), `media` |
 
 ---
 

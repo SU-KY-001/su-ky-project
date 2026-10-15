@@ -1,6 +1,7 @@
 import { PublicationEvidenceSchema } from "@repo/shared";
 import { SourceTierSchema } from "@repo/shared";
 import { z } from "zod";
+import { recordMissionActivity } from "../../../core/weekly-mission";
 import {
   Prisma,
   prisma,
@@ -30,7 +31,6 @@ import type {
   ListeningProgressWithAudio,
   ListeningProgressWithHistory,
   MediaAssetEntity,
-  MissionProgressSummary,
   NarrationWithAudio,
   NarrationWithNarrator,
   SeriesDetailEntity,
@@ -658,8 +658,7 @@ export class PrismaListeningRepository implements ListeningRepository {
     db: Prisma.TransactionClient,
     command: ApplyProgressCommand,
   ): Promise<CompletionAward> {
-    const { userId, episodeId, now, weekStartDate, xpPerEpisodeCompletion } =
-      command;
+    const { userId, episodeId, now, xpPerEpisodeCompletion } = command;
     const created = await db.xpAward.createMany({
       data: [
         {
@@ -676,70 +675,12 @@ export class PrismaListeningRepository implements ListeningRepository {
         where: { id: userId },
         data: { totalXp: { increment: xpPerEpisodeCompletion } },
       });
-    const missions = await db.weeklyMission.findMany({
-      where: {
-        activityType: "COMPLETE_EPISODE",
-        weekStartDate,
-        activatedAt: { lte: now },
-      },
+    const updates = await recordMissionActivity(db, {
+      userId,
+      activityType: "COMPLETE_EPISODE",
+      contentId: episodeId,
+      now,
     });
-    const updates: MissionProgressSummary[] = [];
-    for (const mission of missions) {
-      const userMission = await db.userWeeklyMission.upsert({
-        where: {
-          weeklyMissionId_userId: { weeklyMissionId: mission.id, userId },
-        },
-        create: { weeklyMissionId: mission.id, userId },
-        update: {},
-      });
-      const item = await db.userWeeklyMissionItem.createMany({
-        data: [{ userWeeklyMissionId: userMission.id, contentId: episodeId }],
-        skipDuplicates: true,
-      });
-      if (!item.count) continue;
-      const progress = await db.userWeeklyMission.update({
-        where: { id: userMission.id },
-        data: { progressCount: { increment: 1 } },
-      });
-      let missionXp = 0;
-      let completedMissionNow = false;
-      if (
-        !progress.completedAt &&
-        progress.progressCount >= mission.targetCount
-      ) {
-        await db.userWeeklyMission.update({
-          where: { id: progress.id },
-          data: { completedAt: now },
-        });
-        const award = await db.xpAward.createMany({
-          data: [
-            {
-              userId,
-              sourceType: "WEEKLY_MISSION",
-              sourceId: mission.id,
-              xpAmount: mission.xpReward,
-            },
-          ],
-          skipDuplicates: true,
-        });
-        if (award.count) {
-          missionXp = mission.xpReward;
-          completedMissionNow = true;
-          await db.user.update({
-            where: { id: userId },
-            data: { totalXp: { increment: mission.xpReward } },
-          });
-        }
-      }
-      updates.push({
-        id: mission.id,
-        title: mission.title,
-        progress: progress.progressCount,
-        target: mission.targetCount,
-        completedNow: completedMissionNow,
-        xpAwarded: missionXp,
-      });
-    }
     const user = await db.user.findUniqueOrThrow({
       where: { id: userId },
       select: { totalXp: true },

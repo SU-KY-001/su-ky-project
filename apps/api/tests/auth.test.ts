@@ -67,6 +67,12 @@ describe("Better Auth API guards", () => {
     expect(body.error_code).toBe("FORBIDDEN");
   });
 
+  it("rejects Moderator access to Admin-managed catalogs", async () => {
+    const response = await createProtectedTestApp("moderator").request("/admin");
+    expect(response.status).toBe(403);
+    expect(((await response.json()) as ErrorResponse).error_code).toBe("FORBIDDEN");
+  });
+
   it("allows Admin accounts to access the Admin API", async () => {
     const adminResponse = await createProtectedTestApp("admin").request("/admin");
 
