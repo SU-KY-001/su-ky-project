@@ -1,5 +1,6 @@
 import type { ReactElement } from "react";
 import { Check, ClipboardCheck, FileText, Info, Mic, PencilLine } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { PodcastWizardStep } from "../podcastWizardState";
 import { AnimatedBeam } from "./AnimatedBeam";
@@ -9,6 +10,16 @@ export interface PodcastWizardCompletion {
   script: boolean;
   voice: boolean;
   review: boolean;
+}
+
+export interface PodcastWizardStepView {
+  id: PodcastWizardStep;
+  label: string;
+  icon: LucideIcon;
+  number: number;
+  complete: boolean;
+  disabled: boolean;
+  statusLabel: "Đang thao tác" | "Hoàn thành" | "Chưa hoàn thành";
 }
 
 const definitions = [
@@ -22,7 +33,10 @@ const definitions = [
   icon: typeof Info;
 }>;
 
-export function buildPodcastWizardSteps(completion: PodcastWizardCompletion, activeStep: PodcastWizardStep) {
+export function buildPodcastWizardSteps(
+  completion: PodcastWizardCompletion,
+  activeStep: PodcastWizardStep,
+): PodcastWizardStepView[] {
   return definitions.map((step, index) => ({
     ...step,
     number: index + 1,
