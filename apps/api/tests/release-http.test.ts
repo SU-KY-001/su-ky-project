@@ -73,6 +73,30 @@ describe("release HTTP routes", () => {
     expect(response.status).toBe(400);
   });
 
+  it("checks readiness through the explicit Admin command", async () => {
+    const calls: unknown[][] = [];
+    const app = createTestApp({
+      checkReadiness: (...args: unknown[]) => {
+        calls.push(args);
+        return { id: scheduleId, status: "READY_TO_PUBLISH" };
+      },
+    });
+
+    const response = await app.request(
+      `/api/admin/releases/${scheduleId}/check-readiness`,
+      { method: "POST" },
+    );
+
+    expect(response.status).toBe(200);
+    expect(await response.json()).toMatchObject({
+      id: scheduleId,
+      status: "READY_TO_PUBLISH",
+    });
+    expect(calls).toHaveLength(1);
+    expect((calls[0]?.[0] as Session).user.role).toBe("admin");
+    expect(calls[0]?.slice(1)).toEqual([scheduleId, "request-1"]);
+  });
+
   it("returns assigned work and submits the current revision for review", async () => {
     const calls: unknown[][] = [];
     const app = createTestApp({

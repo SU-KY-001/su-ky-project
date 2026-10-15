@@ -58,6 +58,19 @@ export function createReleaseRoutes(
     .get("/moderators", async (c) =>
       c.json({ items: await service.moderators(c.get("session")!) }),
     )
+    .post(
+      "/:id/check-readiness",
+      guards.write,
+      zValidator("param", UuidParamSchema, throwOnInvalid),
+      async (c) =>
+        c.json(
+          await service.checkReadiness(
+            c.get("session")!,
+            c.req.valid("param").id,
+            c.get("requestId"),
+          ),
+        ),
+    )
     .get(
       "/:id",
       zValidator("param", UuidParamSchema, throwOnInvalid),

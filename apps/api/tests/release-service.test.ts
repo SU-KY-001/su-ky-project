@@ -100,7 +100,11 @@ class FakeReleaseRepository {
   latestReview: EpisodeReviewEntity | null = approvedReview();
   assigned = true;
   claimed = false;
-  statusTransitions: Array<{ to: string; action: string }> = [];
+  statusTransitions: Array<{
+    to: string;
+    action: string;
+    actorType: "ADMIN" | "MODERATOR" | "SYSTEM";
+  }> = [];
   audits: string[] = [];
   createdReviews: EpisodeReviewEntity[] = [];
   decisions: Array<{ status: string; reviewer: string }> = [];
@@ -146,7 +150,11 @@ class FakeReleaseRepository {
   async setStatus(input: Parameters<ReleaseRepository["setStatus"]>[0]) {
     if (!input.from.includes(this.current.status)) return false;
     this.current = { ...this.current, status: input.to };
-    this.statusTransitions.push({ to: input.to, action: input.action });
+    this.statusTransitions.push({
+      to: input.to,
+      action: input.action,
+      actorType: input.actorType,
+    });
     return true;
   }
   async claimForPublishing(_id: string, version: number) {
@@ -160,12 +168,15 @@ class FakeReleaseRepository {
   }
 }
 
-function service(repository = new FakeReleaseRepository()) {
+function service(
+  repository = new FakeReleaseRepository(),
+  checklistReady = true,
+) {
   let publishCount = 0;
   const releaseService = new ReleaseService(
     repository as unknown as ReleaseRepository,
     {
-      checklistReady: async () => true,
+      checklistReady: async () => checklistReady,
       publishEpisode: async () => { publishCount += 1; },
     },
     () => now,
@@ -230,7 +241,67 @@ describe("release service", () => {
     expect(repository.statusTransitions.at(-1)).toEqual({
       to: "READY_TO_PUBLISH",
       action: "release.auto_ready",
+      actorType: "SYSTEM",
     });
+  });
+
+  it("moves an approved current revision from scheduled to ready and audits the Admin command", async () => {
+    const { releaseService, repository } = service();
+    repository.current = schedule({ status: "SCHEDULED" });
+
+    const result = await releaseService.checkReadiness(
+      session("admin-1", "admin"),
+      "schedule-1",
+      "correlation-ready",
+    );
+
+    expect(result.status).toBe("READY_TO_PUBLISH");
+    expect(repository.statusTransitions.at(-1)).toEqual({
+      to: "READY_TO_PUBLISH",
+      actorType: "ADMIN",
+      action: "release.manual_ready",
+    });
+  });
+
+  it("rejects readiness when the approval revision is stale", async () => {
+    const { releaseService, repository } = service();
+    repository.current = schedule({ status: "SCHEDULED" });
+    repository.latestReview = approvedReview(2);
+
+    await expect(releaseService.checkReadiness(
+      session("admin-1", "admin"),
+      "schedule-1",
+      "correlation-stale",
+    )).rejects.toMatchObject({ status: 409, code: "CONTENT_NOT_READY" });
+    expect(repository.statusTransitions).toHaveLength(0);
+  });
+
+  it("rejects readiness when the publication checklist is incomplete", async () => {
+    const repository = new FakeReleaseRepository();
+    repository.current = schedule({ status: "SCHEDULED" });
+    const { releaseService } = service(repository, false);
+
+    await expect(releaseService.checkReadiness(
+      session("admin-1", "admin"),
+      "schedule-1",
+      "correlation-checklist",
+    )).rejects.toMatchObject({ status: 409, code: "CONTENT_NOT_READY" });
+    expect(repository.statusTransitions).toHaveLength(0);
+  });
+
+  it("rejects readiness when the schedule is no longer scheduled", async () => {
+    const { releaseService, repository } = service();
+    repository.current = schedule({ status: "READY_TO_PUBLISH" });
+
+    await expect(releaseService.checkReadiness(
+      session("admin-1", "admin"),
+      "schedule-1",
+      "correlation-state",
+    )).rejects.toMatchObject({
+      status: 409,
+      code: "INVALID_STATE_TRANSITION",
+    });
+    expect(repository.statusTransitions).toHaveLength(0);
   });
 
   it("blocks a due schedule when approval belongs to an older revision", async () => {

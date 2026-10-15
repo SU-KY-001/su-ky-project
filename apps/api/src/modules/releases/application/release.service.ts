@@ -210,6 +210,63 @@ export class ReleaseService {
     return decided;
   }
 
+  async checkReadiness(
+    session: Session,
+    scheduleId: string,
+    correlationId: string,
+  ): Promise<ReleaseScheduleEntity> {
+    assertAdmin(session);
+    const schedule = requireSchedule(await this.repository.findSchedule(scheduleId));
+    if (schedule.status !== "SCHEDULED")
+      throw new DomainError(
+        409,
+        "INVALID_STATE_TRANSITION",
+        "Chỉ lịch đã lên lịch mới có thể chuyển sang sẵn sàng phát hành",
+      );
+
+    const review = await this.repository.findLatestReview(scheduleId);
+    const checklistReady = schedule.episodeId
+      ? await this.publisher.checklistReady(schedule.episodeId)
+      : false;
+    const readiness = evaluateReleaseReadiness(
+      {
+        status: schedule.status,
+        reviewStatus: review?.status ?? null,
+        reviewedRevision: review?.revision ?? null,
+        contentRevision: schedule.episode?.contentRevision ?? 0,
+        checklistReady,
+        scheduledAt: schedule.scheduledAt,
+      },
+      this.clock(),
+    );
+    if (!readiness.canPublish)
+      throw new DomainError(
+        409,
+        "CONTENT_NOT_READY",
+        "Podcast chưa được duyệt ở phiên bản hiện tại hoặc chưa hoàn tất checklist xuất bản",
+      );
+
+    const changed = await this.repository.setStatus({
+      scheduleId,
+      from: ["SCHEDULED"],
+      to: "READY_TO_PUBLISH",
+      actorId: session.user.id,
+      actorType: "ADMIN",
+      action: "release.manual_ready",
+      correlationId,
+      failureCode: null,
+      failureMessage: null,
+    });
+    if (!changed)
+      throw new DomainError(
+        409,
+        "INVALID_STATE_TRANSITION",
+        "Lịch đã thay đổi; tải lại trước khi cập nhật trạng thái",
+      );
+
+    return requireSchedule(await this.repository.findSchedule(scheduleId));
+  }
+
   async publishDueSchedule(
     scheduleId: string,
     expectedVersion: number,

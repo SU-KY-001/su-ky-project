@@ -144,6 +144,28 @@ export const releasePaths: Paths = {
       errors: { 404: "`NOT_FOUND`: lịch không tồn tại" },
     }),
   },
+  [`${ADMIN}/{id}/check-readiness`]: {
+    post: operation({
+      id: "checkReleaseReadiness",
+      tag: TAG,
+      summary: "Xác nhận sẵn sàng phát hành",
+      description:
+        "Kiểm tra bản duyệt hiện tại và checklist xuất bản trước khi chuyển lịch sang trạng thái sẵn sàng.",
+      access: "admin",
+      ...idParams,
+      ok: {
+        status: 200,
+        description: "Lịch đã sẵn sàng phát hành",
+        schema: schedule,
+      },
+      rate: "write",
+      errors: {
+        403: "`FORBIDDEN`: chỉ Admin được điều phối lịch",
+        404: "`NOT_FOUND`: lịch không tồn tại",
+        409: "`CONTENT_NOT_READY` hoặc `INVALID_STATE_TRANSITION`",
+      },
+    }),
+  },
   [`${ADMIN}/{id}/publish-now`]: {
     post: operation({
       id: "publishReleaseNow",
