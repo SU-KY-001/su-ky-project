@@ -1,5 +1,5 @@
-import { useState, type FormEvent } from "react";
-import { CalendarPlus, Check } from "@phosphor-icons/react";
+import { useEffect, useState, type FormEvent } from "react";
+import { CalendarPlus, Check, FloppyDisk } from "@phosphor-icons/react";
 import { Button } from "@/shared/components/ui/button";
 import { Input } from "@/shared/components/ui/input";
 import { Label } from "@/shared/components/ui/label";
@@ -15,16 +15,32 @@ export function ReleaseScheduleForm({
   moderators,
   onSubmit,
   isSubmitting = false,
+  mode = "create",
+  initialValues,
+  initialValuesKey = mode,
 }: {
   moderators: ReleaseModeratorOption[];
   onSubmit: (input: ReleaseScheduleDraft) => Promise<unknown> | unknown;
   isSubmitting?: boolean;
+  mode?: "create" | "edit";
+  initialValues?: ReleaseScheduleDraft;
+  initialValuesKey?: string;
 }) {
-  const [title, setTitle] = useState("");
-  const [productionDeadline, setProductionDeadline] = useState("");
-  const [scheduledAt, setScheduledAt] = useState("");
-  const [moderatorIds, setModeratorIds] = useState<string[]>([]);
+  const [title, setTitle] = useState(initialValues?.title ?? "");
+  const [productionDeadline, setProductionDeadline] = useState(initialValues?.productionDeadline ?? "");
+  const [scheduledAt, setScheduledAt] = useState(initialValues?.scheduledAt ?? "");
+  const [moderatorIds, setModeratorIds] = useState<string[]>(initialValues?.moderatorIds ?? []);
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    setTitle(initialValues?.title ?? "");
+    setProductionDeadline(initialValues?.productionDeadline ?? "");
+    setScheduledAt(initialValues?.scheduledAt ?? "");
+    setModeratorIds(initialValues?.moderatorIds ?? []);
+    setError(null);
+    // The key deliberately controls when a new create/edit session resets local values.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [initialValuesKey]);
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -39,6 +55,7 @@ export function ReleaseScheduleForm({
     setError(null);
     await onSubmit({
       title: title.trim(),
+      episodeId: initialValues?.episodeId ?? null,
       productionDeadline: new Date(productionDeadline).toISOString(),
       scheduledAt: new Date(scheduledAt).toISOString(),
       moderatorIds,
@@ -46,7 +63,7 @@ export function ReleaseScheduleForm({
   }
 
   return (
-    <form onSubmit={submit} className="flex flex-col gap-5" aria-label="Tạo lịch phát hành">
+    <form onSubmit={submit} className="flex flex-col gap-5" aria-label={mode === "edit" ? "Cập nhật lịch phát hành" : "Tạo lịch phát hành"}>
       <div className="grid gap-4 lg:grid-cols-2">
         <div className="flex flex-col gap-2 lg:col-span-2">
           <Label htmlFor="release-title">Tên kế hoạch hoặc podcast</Label>
@@ -129,8 +146,10 @@ export function ReleaseScheduleForm({
         disabled={isSubmitting || !moderators.length}
         className="w-fit gap-2 bg-mod-primary text-white hover:bg-mod-primary/90"
       >
-        <CalendarPlus size={18} />
-        {isSubmitting ? "Đang tạo lịch" : "Tạo lịch phát hành"}
+        {mode === "edit" ? <FloppyDisk size={18} /> : <CalendarPlus size={18} />}
+        {isSubmitting
+          ? mode === "edit" ? "Đang lưu" : "Đang tạo lịch"
+          : mode === "edit" ? "Lưu thay đổi" : "Tạo lịch phát hành"}
       </Button>
     </form>
   );
