@@ -8,6 +8,12 @@ export const APP_PATHS = {
   moderator: "/moderator",
   admin: "/admin",
   unauthorized: "/unauthorized",
+  series: "/series",
+  listeningHistory: "/me/listening-history",
+  weeklyMissions: "/me/missions",
+  profile: "/me/profile",
+  seriesDetail: (slug: string) => `/series/${slug}`,
+  episodeDetail: (slug: string) => `/episodes/${slug}`,
 } as const;
 
 export function hasAnyRole(currentRole: string | null | undefined, allowedRoles: UserRole[]): boolean {

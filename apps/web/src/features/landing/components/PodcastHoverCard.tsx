@@ -45,7 +45,7 @@ export function PodcastHoverCard({ item, image, anchor, liked, onToggleLike }: P
           <p className="truncate text-sm font-semibold text-bronze">{item.period}</p>
         </div>
         <div className="flex items-center gap-2">
-          <Link to="/login" className={cn(actionClass, "flex-1 border-vermilion bg-vermilion text-paper-soft hover:bg-vermilion-dark")}>
+          <Link to="/series" className={cn(actionClass, "flex-1 border-vermilion bg-vermilion text-paper-soft hover:bg-vermilion-dark")}>
             <Play size={16} weight="fill" aria-hidden="true" />
             Nghe ngay
           </Link>
@@ -53,7 +53,7 @@ export function PodcastHoverCard({ item, image, anchor, liked, onToggleLike }: P
             <Heart size={16} weight={liked ? "fill" : "bold"} aria-hidden="true" />
             Thích
           </button>
-          <Link to="/login" className={cn(actionClass, "border-white/30 hover:bg-white/10")}>
+          <Link to="/series" className={cn(actionClass, "border-white/30 hover:bg-white/10")}>
             <Info size={16} weight="bold" aria-hidden="true" />
             Chi tiết
           </Link>

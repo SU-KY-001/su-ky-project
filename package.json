@@ -35,15 +35,18 @@
   },
   "scripts": {
     "postinstall": "bun run --cwd packages/db db:generate",
-    "dev": "turbo dev",
+    "dev": "turbo dev --ui=stream",
+    "dev:api": "bun run --cwd apps/api dev",
+    "dev:web": "bun run --cwd apps/web dev",
     "build": "turbo build",
     "check-types": "turbo check-types",
     "test": "turbo test",
     "clean": "turbo clean && rm -rf node_modules apps/*/node_modules packages/*/node_modules dist apps/*/dist packages/*/dist",
-    "db:generate": "turbo db:generate",
-    "db:migrate": "turbo db:migrate",
-    "db:deploy": "turbo db:deploy",
-    "db:seed": "turbo db:seed"
+    "db:generate": "bun run --cwd packages/db db:generate",
+    "db:migrate": "bun run --cwd packages/db db:migrate",
+    "db:deploy": "bun run --cwd packages/db db:deploy",
+    "db:seed": "bun run --cwd packages/db db:seed",
+    "seed:listening-demo": "bun run --cwd apps/api seed:listening-demo"
   },
   "devDependencies": {
     "@tamagui/cli": "catalog:",

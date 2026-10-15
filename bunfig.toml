@@ -1,5 +1,4 @@
 [install]
-# Strict isolated linker to prevent phantom dependencies
-linker = "isolated"
+# Use hoisted linker for Windows and React Native / Expo compatibility
+linker = "hoisted"
 linkWorkspacePackages = true
-publicHoistPattern = ["@repo/*"]

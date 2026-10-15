@@ -8,6 +8,7 @@ import { useHeroCarousel } from "../hooks/useHeroCarousel";
 import { useHeroSlideMotion } from "../hooks/useHeroSlideMotion";
 import { useReducedMotion } from "../hooks/useReducedMotion";
 import { scrollToLandingTarget } from "../hooks/useLandingMotion";
+import { useCurrentUser } from "@/shared/hooks/useCurrentUser";
 import type { HeroSlide } from "../types";
 
 interface HeroThumbnailProps {
@@ -90,12 +91,14 @@ export function HeroCarousel() {
     carousel.goTo(target);
   };
 
+  const session = useCurrentUser();
   const nextSlide = (): void => goToSlide(carousel.activeIndex + 1);
   const previousSlide = (): void => goToSlide(carousel.activeIndex - 1);
   const toggleFavorite = (): void => {
     setFavoriteIds((current) => current.includes(slide.id) ? current.filter((id) => id !== slide.id) : [...current, slide.id]);
   };
-  const openLogin = (): void => { void navigate("/login"); };
+  const handlePlayHero = (): void => { void navigate("/series"); };
+  const handleShowDetails = (): void => { void navigate("/series"); };
 
   return (
     <section
@@ -169,7 +172,7 @@ export function HeroCarousel() {
               <span>{slide.perspectives}</span>
             </div>
 
-            <HeroActions isFavorite={isFavorite} onPlay={openLogin} onToggleFavorite={toggleFavorite} onShowDetails={() => scrollToLandingTarget("top-week")} />
+            <HeroActions isFavorite={isFavorite} onPlay={handlePlayHero} onToggleFavorite={toggleFavorite} onShowDetails={handleShowDetails} />
           </div>
 
           <div className="hidden w-full flex-col items-end gap-4 pb-2 2xl:flex 2xl:flex-[.88]">

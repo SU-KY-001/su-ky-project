@@ -22,6 +22,8 @@ const quizInput = {
       options: [
         { label: "A", text: "right", isCorrect: true },
         { label: "B", text: "wrong", isCorrect: false },
+        { label: "C", text: "wrong 2", isCorrect: false },
+        { label: "D", text: "wrong 3", isCorrect: false },
       ],
     },
   ],

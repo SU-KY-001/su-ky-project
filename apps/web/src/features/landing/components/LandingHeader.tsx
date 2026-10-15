@@ -50,6 +50,9 @@ export function LandingHeader() {
         </Button>
 
         <nav data-navbar-scrolled={isScrolled ? "true" : "false"} className="hidden items-center gap-1 lg:flex" aria-label="Điều hướng chính">
+          <Button asChild data-navbar-tone="primary" variant="ghost" size="sm" className="landing-nav-hover relative rounded-xl text-paper-soft transition-[background-color,color] duration-200">
+            <Link to="/series">Thư viện Series</Link>
+          </Button>
           {links.map((link) => (
             <Button key={link.target} data-navbar-tone="primary" variant="ghost" size="sm" className="landing-nav-hover relative rounded-xl text-paper-soft transition-[background-color,color] duration-200 after:absolute after:bottom-0 after:left-3 after:right-3 after:h-[2px] after:origin-left after:scale-x-0 after:rounded-full after:bg-current after:transition-transform after:duration-200 after:content-[''] hover:after:scale-x-100" onClick={() => jumpTo(link.target)}>
               {link.label}
@@ -79,6 +82,9 @@ export function LandingHeader() {
 
       {menuOpen ? (
         <nav className={cn("absolute left-3 right-3 top-[72px] flex flex-col gap-1 rounded-2xl border p-3 shadow-[0_18px_48px_rgba(28,23,20,.16)] lg:hidden", isScrolled ? "border-line bg-paper-soft" : "border-white/15 bg-night/95")} aria-label="Điều hướng chính">
+          <Button asChild variant="ghost" className={cn("justify-start px-3 py-3 transition-[background-color] duration-200", isScrolled ? "text-ink hover:bg-ink/5" : "text-paper-soft hover:bg-white/10")}>
+            <Link to="/series" onClick={() => setMenuOpen(false)}>Thư viện Series</Link>
+          </Button>
           {links.map((link) => (
           <Button key={link.target} variant="ghost" className={cn("justify-start px-3 py-3 transition-[background-color] duration-200", isScrolled ? "text-ink hover:bg-ink/5" : "text-paper-soft hover:bg-white/10")} onClick={() => { jumpTo(link.target); setMenuOpen(false); }}>
               {link.label}

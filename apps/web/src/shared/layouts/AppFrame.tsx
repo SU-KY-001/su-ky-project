@@ -5,6 +5,8 @@ import { LoadingSpinner } from "../components/common/LoadingSpinner";
 import { APP_PATHS } from "../constants/routes";
 import { currentUserQueryKey } from "../services/currentUserService";
 import { AppToaster } from "../components/common/AppToaster";
+import { AudioPlayerProvider } from "@/features/listening/context/AudioPlayerContext";
+import { PersistentAudioPlayer } from "@/features/listening/components/PersistentAudioPlayer";
 
 export function AppFrame() {
   const navigation = useNavigation();
@@ -20,14 +22,17 @@ export function AppFrame() {
   }, [location.key, location.pathname, queryClient]);
 
   return (
-    <div className="app-frame">
-      <Outlet />
-      <AppToaster />
-      {navigation.state !== "idle" ? (
-        <div className="fixed inset-0 z-[100] grid place-items-center bg-paper/60 backdrop-blur-sm" aria-label="Đang chuyển trang">
-          <LoadingSpinner label="Đang chuyển trang…" fullScreen={false} />
-        </div>
-      ) : null}
-    </div>
+    <AudioPlayerProvider>
+      <div className="app-frame">
+        <Outlet />
+        <PersistentAudioPlayer />
+        <AppToaster />
+        {navigation.state !== "idle" ? (
+          <div className="fixed inset-0 z-[100] grid place-items-center bg-paper/60 backdrop-blur-sm" aria-label="Đang chuyển trang">
+            <LoadingSpinner label="Đang chuyển trang…" fullScreen={false} />
+          </div>
+        ) : null}
+      </div>
+    </AudioPlayerProvider>
   );
 }

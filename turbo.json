@@ -1,5 +1,6 @@
 {
   "$schema": "https://turbo.build/schema.json",
+  "ui": "stream",
   "globalEnv": [
     "NODE_ENV",
     "PORT",
@@ -33,6 +34,9 @@
       "cache": false
     },
     "db:deploy": {
+      "cache": false
+    },
+    "db:seed": {
       "cache": false
     }
   }

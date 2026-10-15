@@ -1,7 +1,7 @@
 import { CheckCircle, CircleNotch, Info, Warning, WarningCircle, X } from "@phosphor-icons/react";
 import { useEffect, useRef, useState, type CSSProperties, type ReactElement } from "react";
 import { Button } from "../ui/button";
-import { Toast, ToastClose, ToastProvider, ToastTitle, ToastViewport } from "../ui/toast";
+import { Toast, ToastClose, ToastDescription, ToastProvider, ToastTitle, ToastViewport } from "../ui/toast";
 import { useNotificationStore, type AppNotification, type NotificationStatus } from "../../lib/notifications";
 
 const statusMeta = {
@@ -42,6 +42,11 @@ function NotificationToast({ notification }: { notification: AppNotification }):
     <Icon size={18} weight={notification.status === "loading" ? "regular" : "fill"} className={`mt-0.5 size-[18px] shrink-0 ${meta.color} ${notification.status === "loading" ? "toast-spinner" : ""}`} aria-hidden="true" />
     <div className="min-w-0 flex-1">
       <ToastTitle className="break-words text-[13px] font-semibold leading-5">{notification.title}</ToastTitle>
+      {notification.description ? (
+        <ToastDescription className="mt-0.5 break-words text-xs leading-5 text-muted-foreground">
+          {notification.description}
+        </ToastDescription>
+      ) : null}
     </div>
     <ToastClose asChild><Button variant="ghost" size="icon" className="-mr-1 -mt-1 size-7 shrink-0 text-muted-foreground" aria-label="Đóng thông báo"><X size={14} aria-hidden="true" /></Button></ToastClose>
     {Number.isFinite(notification.duration) ? <span key={notification.revision} className={`toast-timeout absolute inset-x-0 bottom-0 h-0.5 origin-left bg-current ${meta.color}`} style={{ "--toast-duration": `${notification.duration}ms`, animationPlayState: paused ? "paused" : "running" } as CSSProperties} aria-hidden="true" /> : null}

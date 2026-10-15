@@ -14,7 +14,7 @@ export const QuizQuestionInputSchema = z
   .object({
     text: z.string().trim().min(1).max(2000),
     explanation: z.string().trim().max(4000).nullable().optional(),
-    options: z.array(QuizOptionInputSchema).min(2).max(6),
+    options: z.array(QuizOptionInputSchema).length(4, "Mỗi câu hỏi phải có đúng 4 đáp án A, B, C, D"),
   })
   .superRefine((question, context) => {
     const labels = question.options.map((option) => option.label);
@@ -22,6 +22,12 @@ export const QuizQuestionInputSchema = z
       context.addIssue({
         code: "custom",
         message: "Nhãn đáp án trong một câu hỏi không được trùng",
+      });
+    }
+    if (["A", "B", "C", "D"].some((label) => !labels.includes(label))) {
+      context.addIssue({
+        code: "custom",
+        message: "Mỗi câu hỏi phải có đủ các đáp án A, B, C, D",
       });
     }
     if (question.options.filter((option) => option.isCorrect).length !== 1) {

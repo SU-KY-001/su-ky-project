@@ -107,6 +107,26 @@ async function main(): Promise<void> {
     update: {},
   });
 
+  // Default password: Admin@123456
+  const DEFAULT_ADMIN_PASSWORD_HASH =
+    "f16ad9cf49208566934f846785829df3:3f2c0e6fb0cef77f4358c289b0f7d040af03e11c559cc065026a0661531d1bfe72af036e709c3010b35785c010bb610fb9f2909d2623ea3743876c06db849ee8";
+
+  const existingAccount = await prisma.account.findFirst({
+    where: { userId: DEFAULT_ADMIN_ID, providerId: "credential" },
+  });
+
+  if (!existingAccount) {
+    await prisma.account.create({
+      data: {
+        id: "admin-default-account-id",
+        userId: DEFAULT_ADMIN_ID,
+        accountId: DEFAULT_ADMIN_ID,
+        providerId: "credential",
+        password: DEFAULT_ADMIN_PASSWORD_HASH,
+      },
+    });
+  }
+
   await seedTopics(prisma);
 
   await seedHistoricalPeriods(prisma);

@@ -508,7 +508,28 @@ export class PrismaListeningRepository implements ListeningRepository {
         ? { endYear: { gte: query.fromYear } }
         : {}),
       ...(query.q
-        ? { title: { contains: query.q, mode: "insensitive" as const } }
+        ? {
+            OR: [
+              { title: { contains: query.q, mode: "insensitive" as const } },
+              { description: { contains: query.q, mode: "insensitive" as const } },
+              { historicalPhase: { name: { contains: query.q, mode: "insensitive" as const } } },
+              { primaryHistoricalEvent: { name: { contains: query.q, mode: "insensitive" as const } } },
+              {
+                episodes: {
+                  some: {
+                    status: "PUBLISHED" as const,
+                    deletedAt: null,
+                    entityTags: {
+                      some: {
+                        status: "CONFIRMED" as const,
+                        entity: { name: { contains: query.q, mode: "insensitive" as const } },
+                      },
+                    },
+                  },
+                },
+              },
+            ],
+          }
         : {}),
     };
     const [rows, total] = await Promise.all([

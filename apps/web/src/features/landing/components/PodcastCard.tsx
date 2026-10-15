@@ -53,7 +53,7 @@ export function PodcastCard({ item, orientation = "portrait", progress, caption 
   // React treats portal children as descendants for enter/leave, so moving onto the popup does not close it.
   return (
     <div className="shrink-0 snap-start" onMouseEnter={open} onMouseLeave={close}>
-      <Link to="/login" className="group flex flex-col gap-2 rounded-md focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-vermilion" aria-label={item.title}>
+      <Link to="/series" className="group flex flex-col gap-2 rounded-md focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-vermilion" aria-label={item.title}>
         <div ref={coverRef} className={cn("relative overflow-hidden rounded-md bg-night", SIZE[orientation])}>
           {image ? <img src={image} alt={item.imageAlt} className="size-full object-cover" loading="lazy" decoding="async" /> : null}
           <span aria-hidden="true" className="pointer-events-none absolute inset-0 rounded-md border-2 border-transparent group-hover:border-vermilion" />

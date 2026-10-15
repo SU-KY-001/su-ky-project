@@ -11,6 +11,8 @@ const validQuiz = {
       options: [
         { label: "a", text: "Lý Công Uẩn", isCorrect: true },
         { label: "b", text: "Trần Thái Tông", isCorrect: false },
+        { label: "c", text: "Lê Lợi", isCorrect: false },
+        { label: "d", text: "Quang Trung", isCorrect: false },
       ],
     },
   ],
@@ -29,6 +31,16 @@ describe("Quiz and weekly mission contracts", () => {
     const twoCorrect = structuredClone(validQuiz);
     twoCorrect.questions[0]!.options[1]!.isCorrect = true;
     expect(UpsertQuizSchema.safeParse(twoCorrect).success).toBe(false);
+  });
+
+  test("requires exactly the four labels A, B, C and D", () => {
+    const missingOption = structuredClone(validQuiz);
+    missingOption.questions[0]!.options.pop();
+    expect(UpsertQuizSchema.safeParse(missingOption).success).toBe(false);
+
+    const wrongLabel = structuredClone(validQuiz);
+    wrongLabel.questions[0]!.options[3]!.label = "E";
+    expect(UpsertQuizSchema.safeParse(wrongLabel).success).toBe(false);
   });
 
   test("rejects duplicate answers for the same question", () => {

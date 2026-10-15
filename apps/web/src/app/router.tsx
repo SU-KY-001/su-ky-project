@@ -16,6 +16,60 @@ export const appRoutes: RouteObject[] = [
     HydrateFallback: AppLoadingFallback,
     ErrorBoundary: RouteErrorFallback,
     children: [
+      {
+        id: "series-list",
+        path: "series",
+        lazy: async () => {
+          const { SeriesListPage } = await import("../pages/listening/SeriesListPage");
+          return { Component: SeriesListPage };
+        },
+      },
+      {
+        id: "series-detail",
+        path: "series/:slug",
+        lazy: async () => {
+          const { SeriesDetailPage } = await import("../pages/listening/SeriesDetailPage");
+          return { Component: SeriesDetailPage };
+        },
+      },
+      {
+        id: "episode-detail",
+        path: "episodes/:slug",
+        lazy: async () => {
+          const { EpisodeDetailPage } = await import("../pages/listening/EpisodeDetailPage");
+          return { Component: EpisodeDetailPage };
+        },
+      },
+      {
+        id: "listening-history-route",
+        element: <ProtectedRoute allowedRoles={["user", "moderator", "admin"]} />,
+        children: [
+          {
+            id: "listening-history",
+            path: "me/listening-history",
+            lazy: async () => {
+              const { ListeningHistoryPage } = await import("../pages/listening/ListeningHistoryPage");
+              return { Component: ListeningHistoryPage };
+            },
+          },
+          {
+            id: "weekly-missions",
+            path: "me/missions",
+            lazy: async () => {
+              const { WeeklyMissionsPage } = await import("../pages/listening/WeeklyMissionsPage");
+              return { Component: WeeklyMissionsPage };
+            },
+          },
+          {
+            id: "user-profile",
+            path: "me/profile",
+            lazy: async () => {
+              const { ProfilePage } = await import("../pages/profile/ProfilePage");
+              return { Component: ProfilePage };
+            },
+          },
+        ],
+      },
       {id:"historical-event",path:"history/events/:slug",lazy:async()=>{const {HistoricalEventPage}=await import("../pages/history/HistoricalEventPage");return {Component:HistoricalEventPage};}},
       {
         id: "public-routes",
