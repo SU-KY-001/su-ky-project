@@ -1,13 +1,19 @@
 import {
   CreateReleaseScheduleSchema,
+  ApproveReleaseReassignmentTicketSchema,
   AssignableEpisodeListSchema,
+  CreateReleaseReassignmentTicketSchema,
   LinkReleaseEpisodeSchema,
+  RejectReleaseReassignmentTicketSchema,
   ReleaseReminderListSchema,
+  ReleaseReassignmentTicketQuerySchema,
+  ReleaseReassignmentTicketSchema,
   ReleaseScheduleQuerySchema,
-  ReplaceReleaseAssigneesSchema,
+  ReplaceReleaseAssigneeSchema,
   ReviewEpisodeSchema,
   SubmitEpisodeReviewSchema,
   UpdateReleaseScheduleSchema,
+  UpdateReleaseReassignmentTicketSchema,
   UuidParamSchema,
 } from "@repo/shared";
 import { operation, type Paths } from "../operation";
@@ -37,8 +43,30 @@ const progress = {
   name: "ReleaseProgressList",
   schema: ItemsOf(ReleaseProgressDocSchema),
 } as const;
+const ticket = {
+  name: "ReleaseReassignmentTicket",
+  schema: ReleaseReassignmentTicketSchema,
+} as const;
 
 export const releasePaths: Paths = {
+  [`${ADMIN}/{id}/review`]: {
+    post: operation({
+      id: "adminReviewEpisodeRelease",
+      tag: TAG,
+      summary: "Admin kiểm duyệt podcast",
+      description: "Duyệt hoặc yêu cầu chỉnh sửa đúng phiên bản đã gửi. Ghi lại người duyệt; yêu cầu chỉnh sửa phải có nhận xét.",
+      access: "admin",
+      ...idParams,
+      body: { name: "ReviewEpisodeRelease", schema: ReviewEpisodeSchema },
+      ok: { status: 200, description: "Kết quả kiểm duyệt", schema: review },
+      rate: "write",
+      errors: {
+        403: "`SELF_REVIEW_FORBIDDEN`: người sản xuất không được tự duyệt",
+        404: "`NOT_FOUND`: lịch không tồn tại",
+        409: "`INVALID_REVIEW_STATE` hoặc `STALE_WRITE`",
+      },
+    }),
+  },
   [ADMIN]: {
     get: operation({
       id: "listReleaseSchedules",
@@ -57,7 +85,7 @@ export const releasePaths: Paths = {
       id: "createReleaseSchedule",
       tag: TAG,
       summary: "Tạo lịch và phân công sản xuất",
-      description: "Tạo lịch tự động phát hành và phân công một hoặc nhiều Moderator.",
+      description: "Tạo lịch tự động phát hành và phân công đúng một Moderator.",
       access: "admin",
       body: { name: "CreateReleaseSchedule", schema: CreateReleaseScheduleSchema },
       ok: {
@@ -115,6 +143,48 @@ export const releasePaths: Paths = {
       },
     }),
   },
+  [`${ADMIN}/reassignment-tickets`]: {
+    get: operation({
+      id: "listReleaseReassignmentTickets",
+      tag: TAG,
+      summary: "Danh sách ticket",
+      description: "Lọc ticket của Moderator theo trạng thái để Admin xử lý.",
+      access: "admin",
+      query: ReleaseReassignmentTicketQuerySchema,
+      ok: {
+        status: 200,
+        description: "Danh sách ticket phân trang",
+        schema: { name: "ReleaseReassignmentTicketPage", schema: PagedOf(ReleaseReassignmentTicketSchema) },
+      },
+    }),
+  },
+  [`${ADMIN}/reassignment-tickets/{id}/approve`]: {
+    post: operation({
+      id: "approveReleaseReassignmentTicket",
+      tag: TAG,
+      summary: "Duyệt ticket và chuyển người phụ trách",
+      access: "admin",
+      ...idParams,
+      body: { name: "ApproveReleaseReassignmentTicket", schema: ApproveReleaseReassignmentTicketSchema },
+      ok: { status: 200, description: "Ticket đã duyệt", schema: ticket },
+      rate: "write",
+      errors: { 404: "`NOT_FOUND`: ticket không tồn tại", 409: "`CONFLICT` hoặc `INVALID_STATE_TRANSITION`" },
+    }),
+  },
+  [`${ADMIN}/reassignment-tickets/{id}/reject`]: {
+    post: operation({
+      id: "rejectReleaseReassignmentTicket",
+      tag: TAG,
+      summary: "Từ chối ticket",
+      description: "Lý do từ chối là bắt buộc và assignment hiện tại được giữ nguyên.",
+      access: "admin",
+      ...idParams,
+      body: { name: "RejectReleaseReassignmentTicket", schema: RejectReleaseReassignmentTicketSchema },
+      ok: { status: 200, description: "Ticket đã bị từ chối", schema: ticket },
+      rate: "write",
+      errors: { 409: "`INVALID_STATE_TRANSITION`: ticket không còn chờ duyệt" },
+    }),
+  },
   [`${ADMIN}/{id}`]: {
     get: operation({
       id: "getReleaseSchedule",
@@ -140,12 +210,12 @@ export const releasePaths: Paths = {
   },
   [`${ADMIN}/{id}/assignees`]: {
     put: operation({
-      id: "replaceReleaseAssignees",
+      id: "replaceReleaseAssignee",
       tag: TAG,
       summary: "Thay người phụ trách",
       access: "admin",
       ...idParams,
-      body: { name: "ReplaceReleaseAssignees", schema: ReplaceReleaseAssigneesSchema },
+      body: { name: "ReplaceReleaseAssignee", schema: ReplaceReleaseAssigneeSchema },
       ok: { status: 200, description: "Lịch với phân công mới", schema: schedule },
       rate: "write",
       errors: { 404: "`NOT_FOUND`: lịch không tồn tại" },
@@ -285,6 +355,59 @@ export const releasePaths: Paths = {
         description: "Tối đa 20 nhắc việc gần nhất",
         schema: { name: "ReleaseReminderList", schema: ReleaseReminderListSchema },
       },
+    }),
+  },
+  [`${STUDIO}/reassignment-tickets`]: {
+    get: operation({
+      id: "listMyReleaseReassignmentTickets",
+      tag: TAG,
+      summary: "Ticket của tôi",
+      access: "moderator",
+      query: ReleaseReassignmentTicketQuerySchema,
+      ok: {
+        status: 200,
+        description: "Danh sách ticket của Moderator",
+        schema: { name: "MyReleaseReassignmentTicketPage", schema: PagedOf(ReleaseReassignmentTicketSchema) },
+      },
+    }),
+  },
+  [`${STUDIO}/reassignment-tickets/{id}`]: {
+    patch: operation({
+      id: "updateMyReleaseReassignmentTicket",
+      tag: TAG,
+      summary: "Cập nhật lý do ticket",
+      access: "moderator",
+      ...idParams,
+      body: { name: "UpdateReleaseReassignmentTicket", schema: UpdateReleaseReassignmentTicketSchema },
+      ok: { status: 200, description: "Ticket đã cập nhật", schema: ticket },
+      rate: "write",
+      errors: { 409: "`INVALID_STATE_TRANSITION`: ticket không còn chờ hoặc không thuộc người dùng" },
+    }),
+  },
+  [`${STUDIO}/reassignment-tickets/{id}/cancel`]: {
+    post: operation({
+      id: "cancelMyReleaseReassignmentTicket",
+      tag: TAG,
+      summary: "Tự hủy ticket đang chờ",
+      access: "moderator",
+      ...idParams,
+      ok: { status: 200, description: "Ticket đã hủy", schema: ticket },
+      rate: "write",
+      errors: { 409: "`INVALID_STATE_TRANSITION`: ticket không còn chờ hoặc không thuộc người dùng" },
+    }),
+  },
+  [`${STUDIO}/{id}/reassignment-tickets`]: {
+    post: operation({
+      id: "createReleaseReassignmentTicket",
+      tag: TAG,
+      summary: "Báo không thể tiếp tục nhiệm vụ",
+      description: "Tạo ticket báo không thể tiếp tục lịch đang được Moderator phụ trách.",
+      access: "moderator",
+      ...idParams,
+      body: { name: "CreateReleaseReassignmentTicket", schema: CreateReleaseReassignmentTicketSchema },
+      ok: { status: 201, description: "Ticket đang chờ duyệt", schema: ticket },
+      rate: "write",
+      errors: { 403: "`FORBIDDEN`: không được phân công", 409: "`CONFLICT` hoặc `INVALID_STATE_TRANSITION`" },
     }),
   },
   [`${STUDIO}/{id}/progress`]: {

@@ -28,15 +28,35 @@ function schedule(status: string): ReleaseScheduleRecord {
   } as unknown as ReleaseScheduleRecord;
 }
 
-it("renders release history names and outcome as card badges", async () => {
+it("renders release history as a filterable paginated dashboard table", async () => {
   const host = document.createElement("div");
   document.body.append(host);
   root = createRoot(host);
 
   await act(async () => {
-    root?.render(<ReleaseHistory schedules={[schedule("RELEASED")]} />);
+    root?.render(
+      <ReleaseHistory
+        schedules={[schedule("RELEASED")]}
+        page={1}
+        limit={10}
+        total={12}
+        search=""
+        status=""
+        from=""
+        to=""
+        onSearchChange={() => undefined}
+        onStatusChange={() => undefined}
+        onFromChange={() => undefined}
+        onToChange={() => undefined}
+        onPageChange={() => undefined}
+      />,
+    );
   });
 
   expect(host.querySelectorAll('[data-card-badge-type="name"]')).toHaveLength(2);
   expect(host.querySelector('[data-card-badge-type="status"]')?.textContent).toBe("Đã phát hành");
+  expect(host.querySelector('[data-dashboard-table-card="true"]')).not.toBeNull();
+  expect(host.querySelector("table")).not.toBeNull();
+  expect(host.querySelector('input[placeholder="Tìm trong lịch sử phát hành"]')).not.toBeNull();
+  expect(host.querySelector('nav[aria-label="Phân trang"]')).not.toBeNull();
 });

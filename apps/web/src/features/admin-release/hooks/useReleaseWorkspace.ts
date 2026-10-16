@@ -1,6 +1,8 @@
 import { useDeferredValue, useEffect, useMemo, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import type { ReleaseScheduleRecord, ReleaseScheduleStatus } from "@repo/shared";
+import { notify } from "@/shared/lib/notifications";
+import { useConfirmationDialog } from "@/shared/hooks/useConfirmationDialog";
 import {
   adminReleaseService,
   type ReleaseScheduleDraft,
@@ -15,20 +17,15 @@ import {
 import {
   adminReleaseKeys,
   useAdminReleaseActions,
-  useAdminReleaseAttention,
   useAdminReleaseBoard,
   useAdminReleaseSchedules,
-  useAdminReleaseWorkload,
   useReleaseModerators,
   useReleaseProgress,
+  useLiveReleaseSchedule,
+  useReleaseWorkerHealth,
 } from "./useAdminReleases";
 
-const VIEW_STORAGE_KEY = "admin-release-workspace-view";
-
-function initialView(): ReleaseWorkspaceViewMode {
-  const saved = localStorage.getItem(VIEW_STORAGE_KEY);
-  return saved === "kanban" || saved === "table" ? saved : "kanban";
-}
+const LEGACY_VIEW_STORAGE_KEY = "admin-release-workspace-view";
 
 export function useReleaseWorkspace({
   initiallyCreating = false,
@@ -38,7 +35,8 @@ export function useReleaseWorkspace({
   service?: typeof adminReleaseService;
 } = {}) {
   const queryClient = useQueryClient();
-  const [view, setViewState] = useState<ReleaseWorkspaceViewMode>(initialView);
+  const { requestConfirmation, confirmation } = useConfirmationDialog();
+  const [view, setViewState] = useState<ReleaseWorkspaceViewMode>("kanban");
   const [search, setSearch] = useState("");
   const deferredSearch = useDeferredValue(search);
   const [moderatorId, setModeratorId] = useState("");
@@ -58,6 +56,10 @@ export function useReleaseWorkspace({
   );
   const [pendingIds, setPendingIds] = useState<Set<string>>(new Set());
   const [error, setError] = useState<unknown>(null);
+
+  useEffect(() => {
+    localStorage.removeItem(LEGACY_VIEW_STORAGE_KEY);
+  }, []);
 
   const baseFilter = useMemo<Omit<ReleaseScheduleFilter, "status" | "page">>(() => ({
     q: deferredSearch.trim() || undefined,
@@ -82,18 +84,15 @@ export function useReleaseWorkspace({
     });
   }, [deferredSearch, moderatorId, status, from, to]);
 
-  const board = useAdminReleaseBoard(baseFilter, boardPages, service);
-  const table = useAdminReleaseSchedules(tableFilter, service);
-  const attention = useAdminReleaseAttention(baseFilter, service);
-  const workload = useAdminReleaseWorkload(service);
+  const board = useAdminReleaseBoard(baseFilter, boardPages, service, view === "kanban");
+  const table = useAdminReleaseSchedules(tableFilter, service, view === "table");
   const moderators = useReleaseModerators(service);
+  const worker = useReleaseWorkerHealth(service);
+  const liveSchedule = useLiveReleaseSchedule(selectedSchedule?.id ?? null, service);
   const progress = useReleaseProgress(selectedSchedule?.id ?? null, service);
   const actions = useAdminReleaseActions(service);
 
-  const setView = (next: ReleaseWorkspaceViewMode) => {
-    localStorage.setItem(VIEW_STORAGE_KEY, next);
-    setViewState(next);
-  };
+  const setView = (next: ReleaseWorkspaceViewMode) => setViewState(next);
   const markPending = (id: string, pending: boolean) =>
     setPendingIds((current) => {
       const next = new Set(current);
@@ -118,6 +117,10 @@ export function useReleaseWorkspace({
     } catch (caught) {
       setError(caught);
       await refresh();
+      notify.error({
+        title: "Thao tác chưa hoàn tất.",
+        description: "Dữ liệu lịch đã được đồng bộ lại từ hệ thống.",
+      });
       throw caught;
     } finally {
       markPending(schedule.id, false);
@@ -130,7 +133,7 @@ export function useReleaseWorkspace({
   ) => {
     if (
       command === "publish-now" &&
-      !window.confirm(`Phát hành ngay “${schedule.title}”?`)
+      !await requestConfirmation({ title: "Phát hành podcast ngay?", description: `Podcast “${schedule.title}” sẽ được phát hành ngay, thay vì chờ đến thời gian đã lên lịch.`, confirmLabel: "Phát hành ngay" })
     ) return;
     return runScheduleAction(schedule, () =>
       command === "check-readiness"
@@ -161,20 +164,20 @@ export function useReleaseWorkspace({
         baseUpdatedAt: schedule.updatedAt,
       },
     });
-    await actions.replaceAssignees.mutateAsync({
+    await actions.replaceAssignee.mutateAsync({
       id: schedule.id,
-      moderatorIds: draft.moderatorIds,
+      moderatorId: draft.moderatorId,
     });
     return updated;
   });
   const publishNow = async (schedule: ReleaseScheduleRecord) => {
-    if (!window.confirm(`Phát hành ngay “${schedule.title}”?`)) return;
+    if (!await requestConfirmation({ title: "Phát hành podcast ngay?", description: `Podcast “${schedule.title}” sẽ được phát hành ngay, thay vì chờ đến thời gian đã lên lịch.`, confirmLabel: "Phát hành ngay" })) return;
     return runScheduleAction(schedule, () => actions.publishNow.mutateAsync(schedule.id));
   };
   const retry = (schedule: ReleaseScheduleRecord) =>
     runScheduleAction(schedule, () => actions.retry.mutateAsync(schedule.id));
   const cancel = async (schedule: ReleaseScheduleRecord) => {
-    if (!window.confirm(`Hủy lịch “${schedule.title}”?`)) return;
+    if (!await requestConfirmation({ title: "Hủy lịch phát hành?", description: `Lịch “${schedule.title}” sẽ bị hủy và không tự động phát hành podcast.`, confirmLabel: "Hủy lịch", destructive: true })) return;
     return runScheduleAction(schedule, () => actions.cancel.mutateAsync(schedule.id));
   };
   const openEdit = (schedule: ReleaseScheduleRecord) => {
@@ -196,6 +199,7 @@ export function useReleaseWorkspace({
     setBoardPages((current) => ({ ...current, [boardStatus]: page }));
 
   return {
+    confirmation,
     view,
     setView,
     search,
@@ -214,10 +218,10 @@ export function useReleaseWorkspace({
     setBoardPage,
     board,
     table,
-    attention,
-    workload,
     moderators,
     progress,
+    worker,
+    liveSchedule,
     selectedSchedule,
     dialogMode,
     pendingIds,
@@ -236,6 +240,6 @@ export function useReleaseWorkspace({
       pendingIds.size > 0 ||
       actions.create.isPending ||
       actions.update.isPending ||
-      actions.replaceAssignees.isPending,
+      actions.replaceAssignee.isPending,
   };
 }

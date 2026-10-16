@@ -5,6 +5,8 @@ import {
   type StudioSeriesDetailDto,
 } from "@repo/shared";
 import { Button } from "@/shared/components/ui/button";
+import { Eye, PencilSimple } from "@phosphor-icons/react";
+import { DashboardRowActions } from "@/shared/components/dashboard/DashboardRowActions";
 import {
   Dialog,
   DialogContent,
@@ -429,7 +431,7 @@ function SeriesBranch({
       {episodes.map((e) => (
           <TableRow key={e.id} className="mod-tree-child">
             <TableHead scope="row" className={tableCell}>
-              <div className="flex items-center gap-2.5 pl-7">
+              <div className="flex min-w-0 items-center gap-2.5 pl-7">
                 <ContentKindIcon kind="episode" />
                 <span className="mod-tree-name">{e.title}</span>
               </div>
@@ -449,14 +451,7 @@ function SeriesBranch({
                   : "Bản nháp"}
             </TableCell>
             <TableCell className={tableCell}>
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={() => onEditEpisode(e.id)}
-              >
-                Chỉnh sửa
-              </Button>
+              <DashboardRowActions label={e.title} actions={[{ id: "edit", label: "Chỉnh sửa", icon: PencilSimple, onSelect: () => onEditEpisode(e.id) }]} />
             </TableCell>
           </TableRow>
       ))}
@@ -560,6 +555,7 @@ export function PodcastWorkspace({
           embedded
           caption="Series và các tập podcast"
           columns={["Nội dung", "Số tập", "Kịch bản", "Âm thanh", "Trạng thái", "Thao tác"]}
+          columnWidths={["38%", "8%", "12%", "12%", "13%", "17%"]}
           minWidth={1080}
         >
           {rows.map((s) => (
@@ -590,14 +586,7 @@ export function PodcastWorkspace({
                       : "Bản nháp"}
                 </TableCell>
                 <TableCell className={tableCell}>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setDetailSeriesId(s.id)}
-                  >
-                    Xem chi tiết
-                  </Button>
+                  <DashboardRowActions label={s.title} actions={[{ id: "detail", label: "Xem chi tiết", icon: Eye, onSelect: () => setDetailSeriesId(s.id) }]} />
                 </TableCell>
               </InteractiveTableRow>
               {expanded.has(s.id) ? (

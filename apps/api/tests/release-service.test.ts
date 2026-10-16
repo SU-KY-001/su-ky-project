@@ -2,6 +2,7 @@ import { describe, expect, it } from "bun:test";
 import type { Session } from "../src/modules/auth";
 import type {
   EpisodeReviewEntity,
+  ReleaseReassignmentTicketEntity,
   ReleaseRepository,
   ReleaseScheduleEntity,
 } from "../src/modules/releases/domain/release.repository";
@@ -107,8 +108,9 @@ class FakeReleaseRepository {
   }> = [];
   audits: string[] = [];
   createdReviews: EpisodeReviewEntity[] = [];
-  decisions: Array<{ status: string; reviewer: string }> = [];
+  decisions: Array<{ status: string; reviewer: string; actorType: string }> = [];
   workloadArgs: Array<{ now: Date; nearDeadlineBefore: Date }> = [];
+  ticket: ReleaseReassignmentTicketEntity | null = null;
 
   async createSchedule(input: Parameters<ReleaseRepository["createSchedule"]>[0]) {
     this.current = schedule({
@@ -144,7 +146,7 @@ class FakeReleaseRepository {
   }
   async findLatestReview() { return this.latestReview; }
   async decideReview(input: Parameters<ReleaseRepository["decideReview"]>[0]) {
-    this.decisions.push({ status: input.status, reviewer: input.reviewedById });
+    this.decisions.push({ status: input.status, reviewer: input.reviewedById, actorType: input.actorType });
     this.latestReview = { ...this.latestReview!, status: input.status };
     return this.latestReview;
   }
@@ -180,6 +182,64 @@ class FakeReleaseRepository {
     this.workloadArgs.push({ now: nowAt, nearDeadlineBefore });
     return [{ moderatorId: "mod-author", name: "Author", open: 2, nearDeadline: 1 }];
   }
+  async createReassignmentTicket(input: Parameters<ReleaseRepository["createReassignmentTicket"]>[0]) {
+    if (this.ticket?.status === "PENDING") return null;
+    this.ticket = {
+      id: "ticket-1",
+      scheduleId: input.scheduleId,
+      requestedById: input.requestedById,
+      reason: input.reason,
+      status: "PENDING",
+      replacementModeratorId: null,
+      resolvedById: null,
+      decisionReason: null,
+      resolvedAt: null,
+      cancelledAt: null,
+      createdAt: now,
+      updatedAt: now,
+      requestedBy: { id: "mod-author", name: "Author", email: "author@example.org" },
+      replacementModerator: null,
+      schedule: this.current,
+    };
+    return this.ticket;
+  }
+  async findReassignmentTicket() { return this.ticket; }
+  async rejectReassignmentTicket(input: Parameters<ReleaseRepository["rejectReassignmentTicket"]>[0]) {
+    if (!this.ticket || this.ticket.status !== "PENDING") return null;
+    this.ticket = {
+      ...this.ticket,
+      status: "REJECTED",
+      decisionReason: input.reason,
+      resolvedById: input.resolvedById,
+      resolvedAt: now,
+    };
+    return this.ticket;
+  }
+  async approveReassignmentTicket(input: Parameters<ReleaseRepository["approveReassignmentTicket"]>[0]) {
+    if (!this.ticket || this.ticket.status !== "PENDING") return null;
+    this.current = {
+      ...this.current,
+      assignments: [{
+        ...this.current.assignments[0]!,
+        moderatorId: input.replacementModeratorId,
+        moderator: {
+          id: input.replacementModeratorId,
+          name: "Replacement",
+          email: "replacement@example.org",
+        },
+      }],
+    };
+    this.ticket = {
+      ...this.ticket,
+      status: "APPROVED",
+      replacementModeratorId: input.replacementModeratorId,
+      replacementModerator: this.current.assignments[0]!.moderator,
+      resolvedById: input.resolvedById,
+      resolvedAt: now,
+      schedule: this.current,
+    };
+    return this.ticket;
+  }
 }
 
 function service(
@@ -206,7 +266,7 @@ describe("release service", () => {
       episodeId: null,
       productionDeadline: new Date("2026-10-19T13:00:00.000Z"),
       scheduledAt: new Date("2026-10-20T13:00:00.000Z"),
-      moderatorIds: ["mod-author"],
+      moderatorId: "mod-author",
     }, "correlation-1")).rejects.toMatchObject({ status: 403 });
   });
 
@@ -272,6 +332,27 @@ describe("release service", () => {
       action: "release.auto_ready",
       actorType: "SYSTEM",
     });
+  });
+
+  it("lets Admin review the submitted revision and records the reviewer role", async () => {
+    const { releaseService, repository } = service();
+    repository.current = schedule({ status: "SCHEDULED" });
+    repository.latestReview = { ...approvedReview(), status: "IN_REVIEW" };
+    await releaseService.reviewEpisode(session("admin-1", "admin"), "schedule-1", {
+      decision: "APPROVE", contentRevision: 3,
+    }, "admin-review");
+    expect(repository.decisions).toEqual([{ status: "APPROVED", reviewer: "admin-1", actorType: "ADMIN" }]);
+    expect(repository.current.status).toBe("READY_TO_PUBLISH");
+  });
+
+  it("rejects an Admin decision for content changed after submission", async () => {
+    const { releaseService, repository } = service();
+    repository.current = schedule({ status: "SCHEDULED" });
+    repository.latestReview = { ...approvedReview(2), status: "IN_REVIEW" };
+    await expect(releaseService.reviewEpisode(session("admin-1", "admin"), "schedule-1", {
+      decision: "APPROVE", contentRevision: 2,
+    }, "stale-admin-review")).rejects.toMatchObject({ status: 409, code: "STALE_WRITE" });
+    expect(repository.decisions).toHaveLength(0);
   });
 
   it("moves an approved current revision from scheduled to ready and audits the Admin command", async () => {
@@ -379,5 +460,70 @@ describe("release service", () => {
     expect(results.sort()).toEqual(["IGNORED", "RELEASED"]);
     expect(publishCount()).toBe(1);
     expect(repository.statusTransitions.at(-1)?.to).toBe("RELEASED");
+  });
+
+  it("lets only the active assignee create a pending reassignment ticket", async () => {
+    const { releaseService, repository } = service();
+    const created = await releaseService.createReassignmentTicket(
+      session("mod-author", "moderator"),
+      "schedule-1",
+      "Tôi có lịch công tác đột xuất và không thể hoàn thành đúng hạn.",
+      "ticket-create",
+    );
+    expect(created.status).toBe("PENDING");
+
+    repository.assigned = false;
+    await expect(releaseService.createReassignmentTicket(
+      session("mod-outsider", "moderator"),
+      "schedule-1",
+      "Tôi không được phân công nhưng đang thử gửi ticket.",
+      "ticket-forbidden",
+    )).rejects.toMatchObject({ status: 403, code: "FORBIDDEN" });
+  });
+
+  it("keeps the current assignment when Admin rejects a ticket with a reason", async () => {
+    const { releaseService, repository } = service();
+    const ticket = await releaseService.createReassignmentTicket(
+      session("mod-author", "moderator"),
+      "schedule-1",
+      "Tôi có lịch công tác đột xuất và không thể hoàn thành đúng hạn.",
+      "ticket-create",
+    );
+
+    const rejected = await releaseService.rejectReassignmentTicket(
+      session("admin-1", "admin"),
+      ticket.id,
+      "Chưa có nhân sự phù hợp để thay thế.",
+      "ticket-reject",
+    );
+
+    expect(rejected.status).toBe("REJECTED");
+    expect(repository.current.assignments[0]?.moderatorId).toBe("mod-author");
+  });
+
+  it("changes the active assignment only when Admin approves with another Moderator", async () => {
+    const { releaseService, repository } = service();
+    const ticket = await releaseService.createReassignmentTicket(
+      session("mod-author", "moderator"),
+      "schedule-1",
+      "Tôi có lịch công tác đột xuất và không thể hoàn thành đúng hạn.",
+      "ticket-create",
+    );
+
+    await expect(releaseService.approveReassignmentTicket(
+      session("admin-1", "admin"),
+      ticket.id,
+      "mod-author",
+      "ticket-invalid-replacement",
+    )).rejects.toMatchObject({ status: 409, code: "CONFLICT" });
+
+    const approved = await releaseService.approveReassignmentTicket(
+      session("admin-1", "admin"),
+      ticket.id,
+      "mod-replacement",
+      "ticket-approve",
+    );
+    expect(approved.status).toBe("APPROVED");
+    expect(repository.current.assignments[0]?.moderatorId).toBe("mod-replacement");
   });
 });

@@ -5,7 +5,12 @@ import {
   ReleaseProgressListSchema,
   ReleaseSchedulePageSchema,
   ReleaseScheduleRecordSchema,
+  SystemHealthSchema,
+  EpisodeWorkspaceSchema,
+  EpisodeReviewRecordSchema,
+  type ReviewEpisodeInput,
   type ReleaseScheduleStatus,
+  type ReleaseScheduleScope,
 } from "@repo/shared";
 import { client } from "@/lib/client";
 import { ApiError } from "@/lib/apiError";
@@ -25,11 +30,12 @@ export interface ReleaseScheduleDraft {
   episodeId?: string | null;
   productionDeadline: string;
   scheduledAt: string;
-  moderatorIds: string[];
+  moderatorId: string;
 }
 
 export interface ReleaseScheduleFilter {
   status?: ReleaseScheduleStatus;
+  scope?: ReleaseScheduleScope;
   from?: string;
   to?: string;
   q?: string;
@@ -41,6 +47,19 @@ export interface ReleaseScheduleFilter {
 const admin = client.api.admin.releases;
 
 export const adminReleaseService = {
+  health: async () => {
+    const response = await client.health.$get();
+    // A degraded healthcheck intentionally returns 503 with a valid health body.
+    if (!response.ok && response.status !== 503) throw await ApiError.fromResponse(response);
+    return SystemHealthSchema.parse(await response.json());
+  },
+  get: (id: string) => parse(admin[":id"].$get({ param: { id } }), ReleaseScheduleRecordSchema),
+  content: (episodeId: string) => parse(
+    client.api.studio.episodes[":id"].$get({ param: { id: episodeId } }), EpisodeWorkspaceSchema,
+  ),
+  review: (id: string, input: ReviewEpisodeInput) => parse(
+    admin[":id"].review.$post({ param: { id }, json: input }), EpisodeReviewRecordSchema,
+  ),
   dashboard: () => parse(admin.dashboard.$get(), ReleaseDashboardSchema),
   moderators: () => parse(admin.moderators.$get(), ReleaseModeratorListSchema),
   list: (filter: ReleaseScheduleFilter = {}) =>
@@ -48,6 +67,7 @@ export const adminReleaseService = {
       admin.$get({
         query: {
           status: filter.status,
+          scope: filter.scope,
           from: filter.from,
           to: filter.to,
           q: filter.q,
@@ -71,7 +91,7 @@ export const adminReleaseService = {
     ),
   update: (
     id: string,
-    patch: Partial<Omit<ReleaseScheduleDraft, "moderatorIds">> & {
+    patch: Partial<Omit<ReleaseScheduleDraft, "moderatorId">> & {
       baseUpdatedAt: Date;
     },
   ) =>
@@ -88,9 +108,9 @@ export const adminReleaseService = {
       }),
       ReleaseScheduleRecordSchema,
     ),
-  replaceAssignees: (id: string, moderatorIds: string[]) =>
+  replaceAssignee: (id: string, moderatorId: string) =>
     parse(
-      admin[":id"].assignees.$put({ param: { id }, json: { moderatorIds } }),
+      admin[":id"].assignees.$put({ param: { id }, json: { moderatorId } }),
       ReleaseScheduleRecordSchema,
     ),
   progress: (id: string) =>

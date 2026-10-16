@@ -14,7 +14,8 @@ Thiết kế phải bảo đảm lịch không bị mất khi deploy hoặc rest
 
 Bao gồm:
 
-- Admin tạo, đổi, hủy lịch phát hành và phân công một hoặc nhiều moderator.
+- Admin tạo, đổi, hủy lịch phát hành và phân công đúng một moderator đang phụ trách tại một thời điểm.
+- Moderator có thể gửi ticket báo không thể tiếp tục; chỉ khi Admin duyệt và chọn người thay thế thì nhiệm vụ mới được chuyển giao.
 - Moderator trực tiếp tham gia toàn bộ quá trình sản xuất nội dung được giao.
 - Luồng gửi duyệt, yêu cầu chỉnh sửa và phê duyệt nội dung.
 - Tự động phát hành podcast tại thời điểm đã lên lịch.
@@ -38,7 +39,7 @@ Không bao gồm:
 ### Admin
 
 - Tạo, cập nhật, đổi giờ và hủy lịch.
-- Phân công hoặc gỡ moderator khỏi lịch.
+- Phân công một moderator cho lịch và xử lý yêu cầu chuyển giao.
 - Theo dõi tiến độ sản xuất, kiểm duyệt và phát hành.
 - Xử lý ngoại lệ bằng Phát hành ngay, Thử lại, Đổi lịch hoặc Hủy lịch.
 - Quản lý người dùng, vai trò, quyền truy cập và cấu hình hệ thống.
@@ -49,7 +50,8 @@ Không bao gồm:
 
 - Xem nhiệm vụ được phân công.
 - Tạo hoặc liên kết tập podcast với lịch.
-- Cùng các moderator được giao chỉnh sửa toàn bộ nội dung.
+- Chỉnh sửa toàn bộ nội dung của lịch đang được giao.
+- Tạo, cập nhật hoặc tự hủy ticket khi ticket còn chờ duyệt.
 - Gửi phiên bản hoàn chỉnh để kiểm duyệt.
 - Sửa nội dung theo yêu cầu và gửi lại.
 - Không thay đổi lịch, tự duyệt hoặc tự phát hành.
@@ -69,7 +71,7 @@ Admin tạo lịch với các thông tin:
 - Tên kế hoạch hoặc podcast dự kiến.
 - Thời gian phát hành.
 - Hạn hoàn thành sản xuất.
-- Một hoặc nhiều moderator phụ trách.
+- Một moderator phụ trách.
 
 Lịch có thể được tạo trước podcast. `episodeId` vì vậy được phép để trống và được liên kết khi moderator tạo hoặc chọn tập podcast.
 
@@ -179,7 +181,32 @@ Thời gian được lưu dưới UTC bằng `TIMESTAMPTZ` và hiển thị theo
 - `assignedAt`
 - `removedAt`
 
-Quan hệ nhiều-nhiều cho phép nhiều moderator cùng tham gia mà không bắt buộc chia vai trò theo công đoạn.
+Mỗi lịch chỉ có một `ProductionAssignment` đang hoạt động. Các assignment cũ được giữ lại với `removedAt` để lưu lịch sử chuyển giao. Database có unique index có điều kiện trên `scheduleId WHERE removedAt IS NULL` để ngăn hai assignment hoạt động do race condition.
+
+### ReleaseReassignmentTicket
+
+- `id`
+- `scheduleId`
+- `requestedById`
+- `reason`
+- `status`: `PENDING`, `APPROVED`, `REJECTED`, `CANCELLED`
+- `replacementModeratorId`, nullable
+- `resolvedById`, nullable
+- `decisionReason`, nullable và bắt buộc khi từ chối
+- `resolvedAt`, nullable
+- `cancelledAt`, nullable
+- `createdAt`
+- `updatedAt`
+
+Quy tắc:
+
+- Chỉ moderator đang được phân công mới được tạo ticket.
+- Một lịch chỉ có tối đa một ticket `PENDING`.
+- Moderator được sửa lý do hoặc tự hủy ticket `PENDING` của mình.
+- Khi ticket đang chờ hoặc bị từ chối, assignment và quyền chỉnh sửa hiện tại không thay đổi.
+- Admin duyệt phải chọn một moderator khác đang hoạt động.
+- Duyệt ticket, đóng assignment cũ, tạo assignment mới và ghi audit trong cùng transaction.
+- Podcast nháp vẫn thuộc chủ sở hữu ban đầu; moderator thay thế được thao tác qua assignment đang hoạt động thay vì chuyển quyền sở hữu.
 
 ### EpisodeReview
 
@@ -311,7 +338,7 @@ Các sự kiện chính:
 - `release_schedule.created`
 - `release_schedule.updated`
 - `release_schedule.rescheduled`
-- `release_schedule.assignees_changed`
+- `release_schedule.assignee_changed`
 - `episode.review_submitted`
 - `episode.changes_requested`
 - `episode.approved`
@@ -334,6 +361,8 @@ Audit kỹ thuật như stack trace hoặc định danh nội bộ không hiển
 
 ## Thông báo
 
+- Ticket `PENDING` xuất hiện trong trung tâm Thông báo Admin với bộ lọc riêng.
+- Admin duyệt ticket phải chọn moderator thay thế; từ chối ticket phải nhập lý do.
 - Trước hạn sản xuất 24 giờ: nhắc moderator nếu chưa gửi duyệt.
 - Trước thời gian phát hành 2 giờ: cảnh báo nếu chưa `APPROVED`.
 - Khi đạt `READY_TO_PUBLISH`: thông báo Admin.
@@ -401,6 +430,8 @@ Admin và Moderator chỉ truyền navigation, identity, dữ liệu và quyền
 Thêm khu vực Nhiệm vụ của tôi với các nhóm Được phân công, Đang sản xuất, Cần chỉnh sửa, Chờ duyệt, Đã hoàn thành và Quá hạn.
 
 Chi tiết nhiệm vụ hiển thị deadline sản xuất, thời gian phát hành, các moderator cùng tham gia, nhận xét kiểm duyệt, checklist và thao tác gửi duyệt.
+
+Thêm khu vực Ticket gồm bảng các ticket đã gửi và dialog tạo/chỉnh sửa. Mỗi dòng hiển thị nhiệm vụ, podcast nháp nếu đã liên kết, hạn sản xuất, thời gian phát hành, lý do và trạng thái. Ticket `PENDING` có thao tác sửa và tự hủy.
 
 ## RBAC
 
@@ -476,6 +507,9 @@ Loại bỏ việc Admin canh giờ nhưng yêu cầu checklist, revision lock, 
 ## Tiêu chí hoàn thành
 
 - Admin tạo lịch và phân công được moderator.
+- Mỗi lịch có đúng một moderator đang phụ trách và form Admin dùng select dropdown.
+- Moderator gửi, sửa và tự hủy được ticket đang chờ.
+- Admin duyệt kèm người thay thế hoặc từ chối kèm lý do; chỉ nhánh duyệt mới chuyển assignment.
 - Moderator hoàn thành luồng sản xuất và kiểm duyệt theo đúng revision.
 - Podcast hợp lệ tự động phát hành đúng thời gian mà không cần Admin mở ứng dụng.
 - Lỗi tạm thời được retry; lỗi nghiệp vụ chuyển `BLOCKED`.

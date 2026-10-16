@@ -1,5 +1,7 @@
 import { Fragment, useState } from "react";
 import { Button } from "@/shared/components/ui/button";
+import { PencilSimple } from "@phosphor-icons/react";
+import { DashboardRowActions } from "@/shared/components/dashboard/DashboardRowActions";
 import { TableCell, TableHead, TableRow } from "@/shared/components/ui/table";
 import { useCurrentUser } from "@/shared/hooks/useCurrentUser";
 import { HistoricalEventDetail } from "./HistoricalEventDetail";
@@ -19,6 +21,7 @@ import {
 import { ModeratorSectionPanel } from "@/features/moderator/components/ModeratorSectionPanel";
 import { ModeratorListToolbar } from "@/features/moderator/components/ModeratorListToolbar";
 import type { ModeratorSection } from "@/features/moderator/types";
+import { DashboardPagination } from "@/shared/components/dashboard/DashboardPagination";
 export function HistoricalCatalogList({
   section,
 }: {
@@ -260,15 +263,13 @@ export function HistoricalCatalogList({
                     </TableCell>
                     <TableCell className={tableCell}>
                       {user?.role === "admin" || user?.id === s.createdById ? (
-                        <Button
-                          variant="ghost"
-                          onClick={() => {
+                        <DashboardRowActions label={s.title} actions={[{
+                          id: "edit", label: "Sửa nguồn", icon: PencilSimple,
+                          onSelect: () => {
                             setEditing(s);
                             setCreating(true);
-                          }}
-                        >
-                          Sửa nguồn
-                        </Button>
+                          },
+                        }]} />
                       ) : null}
                     </TableCell>
                   </TableRow>
@@ -315,25 +316,14 @@ export function HistoricalCatalogList({
                 </EmptyTableRow>
               ) : null}
             </ModeratorTable>
-            <div className="flex items-center gap-3 p-4">
-              <Button
-                disabled={page === 1}
-                variant="ghost"
-                onClick={() => setPage(page - 1)}
-              >
-                Trang trước
-              </Button>
-              <span className="text-xs">Trang {page}</span>
-              <Button
-                variant="ghost"
-                disabled={
-                  !sources.data ||
-                  page * sources.data.limit >= sources.data.total
-                }
-                onClick={() => setPage(page + 1)}
-              >
-                Trang sau
-              </Button>
+            <div className="border-t border-mod-border p-4">
+              <DashboardPagination
+                page={page}
+                limit={sources.data?.limit ?? 20}
+                total={sources.data?.total ?? 0}
+                itemLabel="nguồn"
+                onPageChange={setPage}
+              />
             </div>
           </>
         ) : null}

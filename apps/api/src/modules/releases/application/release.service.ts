@@ -91,20 +91,141 @@ export class ReleaseService {
     return updated;
   }
 
-  async replaceAssignees(
+  async replaceAssignee(
     session: Session,
     scheduleId: string,
-    moderatorIds: string[],
+    moderatorId: string,
     correlationId: string,
   ): Promise<void> {
     assertAdmin(session);
     requireSchedule(await this.repository.findSchedule(scheduleId));
-    await this.repository.replaceAssignees(
+    await this.repository.replaceAssignee(
       scheduleId,
-      moderatorIds,
+      moderatorId,
       session.user.id,
       correlationId,
     );
+  }
+
+  async createReassignmentTicket(
+    session: Session,
+    scheduleId: string,
+    reason: string,
+    correlationId: string,
+  ) {
+    assertModerator(session);
+    const schedule = requireSchedule(await this.repository.findSchedule(scheduleId));
+    if (!(await this.repository.isModeratorAssigned(scheduleId, session.user.id)))
+      throw new DomainError(403, "FORBIDDEN", "Bạn không được phân công vào lịch này");
+    if (["RELEASED", "CANCELLED", "PUBLISHING"].includes(schedule.status))
+      throw new DomainError(409, "INVALID_STATE_TRANSITION", "Lịch không còn nhận yêu cầu chuyển giao");
+    const ticket = await this.repository.createReassignmentTicket({
+      scheduleId,
+      requestedById: session.user.id,
+      reason,
+      correlationId,
+    });
+    if (!ticket)
+      throw new DomainError(409, "CONFLICT", "Lịch đã có ticket chuyển giao đang chờ duyệt");
+    return ticket;
+  }
+
+  async updateReassignmentTicket(
+    session: Session,
+    ticketId: string,
+    reason: string,
+    correlationId: string,
+  ) {
+    assertModerator(session);
+    const ticket = await this.repository.updateReassignmentTicket({
+      ticketId,
+      requestedById: session.user.id,
+      reason,
+      correlationId,
+    });
+    if (!ticket)
+      throw new DomainError(409, "INVALID_STATE_TRANSITION", "Chỉ có thể sửa ticket đang chờ của bạn");
+    return ticket;
+  }
+
+  async cancelReassignmentTicket(
+    session: Session,
+    ticketId: string,
+    correlationId: string,
+  ) {
+    assertModerator(session);
+    const ticket = await this.repository.cancelReassignmentTicket({
+      ticketId,
+      requestedById: session.user.id,
+      correlationId,
+    });
+    if (!ticket)
+      throw new DomainError(409, "INVALID_STATE_TRANSITION", "Chỉ có thể hủy ticket đang chờ của bạn");
+    return ticket;
+  }
+
+  async listMyReassignmentTickets(
+    session: Session,
+    filter: { status?: Parameters<ReleaseRepository["listReassignmentTickets"]>[0]["status"]; page: number; limit: number },
+  ) {
+    assertModerator(session);
+    const result = await this.repository.listReassignmentTickets({
+      ...filter,
+      requestedById: session.user.id,
+    });
+    return { ...result, page: filter.page, limit: filter.limit };
+  }
+
+  async listReassignmentTickets(
+    session: Session,
+    filter: { status?: Parameters<ReleaseRepository["listReassignmentTickets"]>[0]["status"]; page: number; limit: number },
+  ) {
+    assertAdmin(session);
+    const result = await this.repository.listReassignmentTickets(filter);
+    return { ...result, page: filter.page, limit: filter.limit };
+  }
+
+  async rejectReassignmentTicket(
+    session: Session,
+    ticketId: string,
+    reason: string,
+    correlationId: string,
+  ) {
+    assertAdmin(session);
+    const ticket = await this.repository.rejectReassignmentTicket({
+      ticketId,
+      resolvedById: session.user.id,
+      reason,
+      correlationId,
+    });
+    if (!ticket)
+      throw new DomainError(409, "INVALID_STATE_TRANSITION", "Ticket không còn ở trạng thái chờ duyệt");
+    return ticket;
+  }
+
+  async approveReassignmentTicket(
+    session: Session,
+    ticketId: string,
+    replacementModeratorId: string,
+    correlationId: string,
+  ) {
+    assertAdmin(session);
+    const current = await this.repository.findReassignmentTicket(ticketId);
+    if (!current)
+      throw new DomainError(404, "NOT_FOUND", "Không tìm thấy ticket chuyển giao");
+    if (current.requestedById === replacementModeratorId)
+      throw new DomainError(409, "CONFLICT", "Người thay thế phải khác Moderator hiện tại");
+    const result = await this.repository.approveReassignmentTicket({
+      ticketId,
+      replacementModeratorId,
+      resolvedById: session.user.id,
+      correlationId,
+    });
+    if (result === "INVALID_REPLACEMENT")
+      throw new DomainError(409, "CONFLICT", "Moderator thay thế không còn hoạt động hoặc không hợp lệ");
+    if (!result)
+      throw new DomainError(409, "INVALID_STATE_TRANSITION", "Ticket không còn ở trạng thái chờ duyệt");
+    return result;
   }
 
   async submitReview(
@@ -154,7 +275,8 @@ export class ReleaseService {
     input: ReviewEpisodeInput,
     correlationId: string,
   ): Promise<EpisodeReviewEntity> {
-    assertModerator(session);
+    if (session.user.role !== "admin" && session.user.role !== "moderator")
+      throw new DomainError(403, "FORBIDDEN", "Chỉ Admin hoặc Moderator được kiểm duyệt nội dung");
     const schedule = requireSchedule(await this.repository.findSchedule(scheduleId));
     if (await this.repository.isModeratorAssigned(scheduleId, session.user.id))
       throw new DomainError(
@@ -186,6 +308,7 @@ export class ReleaseService {
       reviewId: review.id,
       status,
       reviewedById: session.user.id,
+      actorType: session.user.role === "admin" ? "ADMIN" : "MODERATOR",
       reviewNote: input.reviewNote ?? null,
       correlationId,
     });
@@ -433,6 +556,7 @@ export class ReleaseService {
     session: Session,
     filter: {
       status?: Parameters<ReleaseRepository["listSchedules"]>[0]["status"];
+      scope?: Parameters<ReleaseRepository["listSchedules"]>[0]["scope"];
       from?: Date;
       to?: Date;
       q?: string;

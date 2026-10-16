@@ -36,6 +36,15 @@ enum EpisodeReviewStatus {
   @@map("episode_review_status")
 }
 
+enum ReleaseReassignmentTicketStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  CANCELLED
+
+  @@map("release_reassignment_ticket_status")
+}
+
 enum NarrationType {
   THIRD_PERSON
   FIRST_PERSON
@@ -146,6 +155,9 @@ model User {
   submittedEpisodeReviews EpisodeReview[]        @relation("EpisodeReviewSubmitter")
   reviewedEpisodes        EpisodeReview[]        @relation("EpisodeReviewer")
   releaseReminders        ReleaseReminder[]      @relation("ReleaseReminderRecipient")
+  requestedReleaseReassignments ReleaseReassignmentTicket[] @relation("ReleaseReassignmentRequester")
+  replacementReleaseReassignments ReleaseReassignmentTicket[] @relation("ReleaseReassignmentReplacement")
+  resolvedReleaseReassignments ReleaseReassignmentTicket[] @relation("ReleaseReassignmentResolver")
 
   @@map("users")
 }
@@ -418,6 +430,7 @@ model ReleaseSchedule {
   assignments        ProductionAssignment[]
   reviews            EpisodeReview[]
   reminders          ReleaseReminder[]
+  reassignmentTickets ReleaseReassignmentTicket[]
 
   @@index([status, scheduledAt], map: "release_schedules_status_scheduled_at_idx")
   @@index([episodeId, status], map: "release_schedules_episode_id_status_idx")
@@ -437,6 +450,29 @@ model ProductionAssignment {
   @@id([scheduleId, moderatorId, assignedAt])
   @@index([moderatorId, removedAt], map: "production_assignments_moderator_active_idx")
   @@map("production_assignments")
+}
+
+model ReleaseReassignmentTicket {
+  id                     String                            @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  scheduleId             String                            @map("schedule_id") @db.Uuid
+  requestedById          String                            @map("requested_by_id") @db.VarChar(36)
+  reason                 String                            @db.Text
+  status                 ReleaseReassignmentTicketStatus   @default(PENDING)
+  replacementModeratorId String?                           @map("replacement_moderator_id") @db.VarChar(36)
+  resolvedById           String?                           @map("resolved_by_id") @db.VarChar(36)
+  decisionReason         String?                           @map("decision_reason") @db.Text
+  resolvedAt             DateTime?                         @map("resolved_at") @db.Timestamptz(3)
+  cancelledAt            DateTime?                         @map("cancelled_at") @db.Timestamptz(3)
+  createdAt              DateTime                          @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt              DateTime                          @updatedAt @map("updated_at") @db.Timestamptz(3)
+  schedule               ReleaseSchedule                   @relation(fields: [scheduleId], references: [id], onDelete: Cascade)
+  requestedBy            User                              @relation("ReleaseReassignmentRequester", fields: [requestedById], references: [id], onDelete: Restrict)
+  replacementModerator   User?                             @relation("ReleaseReassignmentReplacement", fields: [replacementModeratorId], references: [id], onDelete: Restrict)
+  resolvedBy             User?                             @relation("ReleaseReassignmentResolver", fields: [resolvedById], references: [id], onDelete: Restrict)
+
+  @@index([requestedById, createdAt], map: "release_reassignment_tickets_requester_created_idx")
+  @@index([status, createdAt], map: "release_reassignment_tickets_status_created_idx")
+  @@map("release_reassignment_tickets")
 }
 
 model EpisodeReview {

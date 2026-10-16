@@ -2,6 +2,8 @@ import type { ReleaseScheduleStatus } from "@repo/shared";
 import { Kanban, List, MagnifyingGlass, Plus } from "@phosphor-icons/react";
 import { Button } from "@/shared/components/ui/button";
 import { Input } from "@/shared/components/ui/input";
+import { DatePicker } from "@/shared/components/ui/date-picker";
+import { cn } from "@/lib/utils";
 import {
   Select,
   SelectContent,
@@ -37,6 +39,7 @@ export function ReleaseWorkspaceToolbar({
   onFromChange,
   onToChange,
   onCreate,
+  embedded = false,
 }: {
   view: ReleaseWorkspaceViewMode;
   search: string;
@@ -52,33 +55,40 @@ export function ReleaseWorkspaceToolbar({
   onFromChange: (value: string) => void;
   onToChange: (value: string) => void;
   onCreate: () => void;
+  embedded?: boolean;
 }) {
   return (
-    <div className="rounded-2xl border border-mod-border bg-mod-surface p-3 shadow-sm">
+    <div
+      className={cn(
+        !embedded && "rounded-2xl border border-mod-border bg-mod-surface p-3 shadow-sm",
+      )}
+    >
       <div className="flex flex-wrap items-center gap-3">
         <div
           role="tablist"
-          aria-label="Chế độ hiển thị"
+          aria-label="Cách xem lịch phát hành"
           className="flex rounded-lg bg-mod-canvas-accent p-1"
         >
           {([
-            { value: "kanban" as const, label: "Kanban", icon: Kanban },
-            { value: "table" as const, label: "Bảng", icon: List },
+            { value: "kanban" as const, label: "Theo tiến độ", icon: Kanban },
+            { value: "table" as const, label: "Danh sách", icon: List },
           ]).map(({ value, label, icon: Icon }) => (
-            <button
+            <Button
               key={value}
               type="button"
+              variant="ghost"
+              size="sm"
               role="tab"
               aria-selected={view === value}
               onClick={() => onViewChange(value)}
-              className={`flex h-8 items-center gap-1.5 rounded-md px-3 text-xs font-bold transition ${
+              className={`h-8 gap-1.5 rounded-md px-3 text-xs font-bold transition ${
                 view === value
                   ? "bg-mod-surface text-mod-text shadow-sm"
                   : "text-mod-text-muted hover:text-mod-text"
               }`}
             >
               <Icon size={15} /> {label}
-            </button>
+            </Button>
           ))}
         </div>
 
@@ -132,11 +142,23 @@ export function ReleaseWorkspaceToolbar({
         </label>
         <label className="grid gap-1 text-xs font-semibold text-mod-text-secondary">
           Từ ngày
-          <Input type="date" value={from} onChange={(event) => onFromChange(event.target.value)} className="border-mod-border bg-mod-canvas" />
+          <DatePicker
+            value={from}
+            onChange={onFromChange}
+            ariaLabel="Chọn từ ngày"
+            placeholder="Chọn từ ngày"
+            clearable
+          />
         </label>
         <label className="grid gap-1 text-xs font-semibold text-mod-text-secondary">
           Đến ngày
-          <Input type="date" value={to} onChange={(event) => onToChange(event.target.value)} className="border-mod-border bg-mod-canvas" />
+          <DatePicker
+            value={to}
+            onChange={onToChange}
+            ariaLabel="Chọn đến ngày"
+            placeholder="Chọn đến ngày"
+            clearable
+          />
         </label>
       </div>
     </div>

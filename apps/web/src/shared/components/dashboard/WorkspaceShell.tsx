@@ -1,4 +1,4 @@
-import { useState, type ReactNode } from "react";
+import { useLayoutEffect, useState, type ReactNode } from "react";
 import { Link } from "react-router";
 import { ArrowUpRight, List, type Icon } from "@phosphor-icons/react";
 import brandLogo from "@/public/brand-su-ky-viet-nam.png";
@@ -149,6 +149,18 @@ function WorkspaceSidebar({
 export function WorkspaceShell(props: WorkspaceShellProps) {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const closeDrawer = () => setDrawerOpen(false);
+
+  useLayoutEffect(() => {
+    const className = "workspace-scroll-lock";
+    document.documentElement.classList.add(className);
+    document.body.classList.add(className);
+
+    return () => {
+      document.documentElement.classList.remove(className);
+      document.body.classList.remove(className);
+    };
+  }, []);
+
   const sidebarProps = {
     navigationLabel: props.navigationLabel,
     brandCaption: props.brandCaption,

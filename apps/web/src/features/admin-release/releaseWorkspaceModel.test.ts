@@ -10,11 +10,13 @@ function schedule(
   id: string,
   status: ReleaseScheduleStatus,
   scheduledAt: string,
+  createdAt = scheduledAt,
 ): ReleaseScheduleRecord {
   return {
     id,
     status,
     scheduledAt: new Date(scheduledAt),
+    createdAt: new Date(createdAt),
   } as ReleaseScheduleRecord;
 }
 
@@ -28,21 +30,21 @@ describe("release workspace model", () => {
     ]);
   });
 
-  it("groups and sorts board records while separating attention records", () => {
+  it("groups records and puts the newest-created schedule first in each group", () => {
     const grouped = groupReleaseSchedules([
-      schedule("scheduled-late", "SCHEDULED", "2026-10-22T08:00:00.000Z"),
+      schedule("scheduled-new", "SCHEDULED", "2026-10-22T08:00:00.000Z", "2026-10-16T09:00:00.000Z"),
       schedule("released", "RELEASED", "2026-10-24T08:00:00.000Z"),
-      schedule("failed", "FAILED", "2026-10-20T08:00:00.000Z"),
-      schedule("scheduled-early", "SCHEDULED", "2026-10-21T08:00:00.000Z"),
+      schedule("failed", "FAILED", "2026-10-20T08:00:00.000Z", "2026-10-14T08:00:00.000Z"),
+      schedule("scheduled-old", "SCHEDULED", "2026-10-21T08:00:00.000Z", "2026-10-15T09:00:00.000Z"),
       schedule("ready", "READY_TO_PUBLISH", "2026-10-23T08:00:00.000Z"),
       schedule("publishing", "PUBLISHING", "2026-10-23T09:00:00.000Z"),
-      schedule("blocked", "BLOCKED", "2026-10-19T08:00:00.000Z"),
+      schedule("blocked", "BLOCKED", "2026-10-19T08:00:00.000Z", "2026-10-15T08:00:00.000Z"),
       schedule("cancelled", "CANCELLED", "2026-10-18T08:00:00.000Z"),
     ]);
 
     expect(grouped.columns.SCHEDULED.map(({ id }) => id)).toEqual([
-      "scheduled-early",
-      "scheduled-late",
+      "scheduled-new",
+      "scheduled-old",
     ]);
     expect(grouped.columns.READY_TO_PUBLISH.map(({ id }) => id)).toEqual(["ready"]);
     expect(grouped.columns.PUBLISHING.map(({ id }) => id)).toEqual(["publishing"]);

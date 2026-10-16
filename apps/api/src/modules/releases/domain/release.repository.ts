@@ -1,6 +1,8 @@
 import type {
   EpisodeReviewStatus,
   ReleaseModeratorWorkload,
+  ReleaseReassignmentTicketStatus,
+  ReleaseScheduleScope,
   ReleaseScheduleStatus,
 } from "@repo/shared";
 
@@ -54,6 +56,32 @@ export interface ReleaseScheduleEntity {
     contentRevision: number;
     updatedAt: Date;
   } | null;
+  reassignmentTicket?: {
+    id: string;
+    status: ReleaseReassignmentTicketStatus;
+    reason: string;
+    decisionReason: string | null;
+    createdAt: Date;
+    updatedAt: Date;
+  } | null;
+}
+
+export interface ReleaseReassignmentTicketEntity {
+  id: string;
+  scheduleId: string;
+  requestedById: string;
+  reason: string;
+  status: ReleaseReassignmentTicketStatus;
+  replacementModeratorId: string | null;
+  resolvedById: string | null;
+  decisionReason: string | null;
+  resolvedAt: Date | null;
+  cancelledAt: Date | null;
+  createdAt: Date;
+  updatedAt: Date;
+  requestedBy: { id: string; name: string; email: string };
+  replacementModerator: { id: string; name: string; email: string } | null;
+  schedule: ReleaseScheduleEntity;
 }
 
 export interface ReleaseProgressEvent {
@@ -77,7 +105,7 @@ export interface CreateReleaseScheduleRecord {
   productionDeadline: Date;
   scheduledAt: Date;
   createdById: string;
-  moderatorIds: string[];
+  moderatorId: string;
   correlationId: string;
 }
 
@@ -103,6 +131,7 @@ export interface DecideEpisodeReviewRecord {
   reviewId: string;
   status: Extract<EpisodeReviewStatus, "APPROVED" | "CHANGES_REQUESTED">;
   reviewedById: string;
+  actorType: "ADMIN" | "MODERATOR";
   reviewNote: string | null;
   correlationId: string;
 }
@@ -138,6 +167,7 @@ export interface ReleaseDashboardCounts {
 
 export interface ReleaseScheduleListFilter {
   status?: ReleaseScheduleStatus;
+  scope?: ReleaseScheduleScope;
   from?: Date;
   to?: Date;
   q?: string;
@@ -150,9 +180,9 @@ export interface ReleaseRepository {
   createSchedule(input: CreateReleaseScheduleRecord): Promise<ReleaseScheduleEntity>;
   findSchedule(id: string): Promise<ReleaseScheduleEntity | null>;
   updateSchedule(id: string, input: UpdateReleaseScheduleRecord): Promise<ReleaseScheduleEntity | null>;
-  replaceAssignees(
+  replaceAssignee(
     scheduleId: string,
-    moderatorIds: string[],
+    moderatorId: string,
     actorId: string,
     correlationId: string,
   ): Promise<void>;
@@ -222,4 +252,40 @@ export interface ReleaseRepository {
     scheduledAt: Date;
     createdAt: Date;
   }>>;
+  createReassignmentTicket(input: {
+    scheduleId: string;
+    requestedById: string;
+    reason: string;
+    correlationId: string;
+  }): Promise<ReleaseReassignmentTicketEntity | null>;
+  findReassignmentTicket(id: string): Promise<ReleaseReassignmentTicketEntity | null>;
+  updateReassignmentTicket(input: {
+    ticketId: string;
+    requestedById: string;
+    reason: string;
+    correlationId: string;
+  }): Promise<ReleaseReassignmentTicketEntity | null>;
+  cancelReassignmentTicket(input: {
+    ticketId: string;
+    requestedById: string;
+    correlationId: string;
+  }): Promise<ReleaseReassignmentTicketEntity | null>;
+  rejectReassignmentTicket(input: {
+    ticketId: string;
+    resolvedById: string;
+    reason: string;
+    correlationId: string;
+  }): Promise<ReleaseReassignmentTicketEntity | null>;
+  approveReassignmentTicket(input: {
+    ticketId: string;
+    replacementModeratorId: string;
+    resolvedById: string;
+    correlationId: string;
+  }): Promise<ReleaseReassignmentTicketEntity | "INVALID_REPLACEMENT" | null>;
+  listReassignmentTickets(filter: {
+    requestedById?: string;
+    status?: ReleaseReassignmentTicketStatus;
+    page: number;
+    limit: number;
+  }): Promise<{ items: ReleaseReassignmentTicketEntity[]; total: number }>;
 }

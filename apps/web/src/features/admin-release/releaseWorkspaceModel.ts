@@ -22,11 +22,12 @@ const BOARD_STATUSES = new Set<ReleaseScheduleStatus>(
 );
 const ATTENTION_STATUSES = new Set<ReleaseScheduleStatus>(["BLOCKED", "FAILED"]);
 
-function byScheduledAt(
+function byNewestCreated(
   left: ReleaseScheduleRecord,
   right: ReleaseScheduleRecord,
 ): number {
-  return left.scheduledAt.getTime() - right.scheduledAt.getTime();
+  const createdDifference = right.createdAt.getTime() - left.createdAt.getTime();
+  return createdDifference || left.scheduledAt.getTime() - right.scheduledAt.getTime();
 }
 
 export function groupReleaseSchedules(items: ReleaseScheduleRecord[]) {
@@ -46,8 +47,8 @@ export function groupReleaseSchedules(items: ReleaseScheduleRecord[]) {
     }
   }
 
-  for (const column of Object.values(columns)) column.sort(byScheduledAt);
-  attention.sort(byScheduledAt);
+  for (const column of Object.values(columns)) column.sort(byNewestCreated);
+  attention.sort(byNewestCreated);
   return { columns, attention };
 }
 

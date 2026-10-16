@@ -1,5 +1,5 @@
 import { prisma, Prisma } from "@repo/db";
-import type { ReleaseScheduleStatus } from "@repo/shared";
+import type { ReleaseReassignmentTicketStatus, ReleaseScheduleStatus } from "@repo/shared";
 import type {
   AppendReleaseAuditRecord,
   CreateEpisodeReviewRecord,
@@ -8,6 +8,7 @@ import type {
   EpisodeReviewEntity,
   PendingOutboxEvent,
   ReleaseProgressEvent,
+  ReleaseReassignmentTicketEntity,
   ReleaseRepository,
   ReleaseScheduleEntity,
   UpdateReleaseScheduleRecord,
@@ -32,7 +33,26 @@ const scheduleInclude = {
       updatedAt: true,
     },
   },
+  reassignmentTickets: {
+    where: { status: "PENDING" as const },
+    orderBy: { createdAt: "desc" as const },
+    take: 1,
+    select: {
+      id: true,
+      status: true,
+      reason: true,
+      decisionReason: true,
+      createdAt: true,
+      updatedAt: true,
+    },
+  },
 } satisfies Prisma.ReleaseScheduleInclude;
+
+const ticketInclude = {
+  requestedBy: { select: { id: true, name: true, email: true } },
+  replacementModerator: { select: { id: true, name: true, email: true } },
+  schedule: { include: scheduleInclude },
+} satisfies Prisma.ReleaseReassignmentTicketInclude;
 
 function scheduleEventPayload(scheduleId: string, version: number, scheduledAt: Date) {
   return {
@@ -45,7 +65,15 @@ function scheduleEventPayload(scheduleId: string, version: number, scheduledAt: 
 function asSchedule(
   row: Prisma.ReleaseScheduleGetPayload<{ include: typeof scheduleInclude }>,
 ): ReleaseScheduleEntity {
-  return row;
+  const { reassignmentTickets, ...schedule } = row;
+  return { ...schedule, reassignmentTicket: reassignmentTickets[0] ?? null };
+}
+
+function asTicket(
+  row: Prisma.ReleaseReassignmentTicketGetPayload<{ include: typeof ticketInclude }>,
+): ReleaseReassignmentTicketEntity {
+  const { schedule, ...ticket } = row;
+  return { ...ticket, schedule: asSchedule(schedule) };
 }
 
 export class PrismaReleaseRepository implements ReleaseRepository {
@@ -59,10 +87,10 @@ export class PrismaReleaseRepository implements ReleaseRepository {
           scheduledAt: input.scheduledAt,
           createdById: input.createdById,
           assignments: {
-            create: input.moderatorIds.map((moderatorId) => ({
-              moderatorId,
+            create: {
+              moderatorId: input.moderatorId,
               assignedById: input.createdById,
-            })),
+            },
           },
         },
       });
@@ -85,7 +113,7 @@ export class PrismaReleaseRepository implements ReleaseRepository {
           changes: {
             title: schedule.title,
             episodeId: schedule.episodeId,
-            moderatorIds: input.moderatorIds,
+            moderatorId: input.moderatorId,
             productionDeadline: schedule.productionDeadline.toISOString(),
             scheduledAt: schedule.scheduledAt.toISOString(),
           },
@@ -178,45 +206,41 @@ export class PrismaReleaseRepository implements ReleaseRepository {
     return changed ? this.findSchedule(id) : null;
   }
 
-  async replaceAssignees(
+  async replaceAssignee(
     scheduleId: string,
-    moderatorIds: string[],
+    moderatorId: string,
     actorId: string,
     correlationId: string,
   ): Promise<void> {
     await prisma.$transaction(async (tx) => {
-      const active = await tx.productionAssignment.findMany({
+      const active = await tx.productionAssignment.findFirst({
         where: { scheduleId, removedAt: null },
         select: { moderatorId: true },
       });
-      const currentIds = new Set(active.map((item) => item.moderatorId));
-      const nextIds = new Set(moderatorIds);
-      const removedIds = [...currentIds].filter((id) => !nextIds.has(id));
-      const addedIds = moderatorIds.filter((id) => !currentIds.has(id));
-
-      if (removedIds.length) {
+      if (active?.moderatorId !== moderatorId) {
         await tx.productionAssignment.updateMany({
-          where: { scheduleId, moderatorId: { in: removedIds }, removedAt: null },
+          where: { scheduleId, removedAt: null },
           data: { removedAt: new Date() },
         });
-      }
-      if (addedIds.length) {
-        await tx.productionAssignment.createMany({
-          data: addedIds.map((moderatorId) => ({
+        await tx.productionAssignment.create({
+          data: {
             scheduleId,
             moderatorId,
             assignedById: actorId,
-          })),
+          },
         });
       }
       await tx.auditLog.create({
         data: {
           actorId,
           actorType: "ADMIN",
-          action: "release_schedule.assignees_changed",
+          action: "release_schedule.assignee_changed",
           resourceType: "release_schedule",
           resourceId: scheduleId,
-          changes: { addedIds, removedIds, moderatorIds },
+          changes: {
+            previousModeratorId: active?.moderatorId ?? null,
+            moderatorId,
+          },
           correlationId,
         },
       });
@@ -278,7 +302,7 @@ export class PrismaReleaseRepository implements ReleaseRepository {
       await tx.auditLog.create({
         data: {
           actorId: input.reviewedById,
-          actorType: "MODERATOR",
+          actorType: input.actorType,
           action:
             input.status === "APPROVED"
               ? "episode.approved"
@@ -545,7 +569,11 @@ export class PrismaReleaseRepository implements ReleaseRepository {
 
   async listSchedules(filter: ReleaseScheduleListFilter) {
     const where: Prisma.ReleaseScheduleWhereInput = {
-      status: filter.status,
+      status: filter.status ?? (filter.scope === "HISTORY"
+        ? { in: ["RELEASED", "CANCELLED"] }
+        : filter.scope === "REVIEW_QUEUE"
+          ? { in: ["SCHEDULED", "BLOCKED"] }
+          : undefined),
       title: filter.q
         ? { contains: filter.q, mode: "insensitive" }
         : undefined,
@@ -556,12 +584,19 @@ export class PrismaReleaseRepository implements ReleaseRepository {
         filter.from || filter.to
           ? { gte: filter.from, lte: filter.to }
           : undefined,
+      reviews: filter.scope === "REVIEW_QUEUE"
+        ? { some: { status: "IN_REVIEW" } }
+        : undefined,
     };
     const [items, total] = await prisma.$transaction([
       prisma.releaseSchedule.findMany({
         where,
         include: scheduleInclude,
-        orderBy: { scheduledAt: "asc" },
+        orderBy: filter.scope === "HISTORY"
+          ? [{ updatedAt: "desc" }, { id: "desc" }]
+          : filter.scope === "REVIEW_QUEUE"
+            ? [{ scheduledAt: "asc" }, { id: "asc" }]
+            : [{ createdAt: "desc" }, { id: "desc" }],
         skip: (filter.page - 1) * filter.limit,
         take: filter.limit,
       }),
@@ -802,5 +837,264 @@ export class PrismaReleaseRepository implements ReleaseRepository {
       productionDeadline: schedule.productionDeadline,
       scheduledAt: schedule.scheduledAt,
     }));
+  }
+
+  async createReassignmentTicket(input: {
+    scheduleId: string;
+    requestedById: string;
+    reason: string;
+    correlationId: string;
+  }): Promise<ReleaseReassignmentTicketEntity | null> {
+    try {
+      const ticketId = await prisma.$transaction(async (tx) => {
+        const assignment = await tx.productionAssignment.findFirst({
+          where: {
+            scheduleId: input.scheduleId,
+            moderatorId: input.requestedById,
+            removedAt: null,
+          },
+          select: { moderatorId: true },
+        });
+        if (!assignment) return null;
+        const ticket = await tx.releaseReassignmentTicket.create({
+          data: {
+            scheduleId: input.scheduleId,
+            requestedById: input.requestedById,
+            reason: input.reason,
+          },
+        });
+        await tx.auditLog.create({
+          data: {
+            actorId: input.requestedById,
+            actorType: "MODERATOR",
+            action: "release_reassignment.requested",
+            resourceType: "release_schedule",
+            resourceId: input.scheduleId,
+            changes: { ticketId: ticket.id, reason: ticket.reason },
+            correlationId: input.correlationId,
+          },
+        });
+        return ticket.id;
+      });
+      return ticketId ? this.findReassignmentTicket(ticketId) : null;
+    } catch (error) {
+      if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002")
+        return null;
+      throw error;
+    }
+  }
+
+  async findReassignmentTicket(id: string): Promise<ReleaseReassignmentTicketEntity | null> {
+    const ticket = await prisma.releaseReassignmentTicket.findUnique({
+      where: { id },
+      include: ticketInclude,
+    });
+    return ticket ? asTicket(ticket) : null;
+  }
+
+  async updateReassignmentTicket(input: {
+    ticketId: string;
+    requestedById: string;
+    reason: string;
+    correlationId: string;
+  }): Promise<ReleaseReassignmentTicketEntity | null> {
+    const changed = await prisma.$transaction(async (tx) => {
+      const result = await tx.releaseReassignmentTicket.updateMany({
+        where: {
+          id: input.ticketId,
+          requestedById: input.requestedById,
+          status: "PENDING",
+        },
+        data: { reason: input.reason },
+      });
+      if (result.count !== 1) return false;
+      const ticket = await tx.releaseReassignmentTicket.findUniqueOrThrow({
+        where: { id: input.ticketId },
+        select: { scheduleId: true },
+      });
+      await tx.auditLog.create({
+        data: {
+          actorId: input.requestedById,
+          actorType: "MODERATOR",
+          action: "release_reassignment.updated",
+          resourceType: "release_schedule",
+          resourceId: ticket.scheduleId,
+          changes: { ticketId: input.ticketId, reason: input.reason },
+          correlationId: input.correlationId,
+        },
+      });
+      return true;
+    });
+    return changed ? this.findReassignmentTicket(input.ticketId) : null;
+  }
+
+  async cancelReassignmentTicket(input: {
+    ticketId: string;
+    requestedById: string;
+    correlationId: string;
+  }): Promise<ReleaseReassignmentTicketEntity | null> {
+    const cancelledAt = new Date();
+    const changed = await prisma.$transaction(async (tx) => {
+      const result = await tx.releaseReassignmentTicket.updateMany({
+        where: {
+          id: input.ticketId,
+          requestedById: input.requestedById,
+          status: "PENDING",
+        },
+        data: { status: "CANCELLED", cancelledAt },
+      });
+      if (result.count !== 1) return false;
+      const ticket = await tx.releaseReassignmentTicket.findUniqueOrThrow({
+        where: { id: input.ticketId },
+        select: { scheduleId: true },
+      });
+      await tx.auditLog.create({
+        data: {
+          actorId: input.requestedById,
+          actorType: "MODERATOR",
+          action: "release_reassignment.cancelled",
+          resourceType: "release_schedule",
+          resourceId: ticket.scheduleId,
+          changes: { ticketId: input.ticketId },
+          correlationId: input.correlationId,
+        },
+      });
+      return true;
+    });
+    return changed ? this.findReassignmentTicket(input.ticketId) : null;
+  }
+
+  async rejectReassignmentTicket(input: {
+    ticketId: string;
+    resolvedById: string;
+    reason: string;
+    correlationId: string;
+  }): Promise<ReleaseReassignmentTicketEntity | null> {
+    const resolvedAt = new Date();
+    const changed = await prisma.$transaction(async (tx) => {
+      const result = await tx.releaseReassignmentTicket.updateMany({
+        where: { id: input.ticketId, status: "PENDING" },
+        data: {
+          status: "REJECTED",
+          decisionReason: input.reason,
+          resolvedById: input.resolvedById,
+          resolvedAt,
+        },
+      });
+      if (result.count !== 1) return false;
+      const ticket = await tx.releaseReassignmentTicket.findUniqueOrThrow({
+        where: { id: input.ticketId },
+        select: { scheduleId: true },
+      });
+      await tx.auditLog.create({
+        data: {
+          actorId: input.resolvedById,
+          actorType: "ADMIN",
+          action: "release_reassignment.rejected",
+          resourceType: "release_schedule",
+          resourceId: ticket.scheduleId,
+          changes: { ticketId: input.ticketId, reason: input.reason },
+          correlationId: input.correlationId,
+        },
+      });
+      return true;
+    });
+    return changed ? this.findReassignmentTicket(input.ticketId) : null;
+  }
+
+  async approveReassignmentTicket(input: {
+    ticketId: string;
+    replacementModeratorId: string;
+    resolvedById: string;
+    correlationId: string;
+  }): Promise<ReleaseReassignmentTicketEntity | "INVALID_REPLACEMENT" | null> {
+    const resolvedAt = new Date();
+    const result = await prisma.$transaction(async (tx) => {
+      const ticket = await tx.releaseReassignmentTicket.findUnique({
+        where: { id: input.ticketId },
+        select: { scheduleId: true, requestedById: true, status: true },
+      });
+      if (!ticket || ticket.status !== "PENDING") return null;
+      const replacement = await tx.user.findFirst({
+        where: {
+          id: input.replacementModeratorId,
+          role: { contains: "moderator" },
+          banned: false,
+        },
+        select: { id: true },
+      });
+      if (!replacement || replacement.id === ticket.requestedById)
+        return "INVALID_REPLACEMENT" as const;
+
+      const active = await tx.productionAssignment.findFirst({
+        where: { scheduleId: ticket.scheduleId, removedAt: null },
+        select: { moderatorId: true },
+      });
+      if (!active || active.moderatorId !== ticket.requestedById)
+        return null;
+
+      const changed = await tx.releaseReassignmentTicket.updateMany({
+        where: { id: input.ticketId, status: "PENDING" },
+        data: {
+          status: "APPROVED",
+          replacementModeratorId: replacement.id,
+          resolvedById: input.resolvedById,
+          resolvedAt,
+        },
+      });
+      if (changed.count !== 1) return null;
+      await tx.productionAssignment.updateMany({
+        where: { scheduleId: ticket.scheduleId, removedAt: null },
+        data: { removedAt: resolvedAt },
+      });
+      await tx.productionAssignment.create({
+        data: {
+          scheduleId: ticket.scheduleId,
+          moderatorId: replacement.id,
+          assignedById: input.resolvedById,
+        },
+      });
+      await tx.auditLog.create({
+        data: {
+          actorId: input.resolvedById,
+          actorType: "ADMIN",
+          action: "release_reassignment.approved",
+          resourceType: "release_schedule",
+          resourceId: ticket.scheduleId,
+          changes: {
+            ticketId: input.ticketId,
+            previousModeratorId: active.moderatorId,
+            replacementModeratorId: replacement.id,
+          },
+          correlationId: input.correlationId,
+        },
+      });
+      return true;
+    });
+    if (result === "INVALID_REPLACEMENT") return result;
+    return result ? this.findReassignmentTicket(input.ticketId) : null;
+  }
+
+  async listReassignmentTickets(filter: {
+    requestedById?: string;
+    status?: ReleaseReassignmentTicketStatus;
+    page: number;
+    limit: number;
+  }): Promise<{ items: ReleaseReassignmentTicketEntity[]; total: number }> {
+    const where: Prisma.ReleaseReassignmentTicketWhereInput = {
+      requestedById: filter.requestedById,
+      status: filter.status,
+    };
+    const [items, total] = await prisma.$transaction([
+      prisma.releaseReassignmentTicket.findMany({
+        where,
+        include: ticketInclude,
+        orderBy: [{ createdAt: "desc" }, { id: "desc" }],
+        skip: (filter.page - 1) * filter.limit,
+        take: filter.limit,
+      }),
+      prisma.releaseReassignmentTicket.count({ where }),
+    ]);
+    return { items: items.map(asTicket), total };
   }
 }

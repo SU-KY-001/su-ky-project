@@ -1,4 +1,5 @@
 import { prisma } from "@repo/db";
+import { SCRIPT_MAX_CHARACTERS } from "@repo/shared";
 import { z } from "zod";
 import { logger } from "../logger";
 
@@ -25,7 +26,10 @@ export const SYSTEM_CONFIGS = {
   "media.upload_ticket_ttl_seconds": { schema: z.number().int().positive(), defaultValue: 3000 },
   "media.cleanup_grace_hours": { schema: z.number().int().nonnegative(), defaultValue: 24 },
   "media.cleanup_batch_size": { schema: z.number().int().positive(), defaultValue: 100 },
-  "script.max_chars": { schema: z.number().int().positive(), defaultValue: 60000 },
+  "script.max_chars": {
+    schema: z.number().int().positive(),
+    defaultValue: SCRIPT_MAX_CHARACTERS,
+  },
   "script.words_per_minute": { schema: z.number().int().positive(), defaultValue: 150 },
   "narration.duration_mismatch_ratio": { schema: z.number().nonnegative(), defaultValue: 0.3 },
   "slug.max_length": { schema: z.number().int().min(8), defaultValue: 80 },

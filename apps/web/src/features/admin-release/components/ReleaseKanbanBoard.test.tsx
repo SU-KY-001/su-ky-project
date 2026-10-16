@@ -78,12 +78,17 @@ function renderBoard(overrides: Partial<React.ComponentProps<typeof ReleaseKanba
 
 function transfer() {
   const values = new Map<string, string>();
-  return {
+  const dataTransfer = {
     effectAllowed: "none",
     dropEffect: "none",
+    dragImage: null as Element | null,
     setData: (type: string, value: string) => values.set(type, value),
     getData: (type: string) => values.get(type) ?? "",
-  } as unknown as DataTransfer;
+    setDragImage(image: Element) {
+      dataTransfer.dragImage = image;
+    },
+  };
+  return dataTransfer as unknown as DataTransfer & { dragImage: Element | null };
 }
 
 function drag(source: Element, target: Element) {
@@ -161,24 +166,55 @@ it("fires only policy-backed drag transitions without mutating columns", async (
     expect(column.items).toEqual(snapshots[status]);
 });
 
-it("offers accessible fallback actions and loads only the requested column page", async () => {
+it("keeps a synchronized card preview and marks valid drop targets", () => {
+  const { host } = renderBoard();
+  const card = host.querySelector<HTMLElement>('[data-release-id="scheduled"]')!;
+  const dataTransfer = transfer();
+  const start = new Event("dragstart", { bubbles: true });
+  Object.defineProperty(start, "dataTransfer", { value: dataTransfer });
+
+  act(() => card.dispatchEvent(start));
+
+  expect(dataTransfer.dragImage?.getAttribute("data-drag-preview")).toBe("true");
+  expect(card.dataset.dragging).toBe("true");
+  expect(host.querySelector<HTMLElement>('[data-release-column="READY_TO_PUBLISH"]')?.dataset.dropAvailable).toBe("true");
+  expect(host.querySelector<HTMLElement>('[data-release-column="RELEASED"]')?.dataset.dropAvailable).toBe("false");
+});
+
+it("keeps cards free of action controls and loads only the requested column page", () => {
   const { host, props } = renderBoard();
-  const scheduledMenu = host.querySelector<HTMLButtonElement>(
-    '[aria-label="Thao tác cho Lịch scheduled"]',
-  )!;
-  await act(async () => {
-    scheduledMenu.dispatchEvent(new PointerEvent("pointerdown", {
-      bubbles: true,
-      button: 0,
-      pointerType: "mouse",
-    }));
-  });
-  expect(document.body.textContent).toContain("Xác nhận sẵn sàng");
-  expect(document.body.textContent).not.toContain("Chuyển sang đã phát hành");
+  expect(host.querySelector('[data-slot="dashboard-row-actions"]')).toBeNull();
+  expect(host.querySelector("article button")).toBeNull();
+  const card = host.querySelector('[data-release-id="scheduled"]')!;
+  act(() => card.dispatchEvent(new MouseEvent("click", { bubbles: true })));
+  expect(props.onOpenEdit).toHaveBeenCalledWith(expect.objectContaining({ id: "scheduled" }));
+  expect(props.onTransition).not.toHaveBeenCalled();
 
   const loadMore = host.querySelector<HTMLButtonElement>(
     '[aria-label="Tải thêm Đã lên lịch"]',
   )!;
   act(() => loadMore.click());
   expect(props.onPageChange).toHaveBeenCalledWith("SCHEDULED", 2);
+});
+
+it("shows four cards by default and expands or collapses one busy column", () => {
+  const busyColumns = columns();
+  busyColumns.SCHEDULED = {
+    items: Array.from({ length: 6 }, (_, index) => schedule(`scheduled-${index + 1}`, "SCHEDULED")),
+    total: 6,
+    page: 1,
+  };
+  const { host } = renderBoard({ columns: busyColumns });
+  const column = host.querySelector<HTMLElement>('[data-release-column="SCHEDULED"]')!;
+
+  expect(column.querySelectorAll("[data-release-id]")).toHaveLength(4);
+  expect(column.querySelector('[data-release-id="scheduled-5"]')).toBeNull();
+
+  const expand = column.querySelector<HTMLButtonElement>('[aria-label="Xem thêm 2 lịch Đã lên lịch"]')!;
+  act(() => expand.click());
+  expect(column.querySelectorAll("[data-release-id]")).toHaveLength(6);
+
+  const collapse = column.querySelector<HTMLButtonElement>('[aria-label="Thu gọn Đã lên lịch"]')!;
+  act(() => collapse.click());
+  expect(column.querySelectorAll("[data-release-id]")).toHaveLength(4);
 });

@@ -32,6 +32,9 @@ it("presents release operations with approved business terminology", async () =>
     );
   });
   expect(host.textContent).toContain("Theo dõi phát hành");
+  expect(host.querySelector('[data-admin-overview="true"]')).not.toBeNull();
+  expect(host.textContent).toContain("Nhịp vận hành");
+  expect(host.textContent).toContain("Lối tắt điều hành");
   expect(host.textContent).toContain("Sắp phát hành");
   expect(host.textContent).toContain("Sẵn sàng phát hành");
   expect(host.textContent).toContain("Có nguy cơ trễ");
@@ -39,4 +42,7 @@ it("presents release operations with approved business terminology", async () =>
   expect(host.textContent).not.toContain("Audit log");
   expect(host.querySelector('[data-card-badge-type="name"]')?.textContent).toBe("Nguyễn Minh Anh");
   expect(host.querySelector('[data-card-badge-type="status"]')?.textContent).toBe("Sẵn sàng phát hành");
+  expect(host.querySelector('[data-dashboard-table-card="true"]')).not.toBeNull();
+  expect(host.querySelector('[data-slot="table"]')).not.toBeNull();
+  expect(host.querySelector(".mod-data-table")).not.toBeNull();
 });

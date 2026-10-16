@@ -23,7 +23,7 @@ const copy: Record<string, { title: string; description: string }> = {
     title: "Đã đổi thời gian phát hành",
     description: "Hệ thống đã vô hiệu hóa lịch chạy cũ.",
   },
-  "release_schedule.assignees_changed": {
+  "release_schedule.assignee_changed": {
     title: "Đã cập nhật người phụ trách",
     description: "Danh sách Moderator sản xuất đã thay đổi.",
   },

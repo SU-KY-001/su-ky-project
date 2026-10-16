@@ -2,10 +2,13 @@ import { afterEach, describe, expect, it } from "bun:test";
 import { parseAllowedOrigins, trustedAuthOrigins } from "../src/core/config/allowedOrigins";
 
 const originalCorsOrigin = process.env.CORS_ORIGIN;
+const originalNodeEnv = process.env.NODE_ENV;
 
 afterEach(() => {
   if (originalCorsOrigin === undefined) delete process.env.CORS_ORIGIN;
   else process.env.CORS_ORIGIN = originalCorsOrigin;
+  if (originalNodeEnv === undefined) delete process.env.NODE_ENV;
+  else process.env.NODE_ENV = originalNodeEnv;
 });
 
 describe("allowed origins", () => {
@@ -20,8 +23,26 @@ describe("allowed origins", () => {
   });
 
   it("keeps the wildcard for CORS but drops it for Better Auth trustedOrigins", () => {
+    process.env.NODE_ENV = "production";
     process.env.CORS_ORIGIN = "*,http://a.test";
     expect(parseAllowedOrigins()).toEqual(["*", "http://a.test"]);
     expect(trustedAuthOrigins()).toEqual(["http://a.test"]);
+  });
+
+  it("trusts the fixed Vite origin in development even when CORS_ORIGIN uses the legacy port", () => {
+    process.env.NODE_ENV = "development";
+    process.env.CORS_ORIGIN = "http://localhost:5173";
+
+    expect(trustedAuthOrigins()).toEqual([
+      "http://localhost:5173",
+      "http://localhost:3000",
+    ]);
+  });
+
+  it("does not add development origins to a production allowlist", () => {
+    process.env.NODE_ENV = "production";
+    process.env.CORS_ORIGIN = "https://suky.vn";
+
+    expect(trustedAuthOrigins()).toEqual(["https://suky.vn"]);
   });
 });

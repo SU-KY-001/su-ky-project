@@ -32,6 +32,7 @@ it("supports approval and requires a note when requesting changes", async () => 
   });
   expect(host.textContent).toContain("Hàng chờ kiểm duyệt");
   expect(host.querySelector('[data-card-badge-type="status"]')?.textContent).toBe("Chờ kiểm duyệt");
+  expect(host.querySelector('[data-slot="textarea"]')).not.toBeNull();
   const textarea = host.querySelector("textarea") as HTMLTextAreaElement;
   await act(async () => {
     Object.getOwnPropertyDescriptor(window.HTMLTextAreaElement.prototype, "value")?.set?.call(

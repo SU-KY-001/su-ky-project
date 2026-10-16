@@ -6,6 +6,7 @@ import {
   HistoricalEntityTypeSchema,
   ReleaseModeratorWorkloadSchema,
   ReleaseScheduleStatusSchema,
+  ReleaseReassignmentTicketStatusSchema,
   SeriesSourceSchema,
   SourceTierSchema,
   paginatedSchema,
@@ -80,6 +81,14 @@ export const ReleaseScheduleDocSchema = z.object({
     contentRevision: z.number().int().positive(),
     updatedAt: timestamp,
   }).nullable(),
+  reassignmentTicket: z.object({
+    id: uuid,
+    status: ReleaseReassignmentTicketStatusSchema,
+    reason: z.string(),
+    decisionReason: z.string().nullable(),
+    createdAt: timestamp,
+    updatedAt: timestamp,
+  }).nullable().optional(),
 });
 
 export const ReleaseProgressDocSchema = z.object({

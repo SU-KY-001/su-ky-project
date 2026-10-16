@@ -63,7 +63,7 @@ suite("release repository", () => {
       productionDeadline: new Date("2026-10-19T13:00:00.000Z"),
       scheduledAt: new Date("2026-10-20T13:00:00.000Z"),
       createdById: adminId,
-      moderatorIds: [firstModeratorId],
+      moderatorId: firstModeratorId,
       correlationId: `create-${suffix}`,
     });
     scheduleId = created.id;
@@ -77,7 +77,7 @@ suite("release repository", () => {
 
   it("replaces active assignees without losing assignment history", async () => {
     const repository = new PrismaReleaseRepository();
-    await repository.replaceAssignees(scheduleId, [secondModeratorId], adminId, `assign-${suffix}`);
+    await repository.replaceAssignee(scheduleId, secondModeratorId, adminId, `assign-${suffix}`);
     const schedule = await repository.findSchedule(scheduleId);
 
     expect(schedule?.assignments.map((item) => item.moderatorId)).toEqual([secondModeratorId]);
@@ -100,7 +100,7 @@ suite("release repository", () => {
     const progress = await repository.listProgress(scheduleId);
     expect(progress.map((event) => event.action)).toEqual([
       "release_schedule.created",
-      "release_schedule.assignees_changed",
+      "release_schedule.assignee_changed",
       "episode.review_submitted",
     ]);
   });
@@ -165,12 +165,65 @@ suite("release repository", () => {
     });
     expect(byModerator.items.map(({ title }) => title)).toEqual(["Dòng chảy biển đảo"]);
 
+    const history = await repository.listSchedules({
+      scope: "HISTORY",
+      page: 1,
+      limit: 20,
+    });
+    expect(history.items.map(({ title }) => title)).toEqual(["Trường Sơn đã phát"]);
+
+    const reviewQueue = await repository.listSchedules({
+      scope: "REVIEW_QUEUE",
+      page: 1,
+      limit: 20,
+    });
+    expect(reviewQueue.items.map(({ id }) => id)).toContain(scheduleId);
+
     expect(await repository.listModeratorWorkload(
       new Date("2026-10-20T13:00:00.000Z"),
       new Date("2026-10-21T13:00:00.000Z"),
     )).toEqual([
       { moderatorId: firstModeratorId, name: "Moderator A", open: 1, nearDeadline: 1 },
       { moderatorId: secondModeratorId, name: "Moderator B", open: 2, nearDeadline: 0 },
+    ]);
+  });
+
+  it("lists newly created schedules before older schedules", async () => {
+    const fixtures = await Promise.all([
+      prisma.releaseSchedule.create({
+        data: {
+          title: `Sort ${suffix} older`,
+          productionDeadline: new Date("2026-10-19T10:00:00.000Z"),
+          scheduledAt: new Date("2026-10-20T13:00:00.000Z"),
+          status: "SCHEDULED",
+          createdById: adminId,
+          createdAt: new Date("2026-01-01T00:00:00.000Z"),
+        },
+      }),
+      prisma.releaseSchedule.create({
+        data: {
+          title: `Sort ${suffix} newer`,
+          productionDeadline: new Date("2026-11-19T10:00:00.000Z"),
+          scheduledAt: new Date("2026-11-20T13:00:00.000Z"),
+          status: "SCHEDULED",
+          createdById: adminId,
+          createdAt: new Date("2026-02-01T00:00:00.000Z"),
+        },
+      }),
+    ]);
+    scheduleIds.push(...fixtures.map(({ id }) => id));
+    const repository = new PrismaReleaseRepository();
+
+    const result = await repository.listSchedules({
+      q: `Sort ${suffix}`,
+      status: "SCHEDULED",
+      page: 1,
+      limit: 20,
+    });
+
+    expect(result.items.map(({ title }) => title)).toEqual([
+      `Sort ${suffix} newer`,
+      `Sort ${suffix} older`,
     ]);
   });
 });

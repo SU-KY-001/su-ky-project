@@ -13,6 +13,13 @@ import { useAdminReleaseDashboard, useAdminReleaseSchedules } from "../hooks/use
 import { Button } from "@/shared/components/ui/button";
 import { Plus } from "@phosphor-icons/react";
 import { CardBadge, cardBadgeToneForStatus } from "@/shared/components/dashboard/CardBadge";
+import { DashboardTableCard } from "@/shared/components/dashboard/DashboardTableCard";
+import {
+  TableCell,
+  TableRow,
+} from "@/shared/components/ui/table";
+import { DashboardDataTable, DashboardEmptyTableRow, dashboardTableCell } from "@/shared/components/dashboard/DashboardDataTable";
+import { cn } from "@/lib/utils";
 
 export interface AdminReleaseMetrics {
   upcoming: number;
@@ -133,35 +140,36 @@ export function AdminReleaseDashboardView({
   );
 
   return (
-    <div className="flex flex-col gap-6">
+    <div data-admin-overview="true" className="flex flex-col gap-6">
       <DashboardHeader
         eyebrow="ĐIỀU PHỐI PODCAST"
         title="Theo dõi phát hành"
         description="Theo dõi lịch sản xuất, kiểm duyệt và tiến trình tự động phát hành trong một màn hình."
         actions={actions}
       />
+      <section className="grid gap-4 rounded-[16px] border border-mod-border bg-mod-surface p-5 shadow-[0_8px_22px_rgba(15,23,42,.03)] lg:grid-cols-[minmax(0,1fr)_auto] lg:items-center">
+        <div>
+          <p className="text-xs font-bold tracking-[0.12em] text-mod-primary">NHỊP VẬN HÀNH</p>
+          <h2 className="mt-2 text-xl font-extrabold tracking-tight text-mod-text">Nhịp vận hành đang được kiểm soát</h2>
+          <p className="mt-1 max-w-2xl text-sm leading-6 text-mod-text-secondary">Ưu tiên xử lý lịch bị chặn, sau đó kiểm tra các nội dung sắp đến thời điểm phát hành.</p>
+        </div>
+        <div className="flex flex-wrap gap-2 lg:justify-end">
+          <span className="rounded-md border border-mod-border bg-mod-canvas px-2.5 py-1.5 text-xs font-semibold text-mod-text-secondary">{metrics.needsAttention > 0 ? `${metrics.needsAttention} lịch cần xử lý` : "Không có sự cố"}</span>
+          <span className="rounded-md border border-mod-primary/20 bg-mod-primary/5 px-2.5 py-1.5 text-xs font-semibold text-mod-primary-hover">{metrics.upcoming} lịch sắp phát hành</span>
+        </div>
+      </section>
       <DashboardMetricGrid metrics={cards} />
-      <div className="grid gap-5 xl:grid-cols-[minmax(0,1.55fr)_minmax(300px,.85fr)]">
-        <DashboardPanel
+      <div className="grid gap-5 xl:grid-cols-[minmax(0,1.65fr)_minmax(300px,.75fr)]">
+        <DashboardTableCard
           title="Sắp phát hành"
           description="Các podcast gần thời điểm lên sóng nhất"
+          summary={`${schedules.length} lịch`}
         >
-          {schedules.length ? (
-            <div className="overflow-x-auto">
-              <table className="w-full min-w-[620px] border-collapse text-left text-sm">
-                <thead>
-                  <tr className="border-b border-mod-border text-xs text-mod-text-secondary">
-                    <th className="pb-3 pr-4 font-semibold">Podcast</th>
-                    <th className="pb-3 pr-4 font-semibold">Phụ trách</th>
-                    <th className="pb-3 pr-4 font-semibold">Phát hành</th>
-                    <th className="pb-3 font-semibold">Trạng thái</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {schedules.slice(0, 6).map((item) => (
-                    <tr key={item.id} className="border-b border-mod-border/70 last:border-0">
-                      <td className="py-3.5 pr-4 font-semibold text-mod-text">{item.title}</td>
-                      <td className="py-3.5 pr-4 text-mod-text-secondary">
+          <DashboardDataTable embedded caption="Các lịch sắp phát hành" columns={["Podcast", "Phụ trách", "Phát hành", "Trạng thái"]} columnWidths={["34%", "26%", "22%", "18%"]} minWidth={760}>
+              {schedules.length ? schedules.slice(0, 6).map((item) => (
+                    <TableRow key={item.id} className="border-mod-border/70 hover:bg-mod-canvas-accent/45">
+                      <TableCell className={cn(dashboardTableCell, "font-semibold")}>{item.title}</TableCell>
+                      <TableCell className={cn(dashboardTableCell, "text-mod-text-secondary")}>
                         <div className="flex flex-wrap gap-1.5">
                           {item.assignments.length ? item.assignments.map((assignment) => assignment.moderator?.name ? (
                             <CardBadge key={assignment.moderatorId ?? assignment.moderator.name} type="name">
@@ -169,34 +177,21 @@ export function AdminReleaseDashboardView({
                             </CardBadge>
                           ) : null) : <CardBadge type="name">Chưa phân công</CardBadge>}
                         </div>
-                      </td>
-                      <td className="py-3.5 pr-4 tabular-nums text-mod-text-secondary">
+                      </TableCell>
+                      <TableCell className={cn(dashboardTableCell, "whitespace-nowrap tabular-nums text-mod-text-secondary")}>
                         {formatDateTime(item.scheduledAt)}
-                      </td>
-                      <td className="py-3.5">
+                      </TableCell>
+                      <TableCell className={dashboardTableCell}>
                         <CardBadge type="status" tone={cardBadgeToneForStatus(item.status)}>
                           {statusLabels[item.status] ?? item.status}
                         </CardBadge>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          ) : (
-            <div className="grid min-h-44 place-items-center rounded-[12px] bg-mod-canvas px-6 text-center">
-              <div>
-                <CalendarBlank size={28} className="mx-auto mb-2 text-mod-text-low" />
-                <p className="text-sm font-semibold text-mod-text">Chưa có lịch phát hành</p>
-                <p className="mt-1 text-xs text-mod-text-secondary">Tạo lịch đầu tiên để bắt đầu điều phối.</p>
-              </div>
-            </div>
-          )}
-        </DashboardPanel>
-        <DashboardPanel
-          title="Cần xử lý ngay"
-          description="Các trường hợp cần Admin quyết định"
-        >
+                      </TableCell>
+                    </TableRow>
+                  )) : <DashboardEmptyTableRow columns={4}>Chưa có lịch phát hành. Tạo lịch đầu tiên để bắt đầu điều phối.</DashboardEmptyTableRow>}
+          </DashboardDataTable>
+        </DashboardTableCard>
+        <div className="flex flex-col gap-5">
+          <DashboardPanel title="Cần xử lý ngay" description="Các trường hợp cần Admin quyết định">
           {urgent.length ? (
             <div className="flex flex-col gap-2.5">
               {urgent.slice(0, 5).map((item) => (
@@ -217,7 +212,14 @@ export function AdminReleaseDashboardView({
               </div>
             </div>
           )}
-        </DashboardPanel>
+          </DashboardPanel>
+          <DashboardPanel title="Lối tắt điều hành" description="Những điểm kiểm soát chính của quy trình phát hành.">
+            <div className="grid gap-2">
+              <div className="rounded-xl border border-mod-border bg-mod-canvas p-3"><p className="text-sm font-bold text-mod-text">Lập lịch và phân công</p><p className="mt-1 text-xs leading-5 text-mod-text-secondary">Tạo thời điểm phát hành và giao Moderator phụ trách.</p></div>
+              <div className="rounded-xl border border-mod-border bg-mod-canvas p-3"><p className="text-sm font-bold text-mod-text">Theo dõi kiểm duyệt</p><p className="mt-1 text-xs leading-5 text-mod-text-secondary">Kiểm tra nội dung đang chờ quyết định trước giờ lên sóng.</p></div>
+            </div>
+          </DashboardPanel>
+        </div>
       </div>
     </div>
   );

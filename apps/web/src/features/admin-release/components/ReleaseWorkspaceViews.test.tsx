@@ -1,11 +1,10 @@
 import { afterEach, expect, it, mock } from "bun:test";
+import { selectDashboardAction } from "@/test/dashboardActions";
 import { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
-import type { ReleaseModeratorWorkload, ReleaseScheduleRecord } from "@repo/shared";
+import type { ReleaseScheduleRecord } from "@repo/shared";
 import { ReleaseWorkspaceToolbar } from "./ReleaseWorkspaceToolbar";
 import { ReleaseScheduleTable } from "./ReleaseScheduleTable";
-import { ReleaseAttentionPanel } from "./ReleaseAttentionPanel";
-import { ModeratorWorkloadFilter } from "./ModeratorWorkloadFilter";
 
 let root: Root | undefined;
 
@@ -36,7 +35,7 @@ function schedule(status: ReleaseScheduleRecord["status"]): ReleaseScheduleRecor
   } as unknown as ReleaseScheduleRecord;
 }
 
-it("renders a controlled workspace toolbar with approved labels", () => {
+it("renders a controlled workspace toolbar with approved labels", async () => {
   const onViewChange = mock(() => undefined);
   const onSearchChange = mock(() => undefined);
   const onCreate = mock(() => undefined);
@@ -59,8 +58,8 @@ it("renders a controlled workspace toolbar with approved labels", () => {
     />,
   );
 
-  expect(host.querySelector('[role="tab"][aria-selected="true"]')?.textContent?.trim()).toBe("Kanban");
-  const tableTab = [...host.querySelectorAll<HTMLElement>('[role="tab"]')].find((node) => node.textContent?.trim() === "Bảng")!;
+  expect(host.querySelector('[role="tab"][aria-selected="true"]')?.textContent?.trim()).toBe("Theo tiến độ");
+  const tableTab = [...host.querySelectorAll<HTMLElement>('[role="tab"]')].find((node) => node.textContent?.trim() === "Danh sách")!;
   act(() => tableTab.click());
   expect(onViewChange).toHaveBeenCalledWith("table");
   const search = host.querySelector<HTMLInputElement>('input[placeholder="Tìm lịch phát hành"]')!;
@@ -73,12 +72,19 @@ it("renders a controlled workspace toolbar with approved labels", () => {
   expect(host.textContent).toContain("Trạng thái");
   expect(host.textContent).toContain("Từ ngày");
   expect(host.textContent).toContain("Đến ngày");
+  expect(host.querySelector('input[type="date"]')).toBeNull();
+  expect(host.querySelector('button[aria-label="Chọn từ ngày"]')).not.toBeNull();
+  expect(host.querySelector('button[aria-label="Chọn đến ngày"]')).not.toBeNull();
+  await act(async () => {
+    host.querySelector<HTMLButtonElement>('button[aria-label="Người phụ trách"]')?.click();
+  });
+  expect(document.body.querySelector('[data-slot="select-content"]')?.classList.contains("mod-select-content")).toBe(true);
   const create = [...host.querySelectorAll<HTMLButtonElement>("button")].find((node) => node.textContent?.includes("Tạo lịch phát hành"))!;
   act(() => create.click());
   expect(onCreate).toHaveBeenCalledTimes(1);
 });
 
-it("renders the traditional table including cancelled schedules and pagination", () => {
+it("opens schedule details only from the action column and uses numbered pagination", async () => {
   const onOpenEdit = mock(() => undefined);
   const onPageChange = mock(() => undefined);
   const cancelled = schedule("CANCELLED");
@@ -90,6 +96,7 @@ it("renders the traditional table including cancelled schedules and pagination",
       total={25}
       onOpenEdit={onOpenEdit}
       onPageChange={onPageChange}
+      toolbar={<div data-release-table-toolbar>Bộ lọc lịch phát hành</div>}
     />,
   );
 
@@ -97,42 +104,22 @@ it("renders the traditional table including cancelled schedules and pagination",
     expect(host.textContent).toContain(heading);
   expect(host.querySelectorAll('[data-card-badge-type="name"]')).toHaveLength(2);
   expect(host.querySelector('[data-card-badge-type="status"]')?.textContent).toBe("Đã hủy");
+  expect(host.querySelector('[data-dashboard-table-card="true"]')).not.toBeNull();
+  const table = host.querySelector<HTMLTableElement>("table")!;
+  expect(table.closest(".mod-data-table")).not.toBeNull();
+  expect(table.style.minWidth).toBe("1000px");
+  expect(host.querySelector("thead th")?.classList.contains("py-4")).toBe(true);
+  expect(host.querySelector("tbody td")?.classList.contains("py-3.5")).toBe(true);
+  const toolbar = host.querySelector('[data-release-table-toolbar]')!;
+  expect(toolbar.closest('[data-dashboard-table-card="true"]'))
+    .toBe(host.querySelector('[data-dashboard-table-card="true"]'));
   act(() => host.querySelector("tbody tr")?.dispatchEvent(new MouseEvent("click", { bubbles: true })));
+  expect(onOpenEdit).not.toHaveBeenCalled();
+  await selectDashboardAction(cancelled.title, "Xem chi tiết", host);
   expect(onOpenEdit).toHaveBeenCalledWith(cancelled);
+  expect(host.querySelector('nav[aria-label="Phân trang"]')).not.toBeNull();
+  expect(host.querySelector('[aria-current="page"]')?.textContent?.trim()).toBe("2");
   const next = host.querySelector<HTMLButtonElement>('[aria-label="Trang sau"]')!;
   act(() => next.click());
   expect(onPageChange).toHaveBeenCalledWith(3);
-});
-
-it("exposes recovery commands and compact workload counts", () => {
-  const callbacks = {
-    onEdit: mock(() => undefined),
-    onCheckReadiness: mock(() => undefined),
-    onPublishNow: mock(() => undefined),
-    onRetry: mock(() => undefined),
-    onCancel: mock(() => undefined),
-  };
-  const host = render(
-    <>
-      <ReleaseAttentionPanel
-        items={[schedule("BLOCKED"), schedule("FAILED")]}
-        pendingIds={new Set()}
-        {...callbacks}
-      />
-      <ModeratorWorkloadFilter
-        items={[
-          { moderatorId: "mod-1", name: "Nguyễn Minh Anh", open: 4, nearDeadline: 2 },
-        ] satisfies ReleaseModeratorWorkload[]}
-        selectedId=""
-        onChange={() => undefined}
-      />
-    </>,
-  );
-
-  expect(host.textContent).toContain("Cần xử lý");
-  for (const action of ["Chỉnh sửa", "Đánh giá lại", "Thử lại", "Phát hành ngay", "Hủy lịch"])
-    expect(host.textContent).toContain(action);
-  expect(host.textContent).toContain("4 lịch đang mở");
-  expect(host.textContent).toContain("2 gần hạn");
-  expect(host.textContent).not.toContain("Điều phối sản xuất");
 });

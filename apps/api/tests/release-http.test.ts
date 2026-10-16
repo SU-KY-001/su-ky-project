@@ -36,12 +36,38 @@ function createTestApp(service: Record<string, (...args: any[]) => any>) {
 }
 
 describe("release HTTP routes", () => {
+  it("exposes Admin review decisions and requires a note for requested changes", async () => {
+    const calls: unknown[][] = [];
+    const app = createTestApp({ reviewEpisode: (...args: unknown[]) => {
+      calls.push(args);
+      return { status: "APPROVED", revision: 3 };
+    } });
+    const response = await app.request(`/api/admin/releases/${scheduleId}/review`, {
+      method: "POST", headers: { "content-type": "application/json" },
+      body: JSON.stringify({ decision: "APPROVE", contentRevision: 3 }),
+    });
+    expect(response.status).toBe(200);
+    expect(calls[0]?.[0]).toMatchObject({ user: { role: "admin" } });
+    expect(calls[0]?.[2]).toMatchObject({ decision: "APPROVE", contentRevision: 3 });
+    const invalid = await app.request(`/api/admin/releases/${scheduleId}/review`, {
+      method: "POST", headers: { "content-type": "application/json" },
+      body: JSON.stringify({ decision: "REQUEST_CHANGES", contentRevision: 3 }),
+    });
+    expect(invalid.status).toBe(400);
+    expect(calls).toHaveLength(1);
+  });
   it("accepts trimmed search and moderator filters", () => {
     expect(ReleaseScheduleQuerySchema.parse({
       q: "  trường sơn  ",
       moderatorId: "moderator-1",
-    })).toMatchObject({ q: "trường sơn", moderatorId: "moderator-1" });
+      scope: "REVIEW_QUEUE",
+    })).toMatchObject({
+      q: "trường sơn",
+      moderatorId: "moderator-1",
+      scope: "REVIEW_QUEUE",
+    });
     expect(() => ReleaseScheduleQuerySchema.parse({ q: "x".repeat(256) })).toThrow();
+    expect(() => ReleaseScheduleQuerySchema.parse({ scope: "UNKNOWN" })).toThrow();
   });
 
   it("validates and creates an Admin release schedule", async () => {
@@ -59,7 +85,7 @@ describe("release HTTP routes", () => {
         title: "Lịch tháng 10",
         productionDeadline: "2026-10-19T13:00:00.000Z",
         scheduledAt: "2026-10-20T13:00:00.000Z",
-        moderatorIds: ["moderator-1"],
+        moderatorId: "moderator-1",
       }),
     });
     expect(response.status).toBe(201);
@@ -76,10 +102,27 @@ describe("release HTTP routes", () => {
         title: "Lịch sai",
         productionDeadline: "2026-10-21T13:00:00.000Z",
         scheduledAt: "2026-10-20T13:00:00.000Z",
-        moderatorIds: ["moderator-1"],
+        moderatorId: "moderator-1",
       }),
     });
     expect(response.status).toBe(400);
+  });
+
+  it("forwards paginated Admin release scopes to the application service", async () => {
+    const calls: unknown[][] = [];
+    const app = createTestApp({
+      listSchedules: (...args: unknown[]) => {
+        calls.push(args);
+        return { items: [], page: 2, limit: 10, total: 0 };
+      },
+    });
+
+    const response = await app.request(
+      "/api/admin/releases?scope=HISTORY&page=2&limit=10",
+    );
+
+    expect(response.status).toBe(200);
+    expect(calls[0]?.[1]).toMatchObject({ scope: "HISTORY", page: 2, limit: 10 });
   });
 
   it("checks readiness through the explicit Admin command", async () => {
@@ -172,5 +215,78 @@ describe("release HTTP routes", () => {
     });
     expect(linked.status).toBe(200);
     expect(calls[0]?.[2]).toBe(episodeId);
+  });
+
+  it("creates and cancels a reassignment ticket for the assigned Moderator", async () => {
+    const calls: unknown[][] = [];
+    const ticketId = "00000000-0000-4000-8000-000000000003";
+    const app = createTestApp({
+      createReassignmentTicket: (...args: unknown[]) => {
+        calls.push(args);
+        return { id: ticketId, status: "PENDING" };
+      },
+      cancelReassignmentTicket: (...args: unknown[]) => {
+        calls.push(args);
+        return { id: ticketId, status: "CANCELLED" };
+      },
+    });
+
+    const created = await app.request(
+      `/api/studio/releases/${scheduleId}/reassignment-tickets`,
+      {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ reason: "Tôi không thể tiếp tục vì lịch công tác đột xuất." }),
+      },
+    );
+    expect(created.status).toBe(201);
+    expect(calls[0]?.slice(1)).toEqual([
+      scheduleId,
+      "Tôi không thể tiếp tục vì lịch công tác đột xuất.",
+      "request-1",
+    ]);
+
+    const cancelled = await app.request(
+      `/api/studio/releases/reassignment-tickets/${ticketId}/cancel`,
+      { method: "POST" },
+    );
+    expect(cancelled.status).toBe(200);
+    expect(calls[1]?.slice(1)).toEqual([ticketId, "request-1"]);
+  });
+
+  it("requires a rejection reason and a replacement when Admin resolves a ticket", async () => {
+    const calls: unknown[][] = [];
+    const ticketId = "00000000-0000-4000-8000-000000000003";
+    const app = createTestApp({
+      approveReassignmentTicket: (...args: unknown[]) => {
+        calls.push(args);
+        return { id: ticketId, status: "APPROVED" };
+      },
+      rejectReassignmentTicket: (...args: unknown[]) => {
+        calls.push(args);
+        return { id: ticketId, status: "REJECTED" };
+      },
+    });
+
+    const invalidReject = await app.request(
+      `/api/admin/releases/reassignment-tickets/${ticketId}/reject`,
+      {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ reason: "" }),
+      },
+    );
+    expect(invalidReject.status).toBe(400);
+
+    const approved = await app.request(
+      `/api/admin/releases/reassignment-tickets/${ticketId}/approve`,
+      {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ replacementModeratorId: "moderator-2" }),
+      },
+    );
+    expect(approved.status).toBe(200);
+    expect(calls[0]?.slice(1)).toEqual([ticketId, "moderator-2", "request-1"]);
   });
 });

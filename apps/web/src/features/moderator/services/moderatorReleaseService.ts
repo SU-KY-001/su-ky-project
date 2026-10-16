@@ -3,6 +3,8 @@ import {
   AssignedReleaseListSchema,
   EpisodeReviewRecordSchema,
   ReleaseProgressListSchema,
+  ReleaseReassignmentTicketPageSchema,
+  ReleaseReassignmentTicketSchema,
   ReleaseReminderListSchema,
 } from "@repo/shared";
 import { client } from "@/lib/client";
@@ -51,5 +53,35 @@ export const moderatorReleaseService = {
     parse(
       releases[":id"].review.$post({ param: { id }, json: input }),
       EpisodeReviewRecordSchema,
+    ),
+  tickets: (status?: "PENDING" | "APPROVED" | "REJECTED" | "CANCELLED") =>
+    parse(
+      releases["reassignment-tickets"].$get({
+        query: { status, page: "1", limit: "50" },
+      }),
+      ReleaseReassignmentTicketPageSchema,
+    ),
+  createTicket: (scheduleId: string, reason: string) =>
+    parse(
+      releases[":id"]["reassignment-tickets"].$post({
+        param: { id: scheduleId },
+        json: { reason },
+      }),
+      ReleaseReassignmentTicketSchema,
+    ),
+  updateTicket: (ticketId: string, reason: string) =>
+    parse(
+      releases["reassignment-tickets"][":id"].$patch({
+        param: { id: ticketId },
+        json: { reason },
+      }),
+      ReleaseReassignmentTicketSchema,
+    ),
+  cancelTicket: (ticketId: string) =>
+    parse(
+      releases["reassignment-tickets"][":id"].cancel.$post({
+        param: { id: ticketId },
+      }),
+      ReleaseReassignmentTicketSchema,
     ),
 };

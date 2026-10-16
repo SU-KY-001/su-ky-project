@@ -5,7 +5,9 @@ import type { ModeratorQuickAction, ModeratorSection } from "@/features/moderato
 
 import { ModeratorDashboardPage } from "./ModeratorDashboardPage";
 import { ModeratorAssignments } from "@/features/moderator/components/ModeratorAssignments";
+import { ModeratorReleaseSchedule } from "@/features/moderator/components/ModeratorReleaseSchedule";
 import { ModeratorReviewQueue } from "@/features/moderator/components/ModeratorReviewQueue";
+import { ModeratorTickets } from "@/features/moderator/components/ModeratorTickets";
 
 const Timeline = lazy(() => import("./ModeratorTimelinePage").then((module) => ({ default: module.ModeratorTimelinePage })));
 const Podcast = lazy(() => import("./PodcastProductionPage").then((module) => ({ default: module.PodcastProductionPage })));
@@ -22,8 +24,9 @@ function WorkspaceContent({ section, creation, onAction }: WorkspaceContentProps
     case "overview": return <ModeratorDashboardPage onAction={onAction} />;
     case "timeline": return <Timeline initialCreating={creation === "add-milestone"} />;
     case "podcast": return <Podcast initialKind={creation === "create-series" ? "series" : creation === "create-episode" ? "episode" : undefined} />;
-    case "assignments":
-    case "schedule": return <ModeratorAssignments />;
+    case "assignments": return <ModeratorAssignments />;
+    case "tickets": return <ModeratorTickets />;
+    case "schedule": return <ModeratorReleaseSchedule />;
     case "pending": return <ModeratorReviewQueue />;
     default: return <Library key={section} section={section} />;
   }

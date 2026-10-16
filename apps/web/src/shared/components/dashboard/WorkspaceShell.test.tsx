@@ -9,6 +9,8 @@ let root: Root | undefined;
 afterEach(() => {
   act(() => root?.unmount());
   document.body.innerHTML = "";
+  document.documentElement.classList.remove("workspace-scroll-lock");
+  document.body.classList.remove("workspace-scroll-lock");
 });
 
 it("renders a role-neutral workspace with supplied navigation and profile", async () => {
@@ -32,4 +34,33 @@ it("renders a role-neutral workspace with supplied navigation and profile", asyn
   expect(host.textContent).toContain("Tổng quan");
   expect(host.textContent).toContain("Theo dõi phát hành");
   expect(host.textContent).toContain("Đăng xuất");
+});
+
+it("keeps document scrolling locked while the workspace owns the viewport", async () => {
+  const host = document.createElement("div");
+  document.body.append(host);
+  root = createRoot(host);
+
+  await act(async () => {
+    root?.render(
+      <WorkspaceShell
+        navigationLabel="Điều hướng moderator"
+        mobileNavigationTitle="Menu moderator"
+        brandCaption="KHÔNG GIAN BIÊN TẬP"
+        nav={[]}
+        profile={<span>Moderator</span>}
+      >
+        <p>Nội dung dashboard</p>
+      </WorkspaceShell>,
+    );
+  });
+
+  expect(document.documentElement.classList.contains("workspace-scroll-lock")).toBe(true);
+  expect(document.body.classList.contains("workspace-scroll-lock")).toBe(true);
+
+  await act(async () => root?.unmount());
+  root = undefined;
+
+  expect(document.documentElement.classList.contains("workspace-scroll-lock")).toBe(false);
+  expect(document.body.classList.contains("workspace-scroll-lock")).toBe(false);
 });

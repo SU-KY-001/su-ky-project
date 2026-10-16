@@ -1,12 +1,13 @@
 import { useMemo } from "react";
 import type { ReleaseScheduleRecord } from "@repo/shared";
-import { ArrowClockwise, PaperPlaneTilt, X } from "@phosphor-icons/react";
+import { ArrowClockwise, CalendarPlus, FloppyDisk, PaperPlaneTilt, X } from "@phosphor-icons/react";
 import { ApiError, errorMessage } from "@/lib/apiError";
 import { Button } from "@/shared/components/ui/button";
 import {
   Dialog,
   DialogContent,
   DialogDescription,
+  DialogFooter,
   DialogHeader,
   DialogTitle,
 } from "@/shared/components/ui/dialog";
@@ -29,10 +30,12 @@ const statusLabels: Record<ReleaseScheduleRecord["status"], string> = {
   FAILED: "Thất bại",
   CANCELLED: "Đã hủy",
 };
+const releaseScheduleFormId = "release-schedule-form";
 
 export function ReleaseScheduleDialog({
   mode,
   schedule,
+  currentStatus,
   moderators,
   progress,
   open,
@@ -47,6 +50,7 @@ export function ReleaseScheduleDialog({
 }: {
   mode: "create" | "edit";
   schedule: ReleaseScheduleRecord | null;
+  currentStatus?: ReleaseScheduleRecord["status"];
   moderators: ReleaseModeratorOption[];
   progress: ReleaseProgressItem[];
   open: boolean;
@@ -59,6 +63,9 @@ export function ReleaseScheduleDialog({
   onPublishNow: (schedule: ReleaseScheduleRecord) => void;
   onCancel: (schedule: ReleaseScheduleRecord) => void;
 }) {
+  // Live state must not replace the edit snapshot/baseUpdatedAt or erase unsaved input.
+  const status = currentStatus ?? schedule?.status ?? "SCHEDULED";
+  const locked = status === "PUBLISHING" || status === "RELEASED" || status === "CANCELLED";
   const initialValues = useMemo<ReleaseScheduleDraft | undefined>(() => {
     if (mode !== "edit" || !schedule) return undefined;
     return {
@@ -66,10 +73,11 @@ export function ReleaseScheduleDialog({
       episodeId: schedule.episodeId,
       productionDeadline: toLocalDateTime(schedule.productionDeadline),
       scheduledAt: toLocalDateTime(schedule.scheduledAt),
-      moderatorIds: schedule.assignments.map(({ moderatorId }) => moderatorId),
+      moderatorId: schedule.assignments[0]?.moderatorId ?? "",
     };
   }, [mode, schedule]);
   const submit = async (draft: ReleaseScheduleDraft) => {
+    if (mode === "edit" && locked) return;
     try {
       if (mode === "edit" && schedule) await onUpdate(schedule, draft);
       else await onCreate(draft);
@@ -82,13 +90,13 @@ export function ReleaseScheduleDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-h-[calc(100dvh-2rem)] max-w-3xl overflow-y-auto bg-mod-surface sm:p-7">
-        <DialogHeader>
+      <DialogContent className="grid max-h-[min(760px,calc(100dvh-2rem))] max-w-[720px] grid-rows-[auto_minmax(0,1fr)_auto] gap-0 overflow-hidden bg-mod-surface p-0 sm:p-0">
+        <DialogHeader className="border-b border-mod-border px-5 py-4 sm:px-6 sm:py-5">
           <div className="flex flex-wrap items-center gap-2">
             <DialogTitle>{mode === "edit" ? "Cập nhật lịch phát hành" : "Tạo lịch phát hành"}</DialogTitle>
             {mode === "edit" && schedule ? (
-              <CardBadge type="status" tone={cardBadgeToneForStatus(schedule.status)}>
-                {statusLabels[schedule.status]}
+              <CardBadge type="status" tone={cardBadgeToneForStatus(status)}>
+                {statusLabels[status]}
               </CardBadge>
             ) : null}
           </div>
@@ -99,47 +107,67 @@ export function ReleaseScheduleDialog({
           </DialogDescription>
         </DialogHeader>
 
-        {schedule?.episode ? (
-          <div className="rounded-xl border border-mod-border bg-mod-canvas-accent/60 p-3">
-            <p className="text-xs font-semibold uppercase tracking-wide text-mod-text-muted">Podcast đã liên kết · chỉ đọc</p>
-            <p className="mt-1 text-sm font-bold text-mod-text">{schedule.episode.title}</p>
-            <p className="mt-0.5 text-xs text-mod-text-secondary">Phiên bản nội dung {schedule.episode.contentRevision}</p>
-          </div>
-        ) : null}
-
-        {error ? (
-          <p role="alert" className="rounded-xl border border-vermilion/20 bg-vermilion/5 px-3 py-2.5 text-sm font-medium text-vermilion">
-            {stale
-              ? "Lịch đã thay đổi trên hệ thống. Tải lại dữ liệu trước khi lưu lại; nội dung bạn đang nhập vẫn được giữ nguyên."
-              : errorMessage(error)}
-          </p>
-        ) : null}
-
-        <ReleaseScheduleForm
-          mode={mode}
-          moderators={moderators}
-          initialValues={initialValues}
-          initialValuesKey={schedule?.id ?? "create"}
-          isSubmitting={busy}
-          onSubmit={submit}
-        />
-
-        {mode === "edit" && schedule ? (
-          <>
-            <div className="border-t border-mod-border pt-4">
-              <p className="mb-2 text-xs font-bold uppercase tracking-wide text-mod-text-muted">Xử lý ngoại lệ</p>
-              <div className="flex flex-wrap gap-2">
-                {schedule.status === "FAILED" ? <Button type="button" variant="outline" size="sm" disabled={busy} onClick={() => onRetry(schedule)}><ArrowClockwise /> Thử lại</Button> : null}
-                {["BLOCKED", "FAILED", "READY_TO_PUBLISH"].includes(schedule.status) ? <Button type="button" variant="outline" size="sm" disabled={busy} onClick={() => onPublishNow(schedule)}><PaperPlaneTilt /> Phát hành ngay</Button> : null}
-                {["SCHEDULED", "READY_TO_PUBLISH", "BLOCKED", "FAILED"].includes(schedule.status) ? <Button type="button" variant="ghost" size="sm" disabled={busy} className="text-vermilion" onClick={() => onCancel(schedule)}><X /> Hủy lịch</Button> : null}
+        <div
+          data-dialog-scroll-area="true"
+          className="mod-dialog-scroll-area min-h-0 overflow-y-auto px-5 py-5 sm:px-6"
+        >
+          <div className="flex flex-col gap-5">
+            {schedule?.episode ? (
+              <div className="rounded-xl border border-mod-border bg-mod-canvas-accent/60 p-3">
+                <p className="text-xs font-semibold uppercase tracking-wide text-mod-text-muted">Podcast đã liên kết · chỉ đọc</p>
+                <p className="mt-1 text-sm font-bold text-mod-text">{schedule.episode.title}</p>
+                <p className="mt-0.5 text-xs text-mod-text-secondary">Phiên bản nội dung {schedule.episode.contentRevision}</p>
               </div>
-            </div>
-            <details className="rounded-xl border border-mod-border bg-mod-canvas-accent/35 p-3">
-              <summary className="cursor-pointer text-sm font-bold text-mod-text">Tiến độ phát hành</summary>
-              <div className="mt-4"><ReleaseProgressTimeline events={progress} /></div>
-            </details>
-          </>
-        ) : null}
+            ) : null}
+
+            {error ? (
+              <p role="alert" className="rounded-xl border border-vermilion/20 bg-vermilion/5 px-3 py-2.5 text-sm font-medium text-vermilion">
+                {stale
+                  ? "Lịch đã thay đổi trên hệ thống. Tải lại dữ liệu trước khi lưu lại; nội dung bạn đang nhập vẫn được giữ nguyên."
+                  : errorMessage(error)}
+              </p>
+            ) : null}
+
+            <ReleaseScheduleForm
+              mode={mode}
+              moderators={moderators}
+              initialValues={initialValues}
+              initialValuesKey={schedule?.id ?? "create"}
+              isSubmitting={busy}
+              onSubmit={submit}
+              formId={releaseScheduleFormId}
+              showSubmitAction={false}
+            />
+
+            {mode === "edit" && schedule ? (
+              <details className="rounded-xl border border-mod-border bg-mod-canvas-accent/35 p-3">
+                <summary className="cursor-pointer text-sm font-bold text-mod-text">Tiến độ phát hành</summary>
+                <div className="mt-4"><ReleaseProgressTimeline events={progress} /></div>
+              </details>
+            ) : null}
+          </div>
+        </div>
+
+        <DialogFooter className="border-t border-mod-border bg-mod-surface px-5 py-4 sm:px-6">
+          {mode === "edit" && schedule ? (
+            <>
+              {["SCHEDULED", "READY_TO_PUBLISH", "BLOCKED", "FAILED"].includes(status) ? <Button type="button" variant="ghost" disabled={busy} className="text-vermilion" onClick={() => onCancel(schedule)}><X /> Hủy lịch</Button> : null}
+              {status === "FAILED" ? <Button type="button" variant="outline" disabled={busy} onClick={() => onRetry(schedule)}><ArrowClockwise /> Thử lại</Button> : null}
+              {["BLOCKED", "FAILED", "READY_TO_PUBLISH"].includes(status) ? <Button type="button" variant="outline" disabled={busy} onClick={() => onPublishNow(schedule)}><PaperPlaneTilt /> Phát hành ngay</Button> : null}
+            </>
+          ) : null}
+          <Button
+            type="submit"
+            form={releaseScheduleFormId}
+            disabled={busy || !moderators.length || (mode === "edit" && locked)}
+            className="bg-mod-primary text-white hover:bg-mod-primary/90"
+          >
+            {mode === "edit" ? <FloppyDisk size={18} /> : <CalendarPlus size={18} />}
+            {busy
+              ? mode === "edit" ? "Đang lưu" : "Đang tạo lịch"
+              : mode === "edit" ? "Lưu thay đổi" : "Tạo lịch phát hành"}
+          </Button>
+        </DialogFooter>
       </DialogContent>
     </Dialog>
   );

@@ -1,12 +1,14 @@
 import { useState, type DragEvent } from "react";
 import type { ReleaseScheduleRecord } from "@repo/shared";
+import { CaretDown, CaretUp } from "@phosphor-icons/react";
 import { Button } from "@/shared/components/ui/button";
 import {
   getReleaseDropCommand,
   type ReleaseBoardStatus,
-  type ReleaseDropCommand,
 } from "../releaseWorkspaceModel";
 import { ReleaseKanbanCard } from "./ReleaseKanbanCard";
+
+const COLLAPSED_CARD_LIMIT = 4;
 
 export interface ReleaseKanbanColumnData {
   items: readonly ReleaseScheduleRecord[];
@@ -26,7 +28,6 @@ export function ReleaseKanbanColumn({
   onDragStart,
   onDragEnd,
   onDropSchedule,
-  onTransition,
   onPageChange,
 }: {
   status: ReleaseBoardStatus;
@@ -38,14 +39,14 @@ export function ReleaseKanbanColumn({
   onDragStart: (event: DragEvent<HTMLElement>, schedule: ReleaseScheduleRecord) => void;
   onDragEnd: () => void;
   onDropSchedule: (scheduleId: string, targetStatus: ReleaseBoardStatus) => void;
-  onTransition: (
-    schedule: ReleaseScheduleRecord,
-    command: ReleaseDropCommand,
-    targetStatus: ReleaseBoardStatus,
-  ) => void | Promise<unknown>;
   onPageChange: (status: ReleaseBoardStatus, page: number) => void;
 }) {
   const [dragOver, setDragOver] = useState(false);
+  const [expanded, setExpanded] = useState(false);
+  const hiddenLoadedCount = Math.max(column.items.length - COLLAPSED_CARD_LIMIT, 0);
+  const visibleItems = expanded
+    ? column.items
+    : column.items.slice(0, COLLAPSED_CARD_LIMIT);
   const acceptsDragging = Boolean(
     dragging && getReleaseDropCommand(dragging.status, status),
   );
@@ -66,10 +67,16 @@ export function ReleaseKanbanColumn({
     <section
       aria-label={label}
       data-release-column={status}
-      className={`flex min-h-[430px] min-w-[272px] flex-1 basis-[272px] flex-col rounded-2xl border p-3 transition-colors xl:min-w-0 ${
+      data-drop-available={dragging ? acceptsDragging : undefined}
+      data-drop-active={dragOver || undefined}
+      className={`flex min-h-[430px] min-w-[272px] flex-1 basis-[272px] flex-col rounded-2xl border p-3 transition duration-200 xl:min-w-0 ${
         dragOver
-          ? "border-mod-primary/35 bg-mod-primary/5 ring-2 ring-inset ring-mod-primary/15"
-          : "border-mod-border/70 bg-mod-canvas-accent/55"
+          ? "border-mod-primary/60 bg-mod-primary/10 ring-2 ring-inset ring-mod-primary/20 shadow-[0_12px_30px_rgba(22,18,15,0.08)]"
+          : dragging
+            ? acceptsDragging
+              ? "border-mod-primary/25 bg-mod-primary/[0.035]"
+              : "border-mod-border/50 bg-mod-canvas-accent/40 opacity-60 saturate-[0.75]"
+            : "border-mod-border/70 bg-mod-canvas-accent/55"
       }`}
       onDragEnter={handleDragOver}
       onDragOver={handleDragOver}
@@ -102,32 +109,50 @@ export function ReleaseKanbanColumn({
             Chưa có lịch
           </div>
         ) : (
-          column.items.map((schedule, index) => (
+          visibleItems.map((schedule, index) => (
             <ReleaseKanbanCard
               key={schedule.id}
               schedule={schedule}
               index={index}
               pending={pendingIds.has(schedule.id)}
+              dragging={dragging?.id === schedule.id}
               onOpenEdit={onOpenEdit}
               onDragStart={onDragStart}
               onDragEnd={onDragEnd}
-              onTransition={onTransition}
             />
           ))
         )}
       </div>
 
-      {column.total > column.items.length ? (
-        <Button
-          type="button"
-          variant="ghost"
-          size="sm"
-          aria-label={`Tải thêm ${label}`}
-          className="mt-3 w-full text-xs text-mod-text-secondary"
-          onClick={() => onPageChange(status, column.page + 1)}
-        >
-          Tải thêm
-        </Button>
+      {hiddenLoadedCount > 0 || column.total > column.items.length ? (
+        <div className="mt-3 flex flex-col gap-1.5 border-t border-mod-border/60 pt-2.5">
+          {hiddenLoadedCount > 0 ? (
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              aria-expanded={expanded}
+              aria-label={expanded ? `Thu gọn ${label}` : `Xem thêm ${hiddenLoadedCount} lịch ${label}`}
+              className="w-full text-xs font-semibold text-mod-text-secondary"
+              onClick={() => setExpanded((current) => !current)}
+            >
+              {expanded ? <CaretUp size={15} aria-hidden="true" /> : <CaretDown size={15} aria-hidden="true" />}
+              {expanded ? "Thu gọn" : `Xem thêm ${hiddenLoadedCount} lịch`}
+            </Button>
+          ) : null}
+          {column.total > column.items.length && (expanded || hiddenLoadedCount === 0) ? (
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              aria-label={`Tải thêm ${label}`}
+              className="w-full text-xs text-mod-text-secondary"
+              onClick={() => onPageChange(status, column.page + 1)}
+            >
+              Tải thêm
+            </Button>
+          ) : null}
+        </div>
       ) : null}
     </section>
   );

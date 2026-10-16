@@ -1,4 +1,11 @@
-import { useMutation, useQueries, useQuery, useQueryClient } from "@tanstack/react-query";
+import {
+  keepPreviousData,
+  useMutation,
+  useQueries,
+  useQuery,
+  useQueryClient,
+} from "@tanstack/react-query";
+import { useRef } from "react";
 import type { ReleaseScheduleRecord } from "@repo/shared";
 import {
   adminReleaseService,
@@ -10,9 +17,13 @@ import {
   type ReleaseBoardStatus,
 } from "../releaseWorkspaceModel";
 
+export const RELEASE_SYNC_INTERVAL_MS = 2_000;
+
 export const adminReleaseKeys = {
   root: ["admin-releases"] as const,
   dashboard: ["admin-releases", "dashboard"] as const,
+  health: ["admin-releases", "health"] as const,
+  detail: (id: string) => ["admin-releases", "detail", id] as const,
   list: (filter: ReleaseScheduleFilter) => ["admin-releases", "list", filter] as const,
   moderators: ["admin-releases", "moderators"] as const,
   workload: ["admin-releases", "workload"] as const,
@@ -20,14 +31,38 @@ export const adminReleaseKeys = {
 };
 
 export function useAdminReleaseDashboard() {
-  return useQuery({ queryKey: adminReleaseKeys.dashboard, queryFn: adminReleaseService.dashboard });
+  return useQuery({ queryKey: adminReleaseKeys.dashboard, queryFn: adminReleaseService.dashboard, refetchInterval: RELEASE_SYNC_INTERVAL_MS });
+}
+
+export function useReleaseWorkerHealth(service = adminReleaseService) {
+  return useQuery({
+    queryKey: adminReleaseKeys.health,
+    queryFn: service.health,
+    refetchInterval: 5_000,
+    retry: false,
+  });
+}
+
+export function useLiveReleaseSchedule(id: string | null, service = adminReleaseService) {
+  return useQuery({
+    queryKey: adminReleaseKeys.detail(id ?? ""),
+    queryFn: () => service.get(id!),
+    enabled: Boolean(id),
+    refetchInterval: RELEASE_SYNC_INTERVAL_MS,
+  });
 }
 
 export function useAdminReleaseSchedules(
   filter: ReleaseScheduleFilter = {},
   service = adminReleaseService,
+  live = true,
 ) {
-  return useQuery({ queryKey: adminReleaseKeys.list(filter), queryFn: () => service.list(filter) });
+  return useQuery({
+    queryKey: adminReleaseKeys.list(filter),
+    queryFn: () => service.list(filter),
+    placeholderData: keepPreviousData,
+    refetchInterval: live ? RELEASE_SYNC_INTERVAL_MS : false,
+  });
 }
 
 export function useReleaseModerators(service = adminReleaseService) {
@@ -45,7 +80,10 @@ export function useAdminReleaseBoard(
   filter: Omit<ReleaseScheduleFilter, "status" | "page"> = {},
   pages: Partial<Record<ReleaseBoardStatus, number>> = {},
   service = adminReleaseService,
+  live = true,
 ) {
+  type ReleasePage = Awaited<ReturnType<typeof adminReleaseService.list>>;
+  const retainedPages = useRef(new Map<string, ReleasePage>());
   const requests = RELEASE_BOARD_COLUMNS.flatMap(({ status }) =>
     Array.from({ length: pages[status] ?? 1 }, (_, index) => ({
       status,
@@ -58,11 +96,18 @@ export function useAdminReleaseBoard(
     })),
   );
   return useQueries({
-    queries: requests.map(({ filter: columnFilter }) => ({
+    queries: requests.map(({ status, page, filter: columnFilter }) => ({
       queryKey: adminReleaseKeys.list(columnFilter),
       queryFn: () => service.list(columnFilter),
+      placeholderData: () => retainedPages.current.get(`${status}:${page}`),
+      refetchInterval: live ? RELEASE_SYNC_INTERVAL_MS : false,
     })),
     combine: (results) => {
+      results.forEach((result, index) => {
+        const request = requests[index];
+        if (request && result.data && !result.isPlaceholderData)
+          retainedPages.current.set(`${request.status}:${request.page}`, result.data);
+      });
       const columns = Object.fromEntries(
         RELEASE_BOARD_COLUMNS.map(({ status }) => {
           const columnResults = results.filter(
@@ -85,6 +130,7 @@ export function useAdminReleaseBoard(
         columns,
         isPending: results.some(({ isPending }) => isPending),
         isError: results.some(({ isError }) => isError),
+        dataUpdatedAt: Math.min(...results.map(({ dataUpdatedAt }) => dataUpdatedAt)),
       };
     },
   });
@@ -121,6 +167,7 @@ export function useReleaseProgress(id: string | null, service = adminReleaseServ
     queryKey: adminReleaseKeys.progress(id ?? ""),
     queryFn: () => service.progress(id!),
     enabled: Boolean(id),
+    refetchInterval: RELEASE_SYNC_INTERVAL_MS,
   });
 }
 
@@ -142,9 +189,9 @@ export function useAdminReleaseActions(service = adminReleaseService) {
       }) => service.update(id, patch),
       onSuccess: invalidate,
     }),
-    replaceAssignees: useMutation({
-      mutationFn: ({ id, moderatorIds }: { id: string; moderatorIds: string[] }) =>
-        service.replaceAssignees(id, moderatorIds),
+    replaceAssignee: useMutation({
+      mutationFn: ({ id, moderatorId }: { id: string; moderatorId: string }) =>
+        service.replaceAssignee(id, moderatorId),
       onSuccess: invalidate,
     }),
     checkReadiness: useMutation({

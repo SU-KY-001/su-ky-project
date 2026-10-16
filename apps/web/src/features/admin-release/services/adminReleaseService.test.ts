@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, mock } from "bun:test";
 import { adminReleaseService } from "./adminReleaseService";
+import type { SystemHealthDto } from "@repo/shared";
 
 const scheduleId = "00000000-0000-4000-8000-000000000001";
 const originalFetch = globalThis.fetch;
@@ -51,6 +52,12 @@ afterEach(() => {
 });
 
 describe("admin release service", () => {
+  it("reads the actual worker health even when the healthcheck is degraded (503)", async () => {
+    const health: SystemHealthDto = { status: "degraded", service: "su-ky-api", version: "0.0.1", runtime: "Bun", bunVersion: "1.4.0", database: "connected", queue: "running", releaseWorker: "stale", uptimeSeconds: 60, timestamp: new Date().toISOString() };
+    globalThis.fetch = mock(async () => new Response(JSON.stringify(health), { status: 503, headers: { "content-type": "application/json" } })) as unknown as typeof fetch;
+    expect(await adminReleaseService.health()).toEqual(health);
+  });
+
   it("serializes every workspace filter", async () => {
     responseBody = { items: [], page: 2, limit: 12, total: 0 };
 
@@ -62,6 +69,7 @@ describe("admin release service", () => {
       to: "2026-10-31T23:59:59.000Z",
       page: 2,
       limit: 12,
+      scope: "REVIEW_QUEUE",
     });
 
     const url = new URL(requestedUrls[0]!);
@@ -73,6 +81,7 @@ describe("admin release service", () => {
       to: "2026-10-31T23:59:59.000Z",
       page: "2",
       limit: "12",
+      scope: "REVIEW_QUEUE",
     });
   });
 

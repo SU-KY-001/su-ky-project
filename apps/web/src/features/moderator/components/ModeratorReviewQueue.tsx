@@ -5,6 +5,7 @@ import { DashboardHeader } from "@/shared/components/dashboard/DashboardOverview
 import { Button } from "@/shared/components/ui/button";
 import { moderatorReleaseService } from "../services/moderatorReleaseService";
 import { CardBadge } from "@/shared/components/dashboard/CardBadge";
+import { Textarea } from "@/shared/components/ui/textarea";
 
 interface ReviewQueueSchedule {
   id: string;
@@ -71,7 +72,7 @@ export function ModeratorReviewQueueView({
                   <div><dt className="text-xs text-mod-text-secondary">Lịch phát hành</dt><dd className="mt-1 font-semibold tabular-nums text-mod-text">{dateTime(schedule.scheduledAt)}</dd></div>
                 </dl>
                 <label className="mt-5 block text-xs font-semibold text-mod-text" htmlFor={`review-note-${schedule.id}`}>Nhận xét kiểm duyệt</label>
-                <textarea
+                <Textarea
                   id={`review-note-${schedule.id}`}
                   rows={3}
                   value={note}

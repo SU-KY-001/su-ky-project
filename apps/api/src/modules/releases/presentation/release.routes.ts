@@ -1,11 +1,16 @@
 import {
   CreateReleaseScheduleSchema,
+  ApproveReleaseReassignmentTicketSchema,
+  CreateReleaseReassignmentTicketSchema,
+  RejectReleaseReassignmentTicketSchema,
+  ReleaseReassignmentTicketQuerySchema,
   ReleaseScheduleQuerySchema,
-  ReplaceReleaseAssigneesSchema,
+  ReplaceReleaseAssigneeSchema,
   ReviewEpisodeSchema,
   SubmitEpisodeReviewSchema,
   LinkReleaseEpisodeSchema,
   UpdateReleaseScheduleSchema,
+  UpdateReleaseReassignmentTicketSchema,
   UuidParamSchema,
 } from "@repo/shared";
 import { zValidator } from "@hono/zod-validator";
@@ -33,6 +38,15 @@ export function createReleaseRoutes(
 ) {
   const admin = new Hono<AppEnv>()
     .use("*", guards.admin)
+    .post(
+      "/:id/review",
+      guards.write,
+      zValidator("param", UuidParamSchema, throwOnInvalid),
+      zValidator("json", ReviewEpisodeSchema, throwOnInvalid),
+      async (c) => c.json(await service.reviewEpisode(
+        c.get("session")!, c.req.valid("param").id, c.req.valid("json"), c.get("requestId"),
+      )),
+    )
     .get(
       "/",
       zValidator("query", ReleaseScheduleQuerySchema, throwOnInvalid),
@@ -60,6 +74,38 @@ export function createReleaseRoutes(
     )
     .get("/workload", async (c) =>
       c.json({ items: await service.workload(c.get("session")!) }),
+    )
+    .get(
+      "/reassignment-tickets",
+      zValidator("query", ReleaseReassignmentTicketQuerySchema, throwOnInvalid),
+      async (c) =>
+        c.json(await service.listReassignmentTickets(c.get("session")!, c.req.valid("query"))),
+    )
+    .post(
+      "/reassignment-tickets/:id/approve",
+      guards.write,
+      zValidator("param", UuidParamSchema, throwOnInvalid),
+      zValidator("json", ApproveReleaseReassignmentTicketSchema, throwOnInvalid),
+      async (c) =>
+        c.json(await service.approveReassignmentTicket(
+          c.get("session")!,
+          c.req.valid("param").id,
+          c.req.valid("json").replacementModeratorId,
+          c.get("requestId"),
+        )),
+    )
+    .post(
+      "/reassignment-tickets/:id/reject",
+      guards.write,
+      zValidator("param", UuidParamSchema, throwOnInvalid),
+      zValidator("json", RejectReleaseReassignmentTicketSchema, throwOnInvalid),
+      async (c) =>
+        c.json(await service.rejectReassignmentTicket(
+          c.get("session")!,
+          c.req.valid("param").id,
+          c.req.valid("json").reason,
+          c.get("requestId"),
+        )),
     )
     .post(
       "/:id/check-readiness",
@@ -101,13 +147,13 @@ export function createReleaseRoutes(
       "/:id/assignees",
       guards.write,
       zValidator("param", UuidParamSchema, throwOnInvalid),
-      zValidator("json", ReplaceReleaseAssigneesSchema, throwOnInvalid),
+      zValidator("json", ReplaceReleaseAssigneeSchema, throwOnInvalid),
       async (c) => {
         const id = c.req.valid("param").id;
-        await service.replaceAssignees(
+        await service.replaceAssignee(
           c.get("session")!,
           id,
-          c.req.valid("json").moderatorIds,
+          c.req.valid("json").moderatorId,
           c.get("requestId"),
         );
         return c.json(await service.getSchedule(c.get("session")!, id));
@@ -177,6 +223,52 @@ export function createReleaseRoutes(
     )
     .get("/reminders", async (c) =>
       c.json({ items: await service.productionReminders(c.get("session")!) }),
+    )
+    .get(
+      "/reassignment-tickets",
+      zValidator("query", ReleaseReassignmentTicketQuerySchema, throwOnInvalid),
+      async (c) =>
+        c.json(await service.listMyReassignmentTickets(c.get("session")!, c.req.valid("query"))),
+    )
+    .patch(
+      "/reassignment-tickets/:id",
+      guards.write,
+      zValidator("param", UuidParamSchema, throwOnInvalid),
+      zValidator("json", UpdateReleaseReassignmentTicketSchema, throwOnInvalid),
+      async (c) =>
+        c.json(await service.updateReassignmentTicket(
+          c.get("session")!,
+          c.req.valid("param").id,
+          c.req.valid("json").reason,
+          c.get("requestId"),
+        )),
+    )
+    .post(
+      "/reassignment-tickets/:id/cancel",
+      guards.write,
+      zValidator("param", UuidParamSchema, throwOnInvalid),
+      async (c) =>
+        c.json(await service.cancelReassignmentTicket(
+          c.get("session")!,
+          c.req.valid("param").id,
+          c.get("requestId"),
+        )),
+    )
+    .post(
+      "/:id/reassignment-tickets",
+      guards.write,
+      zValidator("param", UuidParamSchema, throwOnInvalid),
+      zValidator("json", CreateReleaseReassignmentTicketSchema, throwOnInvalid),
+      async (c) => {
+        const ticket = await service.createReassignmentTicket(
+          c.get("session")!,
+          c.req.valid("param").id,
+          c.req.valid("json").reason,
+          c.get("requestId"),
+        );
+        c.header("Location", `/api/studio/releases/reassignment-tickets/${ticket.id}`);
+        return c.json(ticket, 201);
+      },
     )
     .get(
       "/:id/progress",
