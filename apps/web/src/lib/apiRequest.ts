@@ -5,7 +5,7 @@ import { apiUrl } from "./client";
 const IDEMPOTENCY_HEADER = "Idempotency-Key";
 
 type ApiRequestOptions = {
-  method?: "GET" | "POST";
+  method?: "GET" | "POST" | "PATCH" | "DELETE";
   body?: unknown;
   idempotencyKey?: string;
   signal?: AbortSignal;

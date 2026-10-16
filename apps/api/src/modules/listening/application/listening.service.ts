@@ -14,8 +14,6 @@ import type { ListeningRepository } from "../domain/listening.repository";
 
 const BASE64_PATTERN =
   /^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$/;
-const VN_TIMEZONE_OFFSET_MS = 7 * 60 * 60 * 1000;
-const DAYS_PER_WEEK = 7;
 const MS_PER_SECOND = 1000;
 const BITS_PER_BYTE = 8;
 const PERCENT_CAP = 100;
@@ -34,19 +32,6 @@ function countBits(bytes: Uint8Array): number {
     }
   }
   return total;
-}
-
-/** UTC midnight of the Monday of `now`'s week in Vietnam (UTC+7). */
-function mondayInVietnam(now: Date): Date {
-  const local = new Date(now.getTime() + VN_TIMEZONE_OFFSET_MS);
-  const day = local.getUTCDay() || DAYS_PER_WEEK;
-  return new Date(
-    Date.UTC(
-      local.getUTCFullYear(),
-      local.getUTCMonth(),
-      local.getUTCDate() - day + 1,
-    ),
-  );
 }
 
 export class ListeningService {
@@ -265,7 +250,6 @@ export class ListeningService {
       bitmap: padded,
       totalSeconds,
       now,
-      weekStartDate: mondayInVietnam(now),
       xpPerEpisodeCompletion,
       completionRatio,
       budget: (elapsedSeconds: number) =>
@@ -311,6 +295,9 @@ export class ListeningService {
         cover: series.coverImageAsset
           ? { url: this.storage.deliveryUrl(series.coverImageAsset) }
           : null,
+        coverLandscape: series.coverLandscapeAsset
+          ? { url: this.storage.deliveryUrl(series.coverLandscapeAsset) }
+          : null,
         episodeCount: series._count.episodes,
         publishedAt: series.publishedAt,
       })),
@@ -338,6 +325,9 @@ export class ListeningService {
       endYear: series.endYear,
       cover: series.coverImageAsset
         ? { url: this.storage.deliveryUrl(series.coverImageAsset) }
+        : null,
+      coverLandscape: series.coverLandscapeAsset
+        ? { url: this.storage.deliveryUrl(series.coverLandscapeAsset) }
         : null,
       ...this.mapPublicationEvidence(series, series.sources),
       episodes: series.episodes.map((episode) => ({
@@ -392,6 +382,9 @@ export class ListeningService {
         endYear: episode.series.endYear,
         cover: episode.series.coverImageAsset
           ? { url: this.storage.deliveryUrl(episode.series.coverImageAsset) }
+          : null,
+        coverLandscape: episode.series.coverLandscapeAsset
+          ? { url: this.storage.deliveryUrl(episode.series.coverLandscapeAsset) }
           : null,
         ...this.mapPublicationEvidence(episode.series, episode.series.sources),
       },

@@ -1,6 +1,7 @@
 import { PublicationEvidenceSchema } from "@repo/shared";
 import { SourceTierSchema } from "@repo/shared";
 import { z } from "zod";
+import { recordMissionActivity } from "../../../core/weekly-mission";
 import {
   Prisma,
   prisma,
@@ -30,7 +31,6 @@ import type {
   ListeningProgressWithAudio,
   ListeningProgressWithHistory,
   MediaAssetEntity,
-  MissionProgressSummary,
   NarrationWithAudio,
   NarrationWithNarrator,
   SeriesDetailEntity,
@@ -48,6 +48,7 @@ type PrismaEpisodeWithNarrations = PrismaEpisode & {
 };
 type PrismaSeriesWithCoverAndCount = PrismaSeries & {
   coverImageAsset: PrismaMediaAsset | null;
+  coverLandscapeAsset: PrismaMediaAsset | null;
   _count: { episodes: number };
 };
 type PrismaSeriesSourceRow = PrismaSeriesSource & {
@@ -59,6 +60,7 @@ type PrismaSeriesSourceRow = PrismaSeriesSource & {
 };
 type PrismaSeriesDetail = PrismaSeries & {
   coverImageAsset: PrismaMediaAsset | null;
+  coverLandscapeAsset: PrismaMediaAsset | null;
   episodes: PrismaEpisodeWithNarrations[];
   sources: PrismaSeriesSourceRow[];
 };
@@ -68,6 +70,7 @@ type PrismaNarrationWithNarrator = PrismaNarration & {
 };
 type PrismaSeriesDetailRef = PrismaSeries & {
   coverImageAsset: PrismaMediaAsset | null;
+  coverLandscapeAsset: PrismaMediaAsset | null;
   episodes: { id: string; slug: string; title: string }[];
   sources: PrismaSeriesSourceRow[];
 };
@@ -114,6 +117,7 @@ function toSeries(row: PrismaSeries) {
     slug: row.slug,
     description: row.description,
     coverImageAssetId: row.coverImageAssetId,
+    coverLandscapeAssetId: row.coverLandscapeAssetId,
     startYear: row.startYear,
     endYear: row.endYear,
     status: row.status,
@@ -134,6 +138,9 @@ function toSeriesWithCoverAndCount(
     ...toSeries(row),
     coverImageAsset: row.coverImageAsset
       ? toMediaAsset(row.coverImageAsset)
+      : null,
+    coverLandscapeAsset: row.coverLandscapeAsset
+      ? toMediaAsset(row.coverLandscapeAsset)
       : null,
     _count: { episodes: row._count.episodes },
   };
@@ -196,6 +203,9 @@ function toSeriesDetail(row: PrismaSeriesDetail): SeriesDetailEntity {
     ...toSeries(row),
     coverImageAsset: row.coverImageAsset
       ? toMediaAsset(row.coverImageAsset)
+      : null,
+    coverLandscapeAsset: row.coverLandscapeAsset
+      ? toMediaAsset(row.coverLandscapeAsset)
       : null,
     episodes: row.episodes.map(toEpisodeWithNarrations),
     sources: row.sources.map(toSeriesSource),
@@ -319,6 +329,9 @@ function toEpisodeDetail(row: PrismaEpisodeDetail): EpisodeDetailEntity {
       ...toSeries(row.series),
       coverImageAsset: row.series.coverImageAsset
         ? toMediaAsset(row.series.coverImageAsset)
+        : null,
+      coverLandscapeAsset: row.series.coverLandscapeAsset
+        ? toMediaAsset(row.series.coverLandscapeAsset)
         : null,
       episodes: row.series.episodes,
       sources: row.series.sources.map(toSeriesSource),
@@ -506,6 +519,7 @@ export class PrismaListeningRepository implements ListeningRepository {
         orderBy: { publishedAt: "desc" as const },
         include: {
           coverImageAsset: true,
+          coverLandscapeAsset: true,
           _count: {
             select: {
               episodes: {
@@ -552,6 +566,7 @@ export class PrismaListeningRepository implements ListeningRepository {
       where: { slug, ...PUBLIC_SERIES_WHERE },
       include: {
         coverImageAsset: true,
+        coverLandscapeAsset: true,
         episodes: {
           where: { status: "PUBLISHED" as const, deletedAt: null },
           orderBy: { sortOrder: "asc" },
@@ -595,6 +610,7 @@ export class PrismaListeningRepository implements ListeningRepository {
         series: {
           include: {
             coverImageAsset: true,
+            coverLandscapeAsset: true,
             episodes: {
               where: { status: "PUBLISHED" as const, deletedAt: null },
               orderBy: { sortOrder: "asc" },
@@ -658,8 +674,7 @@ export class PrismaListeningRepository implements ListeningRepository {
     db: Prisma.TransactionClient,
     command: ApplyProgressCommand,
   ): Promise<CompletionAward> {
-    const { userId, episodeId, now, weekStartDate, xpPerEpisodeCompletion } =
-      command;
+    const { userId, episodeId, now, xpPerEpisodeCompletion } = command;
     const created = await db.xpAward.createMany({
       data: [
         {
@@ -676,70 +691,12 @@ export class PrismaListeningRepository implements ListeningRepository {
         where: { id: userId },
         data: { totalXp: { increment: xpPerEpisodeCompletion } },
       });
-    const missions = await db.weeklyMission.findMany({
-      where: {
-        activityType: "COMPLETE_EPISODE",
-        weekStartDate,
-        activatedAt: { lte: now },
-      },
+    const updates = await recordMissionActivity(db, {
+      userId,
+      activityType: "COMPLETE_EPISODE",
+      contentId: episodeId,
+      now,
     });
-    const updates: MissionProgressSummary[] = [];
-    for (const mission of missions) {
-      const userMission = await db.userWeeklyMission.upsert({
-        where: {
-          weeklyMissionId_userId: { weeklyMissionId: mission.id, userId },
-        },
-        create: { weeklyMissionId: mission.id, userId },
-        update: {},
-      });
-      const item = await db.userWeeklyMissionItem.createMany({
-        data: [{ userWeeklyMissionId: userMission.id, contentId: episodeId }],
-        skipDuplicates: true,
-      });
-      if (!item.count) continue;
-      const progress = await db.userWeeklyMission.update({
-        where: { id: userMission.id },
-        data: { progressCount: { increment: 1 } },
-      });
-      let missionXp = 0;
-      let completedMissionNow = false;
-      if (
-        !progress.completedAt &&
-        progress.progressCount >= mission.targetCount
-      ) {
-        await db.userWeeklyMission.update({
-          where: { id: progress.id },
-          data: { completedAt: now },
-        });
-        const award = await db.xpAward.createMany({
-          data: [
-            {
-              userId,
-              sourceType: "WEEKLY_MISSION",
-              sourceId: mission.id,
-              xpAmount: mission.xpReward,
-            },
-          ],
-          skipDuplicates: true,
-        });
-        if (award.count) {
-          missionXp = mission.xpReward;
-          completedMissionNow = true;
-          await db.user.update({
-            where: { id: userId },
-            data: { totalXp: { increment: mission.xpReward } },
-          });
-        }
-      }
-      updates.push({
-        id: mission.id,
-        title: mission.title,
-        progress: progress.progressCount,
-        target: mission.targetCount,
-        completedNow: completedMissionNow,
-        xpAwarded: missionXp,
-      });
-    }
     const user = await db.user.findUniqueOrThrow({
       where: { id: userId },
       select: { totalXp: true },

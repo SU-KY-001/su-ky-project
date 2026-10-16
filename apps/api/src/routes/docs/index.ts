@@ -13,6 +13,8 @@ import { mediaPaths } from "./paths/media";
 import { studioPaths } from "./paths/studio";
 import { systemAuthPaths } from "./paths/system-auth";
 import { releasePaths } from "./paths/releases";
+import { adminPaths } from "./paths/admin";
+import { gamificationPaths } from "./paths/gamification";
 
 const SCALAR_THEME = "saturn";
 
@@ -56,6 +58,8 @@ const TAGS = [
   { name: "Release Coordination", description: "Điều phối, kiểm duyệt và tự động phát hành podcast" },
   { name: "Catalog", description: "Danh mục công khai: chủ đề và giai đoạn lịch sử" },
   { name: "Listening", description: "Duyệt nội dung, phát audio, đồng bộ tiến độ và lịch sử nghe" },
+  { name: "Quiz", description: "Moderator biên tập quiz; người nghe làm và nhận XP" },
+  { name: "Missions", description: "Nhiệm vụ tuần và tiến độ game hóa của người nghe" },
   { name: "Studio Series", description: "Moderator biên tập Series: tạo, sửa, xuất bản, ẩn, thùng rác, sắp xếp tập, nguồn tham khảo của Series" },
   { name: "Studio Episodes", description: "Moderator biên tập tập: bản kể (kịch bản text, audio upload), thẻ thực thể" },
   { name: "Studio Catalog", description: "Kho nguồn tham khảo và thực thể lịch sử dùng chung" },
@@ -64,7 +68,7 @@ const TAGS = [
 
 const TAG_GROUPS = [
   { name: "Hệ thống và tài khoản", tags: ["System", "Authentication", "Admin", "Release Coordination"] },
-  { name: "Người nghe", tags: ["Catalog", "Listening"] },
+  { name: "Người nghe", tags: ["Catalog", "Listening", "Quiz", "Missions"] },
   { name: "Studio (Moderator)", tags: ["Studio Series", "Studio Episodes", "Studio Catalog", "Studio Media"] },
 ] as const;
 
@@ -72,6 +76,8 @@ const TAG_GROUPS = [
 const allPaths: Paths = {
   ...betterAuthPaths,
   ...systemAuthPaths,
+  ...adminPaths,
+  ...gamificationPaths,
   ...catalogPaths,
   ...historicalCatalogPaths,
   ...listeningPaths,

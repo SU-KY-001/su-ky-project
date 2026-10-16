@@ -13,7 +13,7 @@ import {
   fromLegacyYearRange,
 } from "@repo/shared";
 import type { AppEnv } from "../../../types";
-import { requireAuth, requireRole } from "../../auth";
+import { requireAdmin, requireAuth, requireRole } from "../../auth";
 import {
   idempotency,
   rateLimit,
@@ -55,6 +55,7 @@ export function createHistoricalCatalogRoutes(
     )
     .post(
       "/",
+      requireAdmin,
       idempotency(),
       rateLimit("write"),
       zValidator("json", CreateHistoricalPeriodSchema, throwOnInvalid),
@@ -73,6 +74,7 @@ export function createHistoricalCatalogRoutes(
     )
     .patch(
       "/:id",
+      requireAdmin,
       rateLimit("write"),
       zValidator("param", idSchema, throwOnInvalid),
       zValidator("json", PatchHistoricalPeriodSchema, throwOnInvalid),
@@ -88,6 +90,7 @@ export function createHistoricalCatalogRoutes(
     )
     .delete(
       "/:id",
+      requireAdmin,
       rateLimit("write"),
       zValidator("param", idSchema, throwOnInvalid),
       zValidator("json", BaseVersionSchema, throwOnInvalid),
@@ -103,6 +106,7 @@ export function createHistoricalCatalogRoutes(
     )
     .post(
       "/:id/restore",
+      requireAdmin,
       rateLimit("write"),
       zValidator("param", idSchema, throwOnInvalid),
       zValidator("json", BaseVersionSchema, throwOnInvalid),

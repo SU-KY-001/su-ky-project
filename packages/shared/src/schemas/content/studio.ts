@@ -21,6 +21,7 @@ export const SeriesListItemSchema = z.object({
   isDeleted: z.boolean(),
   lock: LockSchema,
   cover: CoverSchema,
+  coverLandscape: CoverSchema,
   startYear: z.number().int().nullable(),
   endYear: z.number().int().nullable(),
   episodeCounts: z.object({
@@ -64,6 +65,7 @@ export const SeriesDetailSchema = z.object({
       "Năm kết thúc (đóng, tính cả năm này; khác `endYear` của Giai đoạn là loại trừ)",
     ),
   cover: CoverSchema,
+  coverLandscape: CoverSchema,
   owner: z.object({ id: z.string(), name: z.string() }),
   publishedAt: timestamp.nullable(),
   updatedAt: timestamp.describe(

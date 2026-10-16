@@ -213,6 +213,12 @@ export function mapSeriesDetail(
           url: storage?.deliveryUrl(series.coverImageAsset) ?? null,
         }
       : null,
+    coverLandscape: series.coverLandscapeAsset
+      ? {
+          assetId: series.coverLandscapeAsset.id,
+          url: storage?.deliveryUrl(series.coverLandscapeAsset) ?? null,
+        }
+      : null,
     owner: series.owner,
     publishedAt: series.publishedAt,
     updatedAt: series.updatedAt,
@@ -255,6 +261,12 @@ export function mapSeriesListItem(
       ? {
           assetId: series.coverImageAsset.id,
           url: storage?.deliveryUrl(series.coverImageAsset) ?? null,
+        }
+      : null,
+    coverLandscape: series.coverLandscapeAsset
+      ? {
+          assetId: series.coverLandscapeAsset.id,
+          url: storage?.deliveryUrl(series.coverLandscapeAsset) ?? null,
         }
       : null,
     startYear: series.startYear,

@@ -30,6 +30,7 @@ export interface CreateSeriesDraftInput {
   startYear?: number | null;
   endYear?: number | null;
   coverImageAssetId?: string | null;
+  coverLandscapeAssetId?: string | null;
 }
 
 export interface CreateSeriesInput extends CreateSeriesDraftInput {
@@ -48,6 +49,7 @@ export interface SeriesPatch {
   startYear?: number | null;
   endYear?: number | null;
   coverImageAssetId?: string | null;
+  coverLandscapeAssetId?: string | null;
 }
 
 export interface UpdateSeriesInput {
@@ -55,6 +57,7 @@ export interface UpdateSeriesInput {
   patch: SeriesPatch;
   /** Detached (dated) when it differs from the incoming cover asset. */
   previousCoverImageAssetId: string | null;
+  previousCoverLandscapeAssetId: string | null;
   before: SeriesEntity;
   after: SeriesPatch;
   actorId: string;

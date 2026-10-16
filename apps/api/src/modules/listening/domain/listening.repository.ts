@@ -38,8 +38,6 @@ export interface ApplyProgressCommand {
   bitmap: Uint8Array;
   totalSeconds: number;
   now: Date;
-  /** Monday 00:00 Vietnam time for the weekly-mission window (see mondayInVietnam). */
-  weekStartDate: Date;
   xpPerEpisodeCompletion: number;
   completionRatio: number;
   /** Elapsed seconds since the last listen -> how many new bits may be accepted. */

@@ -230,7 +230,7 @@ export const studioPaths: Paths = {
       rate: "write",
       errors: {
         409: "`SLUG_CONFLICT`: không cấp được slug duy nhất (có thể thử lại)",
-        422: "`VALIDATION_ERROR`: ảnh bìa không tồn tại, chưa `READY`, không phải ảnh hoặc không do bạn upload; `historicalPhaseId` không tồn tại",
+        422: "`VALIDATION_ERROR`: ảnh bìa (đứng) hoặc `coverLandscapeAssetId` (ngang) không tồn tại, chưa `READY`, không phải ảnh, không do bạn upload hoặc sai hướng (ảnh đứng cần cao > rộng, ảnh ngang cần rộng > cao); `historicalPhaseId` không tồn tại",
       },
     }),
   },
@@ -266,7 +266,7 @@ export const studioPaths: Paths = {
       rate: "write",
       errors: writeErrors("Series", {
         409: `${STALE}; \`SLUG_LOCKED\`: chỉ Series \`DRAFT\` mới đổi được slug; \`SLUG_CONFLICT\`: không cấp được slug duy nhất`,
-        422: "`VALIDATION_ERROR`: ảnh bìa không dùng được hoặc `historicalPhaseId` không tồn tại",
+        422: "`VALIDATION_ERROR`: ảnh bìa/ảnh ngang không dùng được hoặc sai hướng; `historicalPhaseId` không tồn tại",
       }),
     }),
     delete: operation({
