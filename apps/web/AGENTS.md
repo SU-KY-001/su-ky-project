@@ -11,7 +11,7 @@ Trước khi đọc hoặc sửa code trong `apps/web/`, **phải đọc đủ**
 | File | Nội dung | Đọc khi |
 |---|---|---|
 | `docs/skill/ARCHITECTURE-FE-SKILL.md` | Kiến trúc theo feature, state, data fetching, `useEffect`, route, xử lý lỗi, UI stack | Luôn luôn |
-| `docs/skill/PERMISSION-RULES-SKILL.md` | Quy tắc an toàn cho agent: hỏi trước khi chạy lệnh git, xoá/ghi đè/di chuyển file, lệnh nguy hiểm | Luôn luôn |
+| `docs/skill/PERMISSION-RULES-SKILL.md` | Quy tắc an toàn cho agent và quy tắc bắt buộc tái sử dụng component chung, menu thao tác, bảng, badge, toast của dashboard | Luôn luôn |
 | `docs/design/COLOR-FONT.md` | Bảng màu, font, token của giao diện | Mọi việc đụng tới UI, style, màu, font |
 
 Quy tắc trong các file này ưu tiên hơn thói quen cá nhân. Mâu thuẫn với file này thì hỏi lại người dùng.
@@ -40,6 +40,7 @@ apps/web/src/
 ## 3. Quy chuẩn
 
 - **UI:** Tailwind utility + `src/styles/globals.css`. Component shadcn thêm vào `src/components/ui`. **Không** import Tamagui hay `@tamagui/*` (thuộc `apps/mobile`).
+- **Đồng bộ dashboard:** tuân thủ Rule 5 trong `docs/skill/PERMISSION-RULES-SKILL.md`. Giữ nút chữ “Xem chi tiết” cũ của Moderator, bấm mở popup trực tiếp qua `DashboardRowActions` với action `id: "detail"`. Không thay bằng ba chấm, icon mắt hoặc dropdown “Thao tác → Xem chi tiết”. Chỉ dùng menu cho nhóm hành động nghiệp vụ cần gom. Tái sử dụng các component bảng, badge và toast có sẵn.
 - **Token:** trang công khai dùng token trong `docs/design/COLOR-FONT.md`. Khu moderator (`/moderator`) dùng riêng token `--color-mod-*` và font Manrope (`--font-moderator`) định nghĩa trong `src/styles/globals.css`; render chữ qua `ModeratorText` hoặc class `font-moderator`. Không hardcode mã màu hay font.
 - **Lịch sử:** kế hoạch và spec migrate sang Tailwind/shadcn nằm ở `docs/superpowers/` (chỉ để tham khảo).
 - **Dữ liệu:** `@repo/shared` cho schema và type dùng chung với API. Không viết lại type response tay nếu `AppType` hoặc shared đã có.

@@ -23,6 +23,7 @@ import {
   useCatalogInvalidation,
   useHistoricalSources,
 } from "../hooks/useHistoricalCatalog";
+import { DashboardPagination } from "@/shared/components/dashboard/DashboardPagination";
 const field = formField;
 const tiers = {
   TIER_1_CHINH_SU: "Chính sử",
@@ -548,27 +549,16 @@ export function HistoricalSourceFields({
               />
             </label>
             {sources.error ? <p role="alert">{sources.error.message}</p> : null}
-            <div className="flex gap-2">
-              <Button
-                type="button"
-                variant="ghost"
-                disabled={page === 1}
-                onClick={() => setPage(page - 1)}
-              >
-                Trang trước
-              </Button>
-              <span className="self-center text-xs">Trang {page}</span>
-              <Button
-                type="button"
-                variant="ghost"
-                disabled={
-                  !sources.data ||
-                  page * sources.data.limit >= sources.data.total
-                }
-                onClick={() => setPage(page + 1)}
-              >
-                Trang sau
-              </Button>
+            <div className="flex flex-wrap items-center gap-3">
+              <div className="min-w-0 flex-1">
+                <DashboardPagination
+                  page={page}
+                  limit={sources.data?.limit ?? 20}
+                  total={sources.data?.total ?? 0}
+                  itemLabel="nguồn"
+                  onPageChange={setPage}
+                />
+              </div>
               <Button
                 type="button"
                 variant="outline"

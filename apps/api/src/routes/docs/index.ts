@@ -12,6 +12,7 @@ import { listeningPaths } from "./paths/listening";
 import { mediaPaths } from "./paths/media";
 import { studioPaths } from "./paths/studio";
 import { systemAuthPaths } from "./paths/system-auth";
+import { releasePaths } from "./paths/releases";
 import { adminPaths } from "./paths/admin";
 import { gamificationPaths } from "./paths/gamification";
 
@@ -54,6 +55,7 @@ const TAGS = [
   { name: "System", description: "Kiểm tra trạng thái hệ thống" },
   { name: "Authentication", description: "Better Auth, phiên đăng nhập và tài khoản hiện tại" },
   { name: "Admin", description: "Endpoint riêng cho Admin" },
+  { name: "Release Coordination", description: "Điều phối, kiểm duyệt và tự động phát hành podcast" },
   { name: "Catalog", description: "Danh mục công khai: chủ đề và giai đoạn lịch sử" },
   { name: "Listening", description: "Duyệt nội dung, phát audio, đồng bộ tiến độ và lịch sử nghe" },
   { name: "Quiz", description: "Moderator biên tập quiz; người nghe làm và nhận XP" },
@@ -65,7 +67,7 @@ const TAGS = [
 ] as const;
 
 const TAG_GROUPS = [
-  { name: "Hệ thống và tài khoản", tags: ["System", "Authentication", "Admin"] },
+  { name: "Hệ thống và tài khoản", tags: ["System", "Authentication", "Admin", "Release Coordination"] },
   { name: "Người nghe", tags: ["Catalog", "Listening", "Quiz", "Missions"] },
   { name: "Studio (Moderator)", tags: ["Studio Series", "Studio Episodes", "Studio Catalog", "Studio Media"] },
 ] as const;
@@ -80,6 +82,7 @@ const allPaths: Paths = {
   ...historicalCatalogPaths,
   ...listeningPaths,
   ...studioPaths,
+  ...releasePaths,
   ...mediaPaths,
 };
 

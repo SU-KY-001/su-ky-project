@@ -2,6 +2,7 @@ import { afterEach, expect, it, spyOn } from "bun:test";
 import { act, useState } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { Editor } from "@tiptap/core";
+import { SCRIPT_MAX_CHARACTERS } from "@repo/shared";
 import { emptyScriptDocument } from "../scriptEditor";
 import { RichScriptEditor } from "./RichScriptEditor";
 
@@ -56,4 +57,51 @@ it("keeps the editor mounted and its text visible after a large formatted paste"
   expect(warnings.mock.calls.some((args) => String(args[0]).includes("Duplicate extension names"))).toBe(false);
   warnings.mockRestore();
   setOptions.mockRestore();
+});
+
+it("strips clipboard HTML, clamps oversized text, and keeps overflow inside the editor", async () => {
+  const container = document.createElement("div");
+  document.body.append(container);
+  root = createRoot(container);
+  let limitReached = 0;
+
+  await act(async () => {
+    root?.render(
+      <RichScriptEditor
+        initialDocument={emptyScriptDocument()}
+        onChange={() => undefined}
+        onPasteLimitReached={(limit) => {
+          limitReached = limit;
+        }}
+      />,
+    );
+  });
+
+  const editable = container.querySelector<HTMLElement>('[contenteditable="true"]');
+  const clipboardData = new DataTransfer();
+  const oversizedText = `Mở đầu\n${"Nội dung-không-có-khoảng-trắng".repeat(3_000)}`;
+  clipboardData.setData("text/plain", oversizedText);
+  clipboardData.setData(
+    "text/html",
+    `<html><body><!--StartFragment--><div class="docs-internal-guid"><script>throw new Error("unsafe")</script>${oversizedText}</div><!--EndFragment--></body></html>`,
+  );
+
+  await act(async () => {
+    editable?.dispatchEvent(
+      new ClipboardEvent("paste", {
+        bubbles: true,
+        cancelable: true,
+        clipboardData,
+      }),
+    );
+  });
+
+  expect(limitReached).toBe(SCRIPT_MAX_CHARACTERS);
+  expect(editable?.textContent?.length).toBeLessThanOrEqual(SCRIPT_MAX_CHARACTERS);
+  expect(editable?.querySelector("script")).toBeNull();
+  expect(editable?.className).toContain("[overflow-wrap:anywhere]");
+  expect(
+    container.querySelector("[data-script-scroll-region]")?.className,
+  ).toContain("podcast-editor-viewport");
+  expect(container.querySelector('[aria-label="Nội dung kịch bản podcast"]')).toBe(editable);
 });

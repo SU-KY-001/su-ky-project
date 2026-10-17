@@ -5,6 +5,16 @@ Nhãn: `BREAKING` (code cũ gọi sẽ lỗi hoặc sai), `ADDITIVE` (mới, kh�
 
 ## [Unreleased]
 
+### ADDITIVE — Điều phối và tự động phát hành podcast (2026-10-15)
+- Admin có nhóm endpoint `/api/admin/releases`: tạo/đổi lịch, phân công Moderator, xem tổng quan, “Tiến độ phát hành”, lịch sử, hủy lịch và thao tác cứu hộ khi lịch `BLOCKED`/`FAILED`.
+- Moderator có nhóm endpoint `/api/studio/releases`: xem nhiệm vụ, gắn podcast nháp, gửi phiên bản để duyệt, kiểm duyệt độc lập, xem nhắc việc và tiến độ. Moderator được phân công có thể cộng tác trên podcast đã gắn với lịch đang hoạt động; không được tự duyệt nội dung mình tham gia sản xuất.
+- Mọi lịch hợp lệ tự phát hành vào `scheduledAt`; không có trường chọn thủ công/tự động. `publish-now` chỉ là thao tác ngoại lệ và dùng chung publication service với worker.
+- Worker riêng chạy bằng `bun run worker` trong `apps/api`. Worker dùng pg-boss, transactional outbox, delayed job theo version, retry sau 1/5/15 phút và reconciliation mỗi phút. Triển khai production phải chạy API và ít nhất một worker như hai process độc lập.
+- Worker tạo lời nhắc bền vững cho từng Moderator trong 24 giờ trước `productionDeadline`. Unique key theo lịch, người nhận và version ngăn nhắc trùng; sự kiện xuất hiện trong “Tiến độ phát hành”.
+- `GET /health` thêm `releaseWorker`; trạng thái sẽ degraded nếu heartbeat worker phát hành không còn mới.
+- Migration `20261015120000_release_orchestration` thêm lịch phát hành, phân công, kiểm duyệt, nhắc việc, outbox, metadata audit và `episodes.content_revision`. Chạy `bun run db:deploy` trước khi bật worker.
+- FE phải dùng các schema release từ `@repo/shared`; timestamp lưu UTC và hiển thị theo `Asia/Ho_Chi_Minh`.
+
 ### ADDITIVE — Ảnh nền ngang của Series (2026-10-15)
 - `POST/PATCH /api/studio/series` nhận thêm `coverLandscapeAssetId` (uuid | `null` = gỡ). Response Studio (list + detail) và public (`/api/series`, `/api/series/:slug`, `/api/episodes/:slug` → `series`) thêm `coverLandscape` cùng dạng với `cover` (`null` khi chưa có). `cover` giữ nguyên, nay là ảnh **đứng**.
 - Upload như cover: `POST /api/studio/media-assets` (`kind: "IMAGE"`) → upload → verify → gắn asset vào `coverLandscapeAssetId`.

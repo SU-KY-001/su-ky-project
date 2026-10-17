@@ -26,6 +26,7 @@ describe("allowed origins", () => {
   });
 
   it("keeps the wildcard for CORS but drops it for Better Auth trustedOrigins", () => {
+    process.env.NODE_ENV = "production";
     process.env.CORS_ORIGIN = "*,http://a.test";
     expect(parseAllowedOrigins()).toEqual(["*", "http://a.test"]);
     expect(trustedAuthOrigins()).not.toContain("*");
@@ -42,5 +43,22 @@ describe("allowed origins", () => {
     ]);
     process.env.NODE_ENV = "production";
     expect(trustedAuthOrigins()).toEqual(["http://a.test"]);
+  });
+
+  it("trusts the fixed Vite origin in development even when CORS_ORIGIN uses the legacy port", () => {
+    process.env.NODE_ENV = "development";
+    process.env.CORS_ORIGIN = "http://localhost:5173";
+
+    expect(trustedAuthOrigins()).toEqual([
+      "http://localhost:5173",
+      "http://localhost:3000",
+    ]);
+  });
+
+  it("does not add development origins to a production allowlist", () => {
+    process.env.NODE_ENV = "production";
+    process.env.CORS_ORIGIN = "https://suky.vn";
+
+    expect(trustedAuthOrigins()).toEqual(["https://suky.vn"]);
   });
 });

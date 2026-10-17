@@ -1,5 +1,7 @@
 import { z } from "zod";
 
+export const SCRIPT_MAX_CHARACTERS = 60_000;
+
 export const EditorMarkSchema = z.discriminatedUnion("type", [
   z.object({ type: z.literal("bold") }).strict(),
   z.object({ type: z.literal("italic") }).strict(),

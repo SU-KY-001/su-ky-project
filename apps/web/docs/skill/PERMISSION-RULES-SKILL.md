@@ -82,6 +82,38 @@ The agent must not start, dispatch, or resume a browser agent or autonomous brow
 
 ---
 
+## Rule 5 — Đồng bộ component giao diện dashboard (Admin và Moderator)
+
+Trước khi sửa hoặc thêm UI trong `apps/web`, phải tìm component có sẵn trong `src/shared/components/dashboard/` và `src/shared/components/ui/`, rồi đối chiếu màn hình đang hoạt động cùng loại. Ưu tiên tái sử dụng component chung; không tự dựng phiên bản riêng tại từng feature.
+
+- **Xem chi tiết bản ghi:** giữ mẫu nút “Xem chi tiết” cũ của Moderator: nút chữ, bo góc, viền và nền nhạt theo token `mod-primary`, bấm mở popup trực tiếp. Dùng `DashboardRowActions` từ `@/shared/components/dashboard/DashboardRowActions` với một action `id: "detail"`; component tự render đúng nút cũ, không có icon mắt hoặc mũi tên. Không thay nút này bằng ba chấm hoặc dropdown “Thao tác → Xem chi tiết”. Không thêm một bước mở menu trước khi xem chi tiết.
+- **Một hành động duy nhất:** `DashboardRowActions` phải render nút chữ trực tiếp theo nhãn hành động (ví dụ “Chỉnh sửa” tập podcast), không bọc trong dropdown “Thao tác”. Dùng cùng kiểu nút cũ của Moderator; không thêm icon hay bước mở menu trung gian.
+- Menu chỉ dùng khi bản ghi có nhiều hành động nghiệp vụ thực sự cần gom (ví dụ sửa/khóa/xóa tài khoản); không ép mọi cột thao tác thành dropdown. Các trường hợp này tiếp tục dùng khả năng menu của component chung, không sao chép markup/style tại từng feature.
+- **Card Kanban lịch phát hành:** không đặt nút hoặc menu “Thao tác” trên card. Bấm card (hoặc Enter/Space khi focus) mở chi tiết; kéo thả tiếp tục tuân theo trạng thái được backend cho phép.
+- Feature chỉ truyền `label` của bản ghi, `actions` (`id`, `label`, `icon`, `onSelect`, `disabled`, `destructive`) và trạng thái `disabled` chung. Kích thước trigger, spacing, màu, focus, portal và kiểu menu do component chung quản lý; không thêm override riêng cho từng màn.
+- Chỉ truyền những hành động người dùng có quyền thực hiện; giữ kiểm tra quyền và trạng thái tại backend. Hành động nguy hiểm dùng `destructive: true`; bước xác nhận vẫn do luồng nghiệp vụ xử lý. Không tự thêm hành động khi đổi giao diện.
+- **Không lặp thao tác:** nếu popup chi tiết đã có gửi duyệt, phê duyệt, lưu hoặc xác nhận thì đặt thao tác đó trong popup; bảng chỉ giữ nút “Xem chi tiết” mở popup trực tiếp. Nút tạo mới, tìm kiếm, bộ lọc, phân trang, mở/đóng nhánh cây và nút trong form/popup dùng component tương ứng, không nhét vào menu của một bản ghi.
+- **Bảng và trạng thái:** dùng `DashboardTableCard`, `DashboardDataTable`, `DashboardPagination`, `CardBadge` và các wrapper Moderator hiện có. Badge phải tự xuống dòng khi thiếu chỗ; không ép chiều cao/cắt chữ theo từng feature.
+- **Bảng có hàng xổ/thu gọn:** khai báo `columnWidths` cho toàn bộ cột để component bảng chung dùng `table-layout: fixed`, như trang Dòng lịch sử. Mở thêm hàng con không được làm thay đổi tỷ lệ cột. Tên dài phải xuống dòng trong cột, icon không co lại; màn hình hẹp cuộn ngang trong container bảng hiện có, không đẩy rộng toàn trang.
+- **Thông báo thao tác:** dùng `notify` từ `@/shared/lib/notifications` cho thành công, lỗi, cảnh báo và nhắc hạn. Không thêm banner toàn trang, `window.alert()` hoặc thông báo trạng thái chen vào nội dung bảng. Lỗi xác thực từng trường và thông tin nghiệp vụ trong chi tiết vẫn hiển thị tại đúng vị trí.
+- **Xác nhận thao tác:** dùng shadcn/ui `AlertDialog` qua `ConfirmationDialog` và `useConfirmationDialog` dùng chung. Không dùng `window.confirm()`, `window.alert()` hoặc `window.prompt()`. Mô tả rõ tác động và bản ghi được chọn; chỉ gọi API sau khi xác nhận, nút “Quay lại”/Escape phải hủy mà không thay đổi dữ liệu.
+- **Theo dõi phát hành:** lấy trạng thái lịch và tiến độ từ API, tự đồng bộ khi trang đang mở. Trạng thái worker phải dựa trên heartbeat `/health`, không suy ra từ số card hay tự giả lập “Đang phát hành”. Giữ bản chụp `baseUpdatedAt` và nội dung form chưa lưu khi cập nhật badge/tiến độ. Dùng các mốc tiến độ đã lưu để xem lại bước phát hành quá ngắn giữa hai lần đồng bộ.
+- Khi thiếu khả năng dùng chung, mở rộng component hiện có hoặc bổ sung một component vào `src/shared/components/`, rồi áp dụng cho các màn cùng loại bị ảnh hưởng. Không sao chép markup/style giữa các feature. Chỉ thêm dependency khi stack hiện tại không đáp ứng được.
+- Khi đổi menu thao tác, kiểm tra mở bằng bàn phím, chọn đúng bản ghi, đóng menu, trạng thái disabled và việc mở popup; không để click/menu làm kích hoạt thao tác của hàng/card cha.
+
+Ví dụ:
+
+```tsx
+<DashboardRowActions
+  label={record.title}
+  actions={[
+    { id: "detail", label: "Xem chi tiết", onSelect: () => openDetail(record) },
+  ]}
+/>
+```
+
+---
+
 ## Permission request template
 
 Use a short, clear, unambiguous format:

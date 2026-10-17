@@ -123,7 +123,7 @@ function PodcastWizardPage({
       onBack={onBack}
       description={existingEpisode ? "Xem lại bốn bước sản xuất của tập podcast." : undefined}
     >
-      <div className="rounded-xl border border-mod-border bg-mod-surface shadow-sm">
+      <div className="w-full min-w-0 max-w-full overflow-hidden rounded-xl border border-mod-border bg-mod-surface shadow-sm">
         {existingEpisode ? (
           <div className="flex flex-wrap items-center justify-between gap-3 border-b border-mod-border px-4 py-4 sm:px-6">
             <div>
@@ -145,7 +145,7 @@ function PodcastWizardPage({
           />
         </div>
 
-        <div className="min-h-[420px] px-4 py-6 sm:px-6">
+        <div className="min-h-[420px] min-w-0 max-w-full px-4 py-6 sm:px-6">
           <div hidden={wizard.state.activeStep !== "information"}>
             <PodcastInformationStep
               state={wizard.state}

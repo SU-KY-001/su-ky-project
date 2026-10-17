@@ -138,7 +138,7 @@ async function lockEpisodeAndSeries(
   });
   await tx.episode.update({
     where: { id: episodeId },
-    data: { updatedAt: new Date() },
+    data: { updatedAt: new Date(), contentRevision: { increment: 1 } },
   });
 }
 // --- include payloads (verbatim from the former route files) --------------------
@@ -251,15 +251,66 @@ export class PrismaSeriesRepository implements SeriesRepository {
     return prisma.mediaAsset.findUnique({ where: { id } });
   }
 
+  async isActiveReleaseCollaboratorForSeries(seriesId: string, moderatorId: string): Promise<boolean> {
+    const assignment = await prisma.productionAssignment.findFirst({
+      where: {
+        moderatorId,
+        removedAt: null,
+        schedule: {
+          status: { in: ["SCHEDULED", "READY_TO_PUBLISH", "PUBLISHING", "BLOCKED", "FAILED"] },
+          episode: { seriesId },
+        },
+      },
+      select: { moderatorId: true },
+    });
+    return Boolean(assignment);
+  }
+
+  async isActiveReleaseCollaboratorForEpisode(episodeId: string, moderatorId: string): Promise<boolean> {
+    const assignment = await prisma.productionAssignment.findFirst({
+      where: {
+        moderatorId,
+        removedAt: null,
+        schedule: {
+          episodeId,
+          status: { in: ["SCHEDULED", "READY_TO_PUBLISH", "PUBLISHING", "BLOCKED", "FAILED"] },
+        },
+      },
+      select: { moderatorId: true },
+    });
+    return Boolean(assignment);
+  }
+
   async listSeries(filter: {
     ownerId: string | null;
+    viewerId?: string | null;
     status: ContentStatus | "TRASH" | null;
     q: string | null;
     page: number;
     limit: number;
   }): Promise<{ items: SeriesListItemEntity[]; total: number }> {
     const where: Prisma.SeriesWhereInput = {
-      ...(filter.ownerId ? { ownerId: filter.ownerId } : {}),
+      ...(filter.viewerId
+        ? {
+            OR: [
+              { ownerId: filter.viewerId },
+              {
+                episodes: {
+                  some: {
+                    releaseSchedules: {
+                      some: {
+                        status: { in: ["SCHEDULED", "READY_TO_PUBLISH", "PUBLISHING", "BLOCKED", "FAILED"] },
+                        assignments: { some: { moderatorId: filter.viewerId, removedAt: null } },
+                      },
+                    },
+                  },
+                },
+              },
+            ],
+          }
+        : filter.ownerId
+          ? { ownerId: filter.ownerId }
+          : {}),
       ...(filter.status === "TRASH"
         ? { deletedAt: { not: null } }
         : {
@@ -708,10 +759,13 @@ export class PrismaEpisodeRepository implements EpisodeRepository {
   }
 
   async updateEpisode(id: string, patch: EpisodePatch): Promise<void> {
-    await prisma.episode.update({ where: { id }, data: patch });
+    await prisma.episode.update({
+      where: { id },
+      data: { ...patch, contentRevision: { increment: 1 } },
+    });
   }
 
-  publishEpisodeWithEvidence(actorId: string, id: string, baseUpdatedAt: Date) {
+  publishEpisodeWithEvidence(actorId: string | null, id: string, baseUpdatedAt: Date) {
     return publishWithHistoricalEvidence(actorId, id, baseUpdatedAt, "episode");
   }
   async publishEpisode(id: string, publishedAt: Date): Promise<void> {
@@ -975,6 +1029,7 @@ export class PrismaEpisodeRepository implements EpisodeRepository {
     confirmedById: string,
   ) {
     return prisma.$transaction(async (tx) => {
+      await lockEpisodeAndSeries(tx, episodeId);
       await tx.$queryRaw`SELECT id FROM historical_entities WHERE id=${entityId}::uuid FOR UPDATE`;
       if (
         !(await tx.historicalEntity.findFirst({
@@ -1013,14 +1068,20 @@ export class PrismaEpisodeRepository implements EpisodeRepository {
   }
 
   async updateEpisodeEntityTag(childId: string, patch: UpdateEntityTagInput) {
-    return prisma.episodeEntityTag.update({
-      where: { id: childId },
-      data: {
-        status: patch.status,
-        confirmedById: patch.confirmedById,
-        confirmedAt: patch.confirmedAt,
-      },
-      include: entityTagInclude,
+    return prisma.$transaction(async (tx) => {
+      const existing = await tx.episodeEntityTag.findUniqueOrThrow({
+        where: { id: childId },
+      });
+      await lockEpisodeAndSeries(tx, existing.episodeId);
+      return tx.episodeEntityTag.update({
+        where: { id: childId },
+        data: {
+          status: patch.status,
+          confirmedById: patch.confirmedById,
+          confirmedAt: patch.confirmedAt,
+        },
+        include: entityTagInclude,
+      });
     });
   }
 
@@ -1028,8 +1089,11 @@ export class PrismaEpisodeRepository implements EpisodeRepository {
     episodeId: string,
     childId: string,
   ): Promise<void> {
-    await prisma.episodeEntityTag.deleteMany({
-      where: { id: childId, episodeId },
+    await prisma.$transaction(async (tx) => {
+      await lockEpisodeAndSeries(tx, episodeId);
+      await tx.episodeEntityTag.deleteMany({
+        where: { id: childId, episodeId },
+      });
     });
   }
 }

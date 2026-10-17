@@ -216,6 +216,14 @@ body {
   scroll-behavior: auto;
 }
 
+html.workspace-scroll-lock,
+body.workspace-scroll-lock {
+  height: 100%;
+  min-height: 0;
+  overflow: hidden;
+  overscroll-behavior: none;
+}
+
 .app-frame {
   height: 100dvh;
   overflow: hidden;
@@ -249,6 +257,32 @@ body {
 
 .podcast-rich-editor p {
   margin: 0 0 0.85rem;
+}
+
+.podcast-editor-viewport {
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+  height: clamp(20rem, 55dvh, 42rem);
+  overflow-x: hidden;
+  overflow-y: auto;
+  overflow-anchor: none;
+  overscroll-behavior: contain;
+  contain: layout paint;
+}
+
+.podcast-editor-viewport > div {
+  min-width: 0;
+  max-width: 100%;
+}
+
+.podcast-rich-editor {
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+  white-space: pre-wrap;
 }
 
 .podcast-rich-editor h1,
@@ -648,6 +682,19 @@ img {
   height: 0;
 }
 
+.mod-scrollbar-hidden,
+.mod-layout-root [data-slot="table-container"] {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.mod-scrollbar-hidden::-webkit-scrollbar,
+.mod-layout-root [data-slot="table-container"]::-webkit-scrollbar {
+  display: none;
+  width: 0;
+  height: 0;
+}
+
 .mod-dashboard-sheet {
   scrollbar-color: var(--primary) var(--background);
 }
@@ -799,6 +846,12 @@ img {
 .mod-content-view,
 [data-skeleton-layout] {
   animation: moderator-content-enter 160ms ease-out;
+}
+
+.mod-content-view {
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
 }
 
 @keyframes skeleton-sweep {

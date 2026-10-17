@@ -65,6 +65,7 @@ export function PodcastScriptStep({
   const [saving, setSaving] = useState(false);
   const [saveState, setSaveState] = useState<"idle" | "saved" | "error">("idle");
   const [error, setError] = useState("");
+  const [pasteWarning, setPasteWarning] = useState("");
   const episode = usePodcastEpisode(wizard.state.episodeId ?? "");
   const invalidate = usePodcastInvalidation();
   const document = wizard.state.scriptDocument ?? emptyScriptDocument();
@@ -192,6 +193,11 @@ export function PodcastScriptStep({
           <RichScriptEditor
             ref={editorRef}
             initialDocument={document}
+            onPasteLimitReached={(limit) => {
+              setPasteWarning(
+                `Kịch bản hỗ trợ tối đa ${limit.toLocaleString("vi-VN")} ký tự. Phần nội dung vượt giới hạn không được chèn.`,
+              );
+            }}
             onChange={(nextDocument: EditorDocument) => {
               changed.current = true;
               setSaveState("idle");
@@ -202,6 +208,11 @@ export function PodcastScriptStep({
               });
             }}
           />
+          {pasteWarning ? (
+            <p role="alert" className="text-sm text-mod-warning">
+              {pasteWarning}
+            </p>
+          ) : null}
           <div className="flex justify-end">
             <Button type="button" variant="outline" disabled={saving} onClick={() => void persistScript()}>
               {saving ? <LoaderCircle className="animate-spin" aria-hidden="true" /> : <Save aria-hidden="true" />}

@@ -2,7 +2,11 @@ import { CatalogSourceSchema } from "@repo/shared";
 import { z } from "zod";
 import {
   ContentStatusSchema,
+  EpisodeReviewStatusSchema,
   HistoricalEntityTypeSchema,
+  ReleaseModeratorWorkloadSchema,
+  ReleaseScheduleStatusSchema,
+  ReleaseReassignmentTicketStatusSchema,
   SeriesSourceSchema,
   SourceTierSchema,
   paginatedSchema,
@@ -26,8 +30,97 @@ export const HealthResponseSchema = z.object({
   bunVersion: z.string(),
   database: z.enum(["connected", "disconnected"]),
   queue: z.enum(["running", "stopped"]),
+  releaseWorker: z.enum(["running", "stale", "stopped"]),
   uptimeSeconds: z.number().int().nonnegative(),
   timestamp: z.string().datetime(),
+});
+
+export const ReleaseAssignmentDocSchema = z.object({
+  scheduleId: uuid,
+  moderatorId: z.string(),
+  assignedById: z.string(),
+  assignedAt: timestamp,
+  removedAt: timestamp.nullable(),
+  moderator: z.object({ id: z.string(), name: z.string(), email: z.string().email() }),
+});
+
+export const EpisodeReviewDocSchema = z.object({
+  id: uuid,
+  scheduleId: uuid,
+  episodeId: uuid,
+  revision: z.number().int().positive(),
+  status: EpisodeReviewStatusSchema,
+  submittedById: z.string(),
+  submittedAt: timestamp,
+  reviewedById: z.string().nullable(),
+  reviewedAt: timestamp.nullable(),
+  reviewNote: z.string().nullable(),
+});
+
+export const ReleaseScheduleDocSchema = z.object({
+  id: uuid,
+  episodeId: uuid.nullable(),
+  title: z.string(),
+  productionDeadline: timestamp,
+  scheduledAt: timestamp,
+  status: ReleaseScheduleStatusSchema,
+  version: z.number().int().positive(),
+  createdById: z.string(),
+  publishedAt: timestamp.nullable(),
+  cancelledAt: timestamp.nullable(),
+  failureCode: z.string().nullable(),
+  failureMessage: z.string().nullable(),
+  createdAt: timestamp,
+  updatedAt: timestamp,
+  assignments: z.array(ReleaseAssignmentDocSchema),
+  reviews: z.array(EpisodeReviewDocSchema),
+  episode: z.object({
+    id: uuid,
+    title: z.string(),
+    status: ContentStatusSchema,
+    contentRevision: z.number().int().positive(),
+    updatedAt: timestamp,
+  }).nullable(),
+  reassignmentTicket: z.object({
+    id: uuid,
+    status: ReleaseReassignmentTicketStatusSchema,
+    reason: z.string(),
+    decisionReason: z.string().nullable(),
+    createdAt: timestamp,
+    updatedAt: timestamp,
+  }).nullable().optional(),
+});
+
+export const ReleaseProgressDocSchema = z.object({
+  id: uuid,
+  actorId: z.string().nullable(),
+  actorType: z.string(),
+  action: z.string(),
+  resourceType: z.string(),
+  resourceId: z.string(),
+  changes: z.unknown(),
+  correlationId: z.string().nullable(),
+  jobId: z.string().nullable(),
+  fromStatus: z.string().nullable(),
+  toStatus: z.string().nullable(),
+  createdAt: timestamp,
+});
+
+export const ReleaseDashboardDocSchema = z.object({
+  upcoming: z.number().int().nonnegative(),
+  ready: z.number().int().nonnegative(),
+  atRisk: z.number().int().nonnegative(),
+  needsAttention: z.number().int().nonnegative(),
+});
+
+export const ReleaseModeratorWorkloadDocSchema = ReleaseModeratorWorkloadSchema;
+
+export const ReleaseActionResultDocSchema = z.object({
+  result: z.enum(["WAITING", "BLOCKED", "IGNORED", "RELEASED", "RETRY", "FAILED"]),
+});
+
+export const ReleaseStatusResultDocSchema = z.object({
+  status: ReleaseScheduleStatusSchema,
 });
 
 export const AuthUserSchema = z.object({
