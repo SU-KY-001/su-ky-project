@@ -1,9 +1,11 @@
 # Dependencies
 node_modules/
 .pnpm-store/
+.tamagui/
 
 # Bun
 bun.lockb
+.tools/bun/
 
 # Turbo
 .turbo/
@@ -16,6 +18,7 @@ out/
 
 # Environment
 .env
+.env.test
 .env.local
 .env.development.local
 .env.test.local
@@ -41,3 +44,4 @@ Thumbs.db
 
 # Database local volume
 postgres_data/
+.superpowers/
