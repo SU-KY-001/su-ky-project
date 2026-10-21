@@ -169,7 +169,7 @@ export function HeroCarousel() {
               <span>{slide.perspectives}</span>
             </div>
 
-            <HeroActions isFavorite={isFavorite} onPlay={openLogin} onToggleFavorite={toggleFavorite} onShowDetails={() => scrollToLandingTarget("top-week")} />
+            <HeroActions isFavorite={isFavorite} onPlay={openLogin} onToggleFavorite={toggleFavorite} onShowDetails={() => scrollToLandingTarget("library-history")} />
           </div>
 
           <div className="hidden w-full flex-col items-end gap-4 pb-2 2xl:flex 2xl:flex-[.88]">

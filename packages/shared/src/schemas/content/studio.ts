@@ -2,6 +2,7 @@ import { z } from "zod";
 import { ContentStatusSchema } from "../common";
 import { SeriesSourceSchema, HistoricalEntityTypeSchema } from "./catalog";
 import { AudioAnalysisSchema, EditorDocumentSchema } from "./editor-document";
+import { EpisodePosterSchema } from "./episode";
 const uuid = z.string().uuid(),
   timestamp = z.coerce.date();
 const LockSchema = z
@@ -161,6 +162,7 @@ export const EpisodeWorkspaceSchema = z.object({
   updatedAt: timestamp,
   narrations: z.array(NarrationSchema),
   attachments: z.array(EpisodeAttachmentSchema),
+  poster: EpisodePosterSchema.nullable().optional(),
   entityTags: z.array(EntityTagSchema),
   publishChecklist: z.object({
     ready: z.boolean(),

@@ -285,6 +285,7 @@ export async function mapWorkspace(
   episode: EpisodeWorkspaceEntity,
   storage?: MediaStorageGateway,
 ) {
+  const poster = episode.attachments.find((item) => item.mediaAsset.kind === "IMAGE");
   return {
     id: episode.id,
     seriesId: episode.seriesId,
@@ -304,7 +305,8 @@ export async function mapWorkspace(
     narrations: await Promise.all(
       episode.narrations.map((item) => mapNarration(item, storage)),
     ),
-    attachments: episode.attachments.map((item) =>
+    poster: poster ? { assetId: poster.mediaAsset.id, url: storage?.deliveryUrl(poster.mediaAsset) ?? null, fileName: poster.fileName, sizeBytes: poster.mediaAsset.sizeBytes === null ? null : Number(poster.mediaAsset.sizeBytes) } : null,
+    attachments: episode.attachments.filter((item) => item.mediaAsset.kind === "DOCUMENT").map((item) =>
       mapEpisodeAttachment(item, storage),
     ),
     entityTags: episode.entityTags.map(mapEntityTag),

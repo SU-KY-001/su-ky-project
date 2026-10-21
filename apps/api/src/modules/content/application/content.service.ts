@@ -701,6 +701,17 @@ export class ContentService {
     return this.episodes.listEpisodeAttachments(id);
   }
 
+  async setEpisodePoster(session: Session, id: string, input: { assetId: string | null; fileName?: string }): Promise<EpisodeWorkspaceEntity> {
+    const episode = await this.loadEpisodeForRead(session, id);
+    assertWritable(session, episode.series, episode);
+    if (input.assetId) {
+      const asset = await this.series.findMediaAsset(input.assetId);
+      if (!asset || asset.kind !== "IMAGE" || asset.status !== "READY" || asset.deletedAt || (session.user.role !== "admin" && asset.uploadedById !== session.user.id)) throw new DomainError(422, "VALIDATION_ERROR", "Ảnh poster chưa hợp lệ hoặc không thuộc tài khoản của bạn. Vui lòng tải lại ảnh.");
+    }
+    await this.episodes.setEpisodePoster(id, input.assetId, input.fileName ?? "poster");
+    return this.getEpisodeWorkspace(id);
+  }
+
   async attachEpisodeDocument(
     session: Session,
     id: string,
@@ -737,7 +748,7 @@ export class ContentService {
       id,
       attachmentId,
     );
-    if (!attachment)
+    if (!attachment || attachment.mediaAsset.kind !== "DOCUMENT")
       throw new DomainError(404, "NOT_FOUND", "Attachment not found");
     await this.episodes.detachEpisodeDocument(attachment.id);
   }

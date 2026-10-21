@@ -27,6 +27,9 @@ export const AttachEpisodeDocumentSchema = z.object({
   assetId: z.string().uuid(),
   fileName: z.string().trim().min(1).max(255),
 });
+export const SetEpisodePosterSchema = z.object({ assetId: z.string().uuid().nullable(), fileName: z.string().trim().min(1).max(255).optional() });
+export const EpisodePosterSchema = z.object({ assetId: z.string().uuid(), url: z.string().nullable(), fileName: z.string(), sizeBytes: z.number().int().nullable() });
+export type EpisodePoster = z.infer<typeof EpisodePosterSchema>;
 export const CreateEntityTagSchema = z.object({ entityId: z.string().uuid() });
 export const PatchEntityTagSchema = z.object({
   status: z.enum(["CONFIRMED", "REJECTED"]),

@@ -99,6 +99,7 @@ export function PodcastReviewStep({
       <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_320px]">
         <div className="space-y-4">
           <ReviewCard icon={Radio} title="Thông tin">
+            {wizard.state.poster?.url && <figure className="mb-4"><img src={wizard.state.poster.url} alt="Poster tập podcast" className="max-h-48 max-w-full rounded-lg border border-mod-border object-contain" /><figcaption className="mt-2 break-words text-xs text-mod-text-secondary">{wizard.state.poster.fileName}</figcaption></figure>}
             <dl className="grid gap-3 text-sm sm:grid-cols-2">
               <div><dt className="text-mod-text-secondary">Series</dt><dd className="mt-1 font-semibold text-mod-text">{series?.title || "Chưa chọn"}</dd></div>
               <div><dt className="text-mod-text-secondary">Tên tập</dt><dd className="mt-1 font-semibold text-mod-text">{wizard.state.title || "Chưa nhập"}</dd></div>

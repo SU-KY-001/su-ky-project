@@ -15,6 +15,7 @@ import { systemAuthPaths } from "./paths/system-auth";
 import { releasePaths } from "./paths/releases";
 import { adminPaths } from "./paths/admin";
 import { gamificationPaths } from "./paths/gamification";
+import { showcasePaths } from "./paths/showcase";
 
 const SCALAR_THEME = "saturn";
 
@@ -78,6 +79,7 @@ const allPaths: Paths = {
   ...systemAuthPaths,
   ...adminPaths,
   ...gamificationPaths,
+  ...showcasePaths,
   ...catalogPaths,
   ...historicalCatalogPaths,
   ...listeningPaths,

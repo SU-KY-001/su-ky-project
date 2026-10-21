@@ -1,4 +1,4 @@
-import { CreateMediaAssetSchema, UuidParamSchema, VerifyMediaAssetSchema } from "@repo/shared";
+import { CreateMediaAssetSchema, ImageUploadPolicySchema, UuidParamSchema, VerifyMediaAssetSchema } from "@repo/shared";
 import { operation, type Paths } from "../operation";
 import { MediaAssetSchema, MediaUploadTicketSchema } from "../schemas";
 
@@ -18,6 +18,7 @@ const UPLOAD_FLOW = [
 ].join("\n");
 
 export const mediaPaths: Paths = {
+  [`${BASE}/image-policy`]: { get: operation({ id: "getImageUploadPolicy", tag: TAG, summary: "Điều kiện upload ảnh hiện tại", description: "Định dạng, MIME và dung lượng tối đa theo cấu hình hệ thống; dùng để hiển thị điều kiện và kiểm tra trước khi upload.", access: "studio", ok: { status: 200, description: "Điều kiện upload ảnh", schema: { name: "ImageUploadPolicy", schema: ImageUploadPolicySchema } } }) },
   [BASE]: {
     post: operation({
       id: "createMediaAsset",

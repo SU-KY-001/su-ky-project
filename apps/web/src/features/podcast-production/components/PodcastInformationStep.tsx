@@ -1,10 +1,12 @@
 import type { ReactElement } from "react";
+import type { EpisodePoster } from "@repo/shared";
 import { FormField, formField } from "@/features/moderator/components/CreationPage";
 import { ModeratorSelect } from "@/features/moderator/components/ModeratorSelect";
 import { Button } from "@/shared/components/ui/button";
 import { Input } from "@/shared/components/ui/input";
 import { Textarea } from "@/shared/components/ui/textarea";
 import type { PodcastWizardState } from "../podcastWizardState";
+import { PodcastPosterField } from "./PodcastPosterField";
 
 export interface PodcastSeriesOption {
   value: string;
@@ -23,6 +25,8 @@ export function PodcastInformationStep({
   onLoadMore,
   onSelectSeries,
   onChange,
+  onPosterChange,
+  onPosterBusyChange,
 }: {
   state: PodcastWizardState;
   seriesOptions: PodcastSeriesOption[];
@@ -35,6 +39,8 @@ export function PodcastInformationStep({
   onLoadMore: () => void;
   onSelectSeries: (seriesId: string) => void;
   onChange: (value: Partial<Pick<PodcastWizardState, "title" | "description">>) => void;
+  onPosterChange: (poster: EpisodePoster | null) => void;
+  onPosterBusyChange: (busy: boolean) => void;
 }): ReactElement {
   if (readOnly) return (
     <section aria-labelledby="podcast-information-title" className="space-y-5">
@@ -48,6 +54,7 @@ export function PodcastInformationStep({
         <div className="rounded-lg bg-mod-canvas-accent p-4"><dt className="text-xs font-semibold text-mod-text-secondary">Tên tập podcast</dt><dd className="mt-1 font-semibold text-mod-text">{state.title}</dd></div>
         <div className="rounded-lg bg-mod-canvas-accent p-4"><dt className="text-xs font-semibold text-mod-text-secondary">Mô tả</dt><dd className="mt-1 whitespace-pre-wrap leading-6 text-mod-text">{state.description || "Chưa có mô tả."}</dd></div>
       </dl>
+      <PodcastPosterField value={state.poster} busy={busy} readOnly onChange={onPosterChange} onBusyChange={onPosterBusyChange} />
     </section>
   );
   return (
@@ -97,6 +104,7 @@ export function PodcastInformationStep({
               </FormField>
             </>
           )}
+          <PodcastPosterField value={state.poster} busy={busy} readOnly={false} onChange={onPosterChange} onBusyChange={onPosterBusyChange} />
         </div>
         <div className="space-y-4">
           <FormField label="Tên tập podcast" htmlFor="podcast-name">

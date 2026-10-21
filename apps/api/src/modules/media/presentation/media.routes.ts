@@ -12,6 +12,7 @@ const idParam = z.object({ id: z.string().uuid() });
 export function createMediaRoute(service: MediaService) {
   return new Hono<AppEnv>()
     .use("*", requireAuth, requireRole("moderator", "admin"))
+    .get("/image-policy", async (c) => c.json(await service.imageUploadPolicy()))
     .post("/", idempotency(), rateLimit("media_upload"), zValidator("json", CreateMediaAssetSchema, throwOnInvalid), async (c) => {
       const session = c.get("session")!;
       const result = await service.create(c.req.valid("json"), session.user.id);

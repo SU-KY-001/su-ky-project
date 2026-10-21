@@ -23,6 +23,7 @@ import { createReleaseRoutes } from "./modules/releases/presentation/release.rou
 import { releaseService } from "./modules/releases";
 import { meMissionRoute, publicQuizRoute, studioQuizRoute } from "./modules/gamification";
 import type { AppEnv } from "./types";
+import { showcaseRoute } from "./modules/showcase/showcase.routes";
 const MAX_REQUEST_BODY_BYTES = 10 * 1024 * 1024;
 
 export const app = new Hono<AppEnv>()
@@ -68,6 +69,7 @@ export const routes = app
   .route("/api", publicCatalogRoute)
   .route("/api", publicListeningRoute)
   .route("/api", publicQuizRoute)
+  .route("/api/showcase", showcaseRoute)
   .route("/api/me", meListeningRoute)
   .route("/api/me", meMissionRoute)
   .route("/api/studio", studioCatalogRoute)
