@@ -13,9 +13,12 @@ import {
   AttachAudioSchema,
   AttachEpisodeDocumentSchema,
   EpisodeAttachmentSchema,
+  EpisodePosterSchema,
+  ImageUploadPolicySchema,
 } from "@repo/shared";
 import { client } from "@/lib/client";
 import { ApiError } from "@/lib/apiError";
+import { uploadCatalogMedia } from "@/features/historical-library/services/catalogMediaService";
 const studio = client.api.studio;
 async function parse<S extends z.ZodTypeAny>(
   request: Promise<Pick<Response, "ok" | "json" | "status" | "headers">>,
@@ -28,6 +31,13 @@ async function parse<S extends z.ZodTypeAny>(
 const headers = (key: string) => ({ headers: { "Idempotency-Key": key } });
 export const NATIONAL_HISTORY_TOPIC_SLUG = "lich-su-dan-toc";
 export const podcastProductionService = {
+  imagePolicy: (signal?: AbortSignal) => parse(studio["media-assets"]["image-policy"].$get({}, { init: { signal } }), ImageUploadPolicySchema),
+  async uploadPoster(file: File, signal: AbortSignal) {
+    const assetId = await uploadCatalogMedia(file, "IMAGE", signal);
+    const asset = await parse(studio["media-assets"][":id"].$get({ param: { id: assetId } }, { init: { signal } }), z.object({ previewUrl: z.string() }));
+    return EpisodePosterSchema.parse({ assetId, url: asset.previewUrl, fileName: file.name, sizeBytes: file.size });
+  },
+  poster: (id: string, poster: z.infer<typeof EpisodePosterSchema> | null) => parse(studio.episodes[":id"].poster.$put({ param: { id }, json: { assetId: poster?.assetId ?? null, fileName: poster?.fileName } }), EpisodeWorkspaceSchema),
   series: (q = "", page = 1) =>
     parse(
       studio.series.$get({ query: { q, page: String(page), limit: "20" } }),

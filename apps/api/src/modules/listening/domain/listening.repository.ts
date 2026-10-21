@@ -10,6 +10,7 @@ import type {
 } from "./listening.entity";
 
 export interface PublicSeriesQuery {
+  eventId?: string;
   page: number;
   limit: number;
   topicId?: string;

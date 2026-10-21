@@ -805,9 +805,31 @@ export class PrismaEpisodeRepository implements EpisodeRepository {
 
   async listEpisodeAttachments(episodeId: string) {
     return prisma.episodeAttachment.findMany({
-      where: { episodeId },
+      where: { episodeId, mediaAsset: { kind: "DOCUMENT" } },
       orderBy: { createdAt: "asc" },
       include: episodeAttachmentInclude,
+    });
+  }
+
+  async setEpisodePoster(episodeId: string, assetId: string | null, fileName: string): Promise<void> {
+    await prisma.$transaction(async (tx) => {
+      await lockEpisodeAndSeries(tx, episodeId);
+      if (assetId) {
+        const asset = await tx.mediaAsset.findUnique({ where: { id: assetId } });
+        if (!asset || asset.kind !== "IMAGE" || asset.status !== "READY" || asset.deletedAt) throw new DomainError(422, "VALIDATION_ERROR", "Ảnh poster chưa sẵn sàng. Vui lòng tải lại ảnh.");
+        const used = await tx.episodeAttachment.findUnique({ where: { mediaAssetId: assetId } });
+        if (used && used.episodeId !== episodeId) throw new DomainError(409, "ASSET_IN_USE", "Ảnh đã gắn với tập khác. Vui lòng tải một ảnh mới.");
+      }
+      const previous = await tx.episodeAttachment.findMany({ where: { episodeId, mediaAsset: { kind: "IMAGE" } } });
+      const removed = previous.filter((value) => value.mediaAssetId !== assetId);
+      if (removed.length) {
+        await tx.episodeAttachment.deleteMany({ where: { id: { in: removed.map((value) => value.id) } } });
+        await tx.mediaAsset.updateMany({ where: { id: { in: removed.map((value) => value.mediaAssetId) }, seriesCover: { none: {} }, seriesCoverLandscape: { none: {} } }, data: { detachedAt: new Date() } });
+      }
+      if (assetId && !previous.some((value) => value.mediaAssetId === assetId)) {
+        await tx.mediaAsset.update({ where: { id: assetId }, data: { detachedAt: null } });
+        await tx.episodeAttachment.create({ data: { episodeId, mediaAssetId: assetId, fileName } });
+      }
     });
   }
 

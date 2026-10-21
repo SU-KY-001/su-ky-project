@@ -1,4 +1,4 @@
-import type { AudioAnalysis, EditorDocument, EpisodeWorkspaceDto } from "@repo/shared";
+import type { AudioAnalysis, EditorDocument, EpisodeWorkspaceDto, EpisodePoster } from "@repo/shared";
 import { legacyScriptToDocument, scriptDocumentText } from "./scriptEditor";
 
 export type PodcastWizardStep = "information" | "script" | "voice" | "review";
@@ -22,9 +22,13 @@ export interface PodcastWizardState {
   scriptDirty: boolean;
   voiceMode: PodcastVoiceMode;
   uploadedAudio: WizardAudio | null;
+  poster: EpisodePoster | null;
+  posterDirty: boolean;
 }
 
 export type PodcastWizardAction =
+  | { type: "setPoster"; value: EpisodePoster | null }
+  | { type: "posterSaved"; assetId: string | null }
   | { type: "selectStep"; step: PodcastWizardStep }
   | {
       type: "updateInformation";
@@ -59,10 +63,12 @@ export function initialPodcastWizardState(): PodcastWizardState {
     scriptDirty: false,
     voiceMode: "upload",
     uploadedAudio: null,
+    poster: null,
+    posterDirty: false,
   };
 }
 
-type ExistingEpisode = Pick<EpisodeWorkspaceDto, "id" | "seriesId" | "title" | "description"> & {
+type ExistingEpisode = Pick<EpisodeWorkspaceDto, "id" | "seriesId" | "title" | "description" | "poster"> & {
   narrations: Array<Pick<EpisodeWorkspaceDto["narrations"][number], "type" | "scriptContent" | "scriptDocument" | "audioAnalysis"> & {
     audio: Pick<NonNullable<EpisodeWorkspaceDto["narrations"][number]["audio"]>, "assetId" | "previewUrl"> | null;
   }>;
@@ -81,6 +87,7 @@ export function podcastWizardStateFromEpisode(
     seriesId: episode.seriesId,
     title: episode.title,
     description: episode.description ?? "",
+    poster: episode.poster ?? null,
     historicalEventId,
     scriptDocument,
     scriptText: scriptDocument ? scriptDocumentText(scriptDocument) : "",
@@ -97,6 +104,10 @@ export function podcastWizardReducer(
   action: PodcastWizardAction,
 ): PodcastWizardState {
   switch (action.type) {
+    case "setPoster":
+      return { ...state, poster: action.value, posterDirty: true };
+    case "posterSaved":
+      return (state.poster?.assetId ?? null) === action.assetId ? { ...state, posterDirty: false } : state;
     case "selectStep":
       return { ...state, activeStep: action.step };
     case "updateInformation":

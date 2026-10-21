@@ -34,7 +34,7 @@ function LandingContentError() {
 }
 
 function LandingFooterError() {
-  return <p className="bg-night px-5 py-6 text-center text-sm text-paper-deep" role="alert">Phần đăng ký chưa tải được. Hero và các nội dung đã tải vẫn dùng được.</p>;
+  return <p className="bg-night px-5 py-6 text-center text-sm text-paper-deep" role="alert">Chưa tải được phần chân trang. Vui lòng tải lại trang để thử lại.</p>;
 }
 
 export function LandingPage() {

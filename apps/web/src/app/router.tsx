@@ -16,6 +16,30 @@ export const appRoutes: RouteObject[] = [
     HydrateFallback: AppLoadingFallback,
     ErrorBoundary: RouteErrorFallback,
     children: [
+      {
+        id: "history-library-wireframe",
+        path: "wireframes/history-library",
+        lazy: async () => {
+          const { HistoryLibraryWireframePage } = await import("../pages/wireframes/HistoryLibraryWireframePage");
+          return { Component: HistoryLibraryWireframePage };
+        },
+      },
+      {
+        id: "history-design-wireframe",
+        path: "wireframes/history",
+        lazy: async () => {
+          const { HistoryDesignWireframePage } = await import("../pages/wireframes/HistoryDesignWireframePage");
+          return { Component: HistoryDesignWireframePage };
+        },
+      },
+      {
+        id: "podcast-showcase-wireframe",
+        path: "wireframes/podcast-showcase",
+        lazy: async () => {
+          const { PodcastShowcaseWireframePage } = await import("../pages/wireframes/PodcastShowcaseWireframePage");
+          return { Component: PodcastShowcaseWireframePage };
+        },
+      },
       {id:"historical-event",path:"history/events/:slug",lazy:async()=>{const {HistoricalEventPage}=await import("../pages/history/HistoricalEventPage");return {Component:HistoricalEventPage};}},
       {
         id: "public-routes",

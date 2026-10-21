@@ -20,6 +20,8 @@ export class MediaService {
     return { assetId: asset.id, kind: asset.kind, status: asset.status, format: asset.format, sizeBytes: asset.sizeBytes ? Number(asset.sizeBytes) : null, durationMs: asset.durationMs, createdAt: asset.createdAt, verifiedAt: asset.verifiedAt, previewUrl: asset.status === "READY" ? this.storage.deliveryUrl(asset) : undefined };
   }
 
+  imageUploadPolicy() { return this.config("IMAGE"); }
+
   private providerError(error: unknown): never {
     if (error instanceof MediaProviderError) throw new DomainError(503, "MEDIA_PROVIDER_UNAVAILABLE", error.message);
     throw error;

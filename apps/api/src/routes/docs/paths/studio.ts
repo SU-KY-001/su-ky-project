@@ -3,6 +3,7 @@ import { z } from "zod";
 import {
   AttachAudioSchema,
   AttachEpisodeDocumentSchema,
+  SetEpisodePosterSchema,
   CreateEntityTagSchema,
   CreateEpisodeSchema,
   CreateSeriesSchema,
@@ -181,6 +182,7 @@ const episodeAction = (
   });
 
 export const studioPaths: Paths = {
+  [`${EPISODES}/{id}/poster`]: { put: operation({ id: "setEpisodePoster", tag: EPISODE_TAG, summary: "Gắn, thay hoặc gỡ poster của tập podcast", description: "assetId phải là IMAGE đã xác minh READY của người dùng (Admin có thể chọn ảnh của người khác). Gửi null để gỡ poster. Poster lưu riêng với tài liệu bổ sung; thay ảnh không xóa tệp trực tiếp khỏi kho lưu trữ.", access: "studio", ...episodeParams, rate: "write", body: { name: "SetEpisodePoster", schema: SetEpisodePosterSchema }, ok: { status: 200, description: "Workspace kèm poster mới", schema: workspace }, errors: writeErrors("tập podcast", { 409: "`ASSET_IN_USE`: ảnh đã gắn vào tập khác", 422: "`VALIDATION_ERROR`: ảnh chưa READY, sai loại hoặc không thuộc tài khoản" }) }) },
   [SERIES]: {
     get: operation({
       id: "listStudioSeries",

@@ -206,6 +206,7 @@ export interface EpisodeRepository {
   restoreEpisode(id: string, restoredStatus: ContentStatus): Promise<void>;
 
   listEpisodeAttachments(episodeId: string): Promise<EpisodeAttachmentEntity[]>;
+  setEpisodePoster(episodeId: string, assetId: string | null, fileName: string): Promise<void>;
   findEpisodeAttachment(
     episodeId: string,
     attachmentId: string,

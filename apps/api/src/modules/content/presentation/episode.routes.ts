@@ -2,6 +2,7 @@ import { PublishContentSchema } from "@repo/shared";
 import {
   AttachAudioSchema,
   AttachEpisodeDocumentSchema,
+  SetEpisodePosterSchema,
   CreateEntityTagSchema,
   CreateEpisodeSchema,
   NarrationTypeSchema,
@@ -45,6 +46,7 @@ export function createEpisodeRoute(
 ) {
   return new Hono<AppEnv>()
     .use("*", requireAuth, requireRole("moderator", "admin"))
+    .put("/episodes/:id/poster", rateLimit("write"), zValidator("param", idParam, throwOnInvalid), zValidator("json", SetEpisodePosterSchema, throwOnInvalid), async (c) => c.json(await mapWorkspace(await service.setEpisodePoster(c.get("session")!, c.req.valid("param").id, c.req.valid("json")), storage)))
     .post(
       "/series/:seriesId/episodes",
       idempotency(),

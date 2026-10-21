@@ -2,6 +2,7 @@ import { z } from "zod";
 import { PaginationQuerySchema, HistoricalYearSchema } from "../common";
 
 export const PublicSeriesListQuerySchema = PaginationQuerySchema.extend({
+  eventId: z.string().uuid().optional(),
   topicId: z.string().uuid().optional(), historicalPhaseId: z.string().uuid().optional(), periodId: z.string().uuid().optional(),
   fromYear: HistoricalYearSchema.optional(), toYear: HistoricalYearSchema.optional(), q: z.string().trim().optional(),
 });

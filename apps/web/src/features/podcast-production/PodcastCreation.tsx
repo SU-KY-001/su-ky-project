@@ -74,6 +74,7 @@ function PodcastWizardPage({
   const event = useHistoricalEvent(wizard.state.historicalEventId);
   const [editing, setEditing] = useState(!existingEpisode);
   const [busy, setBusy] = useState(false);
+  const [posterBusy, setPosterBusy] = useState(false);
   const [error, setError] = useState("");
   const currentIndex = stepOrder.indexOf(wizard.state.activeStep);
 
@@ -141,7 +142,7 @@ function PodcastWizardPage({
           <PodcastWizardStepper
             activeStep={wizard.state.activeStep}
             completion={wizard.completion}
-            onSelect={wizard.selectStep}
+            onSelect={(step) => { if (!posterBusy) wizard.selectStep(step); }}
           />
         </div>
 
@@ -157,7 +158,9 @@ function PodcastWizardPage({
                 ) ?? []
               }
               eventName={event.data?.name ?? ""}
-              busy={busy}
+              busy={busy || posterBusy}
+              onPosterChange={(value) => wizard.dispatch({ type: "setPoster", value })}
+              onPosterBusyChange={setPosterBusy}
               hasMoreSeries={Boolean(series.hasNextPage)}
               error={error || queryError?.message}
               onLoadMore={() => {
@@ -198,7 +201,7 @@ function PodcastWizardPage({
             type="button"
             variant="outline"
             className={secondaryAction}
-            disabled={currentIndex === 0}
+            disabled={currentIndex === 0 || posterBusy}
             onClick={() => move(-1)}
           >
             <ArrowLeft size={17} aria-hidden="true" />
@@ -210,7 +213,7 @@ function PodcastWizardPage({
                 type="button"
                 variant="outline"
                 className={secondaryAction}
-                disabled={busy}
+                disabled={busy || posterBusy}
                 onClick={() => {
                   void saveDraft();
                 }}
@@ -224,6 +227,7 @@ function PodcastWizardPage({
                 type="button"
                 className={primaryAction}
                 onClick={() => move(1)}
+                disabled={busy || posterBusy}
               >
                 Bước tiếp theo
                 <ArrowRight size={17} aria-hidden="true" />

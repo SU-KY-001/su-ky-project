@@ -48,6 +48,10 @@ export function usePodcastCreationWizard(initialState?: () => PodcastWizardState
       title: current.title.trim(),
       description: current.description.trim() || null,
     });
+    if (current.posterDirty) {
+      await api.poster(id, current.poster);
+      dispatch({ type: "posterSaved", assetId: current.poster?.assetId ?? null });
+    }
     await invalidate();
     return id;
   }, [ensureDraft, invalidate]);

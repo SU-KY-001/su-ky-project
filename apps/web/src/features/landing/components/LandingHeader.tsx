@@ -11,9 +11,9 @@ import { useCurrentUser } from "@/shared/hooks/useCurrentUser";
 import { AccountProfile } from "@/features/auth";
 
 const links = [
-  { label: "Top tuần", target: "top-week" },
-  { label: "Mới lên", target: "new" },
-  { label: "Sắp phát hành", target: "upcoming" },
+  { label: "Dòng lịch sử", target: "library-history" },
+  { label: "Podcast", target: "library-podcasts" },
+  { label: "Lịch phát hành", target: "upcoming" },
 ];
 
 function jumpTo(target: string): void {

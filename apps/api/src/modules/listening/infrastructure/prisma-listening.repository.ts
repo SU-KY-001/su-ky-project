@@ -494,6 +494,7 @@ export class PrismaListeningRepository implements ListeningRepository {
   ): Promise<{ items: SeriesWithCoverAndCount[]; total: number }> {
     const where: Prisma.SeriesWhereInput = {
       ...PUBLIC_SERIES_WHERE,
+      ...(query.eventId ? { primaryHistoricalEventId: query.eventId } : {}),
       ...(query.topicId ? { topicId: query.topicId } : {}),
       ...(query.historicalPhaseId
         ? { historicalPhaseId: query.historicalPhaseId }

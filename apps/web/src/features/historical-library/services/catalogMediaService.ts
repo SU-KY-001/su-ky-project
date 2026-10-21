@@ -16,6 +16,7 @@ const verifiedSchema = z.object({
 export async function uploadCatalogMedia(
   file: File,
   kind: "DOCUMENT" | "AUDIO" | "IMAGE" = "DOCUMENT",
+  signal?: AbortSignal,
 ) {
   const ticketResponse = await client.api.studio["media-assets"].$post(
     {
@@ -26,7 +27,7 @@ export async function uploadCatalogMedia(
         mimeType: file.type,
       },
     },
-    { headers: { "Idempotency-Key": newIdempotencyKey() } },
+    { headers: { "Idempotency-Key": newIdempotencyKey() }, init: { signal } },
   );
   if (!ticketResponse.ok) throw await ApiError.fromResponse(ticketResponse);
   const ticket = ticketSchema.parse(await ticketResponse.json());
@@ -34,10 +35,10 @@ export async function uploadCatalogMedia(
   for (const [key, value] of Object.entries(ticket.upload.fields))
     body.set(key, value);
   body.set("file", file);
-  const uploaded = await fetch(ticket.upload.url, { method: "POST", body });
+  const uploaded = await fetch(ticket.upload.url, { method: "POST", body, signal });
   if (!uploaded.ok)
     throw new Error(
-      "Không tải được tài liệu lên kho lưu trữ. Vui lòng thử lại.",
+      kind === "IMAGE" ? "Kho lưu trữ chưa nhận được ảnh. Kiểm tra kết nối và thử tải lại." : "Không tải được tài liệu lên kho lưu trữ. Vui lòng thử lại.",
     );
   const result = z
     .object({ public_id: z.string() })
@@ -45,7 +46,7 @@ export async function uploadCatalogMedia(
   const verified = await client.api.studio["media-assets"][":id"].verify.$post({
     param: { id: ticket.assetId },
     json: { publicId: result.public_id },
-  });
+  }, { init: { signal } });
   if (!verified.ok) throw await ApiError.fromResponse(verified);
   return verifiedSchema.parse(await verified.json()).assetId;
 }
