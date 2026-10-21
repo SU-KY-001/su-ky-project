@@ -1,5 +1,6 @@
 import { Fragment, useState, type ReactNode } from "react";
-import { Plus } from "@phosphor-icons/react";
+import { Eye, Plus } from "@phosphor-icons/react";
+import { DashboardRowActions } from "@/shared/components/dashboard/DashboardRowActions";
 import type {
   HistoricalPeriodDetailDto,
   HistoricalPhaseDetailDto,
@@ -129,9 +130,7 @@ function Cells({
       </TableCell>
       <TableCell className={cn(tableCell, "align-middle")}>
         {kind === "period" && "phases" in node ? (
-          <Button type="button" variant="outline" className="min-h-10 border-mod-primary/30 bg-mod-primary/5 px-4 font-semibold text-mod-primary hover:bg-mod-primary/5 hover:text-mod-primary" onClick={() => ctx.openDetail(node)} aria-label={`Xem chi tiết ${node.name}`}>
-            Xem chi tiết
-          </Button>
+          <DashboardRowActions label={node.name} actions={[{ id: "detail", label: "Xem chi tiết", icon: Eye, onSelect: () => ctx.openDetail(node) }]} />
         ) : null}
       </TableCell>
     </>

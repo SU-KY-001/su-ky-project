@@ -27,6 +27,12 @@ const implemented = new Set(
 );
 
 describe("OpenAPI spec", () => {
+  it("documents the explicit release readiness command", () => {
+    expect(
+      openApiSpec.paths["/api/admin/releases/{id}/check-readiness"]?.post,
+    ).toBeDefined();
+  });
+
   it("documents every implemented route", () => {
     expect([...implemented].filter((key) => !documented.has(key))).toEqual([]);
   });

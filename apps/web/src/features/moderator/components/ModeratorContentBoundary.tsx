@@ -2,7 +2,7 @@ import { Suspense, type ReactNode } from "react";
 import { Skeleton } from "@/shared/components/ui/skeleton";
 import type { ModeratorSection } from "../types";
 
-const columns: Record<Exclude<ModeratorSection, "overview">, number> = { timeline: 6, events: 7, sources: 4, podcast: 5, pending: 7, schedule: 4 };
+const columns: Record<Exclude<ModeratorSection, "overview">, number> = { timeline: 6, events: 7, sources: 4, podcast: 5, assignments: 4, tickets: 6, pending: 7, schedule: 4 };
 
 export function ModeratorContentSkeleton({ section }: { section: Exclude<ModeratorSection, "overview"> }) {
   return <div role="status" aria-busy="true" data-skeleton-layout="table" className="flex w-full min-w-0 flex-col gap-5">

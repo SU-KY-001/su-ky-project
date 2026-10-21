@@ -7,6 +7,7 @@ import { API_VERSION } from "../core/config/app-info";
 
 export const healthRoute = new Hono().get("/", async (c) => {
   let dbStatus: "connected" | "disconnected" = "disconnected";
+  let releaseWorker: "running" | "stale" | "stopped" = "stopped";
 
   try {
     const { promise: timeoutPromise, reject } = Promise.withResolvers<never>();
@@ -16,6 +17,23 @@ export const healthRoute = new Hono().get("/", async (c) => {
       timeoutPromise,
     ]).finally(() => clearTimeout(timer));
     dbStatus = "connected";
+    const heartbeat = await prisma.systemConfig.findUnique({
+      where: { key: "worker.release.heartbeat" },
+      select: { value: true },
+    });
+    const timestamp =
+      heartbeat?.value &&
+      typeof heartbeat.value === "object" &&
+      !Array.isArray(heartbeat.value) &&
+      "timestamp" in heartbeat.value &&
+      typeof heartbeat.value.timestamp === "string"
+        ? Date.parse(heartbeat.value.timestamp)
+        : Number.NaN;
+    releaseWorker = Number.isNaN(timestamp)
+      ? "stopped"
+      : Date.now() - timestamp <= 90_000
+        ? "running"
+        : "stale";
   } catch (error) {
     logger.warn(
       { err: error },
@@ -24,7 +42,8 @@ export const healthRoute = new Hono().get("/", async (c) => {
     dbStatus = "disconnected";
   }
   const queue = isMaintenanceRunning() ? "running" : "stopped";
-  const isHealthy = dbStatus === "connected" && queue === "running";
+  const isHealthy =
+    dbStatus === "connected" && queue === "running" && releaseWorker === "running";
   const globalObj: Record<string, unknown> = globalThis;
   let bunVersion = "1.4.0";
   const bunEntry = globalObj.Bun;
@@ -44,6 +63,7 @@ export const healthRoute = new Hono().get("/", async (c) => {
     bunVersion,
     database: dbStatus,
     queue,
+    releaseWorker,
     uptimeSeconds: Math.floor(process.uptime()),
     timestamp: new Date().toISOString(),
   };

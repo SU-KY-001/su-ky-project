@@ -6,7 +6,7 @@ export const formField = "mod-field min-h-11 w-full rounded-lg border border-mod
 
 export function CreationPage({ title, onBack, children, description = "Điền thông tin để lưu bản nháp trong phiên làm việc hiện tại." }: { title: string; onBack: () => void; children: ReactNode; description?: string }) {
   const focusTitle = useCallback((node: HTMLHeadingElement | null) => { node?.focus(); }, []);
-  return <section className="flex flex-col gap-5 font-moderator">
+  return <section className="flex w-full min-w-0 max-w-full flex-col gap-5 font-moderator">
     <header className="border-b border-mod-border pb-4">
       <button type="button" onClick={onBack} className="mb-4 inline-flex min-h-8 items-center gap-2 text-sm font-semibold text-mod-text-secondary transition-colors hover:text-mod-primary focus-visible:rounded-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-mod-primary"><ArrowLeft size={16} aria-hidden="true" />Quay lại danh sách</button>
       <h1 ref={focusTitle} tabIndex={-1} className="text-2xl font-bold tracking-tight text-mod-text outline-none">{title}</h1>

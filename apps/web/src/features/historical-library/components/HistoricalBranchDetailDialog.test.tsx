@@ -1,4 +1,5 @@
 import { afterEach, expect, it } from "bun:test";
+import { selectDashboardAction } from "@/test/dashboardActions";
 import { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -109,8 +110,8 @@ it("opens the paginated branch and edits the selected content without bypassing 
   const eventName = Array.from(host.querySelectorAll("span")).find((item) => item.textContent === "Sự kiện đầu");
   await act(async () => eventName?.dispatchEvent(new MouseEvent("click", { bubbles: true })));
   expect(document.querySelector('[role="dialog"]')).toBeNull();
-  expect(host.querySelectorAll('[aria-label^="Xem chi tiết"]').length).toBe(1);
-  await act(async () => button("Xem chi tiết").click());
+  expect(host.querySelectorAll('[data-slot="dashboard-row-actions"]').length).toBe(1);
+  await selectDashboardAction("Thời kỳ Nguyễn", "Xem chi tiết", host);
   await settle(() => Boolean(document.querySelector('[role="dialog"]')?.textContent?.includes("Sự kiện giai đoạn cuối")));
   const dialog = document.querySelector('[role="dialog"]');
   expect(dialog?.textContent).toContain("Thời kỳ Nguyễn");

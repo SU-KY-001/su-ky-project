@@ -4,8 +4,10 @@ import {
   CalendarBlank,
   ChartBar,
   CheckSquareOffset,
+  ClipboardText,
   Headphones,
   MapTrifold,
+  Ticket,
 } from "@phosphor-icons/react";
 import type { ShellNavItem } from "./components/ModeratorShell";
 import type { ModeratorSection } from "./types";
@@ -34,6 +36,8 @@ export function moderatorWorkspaceNav(
     { id: "historical-sources", label: "Nguồn tư liệu", icon: BookOpenText, active: activeSection === "sources", onSelect: () => onSelect("sources") },
     { id: "podcast-heading", label: "SẢN XUẤT PODCAST", active: false, groupStart: true },
     { id: "podcast-production", label: "Sản xuất podcast", icon: Headphones, active: activeSection === "podcast", onSelect: () => onSelect("podcast") },
+    { id: "moderator-assignments", label: "Nhiệm vụ của tôi", icon: ClipboardText, active: activeSection === "assignments", onSelect: () => onSelect("assignments") },
+    { id: "moderator-tickets", label: "Ticket", icon: Ticket, active: activeSection === "tickets", onSelect: () => onSelect("tickets") },
     { id: "publishing-heading", label: "XUẤT BẢN", active: false, groupStart: true },
     { id: "moderator-pending", label: "Cần xử lý", icon: CheckSquareOffset, active: activeSection === "pending", onSelect: () => onSelect("pending") },
     { id: "moderator-schedule", label: "Lịch phát hành", icon: CalendarBlank, active: activeSection === "schedule", onSelect: () => onSelect("schedule") },

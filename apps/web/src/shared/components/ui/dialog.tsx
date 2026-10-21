@@ -62,4 +62,8 @@ function DialogDescription({ className, ...props }: React.ComponentProps<typeof 
   return <DialogPrimitive.Description data-slot="dialog-description" className={cn("text-sm leading-6 text-muted-foreground", className)} {...props} />;
 }
 
-export { Dialog, DialogTrigger, DialogPortal, DialogClose, DialogOverlay, DialogContent, DialogHeader, DialogTitle, DialogDescription };
+function DialogFooter({ className, ...props }: React.ComponentProps<"div">) {
+  return <div data-slot="dialog-footer" className={cn("flex flex-wrap items-center justify-end gap-2", className)} {...props} />;
+}
+
+export { Dialog, DialogTrigger, DialogPortal, DialogClose, DialogOverlay, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter };

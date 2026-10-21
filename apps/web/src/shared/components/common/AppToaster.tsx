@@ -49,7 +49,7 @@ function NotificationToast({ notification }: { notification: AppNotification }):
       ) : null}
     </div>
     <ToastClose asChild><Button variant="ghost" size="icon" className="-mr-1 -mt-1 size-7 shrink-0 text-muted-foreground" aria-label="Đóng thông báo"><X size={14} aria-hidden="true" /></Button></ToastClose>
-    {Number.isFinite(notification.duration) ? <span key={notification.revision} className={`toast-timeout absolute inset-x-0 bottom-0 h-0.5 origin-left bg-current ${meta.color}`} style={{ "--toast-duration": `${notification.duration}ms`, animationPlayState: paused ? "paused" : "running" } as CSSProperties} aria-hidden="true" /> : null}
+    {Number.isFinite(notification.duration) ? <span key={notification.revision} className={`toast-timeout  absolute inset-x-0 bottom-0 h-0.5 origin-left bg-current ${meta.color}`} style={{ "--toast-duration": `${notification.duration}ms`, animationPlayState: paused ? "paused" : "running" } as CSSProperties} aria-hidden="true" /> : null}
   </Toast>;
 }
 

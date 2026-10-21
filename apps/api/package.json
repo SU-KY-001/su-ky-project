@@ -9,6 +9,8 @@
   },
   "scripts": {
     "dev": "bun --env-file=../../.env --watch src/index.ts",
+    "worker": "bun --env-file=../../.env src/worker.ts",
+    "worker:dev": "bun --env-file=../../.env --watch src/worker.ts",
     "build": "bun build src/index.ts --outdir dist --target bun",
     "check-types": "tsc --noEmit",
     "test": "bun test",

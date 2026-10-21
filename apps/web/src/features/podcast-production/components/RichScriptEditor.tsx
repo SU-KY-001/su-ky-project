@@ -1,9 +1,11 @@
 import {
   forwardRef,
   useImperativeHandle,
+  useMemo,
   useRef,
   type ReactElement,
 } from "react";
+import type { EditorOptions } from "@tiptap/core";
 import { EditorContent, useEditor } from "@tiptap/react";
 import StarterKit from "@tiptap/starter-kit";
 import Placeholder from "@tiptap/extension-placeholder";
@@ -19,7 +21,11 @@ import {
   UnderlineIcon,
   Undo2,
 } from "lucide-react";
-import { EditorDocumentSchema, type EditorDocument } from "@repo/shared";
+import {
+  EditorDocumentSchema,
+  SCRIPT_MAX_CHARACTERS,
+  type EditorDocument,
+} from "@repo/shared";
 import { Button } from "@/shared/components/ui/button";
 import { cn } from "@/lib/utils";
 import { SourceCitation } from "../scriptEditor";
@@ -49,26 +55,62 @@ const editorExtensions = [
   SourceCitation,
 ];
 
-const editorProps = {
-  attributes: {
-    class:
-      "podcast-rich-editor min-h-80 px-5 py-5 text-[15px] leading-7 text-mod-text outline-none",
-    "aria-label": "Nội dung kịch bản podcast",
-  },
-};
-
 export const RichScriptEditor = forwardRef<
   RichScriptEditorHandle,
   {
     initialDocument: EditorDocument;
     onChange: (document: EditorDocument) => void;
+    onPasteLimitReached?: (limit: number) => void;
     disabled?: boolean;
   }
 >(function RichScriptEditor(
-  { initialDocument, onChange, disabled = false },
+  { initialDocument, onChange, onPasteLimitReached, disabled = false },
   ref,
 ): ReactElement {
   const initialContent = useRef(initialDocument);
+  const pasteLimitCallback = useRef(onPasteLimitReached);
+  pasteLimitCallback.current = onPasteLimitReached;
+  const editorProps = useMemo<EditorOptions["editorProps"]>(
+    () => ({
+      attributes: {
+        class:
+          "podcast-rich-editor min-h-80 w-full min-w-0 max-w-full px-5 py-5 text-[15px] leading-7 text-mod-text outline-none [overflow-wrap:anywhere] [word-break:break-word]",
+        "aria-label": "Nội dung kịch bản podcast",
+      },
+      handlePaste: (view, event) => {
+        const clipboardText = event.clipboardData?.getData("text/plain");
+        if (clipboardText === undefined) return false;
+
+        const normalizedText = clipboardText.replace(/\r\n?/g, "\n");
+        const { from, to } = view.state.selection;
+        const documentLength = view.state.doc.textBetween(
+          0,
+          view.state.doc.content.size,
+          "\n",
+          "\n",
+        ).length;
+        const selectedLength = view.state.doc.textBetween(from, to, "\n", "\n").length;
+        const availableLength = Math.max(
+          0,
+          SCRIPT_MAX_CHARACTERS - (documentLength - selectedLength),
+        );
+        const pastedText = normalizedText.slice(0, availableLength);
+
+        event.preventDefault();
+        if (pastedText) {
+          // Do not mark this transaction with scrollIntoView(). ProseMirror would
+          // otherwise scroll every scrollable ancestor, including the dashboard
+          // workspace, when a large paste moves the caret far below the viewport.
+          view.dispatch(view.state.tr.insertText(pastedText, from, to));
+        }
+        if (pastedText.length < normalizedText.length) {
+          pasteLimitCallback.current?.(SCRIPT_MAX_CHARACTERS);
+        }
+        return true;
+      },
+    }),
+    [],
+  );
   const editor = useEditor({
     immediatelyRender: false,
     editable: !disabled,
@@ -159,7 +201,7 @@ export const RichScriptEditor = forwardRef<
   ];
 
   return (
-    <div className="overflow-hidden rounded-xl border border-mod-border bg-mod-surface">
+    <div className="min-w-0 max-w-full overflow-hidden rounded-xl border border-mod-border bg-mod-surface">
       <div className="flex flex-wrap gap-1 border-b border-mod-border bg-mod-canvas-accent p-2">
         {tools.map((tool) => {
           const Icon = tool.icon;
@@ -184,7 +226,12 @@ export const RichScriptEditor = forwardRef<
           );
         })}
       </div>
-      <EditorContent editor={editor} />
+      <div data-script-scroll-region className="podcast-editor-viewport">
+        <EditorContent
+          editor={editor}
+          className="h-full min-w-0 max-w-full overflow-hidden"
+        />
+      </div>
     </div>
   );
 });
