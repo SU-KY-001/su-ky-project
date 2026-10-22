@@ -33,6 +33,7 @@ export const SYSTEM_CONFIGS = {
   },
   "script.words_per_minute": { schema: z.number().int().positive(), defaultValue: 150 },
   "narration.duration_mismatch_ratio": { schema: z.number().nonnegative(), defaultValue: 0.3 },
+  "readiness.min_script_words": { schema: z.number().int().positive(), defaultValue: 150 },
   "slug.max_length": { schema: z.number().int().min(8), defaultValue: 80 },
   "slug.max_attempts": { schema: z.number().int().positive(), defaultValue: 5 },
   "search.similar_candidate_limit": { schema: z.number().int().positive(), defaultValue: 5 },

@@ -10,6 +10,7 @@ import {
   ReleaseReassignmentTicketSchema,
   ReleaseScheduleQuerySchema,
   ReplaceReleaseAssigneeSchema,
+  ReviewContentSchema,
   ReviewEpisodeSchema,
   SubmitEpisodeReviewSchema,
   UpdateReleaseScheduleSchema,
@@ -39,6 +40,7 @@ const idParams = {
 } as const;
 const schedule = { name: "ReleaseSchedule", schema: ReleaseScheduleDocSchema } as const;
 const review = { name: "EpisodeReleaseReview", schema: EpisodeReviewDocSchema } as const;
+const reviewContent = { name: "EpisodeReleaseReviewContent", schema: ReviewContentSchema } as const;
 const progress = {
   name: "ReleaseProgressList",
   schema: ItemsOf(ReleaseProgressDocSchema),
@@ -64,7 +66,20 @@ export const releasePaths: Paths = {
         403: "`SELF_REVIEW_FORBIDDEN`: người sản xuất không được tự duyệt",
         404: "`NOT_FOUND`: lịch không tồn tại",
         409: "`INVALID_REVIEW_STATE` hoặc `STALE_WRITE`",
+        422: "`CHECKLIST_INCOMPLETE`: Duyệt khi tập thiếu mục bắt buộc",
       },
+    }),
+  },
+  [`${ADMIN}/{id}/review-content`]: {
+    get: operation({
+      id: "adminGetEpisodeReleaseReviewContent",
+      tag: TAG,
+      summary: "Nội dung tập cho người duyệt (Admin)",
+      description: "Cùng dữ liệu với route Moderator: tập, `readiness` và `aiSummary`. Chỉ khi lịch có phiên bản đang chờ duyệt.",
+      access: "admin",
+      ...idParams,
+      ok: { status: 200, description: "Nội dung chờ duyệt", schema: reviewContent },
+      errors: { 404: "`NOT_FOUND`: lịch không tồn tại hoặc không có phiên bản đang chờ duyệt" },
     }),
   },
   [ADMIN]: {
@@ -434,6 +449,7 @@ export const releasePaths: Paths = {
       errors: {
         403: "`FORBIDDEN`: không được phân công",
         409: "`STALE_WRITE` hoặc `CONTENT_NOT_READY`",
+        422: "`CHECKLIST_INCOMPLETE`: tập thiếu tên tập, kịch bản hoặc âm thanh ngôi thứ ba",
       },
     }),
   },
@@ -466,6 +482,22 @@ export const releasePaths: Paths = {
       errors: {
         403: "`SELF_REVIEW_FORBIDDEN`: người sản xuất không được tự duyệt",
         409: "`INVALID_REVIEW_STATE` hoặc `STALE_WRITE`",
+        422: "`CHECKLIST_INCOMPLETE`: Duyệt khi tập thiếu mục bắt buộc",
+      },
+    }),
+  },
+  [`${STUDIO}/{id}/review-content`]: {
+    get: operation({
+      id: "getEpisodeReleaseReviewContent",
+      tag: TAG,
+      summary: "Nội dung tập cho người duyệt (Moderator)",
+      description: "Toàn bộ tập, mục \"Tình trạng tập\" (`readiness`, hệ thống tự tính) và số liệu AI (`aiSummary`, chỉ đếm điều hệ thống ghi nhận, không phải xác nhận). Chỉ khi lịch có phiên bản đang chờ duyệt.",
+      access: "moderator",
+      ...idParams,
+      ok: { status: 200, description: "Nội dung chờ duyệt", schema: reviewContent },
+      errors: {
+        403: "`SELF_REVIEW_FORBIDDEN`: người sản xuất không được xem ở vai trò người duyệt",
+        404: "`NOT_FOUND`: lịch không tồn tại hoặc không có phiên bản đang chờ duyệt",
       },
     }),
   },

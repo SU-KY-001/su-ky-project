@@ -6,6 +6,7 @@ import {
   ReleaseReassignmentTicketPageSchema,
   ReleaseReassignmentTicketSchema,
   ReleaseReminderListSchema,
+  ReviewContentSchema,
 } from "@repo/shared";
 import { client } from "@/lib/client";
 import { ApiError } from "@/lib/apiError";
@@ -26,6 +27,7 @@ export const moderatorReleaseService = {
   assignments: () => parse(releases.assignments.$get(), AssignedReleaseListSchema),
   assignableEpisodes: () => parse(releases["assignable-episodes"].$get(), AssignableEpisodeListSchema),
   reviewQueue: () => parse(releases["review-queue"].$get(), AssignedReleaseListSchema),
+  reviewContent: (id: string) => parse(releases[":id"]["review-content"].$get({ param: { id } }), ReviewContentSchema),
   reminders: () => parse(releases.reminders.$get(), ReleaseReminderListSchema),
   progress: (id: string) => parse(releases[":id"].progress.$get({ param: { id } }), ReleaseProgressListSchema),
   linkEpisode: (id: string, episodeId: string) =>

@@ -59,6 +59,7 @@ const configDescriptions: Record<keyof typeof SYSTEM_CONFIGS, string> = {
   "script.max_chars": "Số ký tự tối đa của kịch bản",
   "script.words_per_minute": "Tốc độ đọc dùng để ước lượng thời lượng",
   "narration.duration_mismatch_ratio": "Ngưỡng cảnh báo lệch thời lượng",
+  "readiness.min_script_words": "Số từ tối thiểu của kịch bản trước khi cảnh báo quá ngắn",
   "slug.max_length": "Độ dài slug tối đa",
   "slug.max_attempts": "Số lần thử tạo slug duy nhất",
   "search.similar_candidate_limit": "Số kết quả tương tự tối đa",

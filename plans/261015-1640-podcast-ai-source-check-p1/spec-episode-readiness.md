@@ -91,7 +91,7 @@ Nhóm F: **AI** (chỉ hiện khi `ai_assist.enabled`; nguồn `AiCheck`/`AiChec
 | key | level | Khi | params |
 |---|---|---|---|
 | `AI_REVIEW_NOT_RUN` | INFO | chưa có check `SCRIPT_REVIEW` nào cho tập | — |
-| `AI_REVIEW_SUMMARY` | WARNING nếu `openHigh > 0`, ngược lại INFO | có check mới nhất (xem dưới) | `total`, `reviewed`, `open`, `openHigh`, `applied` (số mục có `appliedAt`), `failedBlocks`, `skippedBlocks` |
+| `AI_REVIEW_SUMMARY` | WARNING nếu `openHigh > 0`, ngược lại INFO | có check mới nhất (xem dưới) | `total`, `reviewed`, `open`, `openHigh`, `applied` (số mục có `appliedAt`), `failedBlocks` (phase 2 bỏ `skippedBlocks`) |
 | `AI_REVIEW_STALE` | INFO | check mới nhất có `createdAt < narration.scriptUpdatedAt` (script đổi sau lần rà) | — |
 | `AI_REVIEW_INCOMPLETE` | INFO | check mới nhất `FAILED`/`CANCELLED`, hoặc `failedBlocks > 0` | `errorCode` |
 | `AI_VOICE` | INFO (WARNING nếu có đoạn chưa tạo lại) | audio của tập có nguồn `TTS` | chờ T1 (`audioOrigin`, trạng thái đoạn); **chưa làm ở plan này**. Khi làm: nhãn phải nói rõ đây là giọng AI **tái dựng**, không phải bản ghi thật của nhân vật; tập có lời nhân vật lịch sử do AI đọc thì hiện thêm dòng "giọng AI, không phải ghi âm lịch sử" (xem `research-261022-dual-narrator-design.md`) |

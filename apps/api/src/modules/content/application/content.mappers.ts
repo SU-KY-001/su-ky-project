@@ -86,9 +86,9 @@ export function mapSeriesSource(
 
 export function mapEntityTag(item: {
   id: string;
-  status: string;
+  status: "SUGGESTED" | "CONFIRMED" | "REJECTED";
   origin: string;
-  entity: { id: string; entityType: string; name: string };
+  entity: { id: string; entityType: "FIGURE" | "EVENT"; name: string };
 }) {
   return item;
 }
@@ -106,7 +106,10 @@ export async function mapNarration(
   const estimatedDurationMs = wordCount
     ? Math.round((wordCount / wordsPerMinute) * 60_000)
     : 0;
-  const warnings: Array<{ key: string; ratio?: number }> = [];
+  const warnings: Array<{
+    key: "SCRIPT_CHANGED_AFTER_AUDIO" | "DURATION_MISMATCH";
+    ratio?: number;
+  }> = [];
   const scriptDocument = EditorDocumentSchema.safeParse(
     narration.scriptDocument,
   );

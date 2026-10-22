@@ -17,7 +17,7 @@ afterEach(() => {
   useNotificationStore.setState({ notifications: [] });
 });
 
-async function renderReview(options: { stale?: boolean; fail?: boolean } = {}) {
+async function renderReview(options: { stale?: boolean; fail?: boolean; notReady?: boolean } = {}) {
   const { schedule, episode } = releaseReviewFixture();
   if (options.stale) schedule.episode!.contentRevision = 4;
   const onClose = mock(() => undefined);
@@ -25,7 +25,16 @@ async function renderReview(options: { stale?: boolean; fail?: boolean } = {}) {
     if (options.fail) throw new Error("Phiên bản đã được người khác xử lý");
     return { ...schedule.reviews[0]!, status: "APPROVED" as const };
   });
-  const service = { ...adminReleaseService, get: async () => schedule, content: async () => episode, review };
+  const readiness = {
+    ready: !options.notReady,
+    contentRevision: options.stale ? 4 : 3,
+    computedAt: new Date(),
+    items: [
+      { key: "BASIC_INFO" as const, level: "REQUIRED" as const, state: "OK" as const },
+      { key: "THIRD_PERSON_AUDIO" as const, level: "REQUIRED" as const, state: options.notReady ? ("MISSING" as const) : ("OK" as const) },
+    ],
+  };
+  const service = { ...adminReleaseService, get: async () => schedule, reviewContent: async () => ({ episode, readiness, aiSummary: null }), review };
   queryClient = new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } });
   const host = document.createElement("div"); document.body.append(host); root = createRoot(host);
   await act(async () => {
@@ -50,11 +59,9 @@ it("loads script, playable audio and documents before submitting the exact revis
   expect(useNotificationStore.getState().notifications.at(-1)?.status).toBe("success");
 });
 
-it("requires a reason in a toast before requesting changes", async () => {
+it("locks 'Yêu cầu chỉnh sửa' until a note is written", async () => {
   const { review } = await renderReview();
-  await act(async () => button("Yêu cầu chỉnh sửa")?.click());
-  expect(review).not.toHaveBeenCalled();
-  expect(useNotificationStore.getState().notifications.at(-1)?.title).toBe("Cần nhập nhận xét chỉnh sửa");
+  expect(button("Yêu cầu chỉnh sửa")?.disabled).toBe(true);
   const note = document.body.querySelector<HTMLTextAreaElement>("#admin-review-note")!;
   await act(async () => {
     Object.getOwnPropertyDescriptor(window.HTMLTextAreaElement.prototype, "value")!.set!.call(note, "Bổ sung nguồn tư liệu cho đoạn kết.");
@@ -62,6 +69,13 @@ it("requires a reason in a toast before requesting changes", async () => {
   });
   await act(async () => button("Yêu cầu chỉnh sửa")?.click());
   expect(review).toHaveBeenCalledWith(expect.any(String), { decision: "REQUEST_CHANGES", contentRevision: 3, reviewNote: "Bổ sung nguồn tư liệu cho đoạn kết." });
+});
+
+it("locks approval and names the first missing required item when the episode is not ready", async () => {
+  const { review } = await renderReview({ notReady: true });
+  expect(button("Duyệt nội dung")?.disabled).toBe(true);
+  expect(document.body.textContent).toContain("Chưa thể duyệt: Chưa có âm thanh ngôi thứ ba sẵn sàng");
+  expect(review).not.toHaveBeenCalled();
 });
 
 it("does not offer approval of a stale submitted revision", async () => {

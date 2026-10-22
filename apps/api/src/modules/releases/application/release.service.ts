@@ -1,5 +1,6 @@
 import type {
   CreateReleaseScheduleInput,
+  ReviewContent,
   ReviewEpisodeInput,
   UpdateReleaseScheduleInput,
 } from "@repo/shared";
@@ -14,6 +15,7 @@ import type {
 
 export interface ReleasePublisher {
   checklistReady(episodeId: string): Promise<boolean>;
+  reviewContent(episodeId: string): Promise<ReviewContent | null>;
   publishEpisode(episodeId: string, baseUpdatedAt: Date): Promise<void>;
 }
 
@@ -260,6 +262,7 @@ export class ReleaseService {
         "INVALID_STATE_TRANSITION",
         "Lịch không còn nhận nội dung kiểm duyệt",
       );
+    await this.assertChecklistReady(schedule.episodeId);
     return this.repository.createReview({
       scheduleId,
       episodeId: schedule.episodeId,
@@ -301,6 +304,8 @@ export class ReleaseService {
         "STALE_WRITE",
         "Nội dung đã thay đổi sau khi gửi duyệt",
       );
+    if (input.decision === "APPROVE" && schedule.episodeId)
+      await this.assertChecklistReady(schedule.episodeId);
 
     const status =
       input.decision === "APPROVE" ? "APPROVED" : "CHANGES_REQUESTED";
@@ -331,6 +336,26 @@ export class ReleaseService {
       });
     }
     return decided;
+  }
+
+  /** Read-only content for the reviewer: full episode + readiness + AI counts. Never for the assigned producer. */
+  async reviewContent(session: Session, scheduleId: string): Promise<ReviewContent> {
+    if (session.user.role !== "admin" && session.user.role !== "moderator")
+      throw new DomainError(403, "FORBIDDEN", "Chỉ Admin hoặc Moderator được xem nội dung kiểm duyệt");
+    const schedule = requireSchedule(await this.repository.findSchedule(scheduleId));
+    if (await this.repository.isModeratorAssigned(scheduleId, session.user.id))
+      throw new DomainError(403, "SELF_REVIEW_FORBIDDEN", "Moderator sản xuất không được xem tập mình phụ trách ở vai trò người duyệt");
+    const review = await this.repository.findLatestReview(scheduleId);
+    if (!review || review.status !== "IN_REVIEW" || !schedule.episodeId)
+      throw new DomainError(404, "NOT_FOUND", "Lịch này không có nội dung đang chờ duyệt");
+    const content = await this.publisher.reviewContent(schedule.episodeId);
+    if (!content) throw new DomainError(404, "NOT_FOUND", "Không tìm thấy tập podcast");
+    return content;
+  }
+
+  private async assertChecklistReady(episodeId: string): Promise<void> {
+    if (!(await this.publisher.checklistReady(episodeId)))
+      throw new DomainError(422, "CHECKLIST_INCOMPLETE", "Tập chưa đủ mục bắt buộc (tên tập, kịch bản và âm thanh ngôi thứ ba)");
   }
 
   async checkReadiness(

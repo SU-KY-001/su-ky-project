@@ -251,6 +251,7 @@ function service(
     repository as unknown as ReleaseRepository,
     {
       checklistReady: async () => checklistReady,
+      reviewContent: async () => null,
       publishEpisode: async () => { publishCount += 1; },
     },
     () => now,
