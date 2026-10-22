@@ -32,7 +32,7 @@ import {
 } from "../scriptEditor";
 import { podcastProductionService as api } from "../services/podcastProductionService";
 import { RichScriptEditor, type RichScriptEditorHandle } from "./RichScriptEditor";
-import { ScriptAssistantMock } from "./ScriptAssistantMock";
+import { AiAssistantPanel } from "./AiAssistantPanel";
 import { ScriptSourcesPanel } from "./ScriptSourcesPanel";
 
 interface PendingDocument {
@@ -268,7 +268,13 @@ export function PodcastScriptStep({
           </div>
           <div className="p-4">
             {panel === "assistant" ? (
-              <ScriptAssistantMock characterCount={characterCount} />
+              <AiAssistantPanel
+                editorRef={editorRef}
+                episodeId={wizard.state.episodeId ?? null}
+                ensureEpisode={wizard.ensureDraft}
+                sources={sources}
+                hasScript={characterCount > 0}
+              />
             ) : (
               <ScriptSourcesPanel sources={sources} onInsert={(sourceId) => editorRef.current?.insertCitation(sourceId)} />
             )}

@@ -29,9 +29,15 @@ import {
 import { Button } from "@/shared/components/ui/button";
 import { cn } from "@/lib/utils";
 import { SourceCitation } from "../scriptEditor";
+import type { ScriptBlock } from "../aiCheck/blockRefs";
+import { editorBlocks, focusBlock, replaceBlockText, selectionBlocks } from "../aiCheck/editorBlocks";
 
 export interface RichScriptEditorHandle {
   insertCitation: (sourceId: string) => void;
+  getBlocks: () => ScriptBlock[];
+  getSelectionBlocks: () => ScriptBlock[];
+  focusBlock: (ref: string | null) => void;
+  replaceBlockText: (ref: string, expectedHash: string, text: string) => "ok" | "conflict";
 }
 
 interface Tool {
@@ -129,6 +135,12 @@ export const RichScriptEditor = forwardRef<
       insertCitation: (sourceId: string) => {
         editor?.chain().focus().setMark("sourceCitation", { sourceId }).run();
       },
+      getBlocks: () => (editor ? editorBlocks(editor) : []),
+      getSelectionBlocks: () => (editor ? selectionBlocks(editor) : []),
+      focusBlock: (ref) => {
+        if (editor) focusBlock(editor, ref);
+      },
+      replaceBlockText: (ref, expectedHash, text) => (editor ? replaceBlockText(editor, ref, expectedHash, text) : "conflict"),
     }),
     [editor],
   );
