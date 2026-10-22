@@ -14,7 +14,8 @@ export const dashboardTableCell = "px-4 py-3.5 align-middle text-mod-text";
 
 export interface DashboardDataTableProps {
   caption: string;
-  columns: string[];
+  columns: ReactNode[];
+  columnAriaSort?: Array<"none" | "ascending" | "descending" | undefined>;
   children: ReactNode;
   columnWidths?: string[];
   minWidth?: number;
@@ -24,6 +25,7 @@ export interface DashboardDataTableProps {
 export function DashboardDataTable({
   caption,
   columns,
+  columnAriaSort,
   children,
   columnWidths,
   minWidth = 720,
@@ -35,7 +37,7 @@ export function DashboardDataTable({
         <TableCaption className="sr-only">{caption}</TableCaption>
         {columnWidths ? <colgroup>{columnWidths.map((width, index) => <col key={index} style={{ width }} />)}</colgroup> : null}
         <TableHeader className="bg-mod-canvas-accent text-sm text-mod-text">
-          <TableRow className="border-mod-text-low/40">{columns.map((column) => <TableHead key={column} scope="col" className="whitespace-nowrap px-4 py-4 font-bold text-mod-text">{column}</TableHead>)}</TableRow>
+          <TableRow className="border-mod-text-low/40">{columns.map((column, index) => <TableHead key={index} scope="col" aria-sort={columnAriaSort?.[index]} className="whitespace-nowrap px-4 py-4 font-bold text-mod-text">{column}</TableHead>)}</TableRow>
         </TableHeader>
         <TableBody className="divide-y divide-mod-text-low/25">{children}</TableBody>
       </Table>

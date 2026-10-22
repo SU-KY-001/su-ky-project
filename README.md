@@ -62,7 +62,9 @@ Script không tạo tài khoản. Mỗi lần chạy nó đọc trạng thái hi
 ```bash
 cd apps/api && bun run seed:demo
 ```
-Ghi thẳng vào DB, cần `CLOUDINARY_CLOUD_NAME`, `CLOUDINARY_API_KEY`, `CLOUDINARY_API_SECRET` trong `.env` (Cloudinary tự tải ảnh/audio từ URL công khai nên asset là thật). Tuỳ chọn: `CLOUDINARY_FOLDER` (mặc định `su-ky`), `SEED_PORTRAIT_URL_BASE`, `SEED_LANDSCAPE_URL_BASE` (mặc định picsum.photos), `SEED_AUDIO_URL` (mặc định mp3 mẫu của SoundHelix). Series nhận diện theo slug; chạy lại an toàn kể cả sau lần lỗi giữa chừng. Phân công dùng tài khoản moderator có sẵn, chỉ thêm `demo-mod-N@suky.local` (không đăng nhập được) khi có dưới 2 moderator. Test phục hồi: `RUN_INTEGRATION=1 bun test tests/seed-demo.test.ts` với `DATABASE_URL` trỏ DB có chữ `test` (xem `.env.test.example`).
+Ghi thẳng vào DB, cần `CLOUDINARY_CLOUD_NAME`, `CLOUDINARY_API_KEY`, `CLOUDINARY_API_SECRET` trong `.env` (Cloudinary tự tải ảnh/audio từ URL công khai nên asset là thật). Tuỳ chọn: `CLOUDINARY_FOLDER` (mặc định `su-ky`), `CLOUDINARY_TIMEOUT_MS` (mặc định 10000), `CLOUDINARY_DOCUMENT_DELIVERY_TTL_SECONDS` (mặc định 3600; thời hạn URL ký để mở PDF), `SEED_PORTRAIT_URL_BASE`, `SEED_LANDSCAPE_URL_BASE` (mặc định picsum.photos), `SEED_AUDIO_URL` (mặc định mp3 mẫu của SoundHelix). Series nhận diện theo slug; chạy lại an toàn kể cả sau lần lỗi giữa chừng. Phân công dùng tài khoản moderator có sẵn, chỉ thêm `demo-mod-N@suky.local` (không đăng nhập được) khi có dưới 2 moderator. Test phục hồi: `RUN_INTEGRATION=1 bun test tests/seed-demo.test.ts` với `DATABASE_URL` trỏ DB có chữ `test` (xem `.env.test.example`).
+
+Nguồn tạo/sửa bằng PDF upload được tự tách text từng trang vào PostgreSQL trước khi lưu thành công. `SOURCE_PDF_TIMEOUT_MS` mặc định `120000` giới hạn thời gian download, extract và transaction; dung lượng dùng cấu hình `media.document.max_bytes`. PDF scan không có text layer cần OCR ngoài luồng (chưa hỗ trợ).
 
 ### 4. Khởi động Môi trường Development
 ```bash

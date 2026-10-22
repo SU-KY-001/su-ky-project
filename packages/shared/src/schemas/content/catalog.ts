@@ -35,6 +35,8 @@ export const CreateSourceSchema = SourceInputSchema.refine(hasUrlOrFile, {
 export const PatchSourceSchema = SourceInputSchema.partial().extend({
   baseVersion: z.number().int().positive(),
 });
+export const SourceSortBySchema = z.enum(["title", "createdAt"]);
+export const SourceSortDirectionSchema = z.enum(["asc", "desc"]);
 export const SourceQuerySchema = PaginationQuerySchema.extend({
   q: z.string().trim().optional(),
   tier: SourceTierSchema.optional(),
@@ -43,6 +45,8 @@ export const SourceQuerySchema = PaginationQuerySchema.extend({
     (value) => (value === "true" ? true : value === "false" ? false : value),
     z.boolean().default(false),
   ),
+  sortBy: SourceSortBySchema.default("title"),
+  sortDirection: SourceSortDirectionSchema.default("asc"),
 });
 
 export const HistoricalEntityInputSchema = z.object({

@@ -90,12 +90,23 @@ export class CatalogService {
   async listSources(
     query: SourceQuery,
   ): Promise<{ items: Source[]; page: number; limit: number; total: number }> {
-    const { page, limit, q, tier, includeArchived, verificationStatus } = query;
+    const {
+      page,
+      limit,
+      q,
+      tier,
+      includeArchived,
+      verificationStatus,
+      sortBy,
+      sortDirection,
+    } = query;
     const listQuery: SourceListQuery = {
       page,
       limit,
       includeArchived,
       verificationStatus,
+      sortBy,
+      sortDirection,
       ...(tier ? { tier } : {}),
       ...(q ? { q, normalizedIsbn: normalizeIsbn(q) } : {}),
     };

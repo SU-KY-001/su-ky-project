@@ -13,8 +13,8 @@ export const branchAction = "mod-table-row-action flex h-auto min-h-8 w-full ite
 export const primaryAction = "inline-flex min-h-10 items-center justify-center gap-2 rounded-lg bg-mod-primary px-4 text-sm font-bold text-white hover:bg-mod-primary/90 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-mod-primary";
 export const secondaryAction = "inline-flex min-h-10 items-center justify-center gap-2 rounded-lg border border-mod-border px-4 text-sm font-semibold text-mod-text hover:bg-mod-canvas-accent focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-mod-primary";
 
-export function ModeratorTable({ caption, columns, children, columnWidths, minWidth = 720, embedded = false }: { caption: string; columns: string[]; children: ReactNode; columnWidths?: string[]; minWidth?: number; embedded?: boolean }) {
-  return <DashboardDataTable caption={caption} columns={columns} columnWidths={columnWidths} minWidth={minWidth} embedded={embedded}>{children}</DashboardDataTable>;
+export function ModeratorTable({ caption, columns, columnAriaSort, children, columnWidths, minWidth = 720, embedded = false }: { caption: string; columns: ReactNode[]; columnAriaSort?: Array<"none" | "ascending" | "descending" | undefined>; children: ReactNode; columnWidths?: string[]; minWidth?: number; embedded?: boolean }) {
+  return <DashboardDataTable caption={caption} columns={columns} columnAriaSort={columnAriaSort} columnWidths={columnWidths} minWidth={minWidth} embedded={embedded}>{children}</DashboardDataTable>;
 }
 
 export function InteractiveTableRow({ onActivate, expanded, className, ...props }: Omit<ComponentProps<typeof TableRow>, "onClick"> & { onActivate: () => void; expanded?: boolean }) {

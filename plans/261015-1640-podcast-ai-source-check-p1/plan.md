@@ -77,14 +77,16 @@ Enum `AiCheckKind` chỉ có `SCRIPT_REVIEW` (thêm giá trị sau bằng `ALTER
 | 1 | `completed` | Migration `AiCheck`/`AiCheckItem`, shared schemas và rate limit đã triển khai; typecheck/migration đã kiểm. |
 | 2 | `completed` | Module `ai-assist`, Postgres `source_pages`, runner, validator, REST, reaper và wiring đã có; bộ test `ai-assist` đã qua. Smoke model/URL đầy đủ chuyển sang phase 5. |
 | 3 | `completed` | SSE route, heartbeat, replay và header đã có. Đã sửa lỗi item `seq = 0` bị mất (`dc532b0`) và cursor rỗng (`8926ec3`). Browser/curl thật đạt; contract test SSE `6 pass`, typecheck API đạt. |
-| 4 | `in-progress` | Panel, config dialog, detail, apply/conflict guard và hook SSE đã có. Browser thật đã kiểm login, editor, danh sách, chi tiết, config và chạy một lượt AI với dữ liệu thử; lượt chạy trả `0 cảnh báo`, không có `suggestion` vì source VERIFIED URL không trả được câu nguồn nguyên văn, source PDF còn `PENDING`. Web contract/UI tests `28 pass`, typecheck đạt. Apply/conflict/PATCH retry browser vẫn chưa có target thật; script đã khôi phục nguyên văn. |
+| 4 | `in-progress` | Panel, config dialog, detail, apply/conflict guard và hook SSE đã có. Đã tạo fixture thật trên Postgres bằng `Đại Việt sử ký toàn thư` (1.334 trang, 2.484.093 ký tự), series/source/episode có script đối chiếu. Browser live và Apply/retry/conflict được hoãn theo yêu cầu “test sau”. |
 | 5 | `pending` | Chưa hoàn tất golden/integration tests, README/ADR, smoke model thật 5/20 block, đo Postgres và smoke URL/browser đầy đủ. |
 | 6 | `pending` | Chưa triển khai compose: outline, draft-section, rewrite và narrative angles. |
 | 7 | `in-progress` | Readiness DTO/API/review panel đã có; đã sửa hợp đồng `EpisodeWorkspace.readiness` (`7bfa2b3`). Readiness contract `5 pass`, release service `22 pass`, HTTP route `12 pass`, typecheck API/web/shared đạt. Chưa smoke admin/mod thật và chưa chạy toàn bộ integration DB. |
 
 **Kết luận:** phase 3 đã đóng ở mức implementation + contract/smoke. Phase 0-2 và 3 đã hoàn tất; phase 4 và 7 còn nghiệm thu browser/integration; phase 5 và 6 chưa đóng.
 
-**Blocker hiện tại:** phase 4 cần source VERIFIED có nội dung/trích dẫn kiểm được để tạo issue có `suggestion`; test component đã bao phủ Apply retry và conflict guard, nhưng browser live chưa có target thật. Phase 7 còn thiếu smoke admin/mod và full integration DB.
+**Blocker hiện tại:** phase 4 không còn bị block bởi dữ liệu nguồn: source VERIFIED, `verifiedVersion = version`, và toàn bộ trang đã có trong Postgres. Chỉ còn nghiệm thu browser/Apply/retry/conflict khi người dùng cho phép test. Phase 7 còn thiếu smoke admin/mod và full integration DB.
+**Fixture Postgres phase 4:** `seriesId=7eb75ae9-a6b8-4608-986f-240ccc766da6`, `episodeId=2069184a-4666-4fb8-bbf5-1700bd0d446d`, `sourceId=fb3e5b7e-3cfd-44dd-a956-3deb1802fb94`; script `apps/api/src/scripts/seed-phase4-postgres-fixture.ts`; nạp bằng `source-pages:load`.
+
 
 **Đặc tả logic chi tiết (đọc trước khi code phase tương ứng):**
 - [spec-source-agent.md](spec-source-agent.md): **hướng chạy AI rà kịch bản (phiên agent có công cụ, kho trang nguồn, kiểm câu trích). Thắng khi khác file dưới.**

@@ -21,6 +21,14 @@ const envSchema = z
       emptyAsUndefined,
       z.coerce.number().int().positive().default(10000)
     ),
+    CLOUDINARY_DOCUMENT_DELIVERY_TTL_SECONDS: z.preprocess(
+      emptyAsUndefined,
+      z.coerce.number().int().positive().default(3600)
+    ),
+    SOURCE_PDF_TIMEOUT_MS: z.preprocess(
+      emptyAsUndefined,
+      z.coerce.number().int().positive().default(120000)
+    ),
     LOG_LEVEL: z
       .enum(["fatal", "error", "warn", "info", "debug", "trace"])
       .default("info"),

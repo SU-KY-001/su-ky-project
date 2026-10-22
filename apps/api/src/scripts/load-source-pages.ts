@@ -1,6 +1,6 @@
 /**
  * Loads the per-page text of a PDF into `source_pages` (Postgres), read by the AI source-check tools.
- * Temporary loader (spec-source-agent.md section 2); replaced by an upload-time job later.
+ * Manual reload utility; source creation also imports uploaded PDF pages automatically.
  *
  *   bun --env-file=../../.env src/scripts/load-source-pages.ts --pdf <file.pdf> --source-id <Source.id> [--drop-line <exact line>]...
  *
@@ -9,21 +9,13 @@
 import { prisma } from "@repo/db";
 import { readFileSync } from "node:fs";
 import { parseArgs } from "node:util";
-import { extractText, getDocumentProxy } from "unpdf";
+import { extractPdfPages } from "../modules/catalog/infrastructure/pdf-pages";
 
 /** A page with fewer non-space characters than this is treated as having no text layer (scan or blank). */
 const MIN_TEXT_CHARS_PER_PAGE = 20;
 const WARN_EMPTY_PAGE_RATIO = 0.2;
 const INSERT_BATCH_SIZE = 200;
 
-function cleanPage(raw: string, dropLines: Set<string>): string {
-  return raw
-    .normalize("NFC")
-    .split("\n")
-    .filter((line) => !dropLines.has(line.trim()))
-    .join("\n")
-    .trim();
-}
 
 async function main(): Promise<void> {
   const { values } = parseArgs({
@@ -40,14 +32,13 @@ async function main(): Promise<void> {
   if (!source) throw new Error(`Source ${sourceId} not found`);
 
   const started = Date.now();
-  const pdf = await getDocumentProxy(new Uint8Array(readFileSync(values.pdf)));
-  const { text: pages } = await extractText(pdf, { mergePages: false });
   const dropLines = new Set(values["drop-line"].map((l) => l.trim()));
+  const pages = await extractPdfPages(new Uint8Array(readFileSync(values.pdf)), dropLines);
 
   let emptyPages = 0;
   let totalChars = 0;
   const rows = pages.map((raw, i) => {
-    const text = cleanPage(raw, dropLines);
+    const text = raw;
     if (text.replace(/\s/g, "").length < MIN_TEXT_CHARS_PER_PAGE) emptyPages++;
     totalChars += text.length;
     return { sourceId, version: source.version, page: i + 1, text };

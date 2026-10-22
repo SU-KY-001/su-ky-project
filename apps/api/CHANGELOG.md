@@ -5,6 +5,12 @@ Nhãn: `BREAKING` (code cũ gọi sẽ lỗi hoặc sai), `ADDITIVE` (mới, kh�
 
 ## [Unreleased]
 
+### ADDITIVE — Tự nhập trang PDF khi lưu nguồn
+- `POST /api/studio/sources` có PDF đã upload sẽ tải file, tách text từng trang và lưu `source_pages` cùng transaction tạo nguồn, trước khi trả `201`. Lỗi download/parser không tạo nguồn dở dang.
+- Thay PDF khi sửa nguồn sẽ tách lại trang cho phiên bản mới; sửa metadata/lưu trữ/khôi phục giữ trang theo phiên bản, không ghi đè lịch sử.
+- `SOURCE_PDF_TIMEOUT_MS` mặc định 120000 giới hạn download, extract và transaction; dung lượng dùng `media.document.max_bytes`. PDF scan chỉ lưu text sẵn có, không OCR.
+- Form thêm/sửa nguồn tại moderator mở trong modal, hiển thị đang xử lý và không cho đóng khi lưu. Modal chỉ có một tiêu đề, nhóm thông tin ấn bản/tài liệu gốc, vùng chọn PDF hiển thị tên file; nội dung cuộn riêng, hàng nút luôn hiển thị. Giữ font, màu và style input/nút của moderator hiện có.
+
 ### ADDITIVE — Điều phối và tự động phát hành podcast (2026-10-15)
 - Admin có nhóm endpoint `/api/admin/releases`: tạo/đổi lịch, phân công Moderator, xem tổng quan, “Tiến độ phát hành”, lịch sử, hủy lịch và thao tác cứu hộ khi lịch `BLOCKED`/`FAILED`.
 - Moderator có nhóm endpoint `/api/studio/releases`: xem nhiệm vụ, gắn podcast nháp, gửi phiên bản để duyệt, kiểm duyệt độc lập, xem nhắc việc và tiến độ. Moderator được phân công có thể cộng tác trên podcast đã gắn với lịch đang hoạt động; không được tự duyệt nội dung mình tham gia sản xuất.

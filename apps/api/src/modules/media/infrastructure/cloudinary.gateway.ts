@@ -6,7 +6,7 @@ import { MediaProviderError, type MediaStorageGateway, type StoredResource } fro
 
 const RESOURCE_TYPE_BY_KIND = { AUDIO: "video", IMAGE: "image", DOCUMENT: "raw" } as const;
 
-/** Audio is signed (authenticated); images and PDF sources are public citations. */
+/** Audio uses authenticated delivery; PDFs use signed downloads because this Cloudinary account restricts raw originals. */
 function cloudinaryType(kind: MediaKind) {
   return kind === "AUDIO" ? "authenticated" : "upload";
 }
@@ -80,6 +80,20 @@ export class CloudinaryGateway implements MediaStorageGateway {
 
   deliveryUrl(asset: MediaAsset): string {
     this.configured();
-    return cloudinary.url(asset.publicId, { resource_type: resourceType(asset.kind), type: cloudinaryType(asset.kind), sign_url: asset.kind === "AUDIO", secure: true, version: asset.version ? Number(asset.version) : undefined, format: asset.kind === "DOCUMENT" ? undefined : (asset.format ?? undefined) });
+    if (asset.kind === "DOCUMENT") {
+      return cloudinary.utils.private_download_url(asset.publicId, asset.format ?? "pdf", {
+        resource_type: "raw",
+        type: "upload",
+        expires_at: Math.floor(Date.now() / 1000) + env.CLOUDINARY_DOCUMENT_DELIVERY_TTL_SECONDS,
+      });
+    }
+    return cloudinary.url(asset.publicId, {
+      resource_type: resourceType(asset.kind),
+      type: cloudinaryType(asset.kind),
+      sign_url: asset.kind === "AUDIO",
+      secure: true,
+      version: asset.version ? Number(asset.version) : undefined,
+      format: asset.format ?? undefined,
+    });
   }
 }
