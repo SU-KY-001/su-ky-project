@@ -2,6 +2,7 @@ import { createBrowserRouter, redirect, redirectDocument, type RouteObject } fro
 import { GuestRoute, ProtectedRoute, RouteErrorFallback } from "@/shared/components/common";
 import { AppLoadingFallback } from "./AppLoadingFallback";
 import { APP_PATHS } from "@/shared/constants/routes";
+import { MODERATOR_SECTION_SEGMENTS } from "@/features/moderator/paths";
 import { AppFrame } from "@/shared/layouts/AppFrame";
 import { LoginPage } from "@/pages/auth/LoginPage";
 import { apiUrl } from "@/lib/client";
@@ -72,18 +73,28 @@ export const appRoutes: RouteObject[] = [
         element: <ProtectedRoute allowedRoles={["moderator"]} />,
         children: [
           {
-            id: "moderator-dashboard",
+            id: "moderator-workspace",
             path: APP_PATHS.moderator.slice(1),
             lazy: async () => {
               const { ModeratorWorkspacePage } = await import("../pages/moderator/ModeratorWorkspacePage");
               return { Component: ModeratorWorkspacePage };
             },
-          },
-          {
-            id: "moderator-legacy-menu",
-            path: `${APP_PATHS.moderator.slice(1)}/*`,
-            element: null,
-            loader: () => redirect(APP_PATHS.moderator),
+            // Child routes only declare valid URLs (unknown ones fall through to 404); the page renders the screen itself.
+            children: [
+              { id: "moderator-overview", index: true },
+              ...MODERATOR_SECTION_SEGMENTS.filter((section) => section !== "podcast").map((section) => ({ id: `moderator-${section}`, path: section })),
+              {
+                id: "moderator-podcast",
+                path: "podcast",
+                children: [
+                  { id: "moderator-podcast-list", index: true },
+                  { id: "moderator-podcast-new-series", path: "series/new" },
+                  { id: "moderator-podcast-series", path: "series/:seriesId" },
+                  { id: "moderator-podcast-new-episode", path: "episodes/new" },
+                  { id: "moderator-podcast-episode", path: "episodes/:episodeId" },
+                ],
+              },
+            ],
           },
         ],
       },

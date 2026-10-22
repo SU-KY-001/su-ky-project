@@ -1,4 +1,5 @@
 import { useState, type ReactElement } from "react";
+import { useSearchParams } from "react-router";
 import type { EpisodeWorkspaceDto } from "@repo/shared";
 import { ArrowLeft, ArrowRight, Pencil, Save } from "lucide-react";
 import { CreationPage } from "@/features/moderator/components/CreationPage";
@@ -35,6 +36,12 @@ const stepOrder: PodcastWizardStep[] = [
   "voice",
   "review",
 ];
+
+const STEP_PARAM = "step";
+const DEFAULT_STEP: PodcastWizardStep = "information";
+
+// Unknown or missing values fall back to the first step instead of failing on a hand-edited URL.
+const stepFromParam = (value: string | null): PodcastWizardStep => stepOrder.find((step) => step === value) ?? DEFAULT_STEP;
 
 export function PodcastCreation({ onBack, onSaved, episodeId }: PodcastCreationProps): ReactElement {
   const episode = usePodcastEpisode(episodeId ?? "");
@@ -76,7 +83,24 @@ function PodcastWizardPage({
   const [busy, setBusy] = useState(false);
   const [posterBusy, setPosterBusy] = useState(false);
   const [error, setError] = useState("");
-  const currentIndex = stepOrder.indexOf(wizard.state.activeStep);
+  // For an existing episode the server rebuilds all wizard state, so the URL can own the step (F5/links).
+  // A new draft cannot be restored from a URL, so it keeps the step in the reducer.
+  const [searchParams, setSearchParams] = useSearchParams();
+  const activeStep = existingEpisode ? stepFromParam(searchParams.get(STEP_PARAM)) : wizard.state.activeStep;
+  const currentIndex = stepOrder.indexOf(activeStep);
+  const selectStep = (step: PodcastWizardStep): void => {
+    if (!existingEpisode) return wizard.selectStep(step);
+    setSearchParams(
+      (previous) => {
+        const next = new URLSearchParams(previous);
+        if (step === DEFAULT_STEP) next.delete(STEP_PARAM);
+        else next.set(STEP_PARAM, step);
+        return next;
+      },
+      // The page has its own back button, so steps must not pile up in browser history.
+      { replace: true },
+    );
+  };
 
   const handleSelectSeries = async (seriesId: string): Promise<void> => {
     wizard.dispatch({
@@ -114,7 +138,7 @@ function PodcastWizardPage({
 
   const move = (offset: number): void => {
     const next = stepOrder[currentIndex + offset];
-    if (next) wizard.selectStep(next);
+    if (next) selectStep(next);
   };
 
   const queryError = series.error ?? selected.error ?? event.error;
@@ -140,14 +164,14 @@ function PodcastWizardPage({
         ) : null}
         <div className="border-b border-mod-border px-4 py-5 sm:px-6">
           <PodcastWizardStepper
-            activeStep={wizard.state.activeStep}
+            activeStep={activeStep}
             completion={wizard.completion}
-            onSelect={(step) => { if (!posterBusy) wizard.selectStep(step); }}
+            onSelect={(step) => { if (!posterBusy) selectStep(step); }}
           />
         </div>
 
         <div className="min-h-[420px] min-w-0 max-w-full px-4 py-6 sm:px-6">
-          <div hidden={wizard.state.activeStep !== "information"}>
+          <div hidden={activeStep !== "information"}>
             <PodcastInformationStep
               state={wizard.state}
               readOnly={!editing}
@@ -174,17 +198,17 @@ function PodcastWizardPage({
               }
             />
           </div>
-          <div hidden={wizard.state.activeStep !== "script"}>
+          <div hidden={activeStep !== "script"}>
             <PodcastScriptStep
               wizard={wizard}
               sources={selected.data?.sources ?? []}
               readOnly={!editing}
             />
           </div>
-          <div hidden={wizard.state.activeStep !== "voice"}>
+          <div hidden={activeStep !== "voice"}>
             <PodcastVoiceStep wizard={wizard} readOnly={!editing} published={existingEpisode?.status === "PUBLISHED"} />
           </div>
-          <div hidden={wizard.state.activeStep !== "review"}>
+          <div hidden={activeStep !== "review"}>
             <PodcastReviewStep
               wizard={wizard}
               series={selected.data}
@@ -208,7 +232,7 @@ function PodcastWizardPage({
             Bước trước
           </Button>
           <div className="flex flex-wrap justify-end gap-3">
-            {editing && wizard.state.activeStep !== "review" ? (
+            {editing && activeStep !== "review" ? (
               <Button
                 type="button"
                 variant="outline"

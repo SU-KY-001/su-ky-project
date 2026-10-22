@@ -1,4 +1,5 @@
 import { Fragment, useState, type ReactNode } from "react";
+import { useLocation, useMatch, useNavigate, useSearchParams } from "react-router";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import {
   PublicationEvidenceSchema,
@@ -31,6 +32,7 @@ import {
   ContentKindLegend,
 } from "@/features/moderator/components/ModeratorTreeNode";
 import { ModeratorSectionPanel } from "@/features/moderator/components/ModeratorSectionPanel";
+import { moderatorPodcastPath, moderatorPodcastPattern } from "@/features/moderator/paths";
 import { ModeratorListToolbar } from "@/features/moderator/components/ModeratorListToolbar";
 import { formField } from "@/features/moderator/components/CreationPage";
 import { ModeratorSelect } from "@/features/moderator/components/ModeratorSelect";
@@ -463,32 +465,42 @@ function SeriesBranch({
     </>
   );
 }
-export function PodcastWorkspace({
-  initialKind,
-}: {
-  initialKind?: "series" | "episode";
-}) {
-  const [creation, setCreation] = useState<"series" | "episode" | null>(
-    initialKind ?? null,
-  );
+export function PodcastWorkspace() {
+  const navigate = useNavigate();
+  const { search } = useLocation();
+  const [searchParams, setSearchParams] = useSearchParams();
+  // useMatch ignores route ranking, so ".../new" also matches the ":id" patterns and must be excluded.
+  const newSeries = Boolean(useMatch(moderatorPodcastPattern.newSeries));
+  const newEpisode = Boolean(useMatch(moderatorPodcastPattern.newEpisode));
+  const seriesParam = useMatch(moderatorPodcastPattern.series)?.params.seriesId;
+  const episodeParam = useMatch(moderatorPodcastPattern.episode)?.params.episodeId;
+  const detailSeriesId = newSeries ? undefined : seriesParam;
+  const editingEpisodeId = newEpisode ? undefined : episodeParam;
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
-  const [editingEpisodeId, setEditingEpisodeId] = useState<string | null>(null);
-  const [detailSeriesId, setDetailSeriesId] = useState<string | null>(null);
-  const [q, setQ] = useState("");
-  const [status, setStatus] = useState("all");
+  const q = searchParams.get("q") ?? "";
+  const status = searchParams.get("status") ?? "all";
+  const setFilter = (key: "q" | "status", value: string, emptyValue: string) =>
+    setSearchParams(
+      (previous) => {
+        const next = new URLSearchParams(previous);
+        if (value === emptyValue) next.delete(key);
+        else next.set(key, value);
+        return next;
+      },
+      { replace: true },
+    );
+  const setQ = (value: string) => setFilter("q", value, "");
+  const setStatus = (value: string) => setFilter("status", value, "all");
+  // Keep list filters across list <-> detail/creation navigation.
+  const go = (pathname: string) => navigate({ pathname, search });
   const series = usePodcastSeries(q);
   const rows = series.data?.pages.flatMap((p) => p.items) ?? [];
-  const finishCreation = () => {
-    setCreation(null);
-    setEditingEpisodeId(null);
-    setQ("");
-    setStatus("all");
-  };
-  if (creation === "episode" || editingEpisodeId)
+  const finishCreation = () => navigate(moderatorPodcastPath.list);
+  if (newEpisode || editingEpisodeId)
     return (
       <PodcastCreation
-        episodeId={editingEpisodeId ?? undefined}
-        onBack={() => { setCreation(null); setEditingEpisodeId(null); }}
+        episodeId={editingEpisodeId}
+        onBack={() => go(moderatorPodcastPath.list)}
         onSaved={finishCreation}
       />
     );
@@ -536,13 +548,13 @@ export function PodcastWorkspace({
                   <Button
                     variant="outline"
                     className={secondaryAction}
-                    onClick={() => setCreation("series")}
+                    onClick={() => go(moderatorPodcastPath.newSeries)}
                   >
                     Tạo series
                   </Button>
                   <Button
                     className={primaryAction}
-                    onClick={() => setCreation("episode")}
+                    onClick={() => go(moderatorPodcastPath.newEpisode)}
                   >
                     Tạo podcast
                   </Button>
@@ -586,13 +598,13 @@ export function PodcastWorkspace({
                       : "Bản nháp"}
                 </TableCell>
                 <TableCell className={tableCell}>
-                  <DashboardRowActions label={s.title} actions={[{ id: "detail", label: "Xem chi tiết", icon: Eye, onSelect: () => setDetailSeriesId(s.id) }]} />
+                  <DashboardRowActions label={s.title} actions={[{ id: "detail", label: "Xem chi tiết", icon: Eye, onSelect: () => go(moderatorPodcastPath.series(s.id)) }]} />
                 </TableCell>
               </InteractiveTableRow>
               {expanded.has(s.id) ? (
                 <SeriesBranch
                   id={s.id}
-                  onEditEpisode={setEditingEpisodeId}
+                  onEditEpisode={(id) => go(moderatorPodcastPath.episode(id))}
                   status={status}
                 />
               ) : null}
@@ -628,14 +640,14 @@ export function PodcastWorkspace({
         </ModeratorSectionPanel>
       </section>
       <Dialog
-        open={creation === "series"}
+        open={newSeries}
         onOpenChange={(open) => {
-          if (!open) setCreation(null);
+          if (!open) go(moderatorPodcastPath.list);
         }}
       >
-        {creation === "series" ? (
+        {newSeries ? (
           <SeriesCreationDialog
-            onBack={() => setCreation(null)}
+            onBack={() => go(moderatorPodcastPath.list)}
             onSaved={finishCreation}
           />
         ) : null}
@@ -643,10 +655,10 @@ export function PodcastWorkspace({
       <Dialog
         open={Boolean(detailSeriesId)}
         onOpenChange={(open) => {
-          if (!open) setDetailSeriesId(null);
+          if (!open) go(moderatorPodcastPath.list);
         }}
       >
-        {detailSeriesId ? <SeriesDetailDialog id={detailSeriesId} onEditEpisode={(id) => { setDetailSeriesId(null); setEditingEpisodeId(id); }} /> : null}
+        {detailSeriesId ? <SeriesDetailDialog id={detailSeriesId} onEditEpisode={(id) => go(moderatorPodcastPath.episode(id))} /> : null}
       </Dialog>
     </>
   );

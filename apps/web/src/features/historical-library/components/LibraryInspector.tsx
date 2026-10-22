@@ -8,7 +8,7 @@ import {
 } from "@phosphor-icons/react";
 import { Link } from "react-router";
 import { Button } from "@/shared/components/ui/button";
-import { APP_PATHS } from "@/shared/constants/routes";
+import { moderatorPodcastPath } from "@/features/moderator/paths";
 import type { SelectedHistoryNode } from "../types";
 import { LibraryStatusBadge } from "./LibraryStatusBadge";
 
@@ -140,7 +140,7 @@ export function LibraryInspector({
               </p>
             ) : null}
             <Link
-              to={`${APP_PATHS.moderator}?event=${encodeURIComponent(selected.event.id)}`}
+              to={`${moderatorPodcastPath.newEpisode}?event=${encodeURIComponent(selected.event.id)}`}
               className="inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-lg bg-vermilion px-4 text-sm font-bold text-white no-underline transition-colors hover:bg-vermilion-dark active:translate-y-px focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus"
             >
               Tạo tập podcast
