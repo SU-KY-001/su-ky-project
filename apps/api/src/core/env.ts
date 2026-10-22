@@ -40,6 +40,17 @@ const envSchema = z
     PI_PROVIDER_TIMEOUT_MS: z.preprocess(emptyAsUndefined, z.coerce.number().int().positive().default(60000)),
     // Whole-run deadline across all tool turns; PI_PROVIDER_TIMEOUT_MS only bounds a single request.
     PI_RUN_TIMEOUT_MS: z.preprocess(emptyAsUndefined, z.coerce.number().int().positive().default(300000)),
+    // ai-assist background runs (see plans/261015-1640-podcast-ai-source-check-p1/phase-02-api-runner.md)
+    AI_ASSIST_TIMEOUT_MS: z.preprocess(emptyAsUndefined, z.coerce.number().int().positive().default(900000)),
+    AI_ASSIST_BLOCK_CONCURRENCY: z.preprocess(emptyAsUndefined, z.coerce.number().int().positive().default(2)),
+    AI_ASSIST_MAX_CONCURRENT_PER_USER: z.preprocess(emptyAsUndefined, z.coerce.number().int().positive().default(2)),
+    AI_ASSIST_GLOBAL_MODEL_CONCURRENCY: z.preprocess(emptyAsUndefined, z.coerce.number().int().positive().default(4)),
+    AI_ASSIST_BATCH_BLOCKS: z.preprocess(emptyAsUndefined, z.coerce.number().int().positive().default(8)),
+    AI_ASSIST_BATCH_MAX_CHARS: z.preprocess(emptyAsUndefined, z.coerce.number().int().positive().default(4000)),
+    AI_ASSIST_MAX_TOOL_CALLS: z.preprocess(emptyAsUndefined, z.coerce.number().int().positive().default(12)),
+    AI_ASSIST_HEARTBEAT_MS: z.preprocess(emptyAsUndefined, z.coerce.number().int().positive().default(15000)),
+    AI_ASSIST_RUN_HEARTBEAT_MS: z.preprocess(emptyAsUndefined, z.coerce.number().int().positive().default(10000)),
+    AI_ASSIST_STALE_AFTER_MS: z.preprocess(emptyAsUndefined, z.coerce.number().int().positive().default(60000)),
   })
   .superRefine((data, ctx) => {
     if (data.NODE_ENV === "production") {

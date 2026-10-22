@@ -35,11 +35,11 @@ interface BodyInput extends SchemaInput {
 }
 
 interface OkInput {
-  status: 200 | 201 | 204;
+  status: 200 | 201 | 202 | 204;
   description: string;
   schema?: SchemaInput;
   example?: unknown;
-  /** Adds the `Location` header on 201 responses. */
+  /** Adds the `Location` header on 201 and 202 responses. */
   location?: string;
   /** Overrides the default `application/json` media type (e.g. SSE). */
   contentType?: string;
