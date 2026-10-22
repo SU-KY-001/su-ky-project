@@ -407,6 +407,7 @@ model Episode {
   listeningProgress  ListeningProgress[]
   releaseSchedules   ReleaseSchedule[]
   reviews            EpisodeReview[]
+  aiChecks           AiCheck[]
 
   @@index([seriesId, sortOrder], map: "episodes_series_id_sort_order_idx")
   @@map("episodes")
@@ -917,4 +918,104 @@ model HistoricalCitation {
   @@index([periodId])
   @@index([phaseId])
   @@map("historical_citations")
+}
+
+enum AiCheckKind {
+  SCRIPT_REVIEW
+
+  @@map("ai_check_kind")
+}
+
+enum AiCheckStatus {
+  RUNNING
+  SUCCEEDED
+  FAILED
+  CANCELLED
+
+  @@map("ai_check_status")
+}
+
+enum AiIssueKind {
+  FACT_DOUBT
+  READABILITY
+
+  @@map("ai_issue_kind")
+}
+
+enum AiIssueSeverity {
+  LOW
+  MEDIUM
+  HIGH
+
+  @@map("ai_issue_severity")
+}
+
+enum AiItemStatus {
+  OPEN
+  REVIEWED
+
+  @@map("ai_item_status")
+}
+
+enum AiItemBasis {
+  CONTRADICTED
+  NOT_FOUND
+
+  @@map("ai_item_basis")
+}
+
+model AiCheck {
+  id              String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId          String        @map("user_id") @db.VarChar(36)
+  episodeId       String        @map("episode_id") @db.Uuid
+  kind            AiCheckKind
+  status          AiCheckStatus
+  config          Json
+  totalBlocks     Int           @map("total_blocks")
+  processedBlocks Int           @default(0) @map("processed_blocks")
+  failedBlocks    Int           @default(0) @map("failed_blocks")
+  toolCalls       Int           @default(0) @map("tool_calls")
+  sourcesUsed     Json          @default("[]") @map("sources_used")
+  inputTokens     Int           @default(0) @map("input_tokens")
+  outputTokens    Int           @default(0) @map("output_tokens")
+  model           String?       @db.VarChar(100)
+  promptVersion   String?       @map("prompt_version") @db.VarChar(50)
+  heartbeatAt     DateTime?     @map("heartbeat_at") @db.Timestamptz(3)
+  errorCode       String?       @map("error_code") @db.VarChar(100)
+  startedAt       DateTime      @default(now()) @map("started_at") @db.Timestamptz(3)
+  finishedAt      DateTime?     @map("finished_at") @db.Timestamptz(3)
+  createdAt       DateTime      @default(now()) @map("created_at") @db.Timestamptz(3)
+  episode         Episode       @relation(fields: [episodeId], references: [id], onDelete: Cascade)
+  items           AiCheckItem[]
+
+  @@index([userId, createdAt], map: "ai_checks_user_id_created_at_idx")
+  @@index([episodeId, createdAt], map: "ai_checks_episode_id_created_at_idx")
+  @@index([userId, status], map: "ai_checks_user_id_status_idx")
+  @@index([status, heartbeatAt], map: "ai_checks_status_heartbeat_at_idx")
+  @@map("ai_checks")
+}
+
+model AiCheckItem {
+  id            String          @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  checkId       String          @map("check_id") @db.Uuid
+  seq           Int
+  blockRef      String          @map("block_ref") @db.VarChar(32)
+  blockHash     String          @map("block_hash") @db.VarChar(16)
+  blockPrevHash String          @map("block_prev_hash") @db.VarChar(16)
+  blockDup      Int             @map("block_dup") @db.SmallInt
+  kind          AiIssueKind
+  severity      AiIssueSeverity
+  basis         AiItemBasis
+  evidence      Json            @default("[]")
+  message       String          @db.Text
+  suggestion    String?         @db.Text
+  status        AiItemStatus    @default(OPEN)
+  appliedAt     DateTime?       @map("applied_at") @db.Timestamptz(3)
+  createdAt     DateTime        @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt     DateTime        @updatedAt @map("updated_at") @db.Timestamptz(3)
+  check         AiCheck         @relation(fields: [checkId], references: [id], onDelete: Cascade)
+
+  @@unique([checkId, seq], map: "ai_check_items_check_id_seq_key")
+  @@index([checkId, status], map: "ai_check_items_check_id_status_idx")
+  @@map("ai_check_items")
 }

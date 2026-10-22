@@ -21,3 +21,4 @@ export * from "./schemas/showcase";
 export * from "./types/index";
 
 export * from "./schemas/content/studio";
+export * from "./schemas/content/ai-check";
