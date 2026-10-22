@@ -2,9 +2,39 @@ import { Heart, Info, Play } from "@phosphor-icons/react";
 import { motion } from "motion/react";
 import { Link } from "react-router";
 import { cn } from "@/lib/utils";
+import { MagicCard } from "@/shared/components/ui/magic-card";
+import { Button } from "@/shared/components/ui/button";
 import { useReducedMotion } from "../hooks/useReducedMotion";
 import type { PodcastItem } from "../types";
 
+export function PodcastEpisodeHoverPreview({ title, description, image, duration, anchor, previewId, onPlay, onView, onClose, onPointerEnter, onPointerLeave }: { title: string; description: string; image?: string; duration: string; anchor: DOMRect; previewId: string; onPlay: () => void; onView?: () => void; onClose: () => void; onPointerEnter: () => void; onPointerLeave: (target: EventTarget | null) => void }) {
+  const reducedMotion = useReducedMotion();
+  const width = Math.min(anchor.width * 1.04, 480, window.innerWidth - 24);
+  const left = Math.max(12, Math.min(anchor.left - (width - anchor.width) / 2, window.innerWidth - width - 12));
+  // Reserve space for the compact copy; image height shrinks on short viewports.
+  const imageHeight = image ? Math.max(0, Math.min(width * 9 / 16, window.innerHeight - 254)) : 0;
+  const height = imageHeight + 230;
+  const top = Math.max(12, Math.min(anchor.top - 8, window.innerHeight - height - 12));
+  const summary = description.split(/\n\s*\n/)[0].replace(/\s+/g, " ").trim();
+  const excerpt = summary.length > 180 ? `${summary.slice(0, 177).replace(/\s+\S*$/, "")}…` : summary;
+  return <div id={previewId} data-podcast-preview={previewId} role="region" aria-label={`Xem trước ${title}`} tabIndex={onView ? 0 : undefined}
+    onClick={event => { if (!(event.target instanceof Element && event.target.closest("button"))) onView?.(); }}
+    onPointerEnter={onPointerEnter} onPointerLeave={event => onPointerLeave(event.relatedTarget)}
+    onKeyDown={event => { if (event.key === "Escape") { event.preventDefault(); event.stopPropagation(); onClose(); } else if (event.target === event.currentTarget && onView && (event.key === "Enter" || event.key === " ")) { event.preventDefault(); onView(); } }}
+    style={{ position: "fixed", left, top, width, cursor: onView ? "pointer" : undefined }} className="podcast-hover-preview z-50 rounded-2xl bg-paper-soft text-ink shadow-2xl focus-visible:outline-2 focus-visible:outline-vermilion">
+    <motion.div initial={reducedMotion ? false : { opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: reducedMotion ? 0 : .24, ease: "easeOut" }}>
+      <MagicCard mode="orb" glowFrom="var(--color-bronze)" glowTo="var(--color-paper-soft)" glowOpacity={reducedMotion ? 0 : .09} glowBlur={50} glowSize={260} gradientFrom="var(--color-bronze)" gradientTo="var(--color-paper-soft)" className="rounded-2xl [--color-background:var(--color-paper-soft)]">
+        {image && <img src={image} alt="" style={{ height: imageHeight }} className="w-full object-cover" />}
+        <div className="flex h-[230px] flex-col items-start gap-2 overflow-hidden p-4">
+          <p className="shrink-0 text-xs text-bronze-dark">{duration}</p>
+          <h4 className="line-clamp-2 shrink-0 text-base font-semibold leading-6">{title}</h4>
+          <p className="line-clamp-3 text-sm leading-6 text-ink-soft">{excerpt}</p>
+          <div className="relative z-20 mt-auto flex shrink-0 gap-2"><Button className="rounded-full bg-vermilion text-paper-soft hover:bg-vermilion-dark" onClick={onPlay}><Play weight="fill" aria-hidden="true" />Nghe podcast</Button></div>
+        </div>
+      </MagicCard>
+    </motion.div>
+  </div>;
+}
 export const HOVER_CARD_WIDTH = 368;
 const VIEWPORT_MARGIN = 8;
 const OPEN_DURATION_S = 0.12;

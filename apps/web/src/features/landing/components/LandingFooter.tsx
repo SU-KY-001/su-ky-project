@@ -1,6 +1,6 @@
 import { ArrowRight, ArrowUp } from "@phosphor-icons/react";
 import type { ReactElement } from "react";
-import { Link } from "react-router";
+import { Link, useNavigate } from "react-router";
 import brandLogo from "@/public/brand-su-ky-viet-nam.png";
 import { Badge } from "@/shared/components/ui/badge";
 import { Button } from "@/shared/components/ui/button";
@@ -8,18 +8,24 @@ import { Separator } from "@/shared/components/ui/separator";
 import { scrollToLandingTarget } from "../hooks/useLandingMotion";
 
 const discoveryLinks = [
-  { label: "Dòng lịch sử", target: "library-history" },
-  { label: "Podcast theo sự kiện", target: "library-podcasts" },
-  { label: "Sắp phát hành", target: "upcoming" },
+  { label: "Khám phá lịch sử", target: "library-history" },
+  { label: "Series và podcast", target: "library-podcasts" },
+  { label: "Quiz", target: "library-quiz" },
+  { label: "Lịch phát sóng", target: "upcoming" },
 ];
 
 export function LandingFooter(): ReactElement {
+  const navigate = useNavigate();
+  function jumpTo(target: string): void {
+    if (document.getElementById(target)) scrollToLandingTarget(target);
+    else navigate(`/#${target}`);
+  }
   return (
     <footer id="signup" aria-label="Chân trang Sử Ký" className="bg-paper-footer text-foreground">
       <div className="mx-auto max-w-[1280px] px-5 pb-6 pt-12 md:px-7 md:pt-16">
         <div className="grid gap-10 pb-10 sm:grid-cols-2 lg:grid-cols-[1.2fr_1fr_1fr] lg:gap-16">
           <div className="flex flex-col items-start gap-5 sm:col-span-2 lg:col-span-1">
-            <Button variant="ghost" className="h-auto p-0 hover:bg-transparent" onClick={() => scrollToLandingTarget("hero")} aria-label="Sử Ký Việt Nam — về đầu trang">
+            <Button variant="ghost" className="h-auto p-0 hover:bg-transparent" onClick={() => jumpTo("hero")} aria-label="Sử Ký Việt Nam — về đầu trang">
               <img src={brandLogo} alt="Sử Ký Việt Nam" className="h-auto w-44" />
             </Button>
             <Badge variant="outline">Podcast lịch sử Việt Nam</Badge>
@@ -33,7 +39,7 @@ export function LandingFooter(): ReactElement {
             <ul className="flex flex-col items-start gap-1">
               {discoveryLinks.map(({ label, target }) => (
                 <li key={target}>
-                  <Button variant="link" className="h-auto justify-start whitespace-normal px-0 py-2 text-left text-muted-foreground" onClick={() => scrollToLandingTarget(target)}>
+                  <Button variant="link" className="h-auto justify-start whitespace-normal px-0 py-2 text-left text-muted-foreground" onClick={() => jumpTo(target)}>
                     {label}
                   </Button>
                 </li>
@@ -46,7 +52,7 @@ export function LandingFooter(): ReactElement {
             <p className="max-w-sm text-sm leading-7 text-muted-foreground">
               Chọn một tập podcast bạn yêu thích và bắt đầu hành trình tìm hiểu lịch sử theo nhịp của riêng mình.
             </p>
-            <Button onClick={() => scrollToLandingTarget("library-podcasts")}>
+            <Button onClick={() => jumpTo("library-podcasts")}>
               Khám phá podcast <ArrowRight aria-hidden="true" />
             </Button>
             <Button asChild variant="link" className="h-auto whitespace-normal px-0 text-left">
@@ -59,7 +65,7 @@ export function LandingFooter(): ReactElement {
 
         <div className="flex flex-col items-start justify-between gap-4 pt-5 sm:flex-row sm:items-center">
           <p className="text-xs leading-6 text-muted-foreground">© {new Date().getFullYear()} Sử Ký Việt Nam. Mỗi câu chuyện, một góc nhìn lịch sử.</p>
-          <Button variant="ghost" size="sm" onClick={() => scrollToLandingTarget("hero")}>
+          <Button variant="ghost" size="sm" onClick={() => jumpTo("hero")}>
             Về đầu trang <ArrowUp aria-hidden="true" />
           </Button>
         </div>

@@ -1,3 +1,4 @@
+import { CardBadge, cardBadgeToneForStatus } from "@/shared/components/dashboard/CardBadge";
 import { Fragment, useState } from "react";
 import { Button } from "@/shared/components/ui/button";
 import { PencilSimple } from "@phosphor-icons/react";
@@ -169,13 +170,13 @@ export function HistoricalCatalogList({
                     {event.podcastCount}
                   </TableCell>
                   <TableCell className={tableCell}>
-                    {event.reviewStatus === "APPROVED"
+                    <CardBadge type="status" tone={cardBadgeToneForStatus(event.reviewStatus)}>{event.reviewStatus === "APPROVED"
                       ? "Đã duyệt"
                       : event.reviewStatus === "IN_REVIEW"
                         ? "Chờ duyệt"
                         : event.reviewStatus === "CHANGES_REQUESTED"
                           ? "Cần chỉnh sửa"
-                          : "Bản nháp"}
+                          : "Bản nháp"}</CardBadge>
                   </TableCell>
                   <TableCell className={tableCell}>
                     {event.updatedAt.toLocaleDateString("vi-VN")}

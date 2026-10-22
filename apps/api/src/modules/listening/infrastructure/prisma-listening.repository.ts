@@ -45,6 +45,7 @@ type PrismaNarrationWithAudio = PrismaNarration & {
 };
 type PrismaEpisodeWithNarrations = PrismaEpisode & {
   narrations: PrismaNarrationWithAudio[];
+  attachments?: { mediaAsset: PrismaMediaAsset }[];
 };
 type PrismaSeriesWithCoverAndCount = PrismaSeries & {
   coverImageAsset: PrismaMediaAsset | null;
@@ -59,6 +60,7 @@ type PrismaSeriesSourceRow = PrismaSeriesSource & {
   } | null;
 };
 type PrismaSeriesDetail = PrismaSeries & {
+  owner?: { name: string };
   coverImageAsset: PrismaMediaAsset | null;
   coverLandscapeAsset: PrismaMediaAsset | null;
   episodes: PrismaEpisodeWithNarrations[];
@@ -195,12 +197,14 @@ function toEpisodeWithNarrations(
   return {
     ...toEpisode(row),
     narrations: row.narrations.map(toNarrationWithAudio),
+    posterAsset: row.attachments?.[0] ? toMediaAsset(row.attachments[0].mediaAsset) : null,
   };
 }
 
 function toSeriesDetail(row: PrismaSeriesDetail): SeriesDetailEntity {
   return {
     ...toSeries(row),
+    creator: row.owner ? { name: row.owner.name } : null,
     coverImageAsset: row.coverImageAsset
       ? toMediaAsset(row.coverImageAsset)
       : null,
@@ -566,12 +570,21 @@ export class PrismaListeningRepository implements ListeningRepository {
     const row = await this.db.series.findFirst({
       where: { slug, ...PUBLIC_SERIES_WHERE },
       include: {
+        owner: { select: { name: true } },
         coverImageAsset: true,
         coverLandscapeAsset: true,
         episodes: {
           where: { status: "PUBLISHED" as const, deletedAt: null },
           orderBy: { sortOrder: "asc" },
-          include: { narrations: { include: { audioAsset: true } } },
+          include: {
+            narrations: { include: { audioAsset: true } },
+            attachments: {
+              where: { mediaAsset: { kind: "IMAGE", status: "READY", deletedAt: null } },
+              orderBy: { createdAt: "desc" },
+              take: 1,
+              include: { mediaAsset: true },
+            },
+          },
         },
         sources: {
           orderBy: { sortOrder: "asc" },

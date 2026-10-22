@@ -226,12 +226,11 @@ body.workspace-scroll-lock {
 }
 
 .app-frame {
-  height: 100dvh;
-  overflow: hidden;
+  min-height: 100dvh;
 }
 
 .landing-scroll-area {
-  height: 100%;
+  height: 100dvh;
   overflow-x: hidden;
   overflow-y: auto;
   scrollbar-gutter: stable;

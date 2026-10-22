@@ -59,7 +59,7 @@ export const listeningPaths: Paths = {
       id: "getPublicSeries",
       tag: TAG,
       summary: "Chi tiết Series công khai",
-      description: "Kèm danh sách tập đã xuất bản. Nếu đã đăng nhập, mỗi tập có thêm tiến độ nghe của bạn.",
+      description: "Kèm tên người tạo (creator.name), ngày xuất bản series/từng tập, toàn bộ tập đã xuất bản, mô tả, poster và thời lượng từng góc kể. Nếu đã đăng nhập, mỗi tập có thêm tiến độ nghe của bạn.",
       access: "optional",
       ...slugParams,
       ok: {
