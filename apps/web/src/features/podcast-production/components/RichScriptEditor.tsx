@@ -6,6 +6,7 @@ import {
   useRef,
   useState,
   type ReactElement,
+  type ReactNode,
 } from "react";
 import type { EditorOptions } from "@tiptap/core";
 import { EditorContent, useEditor } from "@tiptap/react";
@@ -33,7 +34,7 @@ import { cn } from "@/lib/utils";
 import { SourceCitation } from "../scriptEditor";
 import type { ScriptBlock } from "../aiCheck/blockRefs";
 import {
-  editorBlocks, focusBlock, insertAfterRange, insertDraft, isEditorEmpty, replaceBlockText, replaceRange,
+  editorBlocks, focusBlock, insertAfterRange, insertDraft, isEditorEmpty, replaceBlockText, replaceRange, textBlockSpans,
   selectionBlocks, selectionRange, selectRange,
   type DraftInsertItem, type EditResult, type SelectionRange,
 } from "../aiCheck/editorBlocks";
@@ -41,7 +42,7 @@ import { BlockHighlights, setBlockHighlights, type BlockHighlight } from "../aiC
 import { RewriteFloatingButton } from "../rewrite/RewriteFloatingButton";
 
 export const EMPTY_SCRIPT_PLACEHOLDER =
-  "Kịch bản đang trống. Viết trực tiếp, hoặc bấm 'Soạn bản nháp' ở bên phải để AI soạn dàn ý rồi từng đoạn.";
+  "Kịch bản đang trống. Viết trực tiếp, hoặc bấm 'Soạn bản nháp' ở thanh công cụ để AI soạn dàn ý rồi từng đoạn.";
 
 export interface RichScriptEditorHandle {
   insertCitation: (sourceId: string) => void;
@@ -91,10 +92,14 @@ export const RichScriptEditor = forwardRef<
     onPasteLimitReached?: (limit: number) => void;
     /** Set to enable the floating "Viết lại" button: called with the sentence-expanded selection. */
     onRewriteRequest?: (range: SelectionRange) => void;
+    /** Right-aligned controls of the toolbar row (AI actions, sources). */
+    toolbarActions?: ReactNode;
+    /** Called with the block ref (`b{index}`) of the paragraph the moderator clicked. */
+    onBlockClick?: (ref: string) => void;
     disabled?: boolean;
   }
 >(function RichScriptEditor(
-  { initialDocument, onChange, onPasteLimitReached, onRewriteRequest, disabled = false },
+  { initialDocument, onChange, onPasteLimitReached, onRewriteRequest, onBlockClick, toolbarActions, disabled = false },
   ref,
 ): ReactElement {
   const wrapperRef = useRef<HTMLDivElement>(null);
@@ -296,8 +301,22 @@ export const RichScriptEditor = forwardRef<
             </Button>
           );
         })}
+        {toolbarActions ? <div className="ml-auto flex flex-wrap items-center gap-1.5">{toolbarActions}</div> : null}
       </div>
-      <div data-script-scroll-region className="podcast-editor-viewport" onMouseUp={pickRange} onKeyUp={pickRange}>
+      <div
+        data-script-scroll-region
+        className="podcast-editor-viewport"
+        onMouseUp={pickRange}
+        onKeyUp={pickRange}
+        onClick={(event) => {
+          if (!editor || !onBlockClick) return;
+          // Coordinates, not selection: ProseMirror applies the clicked selection after this event.
+          const at = editor.view.posAtCoords({ left: event.clientX, top: event.clientY })?.pos;
+          if (at === undefined) return;
+          const index = textBlockSpans(editor.state.doc).findIndex((span) => at >= span.from && at <= span.to);
+          if (index >= 0) onBlockClick(`b${index}`);
+        }}
+      >
         <EditorContent
           editor={editor}
           className="h-full min-w-0 max-w-full overflow-hidden"

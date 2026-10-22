@@ -1,9 +1,13 @@
 import { describe, expect, it, mock } from "bun:test";
 import { CloudinaryGateway } from "../src/modules/media/infrastructure/cloudinary.gateway";
 import type { MediaAsset } from "../src/modules/media/domain/media.entity";
+import { env as actualEnv } from "../src/core/env";
+
+const originalEnv = { ...actualEnv };
 
 mock.module("../src/core/env", () => ({
   env: {
+    ...originalEnv,
     CLOUDINARY_CLOUD_NAME: "test-cloud",
     CLOUDINARY_API_KEY: "test-key",
     CLOUDINARY_API_SECRET: "test-secret",

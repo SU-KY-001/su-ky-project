@@ -172,7 +172,9 @@ export function attachPiTracer(
       base.debug({ piEvent: event.type }, `[${ctx.label}] unmirrored pi event`);
       return;
     }
-    base.info({ piEvent: event.type, ...summary.metadata }, `[${ctx.label}] ${summary.message}`);
+    // Streaming deltas fire hundreds of times per run: debug only, everything else stays at info.
+    const level = summary.type === "message.streaming" ? "debug" : "info";
+    base[level]({ piEvent: event.type, ...summary.metadata }, `[${ctx.label}] ${summary.message}`);
     // Streaming deltas fire dozens of times per run: logged above, not forwarded.
     if (summary.type === "message.streaming" || !onEvent) return;
     try {

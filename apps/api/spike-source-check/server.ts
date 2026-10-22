@@ -153,7 +153,7 @@ async function check(blocks: BlockIn[], note: string, promptVersion: string) {
     attempts++;
     try {
       report = await Promise.race([
-        runStructuredAgent({ systemPrompt, userPrompt, schema: ReportSchema, customTools: buildTools(log, readPages), label: "spike:source-check" }),
+        runStructuredAgent({ systemPrompt, userPrompt, schema: ReportSchema, customTools: buildTools(log, readPages), label: "spike:source-check" }).then((result) => result.data),
         new Promise<never>((_, rej) => setTimeout(() => rej(new Error("RUN_TIMEOUT")), RUN_TIMEOUT_MS)),
       ]);
       break;

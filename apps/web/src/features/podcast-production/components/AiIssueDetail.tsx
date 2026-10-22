@@ -17,6 +17,8 @@ interface Props {
   /** The text was already replaced but the server was not told yet: apply stays enabled to retry the record only. */
   awaitingRecord?: boolean;
   sourceTitle: (sourceId: string) => string;
+  /** Opens the sources popover so the moderator can see the cited source. */
+  onOpenSource?: () => void;
   notice: ApplyNotice;
   busy: boolean;
   onApply: () => void;
@@ -26,7 +28,7 @@ interface Props {
 }
 
 /** Every model string is rendered as a React text child (escaped), never as HTML. */
-export function AiIssueDetail({ item, currentText, awaitingRecord = false, sourceTitle, notice, busy, onApply, onRerunSelection, onBack, onFinish }: Props): ReactElement {
+export function AiIssueDetail({ item, currentText, awaitingRecord = false, sourceTitle, notice, busy, onApply, onRerunSelection, onBack, onFinish, onOpenSource }: Props): ReactElement {
   const hint = item.suggestion && currentText ? novelHint(currentText, item.suggestion) : [];
   const showSources = item.kind === "FACT_DOUBT";
   return (
@@ -62,7 +64,13 @@ export function AiIssueDetail({ item, currentText, awaitingRecord = false, sourc
             {item.evidence.map((entry) => (
               <blockquote key={`${entry.sourceId}-${entry.page}-${entry.quote}`} className="rounded-lg border-l-4 border-mod-primary bg-mod-canvas-accent p-3 text-sm">
                 “{entry.quote}”
-                <footer className="mt-1 text-xs text-mod-text-secondary">{sourceTitle(entry.sourceId)}{entry.page === null ? "" : `, tr. ${entry.page}`}</footer>
+                <footer className="mt-1 text-xs text-mod-text-secondary">
+                  {onOpenSource ? (
+                    <button type="button" className="underline hover:text-mod-primary" onClick={onOpenSource}>{sourceTitle(entry.sourceId)}{entry.page === null ? "" : `, tr. ${entry.page}`}</button>
+                  ) : (
+                    <>{sourceTitle(entry.sourceId)}{entry.page === null ? "" : `, tr. ${entry.page}`}</>
+                  )}
+                </footer>
               </blockquote>
             ))}
           </section>

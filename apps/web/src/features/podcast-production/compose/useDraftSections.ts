@@ -67,6 +67,7 @@ export function useDraftSections(params: Params) {
         },
         signal,
       );
+      if (signal.aborted) return false;
       patch(index, {
         status: "done",
         text: response.paragraphs.join(PARAGRAPH_SEPARATOR),
@@ -77,8 +78,9 @@ export function useDraftSections(params: Params) {
       });
       return true;
     } catch (error) {
-      if (isAbort(error)) patch(index, { status: "waiting" });
-      else patch(index, { status: "error", error: describeComposeError(error, "Không viết được phần này.") });
+      // A superseded or aborted call must not touch state: the replacement run owns this row now.
+      if (signal.aborted) return false;
+      patch(index, { status: "error", error: describeComposeError(error, "Không viết được phần này.") });
       return false;
     }
   }, [params, patch]);
@@ -105,11 +107,12 @@ export function useDraftSections(params: Params) {
     await write(index, current.signal);
     if (controller.current === current) setRunning(false);
   }, [write]);
-
   const abort = useCallback(() => {
     controller.current?.abort();
     controller.current = null;
     setRunning(false);
+    // The aborted write no longer patches (it is superseded), so release its "writing" row here.
+    setDrafts((current) => current.map((draft) => (draft.status === "writing" ? { ...draft, status: "waiting" } : draft)));
   }, []);
 
   useEffect(() => () => controller.current?.abort(), []);

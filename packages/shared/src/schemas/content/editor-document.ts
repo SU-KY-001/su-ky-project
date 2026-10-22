@@ -147,6 +147,21 @@ export const EditorDocumentSchema: z.ZodType<EditorDocument> = z
     }
   });
 
+/** Where an attached recording came from, so the moderator can tell which file and which voice it is. */
+export const AudioOriginSchema = z.discriminatedUnion("kind", [
+  z.object({ kind: z.literal("UPLOAD"), fileName: z.string().min(1).max(255) }).strict(),
+  z
+    .object({
+      kind: z.literal("AI_VOICE"),
+      voice: z.string().min(1).max(60),
+      model: z.string().min(1).max(80),
+      style: z.string().max(200),
+      chars: z.number().int().nonnegative(),
+    })
+    .strict(),
+]);
+export type AudioOrigin = z.infer<typeof AudioOriginSchema>;
+
 export const AudioAnalysisSchema = z
   .object({
     clientDurationMs: z.number().int().nonnegative().nullable(),
@@ -157,6 +172,8 @@ export const AudioAnalysisSchema = z
     durationStatus: z.enum(["PASS", "WARNING", "UNKNOWN"]),
     noiseStatus: z.enum(["PASS", "WARNING", "UNKNOWN"]),
     checkedAt: z.string().datetime({ offset: true }),
+    /** Absent on recordings attached before origin was recorded. */
+    origin: AudioOriginSchema.optional(),
   })
   .strict();
 

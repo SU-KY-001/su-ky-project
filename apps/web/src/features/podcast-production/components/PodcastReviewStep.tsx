@@ -17,6 +17,7 @@ import { usePodcastEpisode } from "../hooks/usePodcastProduction";
 import { buildLocalReviewChecklist } from "../reviewChecklist";
 import { emptyScriptDocument } from "../scriptEditor";
 import { podcastProductionService as api } from "../services/podcastProductionService";
+import { AudioDetails } from "./AudioDetails";
 
 const backendChecklistLabels: Record<string, string> = {
   BASIC_INFO: "Thông tin cơ bản",
@@ -121,7 +122,7 @@ export function PodcastReviewStep({
 
           <ReviewCard icon={Headphones} title="File thu âm">
             {audioUrl ? <audio controls src={audioUrl} className="w-full" preload="metadata" /> : <p className="text-sm text-mod-text-secondary">Chưa có file thu âm.</p>}
-            {analysis ? <div className="mt-3 grid gap-2 text-sm sm:grid-cols-3"><p className="rounded-lg bg-mod-canvas-accent p-3">Thời lượng: <strong>{analysis.clientDurationMs ? `${Math.round(analysis.clientDurationMs / 1000)} giây` : "Chưa rõ"}</strong></p><p className="rounded-lg bg-mod-canvas-accent p-3">So với kịch bản: <strong>{analysis.durationStatus === "PASS" ? "Phù hợp" : "Cần kiểm tra"}</strong></p><p className="rounded-lg bg-mod-canvas-accent p-3">Độ ồn: <strong>{analysis.noiseStatus === "PASS" ? "Ổn" : "Cần kiểm tra"}</strong></p></div> : null}
+            <div className="mt-3"><AudioDetails episodeId={wizard.state.episodeId ?? null} analysis={analysis} /></div>
           </ReviewCard>
         </div>
 

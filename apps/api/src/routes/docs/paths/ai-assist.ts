@@ -13,6 +13,8 @@ import {
   RewriteRequestSchema,
   RewriteResponseSchema,
   UpdateAngleSchema,
+  CreateVoiceJobSchema,
+  VoiceJobSchema,
 } from "@repo/shared";
 import { z } from "zod";
 import { operation, type Paths } from "../operation";
@@ -41,6 +43,10 @@ const COMPOSE_ERRORS: Record<number, string> = {
 };
 const angleParams = { pathParams: z.object({ id: z.string().min(1) }), pathParamDocs: { id: "ID góc kể (UUID)" } } as const;
 const ANGLE_NOT_FOUND = "`NOT_FOUND`: góc kể không tồn tại, là góc có sẵn, hoặc không thuộc bạn";
+const voiceParams = {
+  pathParams: z.object({ id: z.string().uuid(), jobId: z.string().uuid() }),
+  pathParamDocs: { id: "ID tập (UUID)", jobId: "ID lượt tạo giọng (UUID)" },
+} as const;
 
 const CreatedCheckSchema = z.object({ id: z.string().uuid() });
 const CheckListSchema = z.object({ items: z.array(AiCheckSchema) });
@@ -234,6 +240,36 @@ export const aiAssistPaths: Paths = {
       ok: { status: 200, description: "Các bản viết lại", schema: { name: "AiRewriteResponse", schema: RewriteResponseSchema } },
       rate: "ai_generate",
       errors: { ...COMPOSE_ERRORS, 502: `${COMPOSE_ERRORS[502]}; \`AI_NO_VARIANTS\`: không còn bản hợp lệ nào` },
+    }),
+  },
+  [`${COMPOSE}/voice`]: {
+    post: operation({
+      id: "createVoiceJob", tag: TAG, summary: "Tạo giọng đọc AI", access: "studio",
+      description: "Chạy nền với kịch bản đã lưu. Trả lại lượt RUNNING hiện có của cùng người dùng và tập. Job và MP3 tạm hết hạn theo TTS_JOB_TTL_MS; khởi động lại API sẽ mất job. Kết quả có voice, model và style để lưu cùng thông tin file khi gắn âm thanh vào tập.",
+      ...episodeParams,
+      body: { name: "CreateVoiceJob", schema: CreateVoiceJobSchema },
+      ok: { status: 202, description: "Lượt tạo giọng", schema: { name: "VoiceJob", schema: VoiceJobSchema } },
+      rate: "ai_generate",
+      errors: { 404: NOT_FOUND, 422: "Kịch bản đã lưu không có nội dung đọc" },
+    }),
+  },
+  [`${COMPOSE}/voice/{jobId}`]: {
+    get: operation({
+      id: "getVoiceJob", tag: TAG, summary: "Xem tiến độ tạo giọng", access: "studio", ...voiceParams,
+      ok: { status: 200, description: "Trạng thái và metadata giọng đọc", schema: { name: "VoiceJob", schema: VoiceJobSchema } },
+      errors: { 404: "Job không tồn tại, hết hạn hoặc không thuộc người dùng (Admin được xem)" },
+    }),
+    delete: operation({
+      id: "cancelVoiceJob", tag: TAG, summary: "Hủy tạo giọng", access: "studio", ...voiceParams,
+      ok: { status: 204, description: "Đã yêu cầu hủy" },
+      errors: { 404: "Job không tồn tại hoặc không thuộc người dùng" },
+    }),
+  },
+  [`${COMPOSE}/voice/{jobId}/audio`]: {
+    get: operation({
+      id: "getVoiceAudio", tag: TAG, summary: "Tải MP3 đã tạo", access: "studio", ...voiceParams,
+      ok: { status: 200, description: "File MP3, Cache-Control: no-store", contentType: "audio/mpeg", contentSchema: { type: "string", format: "binary" } },
+      errors: { 404: "Job không tồn tại hoặc không thuộc người dùng", 409: "Job chưa DONE hoặc không có file" },
     }),
   },
 };

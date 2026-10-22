@@ -5,7 +5,7 @@ import {
   type ChangeEvent,
   type ReactElement,
 } from "react";
-import type { AudioAnalysis } from "@repo/shared";
+import type { AudioAnalysis, AudioOrigin } from "@repo/shared";
 import { CheckCircle2, LoaderCircle, Upload, Volume2 } from "lucide-react";
 import { uploadCatalogMedia } from "@/features/historical-library/services/catalogMediaService";
 import { Button } from "@/shared/components/ui/button";
@@ -16,6 +16,7 @@ import {
   createObjectUrlLease,
   isSupportedPodcastAudio,
 } from "../audioAnalysis";
+import { AudioDetails } from "./AudioDetails";
 import { useWordsPerMinute } from "../hooks/usePodcastProduction";
 import { estimatedDurationMs } from "../scriptDuration";
 
@@ -28,9 +29,15 @@ const statusLabel = {
 export function UploadedAudioPanel({
   wizard,
   published,
+  incomingFile = null,
+  incomingOrigin = null,
 }: {
   wizard: PodcastCreationWizard;
   published: boolean;
+  /** A file produced by the AI voice step; replaces the file picker. */
+  incomingFile?: File | null;
+  /** Recorded with the attached file so the details panel can say which voice made it. */
+  incomingOrigin?: AudioOrigin | null;
 }): ReactElement {
   const leaseRef = useRef<ReturnType<typeof createObjectUrlLease> | null>(null);
   if (!leaseRef.current) leaseRef.current = createObjectUrlLease();
@@ -49,10 +56,7 @@ export function UploadedAudioPanel({
 
   useEffect(() => () => leaseRef.current?.dispose(), []);
 
-  const selectAudio = async (event: ChangeEvent<HTMLInputElement>): Promise<void> => {
-    const selected = event.target.files?.[0];
-    event.target.value = "";
-    if (!selected) return;
+  const chooseFile = async (selected: File): Promise<void> => {
     if (!isSupportedPodcastAudio(selected)) {
       setError("Chỉ hỗ trợ MP3, M4A hoặc OGG đúng định dạng âm thanh.");
       return;
@@ -72,13 +76,27 @@ export function UploadedAudioPanel({
     }
   };
 
+  const selectAudio = async (event: ChangeEvent<HTMLInputElement>): Promise<void> => {
+    const selected = event.target.files?.[0];
+    event.target.value = "";
+    if (selected) await chooseFile(selected);
+  };
+
+  // A file generated elsewhere (AI voice) goes through the same analysis and upload as a picked file.
+  useEffect(() => {
+    if (incomingFile) void chooseFile(incomingFile);
+    // chooseFile only closes over setters and `estimatedMs`; re-running on every render would re-analyse in a loop.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [incomingFile]);
+
   const upload = async (): Promise<void> => {
     if (!file || !analysis) return;
     setUploading(true);
     setError("");
     try {
       const assetId = await uploadCatalogMedia(file, "AUDIO");
-      await wizard.attachAudio(assetId, analysis, localPreview, published && Boolean(wizard.state.uploadedAudio) && confirmReplace);
+      const origin: AudioOrigin = incomingOrigin ?? { kind: "UPLOAD", fileName: file.name };
+      await wizard.attachAudio(assetId, { ...analysis, origin }, localPreview, published && Boolean(wizard.state.uploadedAudio) && confirmReplace);
       leaseRef.current?.dispose();
       setLocalPreview(null);
       setFile(null);
@@ -94,19 +112,21 @@ export function UploadedAudioPanel({
   const needsConfirmation = published && Boolean(wizard.state.uploadedAudio) && Boolean(file);
   return (
     <section className="space-y-4" aria-labelledby="uploaded-audio-title">
-      <div className="rounded-xl border border-dashed border-mod-text-low/60 bg-mod-canvas-accent p-5 text-center">
-        <span className="mx-auto flex size-11 items-center justify-center rounded-full bg-mod-primary/10 text-mod-primary">
-          <Upload size={20} aria-hidden="true" />
-        </span>
-        <h3 id="uploaded-audio-title" className="mt-3 font-bold text-mod-text">Tải file thu âm hoàn chỉnh</h3>
-        <p className="mt-1 text-sm text-mod-text-secondary">MP3, M4A hoặc OGG. Bạn có thể nghe ngay sau khi chọn.</p>
-        <Button type="button" variant="outline" className="mt-4" asChild>
-          <label className="cursor-pointer">
-            Chọn file âm thanh
-            <input className="sr-only" type="file" accept=".mp3,.m4a,.ogg,audio/mpeg,audio/mp4,audio/x-m4a,audio/ogg" onChange={(event) => void selectAudio(event)} />
-          </label>
-        </Button>
-      </div>
+      {incomingFile ? null : (
+        <div className="rounded-xl border border-dashed border-mod-text-low/60 bg-mod-canvas-accent p-5 text-center">
+          <span className="mx-auto flex size-11 items-center justify-center rounded-full bg-mod-primary/10 text-mod-primary">
+            <Upload size={20} aria-hidden="true" />
+          </span>
+          <h3 id="uploaded-audio-title" className="mt-3 font-bold text-mod-text">Tải file thu âm hoàn chỉnh</h3>
+          <p className="mt-1 text-sm text-mod-text-secondary">MP3, M4A hoặc OGG. Bạn có thể nghe ngay sau khi chọn.</p>
+          <Button type="button" variant="outline" className="mt-4" asChild>
+            <label className="cursor-pointer">
+              Chọn file âm thanh
+              <input className="sr-only" type="file" accept=".mp3,.m4a,.ogg,audio/mpeg,audio/mp4,audio/x-m4a,audio/ogg" onChange={(event) => void selectAudio(event)} />
+            </label>
+          </Button>
+        </div>
+      )}
 
       {file ? <p className="text-sm font-semibold text-mod-text">{file.name}</p> : null}
       {previewUrl ? (
@@ -137,11 +157,12 @@ export function UploadedAudioPanel({
         <div className="flex justify-end">
           <Button type="button" disabled={uploading || (needsConfirmation && !confirmReplace)} onClick={() => void upload()}>
             {uploading ? <LoaderCircle className="animate-spin" /> : <Upload />}
-            {uploading ? "Đang tải lên…" : wizard.state.uploadedAudio ? "Thay file đã lưu" : "Tải lên và lưu"}
+            {uploading ? "Đang tải lên…" : incomingFile ? "Dùng làm âm thanh của tập" : wizard.state.uploadedAudio ? "Thay file đã lưu" : "Tải lên và lưu"}
           </Button>
         </div>
       ) : null}
       {wizard.state.uploadedAudio ? <p className="flex items-center gap-2 text-sm font-semibold text-mod-success"><CheckCircle2 size={17} /> File thu âm đã được lưu với tập podcast.</p> : null}
+      {wizard.state.uploadedAudio && !file ? <AudioDetails episodeId={wizard.state.episodeId ?? null} analysis={wizard.state.uploadedAudio.analysis} /> : null}
       {error ? <p role="alert" className="text-sm text-mod-danger">{error}</p> : null}
     </section>
   );

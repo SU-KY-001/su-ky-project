@@ -61,6 +61,16 @@ const envSchema = z
     AI_ASSIST_STALE_AFTER_MS: z.preprocess(emptyAsUndefined, z.coerce.number().int().positive().default(60000)),
     // Narrative angles a moderator may own (built-ins do not count).
     AI_ANGLE_MAX_PER_USER: z.preprocess(emptyAsUndefined, z.coerce.number().int().positive().default(50)),
+    // Gemini TTS voice generation (background job per episode). The free tier is ~10 requests a day: one request per chunk.
+    TTS_MODEL: z.string().min(1).default("gemini-3.8-flash-lite-tts"),
+    TTS_CHUNK_CHARS: z.preprocess(emptyAsUndefined, z.coerce.number().int().min(500).default(3000)),
+    TTS_CONCURRENCY: z.preprocess(emptyAsUndefined, z.coerce.number().int().positive().default(3)),
+    TTS_REQUEST_TIMEOUT_MS: z.preprocess(emptyAsUndefined, z.coerce.number().int().positive().default(180000)),
+    // Finished jobs (and their mp3 on disk) are dropped after this; a job lives in memory, so a restart also drops it.
+    TTS_JOB_TTL_MS: z.preprocess(emptyAsUndefined, z.coerce.number().int().positive().default(1800000)),
+    FFMPEG_PATH: z.string().min(1).default("ffmpeg"),
+    // Delivery style sent with every chunk as speech_metadata.style.
+    TTS_STYLE: z.string().min(1).default("Podcast - Calm, measured delivery"),
     // Synchronous compose calls (outline / draft-section / rewrite), see spec-prompts-compose.md
     AI_ASSIST_CALL_TIMEOUT_MS: z.preprocess(emptyAsUndefined, z.coerce.number().int().positive().default(90000)),
     AI_REWRITE_MAX_VARIANTS: z.preprocess(emptyAsUndefined, z.coerce.number().int().min(1).max(10).default(10)),

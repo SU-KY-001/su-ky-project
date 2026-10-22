@@ -18,14 +18,14 @@ export function IssueKindTag({ item }: { item: Pick<AiCheckItem, "kind" | "basis
 }
 
 /** One checklist button per warning; also shown while the check still runs so warnings appear as they arrive. */
-export function IssueRows({ items, onOpen }: { items: AiCheckItem[]; onOpen: (itemId: string) => void }): ReactElement {
+export function IssueRows({ items, activeId, onOpen }: { items: AiCheckItem[]; activeId?: string | null; onOpen: (itemId: string) => void }): ReactElement {
   return (
     <ul className="space-y-2">
       {items.map((item) => (
         <li key={item.id}>
           <button
             type="button"
-            className={cn("w-full rounded-lg border border-mod-border p-3 text-left text-sm hover:border-mod-primary focus-visible:outline-2", item.status === "REVIEWED" && "bg-mod-canvas-accent")}
+            className={cn("w-full rounded-lg border border-mod-border p-3 text-left text-sm hover:border-mod-primary focus-visible:outline-2", item.status === "REVIEWED" && "bg-mod-canvas-accent", item.id === activeId && "border-mod-primary bg-mod-primary/5")}
             aria-label={`Mở cảnh báo: ${item.message}`}
             onClick={() => onOpen(item.id)}
           >
@@ -50,16 +50,17 @@ export function IssueRows({ items, onOpen }: { items: AiCheckItem[]; onOpen: (it
 interface Props {
   check: AiCheck;
   items: AiCheckItem[];
+  activeId?: string | null;
   onOpen: (itemId: string) => void;
   onRerun: () => void;
 }
 
-export function AiIssueList({ check, items, onOpen, onRerun }: Props): ReactElement {
+export function AiIssueList({ check, items, activeId, onOpen, onRerun }: Props): ReactElement {
   const problem = describeCheckProblem(check);
   return (
     <div className="space-y-3">
-      <div className="flex items-start justify-between gap-2">
-        <h4 className="text-lg font-bold text-mod-text">{items.length ? `${items.length} cảnh báo` : "Không có cảnh báo"}</h4>
+      <div className="flex flex-wrap items-start justify-between gap-2">
+        <h4 className="whitespace-nowrap text-lg font-bold text-mod-text">{items.length ? `${items.length} cảnh báo` : "Không có cảnh báo"}</h4>
         <span className="shrink-0 rounded-full bg-mod-attention/10 px-2 py-0.5 text-xs font-bold text-mod-attention">{AI_DOUBT_LABEL}</span>
       </div>
       <p className="text-xs text-mod-text-secondary">{seenSummary(items)}</p>
@@ -68,7 +69,7 @@ export function AiIssueList({ check, items, onOpen, onRerun }: Props): ReactElem
       {items.length === 0 && check.status === "SUCCEEDED" && !problem ? (
         <p className="text-sm text-mod-text-secondary">AI không nêu cảnh báo nào. Điều này không có nghĩa kịch bản đã đúng.</p>
       ) : null}
-      <IssueRows items={items} onOpen={onOpen} />
+      <IssueRows items={items} activeId={activeId} onOpen={onOpen} />
       <Button type="button" variant="outline" size="sm" onClick={onRerun}><RefreshCw size={14} aria-hidden="true" /> Rà lại</Button>
       <p className="text-xs text-mod-text-secondary">AI có thể báo nhầm hoặc bỏ sót. Bấm một dòng để xem chi tiết.</p>
     </div>

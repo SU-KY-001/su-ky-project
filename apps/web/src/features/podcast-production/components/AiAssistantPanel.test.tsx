@@ -2,9 +2,14 @@ import { afterEach, expect, it, mock } from "bun:test";
 import { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { hashBlockText, type AiCheck, type AiCheckItem } from "@repo/shared";
-import type { RefObject } from "react";
-import { AiAssistantPanel } from "./AiAssistantPanel";
+import { useState, type RefObject } from "react";
+import { AiAssistantPanel, type DockState } from "./AiAssistantPanel";
 import type { RichScriptEditorHandle } from "./RichScriptEditor";
+
+function DockHarness({ editorRef }: { editorRef: RefObject<RichScriptEditorHandle | null> }) {
+  const [dock, setDock] = useState<DockState>("panel");
+  return <AiAssistantPanel editorRef={editorRef} episodeId={EPISODE_ID} ensureEpisode={async () => EPISODE_ID} sources={[]} hasScript dock={dock} onDockChange={setDock} runRequest={0} />;
+}
 
 let root: Root | undefined;
 const originalFetch = globalThis.fetch;
@@ -99,7 +104,7 @@ it("retries only PATCH after an apply acknowledgement failure", async () => {
   document.body.append(host);
   root = createRoot(host);
   await act(async () => {
-    root?.render(<AiAssistantPanel editorRef={editorRef} episodeId={EPISODE_ID} ensureEpisode={async () => EPISODE_ID} sources={[]} hasScript />);
+    root?.render(<DockHarness editorRef={editorRef} />);
     await Bun.sleep(50);
   });
 

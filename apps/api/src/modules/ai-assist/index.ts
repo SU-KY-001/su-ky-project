@@ -16,6 +16,8 @@ import { PrismaAngleRepository } from "./angles/angle.repository";
 import { createAiCheckRoute } from "./review/presentation/ai-check.routes";
 import { createAngleRoute } from "./angles/angle.routes";
 import { createComposeRoute } from "./compose/presentation/compose.routes";
+import { createVoiceRoute } from "./voice/voice.routes";
+import { VoiceService } from "./voice/voice.service";
 import { createPostgresSourcePageStore } from "./review/sources/postgres-source-page-store";
 
 const config = readAiAssistConfig();
@@ -55,7 +57,8 @@ const composeService = new ComposeService({
 export function createStudioAiAssistRoute() {
   return createAiCheckRoute(service, { repo, hub, heartbeatMs: config.heartbeatMs })
     .route("/", createAngleRoute(angleService))
-    .route("/", createComposeRoute(composeService));
+    .route("/", createComposeRoute(composeService))
+    .route("/", createVoiceRoute(new VoiceService(contentService)));
 }
 
 /** Closes RUNNING checks whose heartbeat is stale (crash, restart); called by the maintenance job. */
