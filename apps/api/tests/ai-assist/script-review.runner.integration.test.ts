@@ -1,6 +1,6 @@
 import { afterAll, beforeAll, describe, expect, it } from "bun:test";
 import { prisma } from "@repo/db";
-import { AgentProviderError } from "../../src/modules/ai-engine";
+import { AgentProviderError, AgentTimeoutError } from "../../src/modules/ai-engine";
 import { assertTestDatabase, createModerator, makeSession, removeFixtures, RUN_INTEGRATION, uniqueSuffix } from "../support/integration";
 import { block, buildService, createEpisodeWithSources, createInput, deferred, fakeAgent, SOURCE_TEXT, waitForFinish } from "./support";
 
@@ -137,6 +137,29 @@ describe.skipIf(!RUN_INTEGRATION)("script review runner (database, fake agent)",
     });
     const b = await allFail.service.create(session, fx.episodeId, createInput(blocks));
     expect(await waitForFinish(allFail.repo, b.id)).toMatchObject({ status: "FAILED", errorCode: "ALL_BLOCKS_FAILED", failedBlocks: 2 });
+  });
+
+  it("counts a per-session timeout as a failed batch instead of silently skipping it", async () => {
+    const fx = await createEpisodeWithSources(userId, runId, "sess-timeout", [{ kind: "url" }]);
+    const blocks = [block("b0", WRONG_YEAR_BLOCK), block("b1", `${WRONG_YEAR_BLOCK} Hai.`)];
+    // The check-level signal is never aborted: only one session hits PI_RUN_TIMEOUT_MS.
+    const partial = buildService({
+      agent: fakeAgent(async (request) => {
+        if (request.signal?.aborted) throw new Error("check signal must not be aborted");
+        if (request.userPrompt.includes('ref="b1"')) throw new AgentTimeoutError(300_000);
+        return { items: [] };
+      }),
+    });
+    const a = await partial.service.create(session, fx.episodeId, createInput(blocks));
+    expect(await waitForFinish(partial.repo, a.id)).toMatchObject({ status: "SUCCEEDED", processedBlocks: 2, failedBlocks: 1, errorCode: null });
+
+    const allTimeout = buildService({
+      agent: fakeAgent(async () => {
+        throw new AgentTimeoutError(300_000);
+      }),
+    });
+    const b = await allTimeout.service.create(session, fx.episodeId, createInput(blocks));
+    expect(await waitForFinish(allTimeout.repo, b.id)).toMatchObject({ status: "FAILED", errorCode: "ALL_BLOCKS_FAILED", processedBlocks: 2, failedBlocks: 2 });
   });
 
   it("stops the whole check on a provider AUTH failure", async () => {

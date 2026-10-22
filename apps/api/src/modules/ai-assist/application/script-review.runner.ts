@@ -1,10 +1,4 @@
-import {
-  AgentAbortedError,
-  AgentProviderError,
-  AgentTimeoutError,
-  createRunGuard,
-  runStructuredAgent,
-} from "../../ai-engine";
+import { AgentProviderError, createRunGuard, runStructuredAgent } from "../../ai-engine";
 import { logger } from "../../../core/logger";
 import type { CheckBlock, ReviewSource } from "../ai-assist.types";
 import type { AiAssistConfig } from "../ai-assist.config";
@@ -96,7 +90,9 @@ export function createScriptReviewRunner(deps: ScriptReviewRunnerDeps): ScriptRe
           outputTokens: result.usage.output,
         });
       } catch (err) {
-        if (signal.aborted || err instanceof AgentAbortedError || err instanceof AgentTimeoutError) return;
+        // Only a check-level abort (cancel, check deadline, fatal provider error) is final. A per-session
+        // AgentTimeoutError (PI_RUN_TIMEOUT_MS) leaves the check running, so that batch must count as failed.
+        if (signal.aborted) return;
         if (err instanceof AgentProviderError && isFatalProviderKind(err.kind)) {
           fatalCode = `AI_PROVIDER_${err.kind}`;
           fatal.abort();
