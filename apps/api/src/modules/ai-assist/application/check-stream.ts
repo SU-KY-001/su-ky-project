@@ -85,7 +85,7 @@ function terminalEvent(check: AiCheck): "done" | "failed" {
 
 /** Missing/invalid means before the first item (`seq = 0`); an explicit `Last-Event-ID: 0` is valid. */
 export function parseLastEventId(raw: string | undefined): number {
-  if (raw === undefined) return -1;
+  if (raw === undefined || raw.trim() === "") return -1;
   const value = Number(raw);
   return Number.isSafeInteger(value) && value >= 0 ? value : -1;
 }
