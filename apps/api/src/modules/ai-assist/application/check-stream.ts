@@ -83,8 +83,9 @@ function terminalEvent(check: AiCheck): "done" | "failed" {
   return check.status === "SUCCEEDED" ? "done" : "failed";
 }
 
-/** `Last-Event-ID` is client-supplied: anything that is not a non-negative integer means "from the start". */
+/** Missing/invalid means before the first item (`seq = 0`); an explicit `Last-Event-ID: 0` is valid. */
 export function parseLastEventId(raw: string | undefined): number {
+  if (raw === undefined) return -1;
   const value = Number(raw);
-  return Number.isSafeInteger(value) && value > 0 ? value : 0;
+  return Number.isSafeInteger(value) && value >= 0 ? value : -1;
 }

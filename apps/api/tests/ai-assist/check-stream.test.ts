@@ -98,8 +98,9 @@ describe("runCheckStream", () => {
 });
 
 describe("parseLastEventId", () => {
-  test("accepts a positive integer, treats anything else as 0", () => {
+  test("starts before seq 0 and preserves an explicit cursor at 0", () => {
     expect(parseLastEventId("7")).toBe(7);
-    for (const bad of [undefined, "", "abc", "-3", "1.5", "0"]) expect(parseLastEventId(bad)).toBe(0);
+    expect(parseLastEventId("0")).toBe(0);
+    for (const bad of [undefined, "", "abc", "-3", "1.5"]) expect(parseLastEventId(bad)).toBe(-1);
   });
 });
