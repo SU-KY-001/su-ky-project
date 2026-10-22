@@ -11,14 +11,17 @@ import { scrollToLandingTarget } from "../../hooks/useLandingMotion";
 import { LibraryPages, LibrarySection, LibraryState } from "./LibraryPrimitives";
 import { usePodcastAccess } from "../../hooks/usePodcastAccess";
 import { usePodcastPlaybackStore } from "../../store/podcastPlaybackStore";
+import { useCurrentUser } from "@/shared/hooks/useCurrentUser";
 import { PodcastSeriesGallery } from "./PodcastSeriesGallery";
 import { HistoryFilterTree } from "./HistoryFilterTree";
 import { LibraryQuiz } from "./LibraryQuiz";
 import { ReleaseCalendar } from "./ReleaseCalendar";
 import "./podcast-library.css";
+import { ListeningHistoryPanel } from "./ListeningHistoryPanel";
 
 export function PodcastLibrary(): ReactElement {
   const { requestAccess, accessDialog } = usePodcastAccess();
+  const session = useCurrentUser();
   const [period, setPeriod] = useState("");
   const [phase, setPhase] = useState("");
   const [event, setEvent] = useState<PublicHistoricalEventDto | null>(null);
@@ -70,10 +73,14 @@ export function PodcastLibrary(): ReactElement {
             </div>
           </div>
         </LibrarySection>
-          <LibrarySection id="library-podcasts" title="Series và podcast">
+        <LibrarySection id="library-podcasts" title="Series và podcast">
             {(period || phase || event) && <div className="mb-6 flex flex-wrap items-center gap-3"><p className="flex-1 text-sm leading-7 text-muted-foreground">Đang khám phá podcast theo: {event?.name ?? phases.find(item => item.id === phase)?.name ?? activePeriod?.name}</p><Button size="sm" variant="link" onClick={clearHistory}>Xem tất cả series</Button></div>}
             <PodcastSeriesGallery key={`${period}-${phase}-${event?.id ?? "all"}`} filter={{ periodId: period || undefined, phaseId: phase || undefined, eventId: event?.id }} onPlay={async (item, seriesSlug) => { if (!await requestAccess()) return; await startPodcast(seriesSlug, item.id); }} />
           </LibrarySection>
+
+        {session.data && <LibrarySection id="library-listening-history" title="Lịch sử nghe" description="Tiếp tục những tập podcast bạn đang nghe dở hoặc xem lại các tập đã hoàn thành.">
+          <ListeningHistoryPanel onResume={(seriesSlug, episodeId) => { void startPodcast(seriesSlug, episodeId); }} />
+        </LibrarySection>}
 
         <LibrarySection id="library-quiz" title="Thử tài lịch sử"><LibraryQuiz /></LibrarySection>
         <LibrarySection id="upcoming" title="Lịch phát sóng"><ReleaseCalendar onListen={async (slug) => { if (await requestAccess()) listenRelease.mutate(slug); }} /></LibrarySection>
