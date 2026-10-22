@@ -10,6 +10,16 @@ import { LandingLoadingPage } from "@/pages/landing/LandingLoadingPage";
 
 export const appRoutes: RouteObject[] = [
   {
+    id: "exhibition-1975",
+    path: "/trien-lam-1975",
+    ErrorBoundary: RouteErrorFallback,
+    HydrateFallback: AppLoadingFallback,
+    lazy: async () => {
+      const { Exhibition1975Page } = await import("../pages/exhibition/Exhibition1975Page");
+      return { Component: Exhibition1975Page };
+    },
+  },
+  {
     id: "app",
     path: APP_PATHS.home,
     Component: AppFrame,

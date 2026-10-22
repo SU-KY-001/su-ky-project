@@ -9,13 +9,7 @@ import { useNavbarScrollAnimation } from "../hooks/useNavbarScrollAnimation";
 import { useReducedMotion } from "../hooks/useReducedMotion";
 import { useCurrentUser } from "@/shared/hooks/useCurrentUser";
 import { AccountProfile } from "@/features/auth";
-
-const links = [
-  { label: "Khám phá lịch sử", target: "library-history" },
-  { label: "Series & podcast", target: "library-podcasts" },
-  { label: "Quiz", target: "library-quiz" },
-  { label: "Lịch phát sóng", target: "upcoming" },
-];
+import { landingLinks } from "../navigation";
 
 export function LandingHeader({ surface = false }: { surface?: boolean }) {
   const navigate = useNavigate();
@@ -52,7 +46,7 @@ export function LandingHeader({ surface = false }: { surface?: boolean }) {
         </Button>
 
         <nav data-navbar-scrolled={isScrolled ? "true" : "false"} className="hidden items-center gap-1 lg:flex" aria-label="Điều hướng chính">
-          {links.map((link) => (
+          {landingLinks.map((link) => (
             <Button key={link.target} data-navbar-tone="primary" variant="ghost" size="sm" className="landing-nav-hover relative rounded-xl text-paper-soft transition-[background-color,color] duration-200 after:absolute after:bottom-0 after:left-3 after:right-3 after:h-[2px] after:origin-left after:scale-x-0 after:rounded-full after:bg-current after:transition-transform after:duration-200 after:content-[''] hover:after:scale-x-100" onClick={() => jumpTo(link.target)}>
               {link.label}
             </Button>
@@ -81,7 +75,7 @@ export function LandingHeader({ surface = false }: { surface?: boolean }) {
 
       {menuOpen ? (
         <nav className={cn("absolute left-3 right-3 top-[72px] flex flex-col gap-1 rounded-2xl border p-3 shadow-[0_18px_48px_rgba(28,23,20,.16)] lg:hidden", isScrolled ? "border-line bg-paper-soft" : "border-white/15 bg-night/95")} aria-label="Điều hướng chính">
-          {links.map((link) => (
+          {landingLinks.map((link) => (
           <Button key={link.target} variant="ghost" className={cn("justify-start px-3 py-3 transition-[background-color] duration-200", isScrolled ? "text-ink hover:bg-ink/5" : "text-paper-soft hover:bg-white/10")} onClick={() => { jumpTo(link.target); setMenuOpen(false); }}>
               {link.label}
             </Button>
