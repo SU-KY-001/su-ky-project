@@ -1,3 +1,5 @@
+> **Lưu ý (2026-10-22):** mọi số đo dưới đây (19/24, 21/24, 0 báo nhầm, thời gian tra) đo bằng **SQLite FTS5 bm25** trong spike. Hướng làm thật đã đổi sang Postgres (`source_pages`, `ts_rank_cd`), nên xếp hạng khác: **phải đo lại trên Postgres** trước khi chốt prompt và mặc định (plan phase 5). Báo cáo này giữ nguyên làm ghi chép lịch sử của spike.
+
 # Đo thử: AI rà kịch bản bằng phiên Pi tự tra SQLite (spike)
 
 Ngày: 2026-10-22. Nhánh: `feat/podcast-ai-script-review`. Mã spike: `apps/api/spike-source-check/` (không phải mã production).

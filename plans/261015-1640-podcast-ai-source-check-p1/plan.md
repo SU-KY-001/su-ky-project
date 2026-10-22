@@ -29,13 +29,13 @@ Kể chuyện trước; độ chính xác và nguồn là thứ yếu. AI là **
 ## Phạm vi P1
 
 Làm: một chức năng **AI rà kịch bản** (`SCRIPT_REVIEW`) end-to-end: DB, API, SSE, UI, test. Cảnh báo mềm của lần triển khai đầu chỉ có `FACT_DOUBT`: đối chiếu với trang nguồn của series, có câu trích đã kiểm. `READABILITY` (khó đọc thành tiếng, mạch lủng củng) hoãn (xem "Quyết định mở").
-Không làm (để P2+): rà lặp ý xa toàn cục (hai tầng tóm tắt, xem báo cáo), Ngôi thứ nhất, **job tự động trích chữ PDF lúc upload và kho trang Postgres** (lần đầu nạp trang tay vào SQLite), queue/pg-boss cho check, pub/sub đa instance, sửa Tiptap thêm block ID.
+Không làm (để P2+): rà lặp ý xa toàn cục (hai tầng tóm tắt, xem báo cáo), Ngôi thứ nhất, **job tự động trích chữ PDF lúc upload** (lần đầu nạp trang tay vào Postgres bằng script), queue/pg-boss cho check, pub/sub đa instance, sửa Tiptap thêm block ID.
 Enum `AiCheckKind` chỉ có `SCRIPT_REVIEW` (thêm giá trị sau bằng `ALTER TYPE ... ADD VALUE`).
 
 ## Quyết định đã chốt
 
 - **Provider:** Pi qua env (`PI_PROVIDER`, `PI_MODEL`, `PI_THINKING_LEVEL`; id ghim, không `-latest`). Đã đo spike trên `gpt-5.6-luna` low (OpenAI OAuth) và Gemini 3.5 Flash Lite. Gemini từng trả chuỗi rỗng bị runner che thành "invalid JSON": sửa ở phase 0. Chưa chốt model cho sản phẩm (xem "Quyết định mở").
-- **Quy tắc prompt:** prompt v3 của spike (`apps/api/spike-source-check/prompts/v3.txt`), chuyển thành `prompts/script-review.prompt.ts`. Nguồn không nằm trong prompt mà do agent tự tra bằng công cụ. Series không có nguồn đọc được: xem "Quyết định mở".
+- **Quy tắc prompt:** prompt v3 của spike (`apps/api/spike-source-check/prompts/v3.txt`), chuyển thành `prompts/script-review.prompt.ts`. Nguồn không nằm trong prompt mà do agent tự tra bằng công cụ. Series không có nguồn dùng được: 422 `NO_READABLE_SOURCE` (đã chốt, xem bên dưới).
 - **Mỗi chức năng AI = 5 phần:** input builder, system prompt, schema zod, validator, bộ ca vàng. Validator ở P1 chỉ có tính **heuristic** (xem phase 2); prompt chỉ giảm tỷ lệ sai.
 - **Item:** `blockRef, blockHash, kind (FACT_DOUBT; READABILITY hoãn), severity, basis (CONTRADICTED|NOT_FOUND), message, suggestion, evidence [{sourceId,page,quote}], status (OPEN|REVIEWED), appliedAt?`. `suggestion` (toàn bộ văn bản mới của block) **sinh trong cùng phiên rà** và chỉ giữ khi `CONTRADICTED` đã được xác nhận bằng câu trích hợp lệ. `REVIEWED` = mod bấm Hoàn tất (không biết mod có sửa không). `appliedAt` chỉ được đặt khi mod bấm "Áp dụng đề xuất", việc hệ thống tự thực hiện.
 - **Input chạy:** `{ kind, scope: ALL|SELECTION, blocks[{ref,text,hash}], note? }`; `note` là ghi chú tự do cho AI. Không có "mức nghiêm khắc".
@@ -47,8 +47,11 @@ Enum `AiCheckKind` chỉ có `SCRIPT_REVIEW` (thêm giá trị sau bằng `ALTER
 - Neo vị trí: client gửi `blocks[{ref,text,hash}]`; **Áp dụng** so hash, lệch thì từ chối "đoạn đã đổi, chạy lại", không bao giờ ghi đè chữ của mod. Không sửa Tiptap.
 - Chạy nền trong process, `AbortController`, timeout env. Heartbeat + reaper (pg-boss, `core/jobs/maintenance-jobs.ts`) đánh dấu check kẹt `FAILED` (`INTERRUPTED`); chuyển trạng thái cuối bằng CAS.
 - Một tầng retry (Pi). Lỗi 400/402/403 không retry. Bulkhead: semaphore toàn cục số lời gọi model.
-- **Đơn vị gọi model = một phiên agent cho một lô block liền kề** (`AI_ASSIST_BATCH_BLOCKS`), không phải chunk và không phải một block một call. Phiên có hai công cụ chỉ đọc do backend sở hữu: `search_source`, `read_pages` (allowlist theo nguồn của series). Nguồn đặc tả: `spec-source-agent.md`. Thay `spec-prompts-review.md` mục A3, B1 (chunk), B2 (`<sources>`), B4 (`span`).
-- **Kiểm câu trích bằng code:** mỗi `evidence.quote` phải nằm nguyên văn trên trang agent đã mở (`quote-check.ts`, mang từ spike); `CONTRADICTED` không còn câu trích hợp lệ thì hạ thành `NOT_FOUND`.
+- **Đơn vị gọi model = một phiên agent cho một lô block liền kề** (`AI_ASSIST_BATCH_BLOCKS`), không phải chunk và không phải một block một call. Phiên có hai công cụ chỉ đọc do backend sở hữu cho nguồn PDF: `search_source`, `read_pages` (allowlist theo nguồn của series), cộng công cụ web `pi-web-access` cho nguồn URL. Nguồn đặc tả: `spec-source-agent.md`. Thay `spec-prompts-review.md` mục A3, B1 (chunk), B2 (`<sources>`), B4 (`span`).
+- **Kiểm câu trích bằng code, cùng một quy tắc cho PDF và URL:** mỗi `evidence.quote` phải nằm nguyên văn (`quoteInPage`) trong nội dung nguồn agent đã mở: trang đã `read_pages` (PDF), hoặc văn bản đã tải từ **đúng URL đã đăng ký của nguồn đó** trong phiên (URL; `page = 1`). Engine có hook `onToolResult({ toolName, toolCallId, args, text, isError })` gọi cho mọi kết quả công cụ trước khi che nội dung (`text` không bao giờ log); bộ công cụ nguồn ghi `text` của công cụ web (`fetch_content`, `get_search_content`) khóa theo URL từ `args`. `CONTRADICTED` không còn câu trích hợp lệ thì hạ thành `NOT_FOUND`, `suggestion = null`.
+- **Kho trang nguồn = Postgres (người dùng chốt 2026-10-22, thay SQLite):** bảng Prisma `source_pages` (`id` uuid, `sourceId` FK `Source` cascade, `version` int = `Source.version` lúc trích chữ, `page` int, `text`, `createdAt`), unique `(sourceId, version, page)`. Tìm toàn văn bằng chỉ mục GIN **biểu thức** `to_tsvector('simple', immutable_unaccent(lower(text)))` (cùng kiểu `sources_title_trgm_idx`; `unaccent`/`pg_trgm`/`immutable_unaccent` đã có từ migration init) và raw SQL không dùng `websearch_to_tsquery` (từ khóa được bọc/escape, thử AND rồi OR; xếp hạng `ts_rank_cd`; đoạn trích `ts_headline`). Env `AI_ASSIST_SOURCE_DB_PATH` **bỏ hẳn**. Script nạp `apps/api/src/scripts/load-source-pages.ts` ghi vào Postgres qua Prisma (`--pdf <file> --source-id <id>`, thay toàn bộ trang của `(sourceId, version)`). Job tự động lúc upload vẫn là việc sau. Spike SQLite (`apps/api/spike-source-check/`) chỉ còn là spike lịch sử.
+- **Nguồn nào được rà:** mọi nguồn của series của tập, trộn các loại. Chỉ dùng nguồn `verificationStatus = VERIFIED` và `verifiedVersion = version` (admin gỡ nguồn không dùng được). Nguồn PDF: đọc qua `source_pages` (công cụ `search_source`, `read_pages`). Nguồn URL: dùng `pi-web-access` (0.37.0, đã có trong `apps/api/package.json`; runner `tools: "WEB"`) **cùng phiên** với công cụ tự viết (engine hiện coi `customTools` và `WEB` là một trong hai; cần sửa ở phase 2 hoặc việc nhỏ nối tiếp phase 0).
+- **Giới hạn đã nhận (người dùng bảo chưa lo bảo mật):** không có allowlist/bọc URL cho công cụ web; công cụ web có thể tải bất kỳ URL nào (bề mặt rò rỉ/tiêm chỉ dẫn, siết sau). Chỉ rủi ro này được chấp nhận; đúng đắn của bằng chứng thì không được miễn (dòng trên).
 - `hashBlockText` nằm ở `@repo/shared`; server tính lại và từ chối hash sai. **Hash không phải danh tính block.** `ref = b{docIndex}` tuyệt đối trên toàn tài liệu; item lưu thêm `blockPrevHash`, `blockDup`. Áp dụng chỉ nhận đích khi vị trí + hash + hash block trước khớp, hoặc dời chỗ khi `blockDup == 1` và đúng một block khớp; mọi trường hợp mơ hồ là `conflict` (spec-prompts-review B1).
 - Cờ khẩn cấp `ai_assist.enabled` (SystemConfig); policy rate limit tách `ai_check` (rà kịch bản) và `ai_generate` (soạn thảo).
 - Thời lượng đo bằng **số từ** / `script.words_per_minute` (không phải "850 ký tự/phút").
@@ -59,7 +62,7 @@ Enum `AiCheckKind` chỉ có `SCRIPT_REVIEW` (thêm giá trị sau bằng `ALTER
 |---|---|---|---|
 | 0 | [phase-00](phase-00-engine-hardening.md) | Sửa ai-engine (Pi): lỗi provider, usage, hủy, redact log, retry một tầng, thinking theo lệnh gọi, sẵn sàng AI | không |
 | 1 | [phase-01](phase-01-db-shared-ratelimit.md) | Migration, Prisma, zod dùng chung, policy `ai_check` | không |
-| 2 | [phase-02](phase-02-api-runner.md) | Module `ai-assist`: kho trang nguồn (SQLite tạm), công cụ chỉ đọc, phiên agent theo lô, kiểm câu trích, REST, reaper, wiring, OpenAPI | 0, 1 |
+| 2 | [phase-02](phase-02-api-runner.md) | Module `ai-assist`: kho trang nguồn (Postgres `source_pages`), công cụ chỉ đọc + công cụ web trong cùng phiên, phiên agent theo lô, kiểm câu trích PDF, REST, reaper, wiring, OpenAPI | 0, 1 |
 | 3 | [phase-03](phase-03-sse.md) | Event hub, SSE `seq`, đối chiếu DB, heartbeat | 2 |
 | 4 | [phase-04](phase-04-web.md) | Panel thay `ScriptAssistantMock`: danh sách + chi tiết, Áp dụng, hook SSE | 2, 3 |
 | 5 | [phase-05](phase-05-tests-docs-smoke.md) | Test, ca vàng, tài liệu, smoke thật | 0-4 |
@@ -84,6 +87,8 @@ Enum `AiCheckKind` chỉ có `SCRIPT_REVIEW` (thêm giá trị sau bằng `ALTER
 6. Pi có thể không chuyển `responseSchema` và chưa thấy `maxOutputTokens` [chưa xác minh]: giữ JSON bằng prompt + zod + 1 lần sửa; `stopReason: length` là lỗi block.
 7. Hệ thống không biết mod đã sửa gì ngoài nút "Áp dụng"; `REVIEWED` chỉ nghĩa "đã xem".
 8. Dữ liệu kịch bản và nguồn series gửi tới nhà cung cấp AI (Gemini); chưa có cờ phân loại dữ liệu.
+9. **Đo spike trên SQLite, chưa đo trên Postgres:** 19/24, 21/24 và 0 báo nhầm đo bằng SQLite FTS5 bm25. Xếp hạng `ts_rank_cd` của Postgres khác, nên **phải chạy lại bộ ca đo trên Postgres** trước khi chốt prompt và mặc định (phase 5).
+10. **Công cụ web tải được mọi URL:** không có allowlist (người dùng bảo chưa làm bảo mật). Đây là bề mặt rò rỉ dữ liệu và tiêm chỉ dẫn qua nội dung trang, siết sau. Câu trích URL **vẫn được code kiểm nguyên văn** trên nội dung đã tải từ đúng URL đã đăng ký của nguồn (xem dòng "Kiểm câu trích").
 
 ## Quy tắc code (theo `~/.claude/CLAUDE.md`)
 
@@ -95,7 +100,7 @@ Enum `AiCheckKind` chỉ có `SCRIPT_REVIEW` (thêm giá trị sau bằng `ALTER
 
 ## Tiêu chí nghiệm thu
 
-Xem phase 5. Tóm tắt: cảnh báo hiện dần theo lô block; danh sách dạng checklist, bấm mở chi tiết (giải thích + khối "Nguồn đối chiếu" với câu trích và số trang + đề xuất sửa dạng diff + nút "Áp dụng đề xuất" tùy chọn) với đúng hai nút "Quay lại" và "Hoàn tất"; nhãn "AI nghi ngờ, chưa xác minh"; F5/nối lại SSE không mất không trùng; double-click không tạo 2 check; 409/429/503/404 đúng; không ghi gì vào kịch bản trước khi mod bấm Áp dụng; block đổi sau khi chụp thì Áp dụng từ chối; mọi câu trích hiển thị đều nằm nguyên văn trong trang nguồn đã mở; series không có nguồn đọc được trả 422 `NO_READABLE_SOURCE` với thông báo rõ (mặc định tạm, xem "Quyết định mở").
+Xem phase 5. Tóm tắt: cảnh báo hiện dần theo lô block; danh sách dạng checklist, bấm mở chi tiết (giải thích + khối "Nguồn đối chiếu" với câu trích và số trang + đề xuất sửa dạng diff + nút "Áp dụng đề xuất" tùy chọn) với đúng hai nút "Quay lại" và "Hoàn tất"; nhãn "AI nghi ngờ, chưa xác minh"; F5/nối lại SSE không mất không trùng; double-click không tạo 2 check; 409/429/503/404 đúng; không ghi gì vào kịch bản trước khi mod bấm Áp dụng; block đổi sau khi chụp thì Áp dụng từ chối; mọi câu trích hiển thị (PDF và URL) đều nằm nguyên văn trong nội dung nguồn đã mở/đã tải trong phiên; series không có nguồn VERIFIED dùng được trả 422 `NO_READABLE_SOURCE` với thông báo rõ.
 
 ## Chưa kiểm / Quyết định mở
 
@@ -107,9 +112,9 @@ Xem phase 5. Tóm tắt: cảnh báo hiện dần theo lô block; danh sách d�
 - Mở: đề xuất sửa sinh ngay trong lần rà (mặc định đã chọn); đo token/độ trễ có tăng quá mức không ở smoke.
 - Chưa kiểm: model có phân biệt "nghi sai" và "không chắc" đủ tốt không; Pi có bỏ qua retry với 403 không (phase 0).
 - `HAS_SOURCE` web notice và `insertCitation`/tab Nguồn của editor giữ nguyên, plan này không mở rộng cũng không gỡ.
-- Mở: **series không có nguồn đọc được** (URL, PDF scan, chưa nạp trang): mặc định tạm là 422 `NO_READABLE_SOURCE`. Chưa quyết có cho rà từ trí nhớ model (không công cụ) hay không; làm vậy sẽ mất bảo đảm "câu trích có trong trang đã mở".
+- **Đã chốt (2026-10-22):** series không có nguồn dùng được (không có nguồn `VERIFIED` với `verifiedVersion = version`; nguồn PDF chưa nạp trang bị bỏ qua, nguồn URL tính là đọc được) → 422 `NO_READABLE_SOURCE`. Không rà từ trí nhớ model.
 - Mở: **`READABILITY`** không nằm trong lần triển khai đầu của hướng agent-công cụ (cần đo riêng); giữ giá trị enum để thêm sau.
-- Mở: **nạp trang nguồn**: lần đầu làm tay bằng `bun run source-pages:load` (`unpdf` + `bun:sqlite`, không Python) vào SQLite. Job upload tự động (chạy sau khi upload PDF, Postgres + `unaccent`, trạng thái "đọc được / không có chữ") chưa làm. PDF scan chưa có OCR.
+- Mở: **nạp trang nguồn**: lần đầu làm tay bằng `bun run source-pages:load` (`unpdf` + Prisma, không Python) vào Postgres `source_pages`. Job upload tự động (chạy sau khi upload PDF, trạng thái "đọc được / không có chữ") chưa làm. PDF scan chưa có OCR.
 - Mở: **tài khoản model cho sản phẩm**: số đo spike dùng `gpt-5.6-luna` qua đăng nhập OAuth cá nhân và Gemini 3.5 Flash Lite qua khóa API. OAuth cá nhân không hợp cho máy chủ dùng chung; cần khóa API chính thức.
 
 ## Phát hiện khi đặc tả chi tiết (2026-10-22), cần người quyết
@@ -117,7 +122,7 @@ Xem phase 5. Tóm tắt: cảnh báo hiện dần theo lô block; danh sách d�
 1. **Mod người duyệt không có nội dung để xem** (`ModeratorReviewQueue` chỉ có tiêu đề/ghi chú/nút; route đọc tập giới hạn theo chủ series). Phase 7 thêm route đọc cho người duyệt; đây là việc mới ngoài mock.
 2. **Server không kiểm checklist khi Duyệt/Gửi duyệt** (`release.service.ts:231-334`): Duyệt hiện lọt dù thiếu âm thanh, chỉ không tự `READY_TO_PUBLISH`. Mock khóa nút nên server phải khớp: đổi hành vi, chờ xác nhận (`spec-episode-readiness.md` mục 8).
 3. **Mockup 02 sai quy đổi thời lượng** ("850 ký tự/phút"): đã sửa sang số từ theo `script.words_per_minute` (150); `UploadedAudioPanel.tsx` đang hardcode 150, nên dùng cùng config.
-4. **Đã thay bằng phiên agent có công cụ** (2026-10-22, người dùng quyết): không còn chunk và không còn `<sources>` trong prompt. Mỗi lô block một phiên Pi có hai công cụ chỉ đọc tra kho trang nguồn (tạm: SQLite). Chi tiết ở `spec-source-agent.md`, đo ở `plans/reports/eval-261022-source-check-agent-spike.md`.
+4. **Đã thay bằng phiên agent có công cụ** (2026-10-22, người dùng quyết): không còn chunk và không còn `<sources>` trong prompt. Mỗi lô block một phiên Pi có công cụ chỉ đọc tra kho trang nguồn (Postgres `source_pages`) và công cụ web cho nguồn URL. Chi tiết ở `spec-source-agent.md`, đo ở `plans/reports/eval-261022-source-check-agent-spike.md` (đo trên SQLite, phải đo lại trên Postgres).
 5. **Cột mới `AiCheckItem.basis`, `AiCheckItem.evidence`, `AiCheck.toolCalls`, `AiCheck.sourcesUsed`, tùy chọn `EpisodeReview.readinessSnapshot`**: thay đổi schema so với thiết kế cũ. (`span` và `skippedBlocks` đã bỏ cùng chunk; xem `spec-source-agent.md`.)
 6. **Ngôn ngữ prompt (Việt hay Anh)** chưa có số liệu: A/B bằng bộ ca vàng ở phase 5 trước khi khóa `PROMPT_VERSION`.
 7. **Giọng đọc AI (mockup 04) chưa có phase**; làm sau spike T0.

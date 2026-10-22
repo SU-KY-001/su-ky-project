@@ -36,6 +36,13 @@ Ownership: `userId` là chủ phiên; quyền truy cập thực tế kiểm qua 
 
 Tay-viết hoặc `prisma migrate dev --create-only`, kiểm SQL đúng schema. Chỉ thêm (không drop gì); rollback bằng drop 2 bảng + 6 enum (ghi vào đầu file migration dưới dạng comment). Tên file theo mẫu hiện có (`20261015100000_series_cover_landscape`).
 
+### Migration `20261022120000_source_pages` (kho trang nguồn, tách riêng khỏi `ai_checks`)
+
+- Model `SourcePage` (`@@map("source_pages")`): `id` uuid, `sourceId` FK `Source` `onDelete: Cascade`, `version` int (= `Source.version` lúc trích chữ), `page` int, `text` text, `createdAt` timestamptz(3). Unique `(sourceId, version, page)`.
+- Chỉ mục toàn văn: `CREATE INDEX "source_pages_tsv_idx" ON "source_pages" USING gin (to_tsvector('simple', immutable_unaccent(lower("text"))));` Chỉ mục **biểu thức** viết tay trong migration (Prisma không biểu diễn được; cùng kiểu `sources_title_trgm_idx` ở migration init). `unaccent`, `pg_trgm`, `immutable_unaccent` đã có từ migration init, không cần `CREATE EXTENSION` lại. Truy vấn phase 2 phải dùng đúng biểu thức này để chỉ mục được dùng.
+- Chỉ thêm, không đụng bảng cũ. Rollback: `DROP TABLE "source_pages";` (ghi ở đầu file migration dưới dạng comment); dữ liệu trang nạp tay mất và nạp lại bằng script.
+- Việc kiểm: `EXPLAIN` một truy vấn `@@ to_tsquery` mẫu trên bảng có dữ liệu thật để xác nhận dùng `source_pages_tsv_idx` (bảng nhỏ có thể chọn seq scan; kiểm trên dữ liệu Toàn thư 1334 trang).
+
 ## Schema zod dùng chung
 
 - `CreateAiCheckSchema`: `{ kind: z.literal("SCRIPT_REVIEW"), scope: z.enum(["ALL","SELECTION"]), blocks: array({ ref: `b{docIndex}` tuyệt đối, text: string, hash: string, prev: string, dup: int ≥ 1 }) min 1 max `MAX_BLOCKS` (200), note?: string max `MAX_NOTE_CHARS` (1000) }`. Hằng số tên rõ ràng; tổng ký tự blocks kiểm ở service bằng `getSystemConfig("script.max_chars")`; mỗi `hash` phải bằng `hashBlockText(text)` (hàm thêm vào `@repo/shared`, dùng cả web) nếu không 422; `ref` trong một request không trùng nhau. `note` là ô tự do, không có mức nghiêm khắc. (Không còn `contextBefore/After`: bỏ cùng chunk.)
