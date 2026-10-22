@@ -17,6 +17,7 @@ import type {
   ContentStatus,
   EpisodeNarrationDetailEntity,
   EpisodeAttachmentEntity,
+  SeriesReviewSourceEntity,
   SeriesSourceWithSourceEntity,
   EpisodeWorkspaceEntity,
   MediaAssetEntity,
@@ -579,6 +580,12 @@ export class ContentService {
   ): Promise<EpisodeWorkspaceEntity> {
     await this.loadEpisodeForRead(session, id);
     return this.getEpisodeWorkspace(id);
+  }
+
+  /** Sources of the episode's series for the AI review; same access rule as reading the episode. */
+  async listReviewSources(session: Session, episodeId: string): Promise<SeriesReviewSourceEntity[]> {
+    const episode = await this.loadEpisodeForRead(session, episodeId);
+    return this.series.listReviewSources(episode.seriesId);
   }
 
   async updateEpisode(

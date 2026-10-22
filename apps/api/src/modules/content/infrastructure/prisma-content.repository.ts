@@ -23,6 +23,7 @@ import type {
 import type {
   ContentStatus,
   EpisodeNarrationDetailEntity,
+  SeriesReviewSourceEntity,
   SeriesSourceWithSourceEntity,
   EpisodeWithSeriesEntity,
   MediaAssetEntity,
@@ -527,6 +528,33 @@ export class PrismaSeriesRepository implements SeriesRepository {
       where: { seriesId },
       orderBy: { sortOrder: "asc" },
       include: sourceInclude,
+    });
+  }
+
+  async listReviewSources(seriesId: string): Promise<SeriesReviewSourceEntity[]> {
+    const rows = await prisma.seriesSource.findMany({
+      where: { seriesId },
+      orderBy: { sortOrder: "asc" },
+      select: {
+        sortOrder: true,
+        source: { select: { id: true, title: true, url: true, fileAssetId: true, version: true, verificationStatus: true, verifiedVersion: true } },
+      },
+    });
+    // One source may be attached at several locators; the AI reads each source once.
+    const seen = new Set<string>();
+    return rows.flatMap(({ sortOrder, source }) => {
+      if (seen.has(source.id)) return [];
+      seen.add(source.id);
+      return [{
+        sourceId: source.id,
+        title: source.title,
+        url: source.url,
+        hasFile: source.fileAssetId !== null,
+        version: source.version,
+        verificationStatus: source.verificationStatus,
+        verifiedVersion: source.verifiedVersion,
+        sortOrder,
+      }];
     });
   }
 

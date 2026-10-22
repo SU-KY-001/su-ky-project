@@ -337,8 +337,25 @@ model Source {
   verificationNote    String?                  @map("verification_note") @db.Text
   revisions           SourceRevision[]
   historicalCitations HistoricalCitation[]
+  pages               SourcePage[]
 
   @@map("sources")
+}
+
+/// Per-page text of a source PDF for AI source checking. Full-text search uses the expression index
+/// `source_pages_tsv_idx` (raw SQL in the migration; Prisma does not model it).
+model SourcePage {
+  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  sourceId  String   @map("source_id") @db.Uuid
+  version   Int
+  page      Int
+  text      String   @db.Text
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  source Source @relation(fields: [sourceId], references: [id], onDelete: Cascade)
+
+  @@unique([sourceId, version, page], map: "source_pages_source_version_page_key")
+  @@map("source_pages")
 }
 
 model Series {

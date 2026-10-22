@@ -101,6 +101,18 @@ export interface SeriesSourceEntity {
   createdAt: Date;
 }
 
+/** Source of a series as the AI review needs it; `verifiedVersion` is not in the studio payload. */
+export interface SeriesReviewSourceEntity {
+  sourceId: string;
+  title: string;
+  url: string | null;
+  hasFile: boolean;
+  version: number;
+  verificationStatus: string;
+  verifiedVersion: number | null;
+  sortOrder: number;
+}
+
 export interface EpisodeEntityTagEntity {
   id: string;
   episodeId: string;
