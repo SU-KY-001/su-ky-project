@@ -17,6 +17,7 @@ import { attachPiTracer, type PiTraceEvent } from "./pi-tracer";
 import { classifyProviderFailure, readField, sumUsage, type AgentUsage } from "./provider-failure";
 import { createRunGuard } from "./run-guard";
 import { parseWithSchemaRetry } from "./schema-retry";
+import { createToolResultListener, selectSessionTools, type ToolResultEvent } from "./tool-hooks";
 
 export interface AgentTextBlock {
   type?: string;
@@ -86,8 +87,6 @@ export function resolveWebAccessDir(): string {
   );
 }
 
-const WEB_TOOL_NAMES = ["web_search", "fetch_content", "get_search_content", "source_check"];
-
 type ThinkingLevel = typeof env.PI_THINKING_LEVEL;
 
 export interface StructuredAgentRequest<T> {
@@ -96,7 +95,7 @@ export interface StructuredAgentRequest<T> {
   schema: z.ZodType<T>;
   /** `WEB` loads pi-web-access only; default `NONE` disables every tool. */
   tools?: "WEB" | "NONE";
-  /** Backend-owned, read-only tools for this run only; their names become the allowlist. */
+  /** Backend-owned, read-only tools for this run only. Their names join the allowlist; combinable with `tools: "WEB"`. */
   customTools?: ToolDefinition[];
   /** Tag for logs and trace events. */
   label?: string;
@@ -104,6 +103,8 @@ export interface StructuredAgentRequest<T> {
   onEvent?: (event: PiTraceEvent) => void;
   /** Aborts the run and the underlying Pi session; the call rejects with AgentAbortedError. A deadline (PI_RUN_TIMEOUT_MS) rejects with AgentTimeoutError. */
   signal?: AbortSignal;
+  /** Called for every tool result before redaction (text is never logged); a throwing callback is logged and ignored. */
+  onToolResult?: (event: ToolResultEvent) => void;
   /** Overrides env PI_THINKING_LEVEL for this run only. */
   thinking?: ThinkingLevel;
   /** Default true: logs never contain prompt, source or output text (lengths, labels, tokens only). */
@@ -184,16 +185,11 @@ export async function runStructuredAgent<T>(request: StructuredAgentRequest<T>):
     resourceLoader,
     thinkingLevel,
   };
-  if (request.customTools?.length) {
-    sessionOptions.tools = request.customTools.map((tool) => tool.name);
-    sessionOptions.customTools = request.customTools;
-  } else if (useWebTools) {
-    // Allowlist là bộ lọc cứng trên registry: mọi tool khác bị loại bỏ.
-    sessionOptions.tools = [...WEB_TOOL_NAMES];
-  } else {
-    sessionOptions.tools = [];
-    sessionOptions.noTools = "all";
-  }
+  if (request.customTools?.length) sessionOptions.customTools = request.customTools;
+  const toolNames = selectSessionTools(request.customTools, useWebTools);
+  // The allowlist is a hard filter on the registry: every other tool is dropped.
+  sessionOptions.tools = toolNames;
+  if (!toolNames.length) sessionOptions.noTools = "all";
 
   const { session } = await createAgentSession(sessionOptions);
   const guard = createRunGuard(signal, env.PI_RUN_TIMEOUT_MS);
@@ -204,6 +200,11 @@ export async function runStructuredAgent<T>(request: StructuredAgentRequest<T>):
 
   // Subscribe BEFORE the first prompt so no turn/message/tool event is missed; detach in finally.
   const tracer = attachPiTracer(session.subscribe.bind(session), { label, attempt: 0, redactContent }, onEvent);
+  const detachToolResults = request.onToolResult
+    ? session.subscribe(
+        createToolResultListener(request.onToolResult, (err) => agentLog.warn({ err }, "onToolResult callback failed"))
+      )
+    : undefined;
   const runStartedAt = Date.now();
   agentLog.info(
     {
@@ -267,6 +268,7 @@ export async function runStructuredAgent<T>(request: StructuredAgentRequest<T>):
     guard.signal.removeEventListener("abort", onAbort);
     guard.dispose();
     tracer.detach();
+    detachToolResults?.();
     await session.dispose();
   }
 }
