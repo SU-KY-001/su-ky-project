@@ -60,6 +60,7 @@ type PrismaSeriesSourceRow = PrismaSeriesSource & {
   } | null;
 };
 type PrismaSeriesDetail = PrismaSeries & {
+  owner?: { name: string };
   coverImageAsset: PrismaMediaAsset | null;
   coverLandscapeAsset: PrismaMediaAsset | null;
   episodes: PrismaEpisodeWithNarrations[];
@@ -203,6 +204,7 @@ function toEpisodeWithNarrations(
 function toSeriesDetail(row: PrismaSeriesDetail): SeriesDetailEntity {
   return {
     ...toSeries(row),
+    creator: row.owner ? { name: row.owner.name } : null,
     coverImageAsset: row.coverImageAsset
       ? toMediaAsset(row.coverImageAsset)
       : null,
@@ -568,6 +570,7 @@ export class PrismaListeningRepository implements ListeningRepository {
     const row = await this.db.series.findFirst({
       where: { slug, ...PUBLIC_SERIES_WHERE },
       include: {
+        owner: { select: { name: true } },
         coverImageAsset: true,
         coverLandscapeAsset: true,
         episodes: {

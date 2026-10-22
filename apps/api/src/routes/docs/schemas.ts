@@ -303,6 +303,8 @@ const PublicSeriesSourceDocSchema = z.object({
 });
 
 export const PublicSeriesDetailDocSchema = z.object({
+  creator: z.object({ name: z.string() }).nullable(),
+  publishedAt: timestamp.nullable(),
   evidenceAsOf: z.string().nullable(),
   evidenceWarning: z
     .enum(["LEGACY_UNVERIFIED", "SOURCE_VERIFICATION_WITHDRAWN"])
@@ -325,6 +327,7 @@ export const PublicSeriesDetailDocSchema = z.object({
       sortOrder: z.number().int(),
       description: z.string().nullable(),
       poster: PublicCoverSchema.describe("Poster IMAGE đã sẵn sàng; null nếu chưa có"),
+      publishedAt: timestamp.nullable(),
       narrations: z.array(PublicNarrationSchema),
       viewer: z
         .object({

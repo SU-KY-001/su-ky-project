@@ -321,6 +321,8 @@ export class ListeningService {
       slug: series.slug,
       title: series.title,
       description: series.description,
+      creator: series.creator ?? null,
+      publishedAt: series.publishedAt,
       startYear: series.startYear,
       endYear: series.endYear,
       cover: series.coverImageAsset
@@ -334,6 +336,7 @@ export class ListeningService {
         id: episode.id,
         slug: episode.slug,
         title: episode.title,
+        publishedAt: episode.publishedAt,
         description: episode.description,
         poster: episode.posterAsset ? { url: this.storage.deliveryUrl(episode.posterAsset) } : null,
         sortOrder: episode.sortOrder,

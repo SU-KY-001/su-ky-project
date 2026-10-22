@@ -1,21 +1,52 @@
-import { useEffect, useRef, useState, type ReactElement } from "react";
+import { useEffect, useId, useRef, useState, type ReactElement } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Link } from "react-router";
 import type { LibraryChapter } from "@repo/shared";
-import { Headphones } from "@phosphor-icons/react";
+import { Headphones, Play, Pause, Shuffle, SkipBack, SkipForward, Repeat, SpeakerHigh } from "@phosphor-icons/react";
 import { Button } from "@/shared/components/ui/button";
 import { useCurrentUser } from "@/shared/hooks/useCurrentUser";
 import { notify } from "@/shared/lib/notifications";
 import { libraryService } from "../../services/libraryService";
 import { LibrarySelect, LibraryState } from "./LibraryPrimitives";
 import { EpisodeQuiz } from "./EpisodeQuiz";
+import { audioTime } from "./playlistFormat";
+import { Slider } from "@/shared/components/ui/slider";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/shared/components/ui/select";
+import { Label } from "@/shared/components/ui/label";
 
-function AudioPlayback({ narrationId, userId }: { narrationId: string; userId: string }): ReactElement {
+interface AudioPlaybackProps {
+  narrationId: string;
+  userId: string;
+  playlist?: boolean;
+  controlsHidden?: boolean;
+  playRequest?: number;
+  onPlayingChange?: (playing: boolean) => void;
+  onFinished?: () => void;
+  shuffle?: boolean;
+  repeat?: "off" | "all" | "one";
+  onShuffle?: () => void;
+  onRepeat?: () => void;
+  onPrevious?: () => void;
+  onNext?: () => void;
+}
+
+export function AudioPlayback({ narrationId, userId, playlist = false, controlsHidden = false, playRequest = 0, onPlayingChange, onFinished, shuffle = false, repeat = "off", onShuffle, onRepeat, onPrevious, onNext }: AudioPlaybackProps): ReactElement {
+  const speedControlId = useId();
   const playback = useQuery({ queryKey: ["library-playback", userId, narrationId], queryFn: ({ signal }) => libraryService.playback(narrationId, signal), staleTime: 0, refetchOnWindowFocus: false });
   const audio = useRef<HTMLAudioElement>(null);
   const queryClient = useQueryClient();
   const [audioError, setAudioError] = useState(false);
   const [speed, setSpeed] = useState("1");
+  const [playing, setPlaying] = useState(false);
+  const [position, setPosition] = useState(0);
+  const [volume, setVolume] = useState(1);
+  function toggle(): void {
+    if (!audio.current) return;
+    if (audio.current.paused) void audio.current.play().catch(() => { setPlaying(false); onPlayingChange?.(false); });
+    else audio.current.pause();
+  }
+  useEffect(() => {
+    if (playRequest && audio.current && audio.current.readyState >= 1) toggle();
+  }, [playRequest]);
   const progress = useRef({ bits: new Uint8Array(), previous: -1, positionMs: 0, dirty: false, saving: false, failed: false });
 
   useEffect(() => {
@@ -54,13 +85,14 @@ function AudioPlayback({ narrationId, userId }: { narrationId: string; userId: s
     return () => { window.clearInterval(interval); element?.removeEventListener("pause", flush); element?.removeEventListener("ended", flush); element?.pause(); void save(); };
   }, [playback.data, narrationId, queryClient]);
 
-  if (playback.isPending) return <LibraryState loading />;
-  if (playback.isError) return <LibraryState error title="Chưa mở được bản thu" description="Kiểm tra kết nối hoặc đăng nhập lại để tiếp tục nghe." retry={() => { void playback.refetch(); }} />;
-  return <div className="space-y-4">
-    <audio ref={audio} controls preload="metadata" className="w-full" src={playback.data.audio.url} onLoadedMetadata={(event) => { event.currentTarget.currentTime = (playback.data.progress?.positionMs ?? 0) / 1000; event.currentTarget.playbackRate = Number(speed); }} onSeeking={() => { progress.current.previous = -1; }} onSeeked={(event) => { progress.current.previous = event.currentTarget.currentTime; }} onError={() => setAudioError(true)} onTimeUpdate={(event) => {
+  if (playback.isPending) return playlist ? <p role="status" className="py-3 text-xs text-ink-soft">Đang mở bản thu…</p> : <LibraryState loading />;
+  if (playback.isError) return playlist ? <div role="alert" className="flex flex-wrap items-center gap-3 text-xs"><p>Chưa mở được bản thu. Vui lòng thử lại.</p><Button size="sm" variant="outline" onClick={() => { void playback.refetch(); }}>Thử lại</Button></div> : <LibraryState error title="Chưa mở được bản thu" description="Kiểm tra kết nối hoặc đăng nhập lại để tiếp tục nghe." retry={() => { void playback.refetch(); }} />;
+  return <div className={playlist ? "playlist-audio-engine" : "space-y-4"}>
+    <audio ref={audio} controls={!playlist} preload="metadata" className={playlist ? "hidden" : "w-full"} src={playback.data.audio.url} onPlay={() => { setPlaying(true); onPlayingChange?.(true); }} onPause={() => { setPlaying(false); onPlayingChange?.(false); }} onEnded={event => { setPlaying(false); onPlayingChange?.(false); if (repeat === "one") { event.currentTarget.currentTime = 0; progress.current.previous = -1; void event.currentTarget.play().catch(() => {}); } else onFinished?.(); }} onLoadedMetadata={(event) => { event.currentTarget.currentTime = (playback.data.progress?.positionMs ?? 0) / 1000; setPosition(event.currentTarget.currentTime); event.currentTarget.playbackRate = Number(speed); if (playlist) void event.currentTarget.play().catch(() => { setPlaying(false); onPlayingChange?.(false); }); }} onSeeking={() => { progress.current.previous = -1; }} onSeeked={(event) => { progress.current.previous = event.currentTarget.currentTime; }} onError={() => setAudioError(true)} onTimeUpdate={(event) => {
       const element = event.currentTarget;
       const state = progress.current;
       const now = element.currentTime;
+      if (playlist) setPosition(now);
       const delta = now - state.previous;
       if (state.previous >= 0 && delta > 0 && delta <= 5 && !element.seeking) {
         for (let second = Math.floor(state.previous); second < Math.floor(now); second++) {
@@ -71,20 +103,33 @@ function AudioPlayback({ narrationId, userId }: { narrationId: string; userId: s
       state.positionMs = Math.min(Math.round(now * 1000), playback.data.audio.durationMs);
       state.previous = now;
     }} />
-    <LibrarySelect id={`speed-${narrationId}`} label="Tốc độ nghe" value={speed} onChange={(value) => { if (!value) return; setSpeed(value); if (audio.current) audio.current.playbackRate = Number(value); }} options={["0.75", "1", "1.25", "1.5", "2"].map((value) => ({ id: value, name: `${value}×` }))} allLabel="Chọn tốc độ" />
+    {controlsHidden ? null : playlist ? <div className="playlist-transport">
+      <div className="playlist-transport-buttons">
+        <Button variant="ghost" size="icon-sm" className="playlist-mode-button" aria-label="Phát ngẫu nhiên" aria-pressed={shuffle} onClick={onShuffle}><Shuffle /></Button>
+        <Button variant="ghost" size="icon-sm" aria-label="Tập trước" disabled={!onPrevious} onClick={onPrevious}><SkipBack weight="fill" /></Button>
+        <Button className="playlist-toolbar-play" size="icon" aria-label={playing ? "Tạm dừng" : "Phát podcast"} onClick={toggle}>{playing ? <Pause weight="fill" /> : <Play weight="fill" />}</Button>
+        <Button variant="ghost" size="icon-sm" aria-label="Tập tiếp theo" disabled={!onNext} onClick={onNext}><SkipForward weight="fill" /></Button>
+        <Button variant="ghost" size="icon-sm" className="playlist-mode-button relative" aria-label={repeat === "one" ? "Lặp một tập" : repeat === "all" ? "Lặp playlist" : "Bật lặp lại"} aria-pressed={repeat !== "off"} onClick={onRepeat}><Repeat />{repeat === "one" && <span className="absolute right-0 top-0 text-[9px]">1</span>}</Button>
+      </div>
+      <div className="playlist-seek"><span>{audioTime(position)}</span><Slider className="playlist-compact-slider" aria-label="Vị trí phát podcast" min={0} max={playback.data.audio.durationMs / 1000} step={.1} value={[position]} onValueChange={([value]) => { setPosition(value); if (audio.current) { progress.current.previous = -1; audio.current.currentTime = value; } }} /><span>{audioTime(playback.data.audio.durationMs / 1000)}</span></div>
+      <div className="playlist-audio-options">
+        <div className="playlist-speed-control"><Label htmlFor={speedControlId}>Tốc độ nghe</Label><Select value={speed} onValueChange={value => { setSpeed(value); if (audio.current) audio.current.playbackRate = Number(value); }}><SelectTrigger id={speedControlId} className="playlist-speed-select" aria-describedby={`${speedControlId}-hint`}><SelectValue>{speed}×</SelectValue></SelectTrigger><SelectContent className="border-line bg-paper-soft font-sans text-ink">{["0.75", "1", "1.25", "1.5", "2"].map(value => <SelectItem key={value} value={value}>{value}×</SelectItem>)}</SelectContent></Select><span id={`${speedControlId}-hint`} className="sr-only">1× là tốc độ gốc. Chọn giá trị nhỏ hơn để nghe chậm hoặc lớn hơn để nghe nhanh.</span></div>
+        <div className="playlist-volume"><SpeakerHigh aria-hidden="true" /><Slider className="playlist-compact-slider" aria-label="Âm lượng" min={0} max={1} step={.05} value={[volume]} onValueChange={([value]) => { setVolume(value); if (audio.current) audio.current.volume = value; }} /></div>
+      </div>    </div> : <LibrarySelect id={`speed-${narrationId}`} label="Tốc độ nghe" value={speed} onChange={(value) => { if (!value) return; setSpeed(value); if (audio.current) audio.current.playbackRate = Number(value); }} options={["0.75", "1", "1.25", "1.5", "2"].map((value) => ({ id: value, name: `${value}×` }))} allLabel="Chọn tốc độ" />}
     {audioError && <p role="alert" className="text-sm text-destructive">Không tải được tệp âm thanh. Vui lòng thử mở bản thu lại.</p>}
   </div>;
 }
 
-export function PodcastPlayer({ chapter }: { chapter: LibraryChapter }): ReactElement {
+export function PodcastPlayer({ chapter }: { chapter: LibraryChapter }): ReactElement | null {
   const session = useCurrentUser();
   const available = chapter.narrations.filter((value) => value.available);
   const [choice, setChoice] = useState("");
   const selected = available.find((value) => value.id === choice) ?? available[0];
   const detail = useQuery({ queryKey: ["library-episode", chapter.slug], queryFn: ({ signal }) => libraryService.episode(chapter.slug, signal) });
+  if (!session.isPending && !session.isError && !session.data) return null;
   return <div className="space-y-5 rounded-xl border border-line bg-paper-soft p-5 md:p-6"><div className="flex items-start gap-3"><Headphones size={25} className="shrink-0 text-bronze-dark" aria-hidden="true" /><div><p className="text-xs text-muted-foreground">Đang chọn nghe</p><h3 className="mt-1 font-semibold leading-6">{chapter.title}</h3></div></div>
     {available.length > 1 && <LibrarySelect id={`voice-${chapter.id}`} label="Góc kể" value={selected?.id ?? ""} onChange={setChoice} options={available.map((value) => ({ id: value.id, name: value.type === "FIRST_PERSON" ? "Lời kể nhân vật" : "Người dẫn chuyện" }))} />}
-    {session.isPending ? <LibraryState loading /> : session.isError ? <LibraryState error title="Chưa kiểm tra được tài khoản" retry={() => { void session.refetch(); }} /> : !session.data ? <div className="space-y-4"><p className="text-sm leading-6 text-muted-foreground">Đăng nhập để nghe bản thu và lưu tiến độ của bạn.</p><Button asChild><Link to="/login">Đăng nhập để nghe</Link></Button></div> : selected ? <AudioPlayback key={`${selected.id}-${session.data.id}`} narrationId={selected.id} userId={session.data.id} /> : <p className="text-sm text-muted-foreground">Bản thu của chương này chưa sẵn sàng.</p>}
+    {session.isPending ? <LibraryState loading /> : session.isError ? <LibraryState error title="Chưa kiểm tra được tài khoản" retry={() => { void session.refetch(); }} /> : session.data && selected ? <AudioPlayback key={`${selected.id}-${session.data.id}`} narrationId={selected.id} userId={session.data.id} /> : <p className="text-sm text-muted-foreground">Bản thu của chương này chưa sẵn sàng.</p>}
     {detail.data?.hasQuiz && <EpisodeQuiz key={session.data?.id ?? "guest"} slug={chapter.slug} signedIn={Boolean(session.data)} />}
   </div>;
 }

@@ -1,6 +1,6 @@
 import { List, MagnifyingGlass, X } from "@phosphor-icons/react";
 import { useState } from "react";
-import { Link } from "react-router";
+import { Link, useNavigate } from "react-router";
 import { Button } from "@/shared/components/ui/button";
 import { cn } from "@/lib/utils";
 import brandLogo from "@/public/brand-su-ky-viet-nam.png";
@@ -17,14 +17,15 @@ const links = [
   { label: "Lịch phát sóng", target: "upcoming" },
 ];
 
-function jumpTo(target: string): void {
-  scrollToLandingTarget(target);
-}
-
-export function LandingHeader() {
+export function LandingHeader({ surface = false }: { surface?: boolean }) {
+  const navigate = useNavigate();
+  function jumpTo(target: string): void {
+    if (document.getElementById(target)) scrollToLandingTarget(target);
+    else navigate(`/#${target}`);
+  }
   const reducedMotion = useReducedMotion();
   const [menuOpen, setMenuOpen] = useState(false);
-  const { navbarRef, isScrolled } = useNavbarScrollAnimation(reducedMotion);
+  const { navbarRef, isScrolled } = useNavbarScrollAnimation(reducedMotion, surface);
   const session = useCurrentUser();
   const accountControl = session.data ? <AccountProfile /> : session.isPending ? (
     <span className="h-9 w-28 rounded-lg bg-paper-deep/15" role="status" aria-label="Đang kiểm tra tài khoản" />
