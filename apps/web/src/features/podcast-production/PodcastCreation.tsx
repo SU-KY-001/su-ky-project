@@ -1,3 +1,4 @@
+import { CardBadge, cardBadgeToneForStatus } from "@/shared/components/dashboard/CardBadge";
 import { useState, type ReactElement } from "react";
 import type { EpisodeWorkspaceDto } from "@repo/shared";
 import { ArrowLeft, ArrowRight, Pencil, Save } from "lucide-react";
@@ -104,7 +105,6 @@ function PodcastWizardPage({
         await wizard.saveScript(wizard.state.scriptDocument);
       }
       notify.success({ title: existingEpisode ? "Đã lưu thay đổi." : "Đã lưu bản nháp." });
-      if (existingEpisode) setEditing(false);
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : "Không lưu được bản nháp.");
     } finally {
@@ -129,6 +129,7 @@ function PodcastWizardPage({
           <div className="flex flex-wrap items-center justify-between gap-3 border-b border-mod-border px-4 py-4 sm:px-6">
             <div>
               <p className="font-semibold text-mod-text">{wizard.state.title}</p>
+              <CardBadge type="status" tone={cardBadgeToneForStatus(existingEpisode.status)} className="mt-2">{existingEpisode.status === "PUBLISHED" ? "Đã phát hành" : existingEpisode.status === "HIDDEN" ? "Đã ẩn" : "Bản nháp"}</CardBadge>
               <p className="mt-1 text-xs text-mod-text-secondary">{editing ? "Đang chỉnh sửa tập podcast" : "Chế độ xem · chọn Chỉnh sửa để thay đổi nội dung"}</p>
             </div>
             {!editing ? (

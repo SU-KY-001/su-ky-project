@@ -193,6 +193,7 @@ export type EpisodeWorkspaceEntity = EpisodeWithSeriesEntity & {
 
 /** Episode row as included in the series detail query. */
 export type EpisodeDetailRowEntity = EpisodeEntity & {
+  attachments?: EpisodeAttachmentEntity[];
   narrations: Array<
     EpisodeNarrationEntity & { audioAsset: MediaAssetEntity | null }
   >;

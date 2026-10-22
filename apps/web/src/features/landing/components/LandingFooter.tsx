@@ -8,9 +8,10 @@ import { Separator } from "@/shared/components/ui/separator";
 import { scrollToLandingTarget } from "../hooks/useLandingMotion";
 
 const discoveryLinks = [
-  { label: "Dòng lịch sử", target: "library-history" },
-  { label: "Podcast theo sự kiện", target: "library-podcasts" },
-  { label: "Sắp phát hành", target: "upcoming" },
+  { label: "Khám phá lịch sử", target: "library-history" },
+  { label: "Series và podcast", target: "library-podcasts" },
+  { label: "Quiz", target: "library-quiz" },
+  { label: "Lịch phát sóng", target: "upcoming" },
 ];
 
 export function LandingFooter(): ReactElement {

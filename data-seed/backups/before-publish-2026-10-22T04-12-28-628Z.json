@@ -1,0 +1,756 @@
+[
+  {
+    "id": "8666cf33-3914-46a9-a531-ae9569f5cb39",
+    "ownerId": "MDYzo7AMp4Tm1taqnZTx1NzSAciBrCNr",
+    "topicId": "8b1f9fc1-226f-448d-83c7-c1fe27ad2870",
+    "historicalPhaseId": null,
+    "title": "Việt Nam thời kỳ đổi mới",
+    "slug": "viet-nam-thoi-ky-doi-moi",
+    "description": "Các tập podcast trong series Việt Nam thời kỳ đổi mới.",
+    "coverImageAssetId": null,
+    "coverLandscapeAssetId": null,
+    "startYear": null,
+    "endYear": null,
+    "status": "DRAFT",
+    "statusBeforeDelete": null,
+    "adminLockedAt": null,
+    "adminLockedById": null,
+    "publishedAt": null,
+    "deletedAt": null,
+    "createdAt": "2026-10-22T01:42:16.187Z",
+    "updatedAt": "2026-10-22T01:51:29.690Z",
+    "primaryHistoricalEventId": null,
+    "historicalEntityRevisionId": null,
+    "publicationEvidence": null,
+    "episodes": [
+      {
+        "id": "58913625-d533-4c85-b57a-bf29fb846a6b",
+        "seriesId": "8666cf33-3914-46a9-a531-ae9569f5cb39",
+        "title": "Đại hội Đảng toàn quốc lần thứ VI khởi xướng công cuộc \"Đổi mới\"",
+        "slug": "dai-hoi-dang-toan-quoc-lan-thu-vi-doi-moi",
+        "description": "Podcast về Đại hội Đảng toàn quốc lần thứ VI khởi xướng công cuộc \"Đổi mới\". Bản thu mẫu dùng chung để kiểm tra phát audio.",
+        "sortOrder": 1,
+        "status": "DRAFT",
+        "statusBeforeDelete": null,
+        "adminLockedAt": null,
+        "adminLockedById": null,
+        "publishedAt": null,
+        "deletedAt": null,
+        "createdAt": "2026-10-22T01:42:16.192Z",
+        "updatedAt": "2026-10-22T01:51:29.697Z",
+        "contentRevision": 3,
+        "narrations": [
+          {
+            "id": "acf85900-c551-4f2f-9a63-5a290c418c67",
+            "episodeId": "58913625-d533-4c85-b57a-bf29fb846a6b",
+            "narrationType": "THIRD_PERSON",
+            "narratorEntityId": null,
+            "scriptContent": null,
+            "scriptDocument": null,
+            "audioAnalysis": null,
+            "audioAssetId": "c2541978-fe0a-4ece-9735-5b521883a06a",
+            "scriptUpdatedAt": null,
+            "audioAttachedAt": "2026-10-22T01:42:17.378Z",
+            "createdAt": "2026-10-22T01:42:16.194Z",
+            "updatedAt": "2026-10-22T01:42:17.379Z",
+            "audioAsset": {
+              "id": "c2541978-fe0a-4ece-9735-5b521883a06a",
+              "kind": "AUDIO",
+              "publicId": "su-ky/audio/seed-vietnam/dai-hoi-dang-toan-quoc-lan-thu-vi-doi-moi-58c6ac7704ceee0a",
+              "status": "READY",
+              "version": "1792633336",
+              "format": "mp3",
+              "sizeBytes": "2850516",
+              "durationMs": 181969,
+              "widthPx": null,
+              "heightPx": null,
+              "uploadedById": "MDYzo7AMp4Tm1taqnZTx1NzSAciBrCNr",
+              "createdAt": "2026-10-22T01:42:17.377Z",
+              "verifiedAt": "2026-10-22T01:42:17.376Z",
+              "detachedAt": null,
+              "deletedAt": null
+            }
+          }
+        ],
+        "attachments": [
+          {
+            "id": "08f8f83b-61a9-4cbb-be1c-536ec43f755a",
+            "episodeId": "58913625-d533-4c85-b57a-bf29fb846a6b",
+            "mediaAssetId": "fa4297d9-0bc5-4ef3-a54c-c3c8b2fde444",
+            "fileName": "10-dai-hoi-vi-doi-moi.jpg",
+            "createdAt": "2026-10-22T01:51:29.728Z",
+            "updatedAt": "2026-10-22T01:51:29.728Z"
+          }
+        ],
+        "entityTags": []
+      }
+    ],
+    "sources": [],
+    "primaryHistoricalEvent": null
+  },
+  {
+    "id": "2acee234-13e7-490c-928f-b4c174239af5",
+    "ownerId": "MDYzo7AMp4Tm1taqnZTx1NzSAciBrCNr",
+    "topicId": "8b1f9fc1-226f-448d-83c7-c1fe27ad2870",
+    "historicalPhaseId": "af5a816d-29a8-4ef5-954a-5473e675151c",
+    "title": "Việt Nam thời cổ đại",
+    "slug": "viet-nam-thoi-co-dai",
+    "description": "Các tập podcast trong series Việt Nam thời cổ đại.",
+    "coverImageAssetId": null,
+    "coverLandscapeAssetId": null,
+    "startYear": -500,
+    "endYear": -111,
+    "status": "DRAFT",
+    "statusBeforeDelete": null,
+    "adminLockedAt": null,
+    "adminLockedById": null,
+    "publishedAt": null,
+    "deletedAt": null,
+    "createdAt": "2026-10-22T01:40:59.754Z",
+    "updatedAt": "2026-10-22T04:02:12.722Z",
+    "primaryHistoricalEventId": "505cedf9-c656-41f5-8827-f6dfde513297",
+    "historicalEntityRevisionId": "e49f1dad-f24d-4a45-a9f3-2dc7f01877a8",
+    "publicationEvidence": null,
+    "episodes": [
+      {
+        "id": "47875936-0cf6-4d34-82ec-ae72107f9e20",
+        "seriesId": "2acee234-13e7-490c-928f-b4c174239af5",
+        "title": "Văn hóa Đồng Sơn",
+        "slug": "van-hoa-dong-son",
+        "description": "Podcast về Văn hóa Đồng Sơn. Bản thu mẫu dùng chung để kiểm tra phát audio.",
+        "sortOrder": 1,
+        "status": "DRAFT",
+        "statusBeforeDelete": null,
+        "adminLockedAt": null,
+        "adminLockedById": null,
+        "publishedAt": null,
+        "deletedAt": null,
+        "createdAt": "2026-10-22T01:40:59.775Z",
+        "updatedAt": "2026-10-22T04:02:31.597Z",
+        "contentRevision": 8,
+        "narrations": [
+          {
+            "id": "bb98d9c1-f504-45c5-87b7-b48cfd9563e3",
+            "episodeId": "47875936-0cf6-4d34-82ec-ae72107f9e20",
+            "narrationType": "THIRD_PERSON",
+            "narratorEntityId": null,
+            "scriptContent": "Theo một truyền thuyết của người Việt xuất hiện lần đầu trong tác phẩm thế kỷ 14 Lĩnh Nam chích quái, thủ lĩnh bộ lạc Lộc Tục (khoảng 2919 – 2794 TCN) đã xưng hiệu là Kinh Dương Vương và lập nên nhà nước Xích Quỷ vào năm 2879 TCN, đánh dấu sự khởi đầu của thời kỳ Hồng Bàng.[36] Dù vậy, các nhà sử học Việt Nam hiện đại cho rằng hình thái nhà nước sơ khai thực chất mới bắt đầu hình thành tại vùng Đồng bằng sông Hồng vào nửa sau thiên niên kỷ thứ 1 TCN. Kế vị Kinh Dương Vương là Sùng Lãm (khoảng 2825 – 2525 TCN).[37] Triều đại kế tiếp sản sinh ra 18 đời quân vương, thường được gọi là các vị Hùng Vương, những người đã đặt quốc hiệu là Văn Lang và đóng đô tại Phong Châu.[a][37][38] Bộ máy hành chính thời kỳ này bao gồm các chức danh như thủ lĩnh quân sự (lạc tướng), quan văn (lạc hầu) và người đứng đầu làng chạ (bố chính).[39]\n\nMột số lượng lớn công cụ và vũ khí bằng kim loại được khai quật tại nhiều di chỉ thuộc văn hóa Phùng Nguyên ở miền bắc bán đảo Đông Dương gắn liền với sự khởi đầu của Thời đại Đồ đồng đỏ tại Đông Nam Á.[40] Bên cạnh đó, thời điểm mở đầu của Thời kỳ Đồ đồng đã được xác thực vào khoảng năm 500 TCN tại Đông Sơn. Giới sử học Việt Nam thường quy thuộc nền Văn hóa Đông Sơn với các nhà nước Văn Lang, Âu Lạc và Hồng Bàng. Cộng đồng cư dân Lạc Việt bản địa đã phát triển một nền kỹ nghệ luyện kim đồng thau chất lượng cao đạt độ tinh xảo vượt bậc, làm chủ việc chế tác công cụ, vũ khí và những chiếc trống đồng tuyệt mỹ. Mang giá trị biểu tượng sâu sắc, những hiện vật này được sử dụng chủ yếu trong các nghi lễ tâm linh hoặc nghi thức cộng đồng. Để tạo ra những tác phẩm này, người thợ thủ công đòi hỏi phải có kỹ thuật nấu chảy kim loại điêu luyện, thuần thục phương pháp đúc bằng khuôn sáp chảy, đồng thời đạt tới bậc thầy về bố cục và chạm khắc các hoa văn tinh xảo.[41][42]\n\nTruyền thuyết Thánh Gióng kể về một tráng sĩ trẻ tuổi đã lãnh đạo đất nước Văn Lang đánh tan giặc Ân xâm lược từ phương bắc, cứu nguy cho xã tắc rồi bay thẳng về trời.[43][44] Hình tượng Thánh Gióng khoác áo giáp sắt, cưỡi ngựa sắt và vung gươm sắt[45] phản ánh một xã hội đã đạt tới trình độ luyện kim phát triển; cũng như truyền thuyết về Nỏ thần của An Dương Vương, loại vũ khí có thể bắn ra hàng nghìn mũi tên cùng lúc phản ánh việc cung nỏ đã được ứng dụng rộng rãi trong nghệ thuật quân sự thời bấy giờ. Khoảng 1.000 làng nghề truyền thống ở khu vực Đồng bằng sông Hồng lân cận và xung quanh Hà Nội đã đóng vai trò xương sống cho nền kinh tế và sản xuất thủ công của quốc gia suốt hơn 2.000 năm lịch sử.[46] Vô số cơ sở sản xuất thủ công quy mô hộ gia đình qua hàng thế kỷ đã gìn giữ bản sắc văn hóa dân tộc thông qua việc tạo tác các mặt hàng tinh xảo, xây dựng đền miếu, đồng thời duy trì các nghi lễ và lễ hội trong mạch nguồn văn hóa bất tận tôn vinh những vị tiền nhân hiển linh trong truyền thuyết.",
+            "scriptDocument": {
+              "type": "doc",
+              "content": [
+                {
+                  "type": "paragraph",
+                  "content": [
+                    {
+                      "text": "Theo một truyền thuyết của người Việt xuất hiện lần đầu trong tác phẩm thế kỷ 14 Lĩnh Nam chích quái, thủ lĩnh bộ lạc Lộc Tục (khoảng 2919 – 2794 TCN) đã xưng hiệu là Kinh Dương Vương và lập nên nhà nước Xích Quỷ vào năm 2879 TCN, đánh dấu sự khởi đầu của thời kỳ Hồng Bàng.[36] Dù vậy, các nhà sử học Việt Nam hiện đại cho rằng hình thái nhà nước sơ khai thực chất mới bắt đầu hình thành tại vùng Đồng bằng sông Hồng vào nửa sau thiên niên kỷ thứ 1 TCN. Kế vị Kinh Dương Vương là Sùng Lãm (khoảng 2825 – 2525 TCN).[37] Triều đại kế tiếp sản sinh ra 18 đời quân vương, thường được gọi là các vị Hùng Vương, những người đã đặt quốc hiệu là Văn Lang và đóng đô tại Phong Châu.[a][37][38] Bộ máy hành chính thời kỳ này bao gồm các chức danh như thủ lĩnh quân sự (lạc tướng), quan văn (lạc hầu) và người đứng đầu làng chạ (bố chính).[39]\n\nMột số lượng lớn công cụ và vũ khí bằng kim loại được khai quật tại nhiều di chỉ thuộc văn hóa Phùng Nguyên ở miền bắc bán đảo Đông Dương gắn liền với sự khởi đầu của Thời đại Đồ đồng đỏ tại Đông Nam Á.[40] Bên cạnh đó, thời điểm mở đầu của Thời kỳ Đồ đồng đã được xác thực vào khoảng năm 500 TCN tại Đông Sơn. Giới sử học Việt Nam thường quy thuộc nền Văn hóa Đông Sơn với các nhà nước Văn Lang, Âu Lạc và Hồng Bàng. Cộng đồng cư dân Lạc Việt bản địa đã phát triển một nền kỹ nghệ luyện kim đồng thau chất lượng cao đạt độ tinh xảo vượt bậc, làm chủ việc chế tác công cụ, vũ khí và những chiếc trống đồng tuyệt mỹ. Mang giá trị biểu tượng sâu sắc, những hiện vật này được sử dụng chủ yếu trong các nghi lễ tâm linh hoặc nghi thức cộng đồng. Để tạo ra những tác phẩm này, người thợ thủ công đòi hỏi phải có kỹ thuật nấu chảy kim loại điêu luyện, thuần thục phương pháp đúc bằng khuôn sáp chảy, đồng thời đạt tới bậc thầy về bố cục và chạm khắc các hoa văn tinh xảo.[41][42]\n\nTruyền thuyết Thánh Gióng kể về một tráng sĩ trẻ tuổi đã lãnh đạo đất nước Văn Lang đánh tan giặc Ân xâm lược từ phương bắc, cứu nguy cho xã tắc rồi bay thẳng về trời.[43][44] Hình tượng Thánh Gióng khoác áo giáp sắt, cưỡi ngựa sắt và vung gươm sắt[45] phản ánh một xã hội đã đạt tới trình độ luyện kim phát triển; cũng như truyền thuyết về Nỏ thần của An Dương Vương, loại vũ khí có thể bắn ra hàng nghìn mũi tên cùng lúc phản ánh việc cung nỏ đã được ứng dụng rộng rãi trong nghệ thuật quân sự thời bấy giờ. Khoảng 1.000 làng nghề truyền thống ở khu vực Đồng bằng sông Hồng lân cận và xung quanh Hà Nội đã đóng vai trò xương sống cho nền kinh tế và sản xuất thủ công của quốc gia suốt hơn 2.000 năm lịch sử.[46] Vô số cơ sở sản xuất thủ công quy mô hộ gia đình qua hàng thế kỷ đã gìn giữ bản sắc văn hóa dân tộc thông qua việc tạo tác các mặt hàng tinh xảo, xây dựng đền miếu, đồng thời duy trì các nghi lễ và lễ hội trong mạch nguồn văn hóa bất tận tôn vinh những vị tiền nhân hiển linh trong truyền thuyết.",
+                      "type": "text"
+                    }
+                  ]
+                }
+              ]
+            },
+            "audioAnalysis": null,
+            "audioAssetId": "87a1f638-d178-449d-bcce-b322f2de8025",
+            "scriptUpdatedAt": "2026-10-22T04:02:12.730Z",
+            "audioAttachedAt": "2026-10-22T01:42:04.619Z",
+            "createdAt": "2026-10-22T01:40:59.779Z",
+            "updatedAt": "2026-10-22T04:02:12.733Z",
+            "audioAsset": {
+              "id": "87a1f638-d178-449d-bcce-b322f2de8025",
+              "kind": "AUDIO",
+              "publicId": "su-ky/audio/seed-vietnam/van-hoa-dong-son-58c6ac7704ceee0a",
+              "status": "READY",
+              "version": "1792633323",
+              "format": "mp3",
+              "sizeBytes": "2850516",
+              "durationMs": 181969,
+              "widthPx": null,
+              "heightPx": null,
+              "uploadedById": "MDYzo7AMp4Tm1taqnZTx1NzSAciBrCNr",
+              "createdAt": "2026-10-22T01:42:04.613Z",
+              "verifiedAt": "2026-10-22T01:42:04.607Z",
+              "detachedAt": null,
+              "deletedAt": null
+            }
+          }
+        ],
+        "attachments": [
+          {
+            "id": "bdeab6bf-696b-46f6-a7ef-8a4b5551cd05",
+            "episodeId": "47875936-0cf6-4d34-82ec-ae72107f9e20",
+            "mediaAssetId": "eaef8608-dada-4aee-9c96-c3f7e12ed725",
+            "fileName": "01-van-hoa-dong-son.jpg",
+            "createdAt": "2026-10-22T02:09:45.889Z",
+            "updatedAt": "2026-10-22T02:09:45.889Z"
+          }
+        ],
+        "entityTags": []
+      }
+    ],
+    "sources": [],
+    "primaryHistoricalEvent": {
+      "id": "505cedf9-c656-41f5-8827-f6dfde513297",
+      "entityType": "EVENT",
+      "name": "Văn hóa Đông Sơn và truyền thuyết thời Hồng Bàng",
+      "slug": "van-hoa-dong-son-va-truyen-thuyet-thoi-hong-bang-4x2b",
+      "aliases": [],
+      "startYear": -500,
+      "endYear": -111,
+      "summary": "Hình thành văn hóa Đồng Sơn.",
+      "createdById": "MDYzo7AMp4Tm1taqnZTx1NzSAciBrCNr",
+      "createdAt": "2026-10-22T04:00:02.580Z",
+      "updatedAt": "2026-10-22T04:00:02.580Z",
+      "time": {
+        "end": {
+          "year": -111,
+          "precision": "YEAR",
+          "approximate": false
+        },
+        "kind": "RANGE",
+        "start": {
+          "year": -500,
+          "precision": "YEAR",
+          "approximate": true
+        },
+        "endState": "KNOWN"
+      },
+      "version": 1,
+      "deletedAt": null,
+      "historicalPhaseId": "af5a816d-29a8-4ef5-954a-5473e675151c",
+      "reviewStatus": "DRAFT",
+      "reviewedVersion": null,
+      "reviewedById": null,
+      "reviewedAt": null,
+      "reviewNote": null,
+      "revisions": [
+        {
+          "id": "e49f1dad-f24d-4a45-a9f3-2dc7f01877a8",
+          "entityId": "505cedf9-c656-41f5-8827-f6dfde513297",
+          "version": 1,
+          "snapshot": {
+            "id": "505cedf9-c656-41f5-8827-f6dfde513297",
+            "name": "Văn hóa Đông Sơn và truyền thuyết thời Hồng Bàng",
+            "slug": "van-hoa-dong-son-va-truyen-thuyet-thoi-hong-bang-4x2b",
+            "time": {
+              "end": {
+                "year": -111,
+                "precision": "YEAR",
+                "approximate": false
+              },
+              "kind": "RANGE",
+              "start": {
+                "year": -500,
+                "precision": "YEAR",
+                "approximate": true
+              },
+              "endState": "KNOWN"
+            },
+            "aliases": [],
+            "endYear": -111,
+            "summary": "Hình thành văn hóa Đồng Sơn.",
+            "version": 1,
+            "citations": [],
+            "createdAt": "2026-10-22T04:00:02.580Z",
+            "deletedAt": null,
+            "startYear": -500,
+            "updatedAt": "2026-10-22T04:00:02.580Z",
+            "entityType": "EVENT",
+            "reviewNote": null,
+            "reviewedAt": null,
+            "createdById": "MDYzo7AMp4Tm1taqnZTx1NzSAciBrCNr",
+            "reviewStatus": "DRAFT",
+            "reviewedById": null,
+            "reviewedVersion": null,
+            "historicalPhaseId": "af5a816d-29a8-4ef5-954a-5473e675151c"
+          },
+          "createdById": "MDYzo7AMp4Tm1taqnZTx1NzSAciBrCNr",
+          "createdAt": "2026-10-22T04:00:02.600Z"
+        }
+      ],
+      "citations": []
+    }
+  },
+  {
+    "id": "90712c65-e0e6-4486-8453-34a99a854d00",
+    "ownerId": "MDYzo7AMp4Tm1taqnZTx1NzSAciBrCNr",
+    "topicId": "8b1f9fc1-226f-448d-83c7-c1fe27ad2870",
+    "historicalPhaseId": null,
+    "title": "Việt Nam thời kỳ Pháp xâm lược",
+    "slug": "viet-nam-thoi-ky-phap-xam-luoc",
+    "description": "Các tập podcast trong series Việt Nam thời kỳ Pháp xâm lược.",
+    "coverImageAssetId": null,
+    "coverLandscapeAssetId": null,
+    "startYear": null,
+    "endYear": null,
+    "status": "DRAFT",
+    "statusBeforeDelete": null,
+    "adminLockedAt": null,
+    "adminLockedById": null,
+    "publishedAt": null,
+    "deletedAt": null,
+    "createdAt": "2026-10-22T01:42:13.051Z",
+    "updatedAt": "2026-10-22T02:01:14.286Z",
+    "primaryHistoricalEventId": null,
+    "historicalEntityRevisionId": null,
+    "publicationEvidence": null,
+    "episodes": [
+      {
+        "id": "874befa1-5499-49b2-9477-851ef7fb4cba",
+        "seriesId": "90712c65-e0e6-4486-8453-34a99a854d00",
+        "title": "Pháp nổ súng xâm lược",
+        "slug": "phap-no-sung-xam-luoc",
+        "description": "Podcast về Pháp nổ súng xâm lược. Bản thu mẫu dùng chung để kiểm tra phát audio.",
+        "sortOrder": 1,
+        "status": "DRAFT",
+        "statusBeforeDelete": null,
+        "adminLockedAt": null,
+        "adminLockedById": null,
+        "publishedAt": null,
+        "deletedAt": null,
+        "createdAt": "2026-10-22T01:42:13.057Z",
+        "updatedAt": "2026-10-22T02:00:16.125Z",
+        "contentRevision": 3,
+        "narrations": [
+          {
+            "id": "4fbcdf5e-741f-4697-858c-657d4d14a322",
+            "episodeId": "874befa1-5499-49b2-9477-851ef7fb4cba",
+            "narrationType": "THIRD_PERSON",
+            "narratorEntityId": null,
+            "scriptContent": null,
+            "scriptDocument": null,
+            "audioAnalysis": null,
+            "audioAssetId": "69c19294-a55a-4632-aed3-a069af22e804",
+            "scriptUpdatedAt": null,
+            "audioAttachedAt": "2026-10-22T01:42:14.504Z",
+            "createdAt": "2026-10-22T01:42:13.059Z",
+            "updatedAt": "2026-10-22T01:42:14.505Z",
+            "audioAsset": {
+              "id": "69c19294-a55a-4632-aed3-a069af22e804",
+              "kind": "AUDIO",
+              "publicId": "su-ky/audio/seed-vietnam/phap-no-sung-xam-luoc-58c6ac7704ceee0a",
+              "status": "READY",
+              "version": "1792633333",
+              "format": "mp3",
+              "sizeBytes": "2850516",
+              "durationMs": 181969,
+              "widthPx": null,
+              "heightPx": null,
+              "uploadedById": "MDYzo7AMp4Tm1taqnZTx1NzSAciBrCNr",
+              "createdAt": "2026-10-22T01:42:14.502Z",
+              "verifiedAt": "2026-10-22T01:42:14.502Z",
+              "detachedAt": null,
+              "deletedAt": null
+            }
+          }
+        ],
+        "attachments": [
+          {
+            "id": "e58c8fe3-9440-4008-9d64-6e12ee8d4901",
+            "episodeId": "874befa1-5499-49b2-9477-851ef7fb4cba",
+            "mediaAssetId": "9fbf5932-1b67-4086-9185-dbfc5b9eccee",
+            "fileName": "07-phap-no-sung-xam-luoc.jpg",
+            "createdAt": "2026-10-22T02:00:16.145Z",
+            "updatedAt": "2026-10-22T02:00:16.145Z"
+          }
+        ],
+        "entityTags": []
+      },
+      {
+        "id": "d6f898c5-a5d5-4945-ab00-f72634f2b3b0",
+        "seriesId": "90712c65-e0e6-4486-8453-34a99a854d00",
+        "title": "Cách mạng tháng tám độc lập",
+        "slug": "cach-mang-thang-tam-doc-lap",
+        "description": "Podcast về Cách mạng tháng tám độc lập. Bản thu mẫu dùng chung để kiểm tra phát audio.",
+        "sortOrder": 2,
+        "status": "DRAFT",
+        "statusBeforeDelete": null,
+        "adminLockedAt": null,
+        "adminLockedById": null,
+        "publishedAt": null,
+        "deletedAt": null,
+        "createdAt": "2026-10-22T01:42:14.513Z",
+        "updatedAt": "2026-10-22T02:01:14.290Z",
+        "contentRevision": 3,
+        "narrations": [
+          {
+            "id": "79d3bcdc-3408-4eec-bdd2-c3d72f2d9850",
+            "episodeId": "d6f898c5-a5d5-4945-ab00-f72634f2b3b0",
+            "narrationType": "THIRD_PERSON",
+            "narratorEntityId": null,
+            "scriptContent": null,
+            "scriptDocument": null,
+            "audioAnalysis": null,
+            "audioAssetId": "778a20f5-a510-49f8-a086-3019e105293f",
+            "scriptUpdatedAt": null,
+            "audioAttachedAt": "2026-10-22T01:42:16.181Z",
+            "createdAt": "2026-10-22T01:42:14.516Z",
+            "updatedAt": "2026-10-22T01:42:16.182Z",
+            "audioAsset": {
+              "id": "778a20f5-a510-49f8-a086-3019e105293f",
+              "kind": "AUDIO",
+              "publicId": "su-ky/audio/seed-vietnam/cach-mang-thang-tam-doc-lap-58c6ac7704ceee0a",
+              "status": "READY",
+              "version": "1792633335",
+              "format": "mp3",
+              "sizeBytes": "2850516",
+              "durationMs": 181969,
+              "widthPx": null,
+              "heightPx": null,
+              "uploadedById": "MDYzo7AMp4Tm1taqnZTx1NzSAciBrCNr",
+              "createdAt": "2026-10-22T01:42:16.180Z",
+              "verifiedAt": "2026-10-22T01:42:16.179Z",
+              "detachedAt": null,
+              "deletedAt": null
+            }
+          }
+        ],
+        "attachments": [
+          {
+            "id": "40ae13ac-8992-4a0d-be55-3289c4533f40",
+            "episodeId": "d6f898c5-a5d5-4945-ab00-f72634f2b3b0",
+            "mediaAssetId": "1f90ee58-05bf-4b1a-b437-5d1a9ae8032d",
+            "fileName": "08-cach-mang-thang-tam-doc-lap.jpg",
+            "createdAt": "2026-10-22T02:01:14.303Z",
+            "updatedAt": "2026-10-22T02:01:14.303Z"
+          }
+        ],
+        "entityTags": []
+      }
+    ],
+    "sources": [],
+    "primaryHistoricalEvent": null
+  },
+  {
+    "id": "11cf0b2e-778e-4b47-aed1-aad6f5ffed45",
+    "ownerId": "MDYzo7AMp4Tm1taqnZTx1NzSAciBrCNr",
+    "topicId": "8b1f9fc1-226f-448d-83c7-c1fe27ad2870",
+    "historicalPhaseId": null,
+    "title": "Việt Nam thời phong kiến",
+    "slug": "viet-nam-thoi-phong-kien",
+    "description": "Các tập podcast trong series Việt Nam thời phong kiến.",
+    "coverImageAssetId": null,
+    "coverLandscapeAssetId": null,
+    "startYear": null,
+    "endYear": null,
+    "status": "DRAFT",
+    "statusBeforeDelete": null,
+    "adminLockedAt": null,
+    "adminLockedById": null,
+    "publishedAt": null,
+    "deletedAt": null,
+    "createdAt": "2026-10-22T01:42:04.629Z",
+    "updatedAt": "2026-10-22T02:09:25.620Z",
+    "primaryHistoricalEventId": null,
+    "historicalEntityRevisionId": null,
+    "publicationEvidence": null,
+    "episodes": [
+      {
+        "id": "9f056d5d-3ebe-4963-8fe0-28c7bc0ef0c2",
+        "seriesId": "11cf0b2e-778e-4b47-aed1-aad6f5ffed45",
+        "title": "Chiến thắng Bạch Đằng 938",
+        "slug": "chien-thang-bach-dang-938",
+        "description": "Podcast về Chiến thắng Bạch Đằng 938. Bản thu mẫu dùng chung để kiểm tra phát audio.",
+        "sortOrder": 1,
+        "status": "DRAFT",
+        "statusBeforeDelete": null,
+        "adminLockedAt": null,
+        "adminLockedById": null,
+        "publishedAt": null,
+        "deletedAt": null,
+        "createdAt": "2026-10-22T01:42:04.638Z",
+        "updatedAt": "2026-10-22T02:03:11.148Z",
+        "contentRevision": 3,
+        "narrations": [
+          {
+            "id": "d62f35d6-a45e-4f66-b4af-aafc41e69e3a",
+            "episodeId": "9f056d5d-3ebe-4963-8fe0-28c7bc0ef0c2",
+            "narrationType": "THIRD_PERSON",
+            "narratorEntityId": null,
+            "scriptContent": null,
+            "scriptDocument": null,
+            "audioAnalysis": null,
+            "audioAssetId": "4e191eea-fc08-450b-b02c-5f6fa556b21c",
+            "scriptUpdatedAt": null,
+            "audioAttachedAt": "2026-10-22T01:42:06.567Z",
+            "createdAt": "2026-10-22T01:42:04.641Z",
+            "updatedAt": "2026-10-22T01:42:06.568Z",
+            "audioAsset": {
+              "id": "4e191eea-fc08-450b-b02c-5f6fa556b21c",
+              "kind": "AUDIO",
+              "publicId": "su-ky/audio/seed-vietnam/chien-thang-bach-dang-938-58c6ac7704ceee0a",
+              "status": "READY",
+              "version": "1792633325",
+              "format": "mp3",
+              "sizeBytes": "2850516",
+              "durationMs": 181969,
+              "widthPx": null,
+              "heightPx": null,
+              "uploadedById": "MDYzo7AMp4Tm1taqnZTx1NzSAciBrCNr",
+              "createdAt": "2026-10-22T01:42:06.564Z",
+              "verifiedAt": "2026-10-22T01:42:06.562Z",
+              "detachedAt": null,
+              "deletedAt": null
+            }
+          }
+        ],
+        "attachments": [
+          {
+            "id": "cb4bd881-36a0-484e-a8b3-0439106455b1",
+            "episodeId": "9f056d5d-3ebe-4963-8fe0-28c7bc0ef0c2",
+            "mediaAssetId": "399034c9-537a-44de-9521-3a667ee04aa1",
+            "fileName": "02-chien-thang-bach-dang.jpg",
+            "createdAt": "2026-10-22T02:03:11.161Z",
+            "updatedAt": "2026-10-22T02:03:11.161Z"
+          }
+        ],
+        "entityTags": []
+      },
+      {
+        "id": "08993a16-961d-44ce-be18-cc1f374089bf",
+        "seriesId": "11cf0b2e-778e-4b47-aed1-aad6f5ffed45",
+        "title": "Trịnh Nguyễn phân tranh",
+        "slug": "trinh-nguyen-phan-tranh",
+        "description": "Podcast về Trịnh Nguyễn phân tranh. Bản thu mẫu dùng chung để kiểm tra phát audio.",
+        "sortOrder": 4,
+        "status": "DRAFT",
+        "statusBeforeDelete": null,
+        "adminLockedAt": null,
+        "adminLockedById": null,
+        "publishedAt": null,
+        "deletedAt": null,
+        "createdAt": "2026-10-22T01:42:10.370Z",
+        "updatedAt": "2026-10-22T02:09:08.963Z",
+        "contentRevision": 3,
+        "narrations": [
+          {
+            "id": "6f54081a-f21d-4568-9714-c38b18c7936c",
+            "episodeId": "08993a16-961d-44ce-be18-cc1f374089bf",
+            "narrationType": "THIRD_PERSON",
+            "narratorEntityId": null,
+            "scriptContent": null,
+            "scriptDocument": null,
+            "audioAnalysis": null,
+            "audioAssetId": "60930702-f3b2-416f-bb51-3389eeced361",
+            "scriptUpdatedAt": null,
+            "audioAttachedAt": "2026-10-22T01:42:11.643Z",
+            "createdAt": "2026-10-22T01:42:10.373Z",
+            "updatedAt": "2026-10-22T01:42:11.644Z",
+            "audioAsset": {
+              "id": "60930702-f3b2-416f-bb51-3389eeced361",
+              "kind": "AUDIO",
+              "publicId": "su-ky/audio/seed-vietnam/trinh-nguyen-phan-tranh-58c6ac7704ceee0a",
+              "status": "READY",
+              "version": "1792633330",
+              "format": "mp3",
+              "sizeBytes": "2850516",
+              "durationMs": 181969,
+              "widthPx": null,
+              "heightPx": null,
+              "uploadedById": "MDYzo7AMp4Tm1taqnZTx1NzSAciBrCNr",
+              "createdAt": "2026-10-22T01:42:11.640Z",
+              "verifiedAt": "2026-10-22T01:42:11.639Z",
+              "detachedAt": null,
+              "deletedAt": null
+            }
+          }
+        ],
+        "attachments": [
+          {
+            "id": "63394160-3746-4b59-ad8c-ae805f7c299c",
+            "episodeId": "08993a16-961d-44ce-be18-cc1f374089bf",
+            "mediaAssetId": "b6432648-5055-4a7a-b494-9f72fe9b647f",
+            "fileName": "05-trinh-nguyen-phan-tranh.jpg",
+            "createdAt": "2026-10-22T02:09:08.976Z",
+            "updatedAt": "2026-10-22T02:09:08.976Z"
+          }
+        ],
+        "entityTags": []
+      },
+      {
+        "id": "ab6d02dc-86f1-4ab6-a4cf-b37d9d820ee7",
+        "seriesId": "11cf0b2e-778e-4b47-aed1-aad6f5ffed45",
+        "title": "Quang Trung đại phá quân Thanh",
+        "slug": "quang-trung-dai-pha-quan-thanh",
+        "description": "Podcast về Quang Trung đại phá quân Thanh. Bản thu mẫu dùng chung để kiểm tra phát audio.",
+        "sortOrder": 5,
+        "status": "DRAFT",
+        "statusBeforeDelete": null,
+        "adminLockedAt": null,
+        "adminLockedById": null,
+        "publishedAt": null,
+        "deletedAt": null,
+        "createdAt": "2026-10-22T01:42:11.653Z",
+        "updatedAt": "2026-10-22T02:09:25.625Z",
+        "contentRevision": 3,
+        "narrations": [
+          {
+            "id": "6eb5bc4f-6590-40f9-8fe4-5508193aa8fd",
+            "episodeId": "ab6d02dc-86f1-4ab6-a4cf-b37d9d820ee7",
+            "narrationType": "THIRD_PERSON",
+            "narratorEntityId": null,
+            "scriptContent": null,
+            "scriptDocument": null,
+            "audioAnalysis": null,
+            "audioAssetId": "eaf58075-8b69-4db9-a713-38c53f8a9936",
+            "scriptUpdatedAt": null,
+            "audioAttachedAt": "2026-10-22T01:42:13.044Z",
+            "createdAt": "2026-10-22T01:42:11.656Z",
+            "updatedAt": "2026-10-22T01:42:13.044Z",
+            "audioAsset": {
+              "id": "eaf58075-8b69-4db9-a713-38c53f8a9936",
+              "kind": "AUDIO",
+              "publicId": "su-ky/audio/seed-vietnam/quang-trung-dai-pha-quan-thanh-58c6ac7704ceee0a",
+              "status": "READY",
+              "version": "1792633332",
+              "format": "mp3",
+              "sizeBytes": "2850516",
+              "durationMs": 181969,
+              "widthPx": null,
+              "heightPx": null,
+              "uploadedById": "MDYzo7AMp4Tm1taqnZTx1NzSAciBrCNr",
+              "createdAt": "2026-10-22T01:42:13.040Z",
+              "verifiedAt": "2026-10-22T01:42:13.039Z",
+              "detachedAt": null,
+              "deletedAt": null
+            }
+          }
+        ],
+        "attachments": [
+          {
+            "id": "52eae9f6-694b-4a74-a158-e26dd7c19786",
+            "episodeId": "ab6d02dc-86f1-4ab6-a4cf-b37d9d820ee7",
+            "mediaAssetId": "81a5145d-df92-492d-8d54-b21edb12a503",
+            "fileName": "06-quang-trung-dai-pha-quan-thanh.jpg",
+            "createdAt": "2026-10-22T02:09:25.644Z",
+            "updatedAt": "2026-10-22T02:09:25.644Z"
+          }
+        ],
+        "entityTags": []
+      },
+      {
+        "id": "ffc6c17e-c509-42e4-af8d-78416bf24fda",
+        "seriesId": "11cf0b2e-778e-4b47-aed1-aad6f5ffed45",
+        "title": "Kháng chiến Mông Nguyên",
+        "slug": "khang-chien-mong-nguyen",
+        "description": "Podcast về Kháng chiến Mông Nguyên. Bản thu mẫu dùng chung để kiểm tra phát audio.",
+        "sortOrder": 2,
+        "status": "DRAFT",
+        "statusBeforeDelete": null,
+        "adminLockedAt": null,
+        "adminLockedById": null,
+        "publishedAt": null,
+        "deletedAt": null,
+        "createdAt": "2026-10-22T01:42:06.576Z",
+        "updatedAt": "2026-10-22T02:06:26.168Z",
+        "contentRevision": 4,
+        "narrations": [
+          {
+            "id": "28578c4f-3648-46a7-9e8b-30a046050a38",
+            "episodeId": "ffc6c17e-c509-42e4-af8d-78416bf24fda",
+            "narrationType": "THIRD_PERSON",
+            "narratorEntityId": null,
+            "scriptContent": null,
+            "scriptDocument": null,
+            "audioAnalysis": null,
+            "audioAssetId": "219244db-9932-4f1f-8eab-edc7a4ed48f7",
+            "scriptUpdatedAt": null,
+            "audioAttachedAt": "2026-10-22T01:42:07.688Z",
+            "createdAt": "2026-10-22T01:42:06.579Z",
+            "updatedAt": "2026-10-22T01:42:07.689Z",
+            "audioAsset": {
+              "id": "219244db-9932-4f1f-8eab-edc7a4ed48f7",
+              "kind": "AUDIO",
+              "publicId": "su-ky/audio/seed-vietnam/khang-chien-mong-nguyen-58c6ac7704ceee0a",
+              "status": "READY",
+              "version": "1792633327",
+              "format": "mp3",
+              "sizeBytes": "2850516",
+              "durationMs": 181969,
+              "widthPx": null,
+              "heightPx": null,
+              "uploadedById": "MDYzo7AMp4Tm1taqnZTx1NzSAciBrCNr",
+              "createdAt": "2026-10-22T01:42:07.685Z",
+              "verifiedAt": "2026-10-22T01:42:07.684Z",
+              "detachedAt": null,
+              "deletedAt": null
+            }
+          }
+        ],
+        "attachments": [
+          {
+            "id": "e02a271d-ada5-42df-a193-41f0638adcc1",
+            "episodeId": "ffc6c17e-c509-42e4-af8d-78416bf24fda",
+            "mediaAssetId": "a0e6d5a9-d74c-4288-9f6b-6a70af7265ab",
+            "fileName": "03-khang-chien-mong-nguyen.jpg",
+            "createdAt": "2026-10-22T02:03:33.504Z",
+            "updatedAt": "2026-10-22T02:03:33.504Z"
+          }
+        ],
+        "entityTags": []
+      },
+      {
+        "id": "599c8c43-deb1-4f1c-ba14-86b36fada549",
+        "seriesId": "11cf0b2e-778e-4b47-aed1-aad6f5ffed45",
+        "title": "Khởi nghĩa Lam Sơn",
+        "slug": "khoi-nghia-lam-son",
+        "description": "Podcast về Khởi nghĩa Lam Sơn. Bản thu mẫu dùng chung để kiểm tra phát audio.",
+        "sortOrder": 3,
+        "status": "DRAFT",
+        "statusBeforeDelete": null,
+        "adminLockedAt": null,
+        "adminLockedById": null,
+        "publishedAt": null,
+        "deletedAt": null,
+        "createdAt": "2026-10-22T01:42:07.697Z",
+        "updatedAt": "2026-10-22T02:07:54.437Z",
+        "contentRevision": 3,
+        "narrations": [
+          {
+            "id": "0632723a-6a67-43d5-b2ff-cb6d3627432e",
+            "episodeId": "599c8c43-deb1-4f1c-ba14-86b36fada549",
+            "narrationType": "THIRD_PERSON",
+            "narratorEntityId": null,
+            "scriptContent": null,
+            "scriptDocument": null,
+            "audioAnalysis": null,
+            "audioAssetId": "347af232-292c-40cc-a787-66d91657eea3",
+            "scriptUpdatedAt": null,
+            "audioAttachedAt": "2026-10-22T01:42:10.360Z",
+            "createdAt": "2026-10-22T01:42:07.699Z",
+            "updatedAt": "2026-10-22T01:42:10.361Z",
+            "audioAsset": {
+              "id": "347af232-292c-40cc-a787-66d91657eea3",
+              "kind": "AUDIO",
+              "publicId": "su-ky/audio/seed-vietnam/khoi-nghia-lam-son-58c6ac7704ceee0a",
+              "status": "READY",
+              "version": "1792633328",
+              "format": "mp3",
+              "sizeBytes": "2850516",
+              "durationMs": 181969,
+              "widthPx": null,
+              "heightPx": null,
+              "uploadedById": "MDYzo7AMp4Tm1taqnZTx1NzSAciBrCNr",
+              "createdAt": "2026-10-22T01:42:10.358Z",
+              "verifiedAt": "2026-10-22T01:42:10.357Z",
+              "detachedAt": null,
+              "deletedAt": null
+            }
+          }
+        ],
+        "attachments": [
+          {
+            "id": "f35e118a-9a0a-4f5f-9430-3a3aeb810c6b",
+            "episodeId": "599c8c43-deb1-4f1c-ba14-86b36fada549",
+            "mediaAssetId": "c3baf298-6980-426b-990c-525f4fc45b48",
+            "fileName": "04-khoi-nghia-lam-son.jpg",
+            "createdAt": "2026-10-22T02:07:54.456Z",
+            "updatedAt": "2026-10-22T02:07:54.456Z"
+          }
+        ],
+        "entityTags": []
+      }
+    ],
+    "sources": [],
+    "primaryHistoricalEvent": null
+  }
+]

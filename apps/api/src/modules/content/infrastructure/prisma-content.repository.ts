@@ -183,7 +183,10 @@ const seriesDetailInclude = {
   episodes: {
     where: { deletedAt: null },
     orderBy: { sortOrder: "asc" as const },
-    include: { narrations: { include: { audioAsset: true } } },
+    include: {
+      narrations: { include: { audioAsset: true } },
+      attachments: { where: { mediaAsset: { kind: "IMAGE", status: "READY", deletedAt: null } }, orderBy: { createdAt: "desc" as const }, take: 1, include: { mediaAsset: true } },
+    },
   },
   sources: { orderBy: { sortOrder: "asc" as const }, include: sourceInclude },
 } satisfies Prisma.SeriesInclude;

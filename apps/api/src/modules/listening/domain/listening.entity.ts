@@ -165,6 +165,7 @@ export interface NarrationWithAudio extends EpisodeNarrationEntity {
 
 export interface EpisodeWithNarrations extends EpisodeEntity {
   narrations: NarrationWithAudio[];
+  posterAsset?: MediaAssetEntity | null;
 }
 
 /** /series/:slug row: cover asset plus all published episodes with narrations. */

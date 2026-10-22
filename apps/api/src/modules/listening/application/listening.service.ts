@@ -334,6 +334,8 @@ export class ListeningService {
         id: episode.id,
         slug: episode.slug,
         title: episode.title,
+        description: episode.description,
+        poster: episode.posterAsset ? { url: this.storage.deliveryUrl(episode.posterAsset) } : null,
         sortOrder: episode.sortOrder,
         narrations: episode.narrations.map((narration) => ({
           id: narration.id,

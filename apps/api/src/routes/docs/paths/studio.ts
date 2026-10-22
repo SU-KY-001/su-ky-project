@@ -242,7 +242,7 @@ export const studioPaths: Paths = {
       tag: SERIES_TAG,
       summary: "Chi tiết Series",
       description:
-        "Kèm danh sách tập, nguồn (`sources`), Giai đoạn kèm Thời kỳ (`historicalPhase`) và `publishChecklist` (điều kiện xuất bản: chủ đề, Giai đoạn, khoảng năm, ít nhất một nguồn, ít nhất một tập đã xuất bản).",
+        "Kèm danh sách tập và poster riêng của từng tập (`episodes[].poster`, null nếu chưa có), nguồn (`sources`), Giai đoạn kèm Thời kỳ (`historicalPhase`) và `publishChecklist` (điều kiện xuất bản: chủ đề, Giai đoạn, khoảng năm, ít nhất một nguồn, ít nhất một tập đã xuất bản).",
       access: "studio",
       ...seriesParams,
       ok: { status: 200, description: "Series", schema: seriesDetail },

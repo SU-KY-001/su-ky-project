@@ -84,6 +84,7 @@ export const SeriesDetailSchema = z.object({
       slug: z.string(),
       sortOrder: z.number().int(),
       status: ContentStatusSchema,
+      poster: EpisodePosterSchema.nullable().optional(),
       progress: z.object({
         hasThirdPersonScript: z.boolean(),
         hasThirdPersonAudio: z.boolean(),

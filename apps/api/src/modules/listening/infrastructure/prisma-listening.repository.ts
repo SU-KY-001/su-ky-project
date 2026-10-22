@@ -45,6 +45,7 @@ type PrismaNarrationWithAudio = PrismaNarration & {
 };
 type PrismaEpisodeWithNarrations = PrismaEpisode & {
   narrations: PrismaNarrationWithAudio[];
+  attachments?: { mediaAsset: PrismaMediaAsset }[];
 };
 type PrismaSeriesWithCoverAndCount = PrismaSeries & {
   coverImageAsset: PrismaMediaAsset | null;
@@ -195,6 +196,7 @@ function toEpisodeWithNarrations(
   return {
     ...toEpisode(row),
     narrations: row.narrations.map(toNarrationWithAudio),
+    posterAsset: row.attachments?.[0] ? toMediaAsset(row.attachments[0].mediaAsset) : null,
   };
 }
 
@@ -571,7 +573,15 @@ export class PrismaListeningRepository implements ListeningRepository {
         episodes: {
           where: { status: "PUBLISHED" as const, deletedAt: null },
           orderBy: { sortOrder: "asc" },
-          include: { narrations: { include: { audioAsset: true } } },
+          include: {
+            narrations: { include: { audioAsset: true } },
+            attachments: {
+              where: { mediaAsset: { kind: "IMAGE", status: "READY", deletedAt: null } },
+              orderBy: { createdAt: "desc" },
+              take: 1,
+              include: { mediaAsset: true },
+            },
+          },
         },
         sources: {
           orderBy: { sortOrder: "asc" },

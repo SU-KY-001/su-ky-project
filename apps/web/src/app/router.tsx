@@ -17,6 +17,22 @@ export const appRoutes: RouteObject[] = [
     ErrorBoundary: RouteErrorFallback,
     children: [
       {
+        id: "public-series-episodes",
+        path: "series/:slug",
+        lazy: async () => {
+          const { SeriesEpisodesPage } = await import("../pages/series/SeriesEpisodesPage");
+          return { Component: SeriesEpisodesPage };
+        },
+      },
+      {
+        id: "history-river-wireframe",
+        path: "wireframes/history-river",
+        lazy: async () => {
+          const { HistoryRiverWireframePage } = await import("../pages/wireframes/HistoryRiverWireframePage");
+          return { Component: HistoryRiverWireframePage };
+        },
+      },
+      {
         id: "history-library-wireframe",
         path: "wireframes/history-library",
         lazy: async () => {

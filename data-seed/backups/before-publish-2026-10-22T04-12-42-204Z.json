@@ -1,0 +1,2465 @@
+[
+  {
+    "id": "2acee234-13e7-490c-928f-b4c174239af5",
+    "ownerId": "MDYzo7AMp4Tm1taqnZTx1NzSAciBrCNr",
+    "topicId": "8b1f9fc1-226f-448d-83c7-c1fe27ad2870",
+    "historicalPhaseId": "52893749-2626-44bc-bf16-6f98aae9c990",
+    "title": "Việt Nam thời cổ đại",
+    "slug": "viet-nam-thoi-co-dai",
+    "description": "Việt Nam thời cổ đại: Khám phá đời sống cư dân Việt cổ qua đồ đồng và hoa văn, với các di tích tập trung ở lưu vực sông Hồng, sông Mã và sông Cả.\n\nBộ dữ liệu demo landing; audio dùng tệp MP3 mẫu.",
+    "coverImageAssetId": null,
+    "coverLandscapeAssetId": null,
+    "startYear": -500,
+    "endYear": -111,
+    "status": "PUBLISHED",
+    "statusBeforeDelete": null,
+    "adminLockedAt": null,
+    "adminLockedById": null,
+    "publishedAt": "2026-10-22T04:12:29.181Z",
+    "deletedAt": null,
+    "createdAt": "2026-10-22T01:40:59.754Z",
+    "updatedAt": "2026-10-22T04:12:29.182Z",
+    "primaryHistoricalEventId": "505cedf9-c656-41f5-8827-f6dfde513297",
+    "historicalEntityRevisionId": "9fcea5b1-0a9a-4d4f-ba5c-551e95a7af3b",
+    "publicationEvidence": {
+      "asOf": "2026-10-22T04:12:29.181Z",
+      "event": {
+        "id": "505cedf9-c656-41f5-8827-f6dfde513297",
+        "name": "Văn hóa Đông Sơn và truyền thuyết thời Hồng Bàng",
+        "slug": "van-hoa-dong-son-va-truyen-thuyet-thoi-hong-bang-4x2b",
+        "time": {
+          "end": {
+            "year": -111,
+            "precision": "YEAR",
+            "approximate": true
+          },
+          "kind": "RANGE",
+          "note": "Niên đại quy ước để hiển thị dữ liệu demo; các giai đoạn văn hóa cổ đại có tính ước định.",
+          "start": {
+            "year": -500,
+            "precision": "YEAR",
+            "approximate": true
+          },
+          "endState": "KNOWN"
+        },
+        "version": 2
+      },
+      "sources": [
+        {
+          "id": "ae0e40d3-bf73-4c8d-ad65-84c6bf7d384a",
+          "file": null,
+          "source": {
+            "url": "https://baotanglichsuquocgia.vn/vi/Articles/3101/16033/van-hoa-djong-son-tu-da-su-djen-su-thuc-khao-co-hoc.html",
+            "isbn": null,
+            "tier": "TIER_3_KHOA_HOC",
+            "title": "Văn hoá Đông Sơn - Từ dã sử đến sự thực khảo cổ học",
+            "author": null,
+            "edition": null,
+            "publisher": "Bảo tàng Lịch sử Quốc gia",
+            "publicationYear": null
+          },
+          "excerpt": null,
+          "locator": "Bài trực tuyến: Văn hoá Đông Sơn - Từ dã sử đến sự thực khảo cổ học",
+          "verifiedAt": "2026-10-22T04:12:28.658Z",
+          "sourceVersion": 1,
+          "sourceRevisionId": "6654407b-556b-4e65-89d1-dbb126928d26"
+        }
+      ]
+    },
+    "episodes": [
+      {
+        "id": "47875936-0cf6-4d34-82ec-ae72107f9e20",
+        "seriesId": "2acee234-13e7-490c-928f-b4c174239af5",
+        "title": "Văn hóa Đồng Sơn",
+        "slug": "van-hoa-dong-son",
+        "description": "Khám phá đời sống cư dân Việt cổ qua đồ đồng và hoa văn, với các di tích tập trung ở lưu vực sông Hồng, sông Mã và sông Cả.\n\nBản nghe demo dùng MP3 mẫu để xem và thử giao diện.",
+        "sortOrder": 1,
+        "status": "PUBLISHED",
+        "statusBeforeDelete": null,
+        "adminLockedAt": null,
+        "adminLockedById": null,
+        "publishedAt": "2026-10-22T04:12:29.147Z",
+        "deletedAt": null,
+        "createdAt": "2026-10-22T01:40:59.775Z",
+        "updatedAt": "2026-10-22T04:12:29.148Z",
+        "contentRevision": 9,
+        "narrations": [
+          {
+            "id": "bb98d9c1-f504-45c5-87b7-b48cfd9563e3",
+            "episodeId": "47875936-0cf6-4d34-82ec-ae72107f9e20",
+            "narrationType": "THIRD_PERSON",
+            "narratorEntityId": null,
+            "scriptContent": "Theo một truyền thuyết của người Việt xuất hiện lần đầu trong tác phẩm thế kỷ 14 Lĩnh Nam chích quái, thủ lĩnh bộ lạc Lộc Tục (khoảng 2919 – 2794 TCN) đã xưng hiệu là Kinh Dương Vương và lập nên nhà nước Xích Quỷ vào năm 2879 TCN, đánh dấu sự khởi đầu của thời kỳ Hồng Bàng.[36] Dù vậy, các nhà sử học Việt Nam hiện đại cho rằng hình thái nhà nước sơ khai thực chất mới bắt đầu hình thành tại vùng Đồng bằng sông Hồng vào nửa sau thiên niên kỷ thứ 1 TCN. Kế vị Kinh Dương Vương là Sùng Lãm (khoảng 2825 – 2525 TCN).[37] Triều đại kế tiếp sản sinh ra 18 đời quân vương, thường được gọi là các vị Hùng Vương, những người đã đặt quốc hiệu là Văn Lang và đóng đô tại Phong Châu.[a][37][38] Bộ máy hành chính thời kỳ này bao gồm các chức danh như thủ lĩnh quân sự (lạc tướng), quan văn (lạc hầu) và người đứng đầu làng chạ (bố chính).[39]\n\nMột số lượng lớn công cụ và vũ khí bằng kim loại được khai quật tại nhiều di chỉ thuộc văn hóa Phùng Nguyên ở miền bắc bán đảo Đông Dương gắn liền với sự khởi đầu của Thời đại Đồ đồng đỏ tại Đông Nam Á.[40] Bên cạnh đó, thời điểm mở đầu của Thời kỳ Đồ đồng đã được xác thực vào khoảng năm 500 TCN tại Đông Sơn. Giới sử học Việt Nam thường quy thuộc nền Văn hóa Đông Sơn với các nhà nước Văn Lang, Âu Lạc và Hồng Bàng. Cộng đồng cư dân Lạc Việt bản địa đã phát triển một nền kỹ nghệ luyện kim đồng thau chất lượng cao đạt độ tinh xảo vượt bậc, làm chủ việc chế tác công cụ, vũ khí và những chiếc trống đồng tuyệt mỹ. Mang giá trị biểu tượng sâu sắc, những hiện vật này được sử dụng chủ yếu trong các nghi lễ tâm linh hoặc nghi thức cộng đồng. Để tạo ra những tác phẩm này, người thợ thủ công đòi hỏi phải có kỹ thuật nấu chảy kim loại điêu luyện, thuần thục phương pháp đúc bằng khuôn sáp chảy, đồng thời đạt tới bậc thầy về bố cục và chạm khắc các hoa văn tinh xảo.[41][42]\n\nTruyền thuyết Thánh Gióng kể về một tráng sĩ trẻ tuổi đã lãnh đạo đất nước Văn Lang đánh tan giặc Ân xâm lược từ phương bắc, cứu nguy cho xã tắc rồi bay thẳng về trời.[43][44] Hình tượng Thánh Gióng khoác áo giáp sắt, cưỡi ngựa sắt và vung gươm sắt[45] phản ánh một xã hội đã đạt tới trình độ luyện kim phát triển; cũng như truyền thuyết về Nỏ thần của An Dương Vương, loại vũ khí có thể bắn ra hàng nghìn mũi tên cùng lúc phản ánh việc cung nỏ đã được ứng dụng rộng rãi trong nghệ thuật quân sự thời bấy giờ. Khoảng 1.000 làng nghề truyền thống ở khu vực Đồng bằng sông Hồng lân cận và xung quanh Hà Nội đã đóng vai trò xương sống cho nền kinh tế và sản xuất thủ công của quốc gia suốt hơn 2.000 năm lịch sử.[46] Vô số cơ sở sản xuất thủ công quy mô hộ gia đình qua hàng thế kỷ đã gìn giữ bản sắc văn hóa dân tộc thông qua việc tạo tác các mặt hàng tinh xảo, xây dựng đền miếu, đồng thời duy trì các nghi lễ và lễ hội trong mạch nguồn văn hóa bất tận tôn vinh những vị tiền nhân hiển linh trong truyền thuyết.",
+            "scriptDocument": {
+              "type": "doc",
+              "content": [
+                {
+                  "type": "paragraph",
+                  "content": [
+                    {
+                      "text": "Theo một truyền thuyết của người Việt xuất hiện lần đầu trong tác phẩm thế kỷ 14 Lĩnh Nam chích quái, thủ lĩnh bộ lạc Lộc Tục (khoảng 2919 – 2794 TCN) đã xưng hiệu là Kinh Dương Vương và lập nên nhà nước Xích Quỷ vào năm 2879 TCN, đánh dấu sự khởi đầu của thời kỳ Hồng Bàng.[36] Dù vậy, các nhà sử học Việt Nam hiện đại cho rằng hình thái nhà nước sơ khai thực chất mới bắt đầu hình thành tại vùng Đồng bằng sông Hồng vào nửa sau thiên niên kỷ thứ 1 TCN. Kế vị Kinh Dương Vương là Sùng Lãm (khoảng 2825 – 2525 TCN).[37] Triều đại kế tiếp sản sinh ra 18 đời quân vương, thường được gọi là các vị Hùng Vương, những người đã đặt quốc hiệu là Văn Lang và đóng đô tại Phong Châu.[a][37][38] Bộ máy hành chính thời kỳ này bao gồm các chức danh như thủ lĩnh quân sự (lạc tướng), quan văn (lạc hầu) và người đứng đầu làng chạ (bố chính).[39]\n\nMột số lượng lớn công cụ và vũ khí bằng kim loại được khai quật tại nhiều di chỉ thuộc văn hóa Phùng Nguyên ở miền bắc bán đảo Đông Dương gắn liền với sự khởi đầu của Thời đại Đồ đồng đỏ tại Đông Nam Á.[40] Bên cạnh đó, thời điểm mở đầu của Thời kỳ Đồ đồng đã được xác thực vào khoảng năm 500 TCN tại Đông Sơn. Giới sử học Việt Nam thường quy thuộc nền Văn hóa Đông Sơn với các nhà nước Văn Lang, Âu Lạc và Hồng Bàng. Cộng đồng cư dân Lạc Việt bản địa đã phát triển một nền kỹ nghệ luyện kim đồng thau chất lượng cao đạt độ tinh xảo vượt bậc, làm chủ việc chế tác công cụ, vũ khí và những chiếc trống đồng tuyệt mỹ. Mang giá trị biểu tượng sâu sắc, những hiện vật này được sử dụng chủ yếu trong các nghi lễ tâm linh hoặc nghi thức cộng đồng. Để tạo ra những tác phẩm này, người thợ thủ công đòi hỏi phải có kỹ thuật nấu chảy kim loại điêu luyện, thuần thục phương pháp đúc bằng khuôn sáp chảy, đồng thời đạt tới bậc thầy về bố cục và chạm khắc các hoa văn tinh xảo.[41][42]\n\nTruyền thuyết Thánh Gióng kể về một tráng sĩ trẻ tuổi đã lãnh đạo đất nước Văn Lang đánh tan giặc Ân xâm lược từ phương bắc, cứu nguy cho xã tắc rồi bay thẳng về trời.[43][44] Hình tượng Thánh Gióng khoác áo giáp sắt, cưỡi ngựa sắt và vung gươm sắt[45] phản ánh một xã hội đã đạt tới trình độ luyện kim phát triển; cũng như truyền thuyết về Nỏ thần của An Dương Vương, loại vũ khí có thể bắn ra hàng nghìn mũi tên cùng lúc phản ánh việc cung nỏ đã được ứng dụng rộng rãi trong nghệ thuật quân sự thời bấy giờ. Khoảng 1.000 làng nghề truyền thống ở khu vực Đồng bằng sông Hồng lân cận và xung quanh Hà Nội đã đóng vai trò xương sống cho nền kinh tế và sản xuất thủ công của quốc gia suốt hơn 2.000 năm lịch sử.[46] Vô số cơ sở sản xuất thủ công quy mô hộ gia đình qua hàng thế kỷ đã gìn giữ bản sắc văn hóa dân tộc thông qua việc tạo tác các mặt hàng tinh xảo, xây dựng đền miếu, đồng thời duy trì các nghi lễ và lễ hội trong mạch nguồn văn hóa bất tận tôn vinh những vị tiền nhân hiển linh trong truyền thuyết.",
+                      "type": "text"
+                    }
+                  ]
+                }
+              ]
+            },
+            "audioAnalysis": null,
+            "audioAssetId": "87a1f638-d178-449d-bcce-b322f2de8025",
+            "scriptUpdatedAt": "2026-10-22T04:02:12.730Z",
+            "audioAttachedAt": "2026-10-22T01:42:04.619Z",
+            "createdAt": "2026-10-22T01:40:59.779Z",
+            "updatedAt": "2026-10-22T04:02:12.733Z",
+            "audioAsset": {
+              "id": "87a1f638-d178-449d-bcce-b322f2de8025",
+              "kind": "AUDIO",
+              "publicId": "su-ky/audio/seed-vietnam/van-hoa-dong-son-58c6ac7704ceee0a",
+              "status": "READY",
+              "version": "1792633323",
+              "format": "mp3",
+              "sizeBytes": "2850516",
+              "durationMs": 181969,
+              "widthPx": null,
+              "heightPx": null,
+              "uploadedById": "MDYzo7AMp4Tm1taqnZTx1NzSAciBrCNr",
+              "createdAt": "2026-10-22T01:42:04.613Z",
+              "verifiedAt": "2026-10-22T01:42:04.607Z",
+              "detachedAt": null,
+              "deletedAt": null
+            }
+          }
+        ],
+        "attachments": [
+          {
+            "id": "bdeab6bf-696b-46f6-a7ef-8a4b5551cd05",
+            "episodeId": "47875936-0cf6-4d34-82ec-ae72107f9e20",
+            "mediaAssetId": "eaef8608-dada-4aee-9c96-c3f7e12ed725",
+            "fileName": "01-van-hoa-dong-son.jpg",
+            "createdAt": "2026-10-22T02:09:45.889Z",
+            "updatedAt": "2026-10-22T02:09:45.889Z"
+          }
+        ],
+        "entityTags": [
+          {
+            "id": "e7fcd324-b57f-47e2-a0e1-325f64686d22",
+            "episodeId": "47875936-0cf6-4d34-82ec-ae72107f9e20",
+            "entityId": "505cedf9-c656-41f5-8827-f6dfde513297",
+            "status": "CONFIRMED",
+            "origin": "MODERATOR",
+            "confirmedById": null,
+            "confirmedAt": "2026-10-22T04:12:28.698Z",
+            "createdAt": "2026-10-22T04:12:28.699Z"
+          }
+        ]
+      }
+    ],
+    "sources": [
+      {
+        "id": "1b656580-4424-498b-b4fd-9ef035a19442",
+        "seriesId": "2acee234-13e7-490c-928f-b4c174239af5",
+        "sourceId": "ae0e40d3-bf73-4c8d-ad65-84c6bf7d384a",
+        "locator": "Bài trực tuyến: Văn hoá Đông Sơn - Từ dã sử đến sự thực khảo cổ học",
+        "excerpt": null,
+        "sortOrder": 1,
+        "createdAt": "2026-10-22T04:12:28.703Z",
+        "sourceRevisionId": "6654407b-556b-4e65-89d1-dbb126928d26",
+        "historicalCitationId": "2b575830-d288-4902-8db8-4ea8a13781dc",
+        "source": {
+          "id": "ae0e40d3-bf73-4c8d-ad65-84c6bf7d384a",
+          "tier": "TIER_3_KHOA_HOC",
+          "title": "Văn hoá Đông Sơn - Từ dã sử đến sự thực khảo cổ học",
+          "originalTitle": null,
+          "author": null,
+          "translator": null,
+          "publisher": "Bảo tàng Lịch sử Quốc gia",
+          "publicationYear": null,
+          "edition": null,
+          "isbn": null,
+          "url": "https://baotanglichsuquocgia.vn/vi/Articles/3101/16033/van-hoa-djong-son-tu-da-su-djen-su-thuc-khao-co-hoc.html",
+          "createdById": "MDYzo7AMp4Tm1taqnZTx1NzSAciBrCNr",
+          "archivedAt": null,
+          "createdAt": "2026-10-22T04:12:28.665Z",
+          "updatedAt": "2026-10-22T04:12:28.665Z",
+          "fileAssetId": null,
+          "version": 1,
+          "verificationStatus": "VERIFIED",
+          "verifiedVersion": 1,
+          "verifiedById": null,
+          "verifiedAt": "2026-10-22T04:12:28.658Z",
+          "verificationNote": "Dữ liệu demo landing, bổ sung tự động theo yêu cầu chủ workspace. Đối chiếu nguồn trực tuyến; không phải xác nhận duyệt biên tập của con người. MP3 là audio mẫu, chưa phải bản đọc kịch bản này."
+        },
+        "sourceRevision": {
+          "id": "6654407b-556b-4e65-89d1-dbb126928d26",
+          "sourceId": "ae0e40d3-bf73-4c8d-ad65-84c6bf7d384a",
+          "version": 1,
+          "snapshot": {
+            "id": "ae0e40d3-bf73-4c8d-ad65-84c6bf7d384a",
+            "url": "https://baotanglichsuquocgia.vn/vi/Articles/3101/16033/van-hoa-djong-son-tu-da-su-djen-su-thuc-khao-co-hoc.html",
+            "isbn": null,
+            "tier": "TIER_3_KHOA_HOC",
+            "title": "Văn hoá Đông Sơn - Từ dã sử đến sự thực khảo cổ học",
+            "author": null,
+            "edition": null,
+            "version": 1,
+            "createdAt": "2026-10-22T04:12:28.665Z",
+            "publisher": "Bảo tàng Lịch sử Quốc gia",
+            "updatedAt": "2026-10-22T04:12:28.665Z",
+            "archivedAt": null,
+            "translator": null,
+            "verifiedAt": "2026-10-22T04:12:28.658Z",
+            "createdById": "MDYzo7AMp4Tm1taqnZTx1NzSAciBrCNr",
+            "fileAssetId": null,
+            "verifiedById": null,
+            "originalTitle": null,
+            "publicationYear": null,
+            "verifiedVersion": 1,
+            "verificationNote": "Dữ liệu demo landing, bổ sung tự động theo yêu cầu chủ workspace. Đối chiếu nguồn trực tuyến; không phải xác nhận duyệt biên tập của con người. MP3 là audio mẫu, chưa phải bản đọc kịch bản này.",
+            "verificationStatus": "VERIFIED"
+          },
+          "fileAssetId": null,
+          "createdById": "MDYzo7AMp4Tm1taqnZTx1NzSAciBrCNr",
+          "createdAt": "2026-10-22T04:12:28.670Z"
+        }
+      }
+    ],
+    "primaryHistoricalEvent": {
+      "id": "505cedf9-c656-41f5-8827-f6dfde513297",
+      "entityType": "EVENT",
+      "name": "Văn hóa Đông Sơn và truyền thuyết thời Hồng Bàng",
+      "slug": "van-hoa-dong-son-va-truyen-thuyet-thoi-hong-bang-4x2b",
+      "aliases": [],
+      "startYear": -500,
+      "endYear": -110,
+      "summary": "Hình thành văn hóa Đồng Sơn.",
+      "createdById": "MDYzo7AMp4Tm1taqnZTx1NzSAciBrCNr",
+      "createdAt": "2026-10-22T04:00:02.580Z",
+      "updatedAt": "2026-10-22T04:12:28.681Z",
+      "time": {
+        "end": {
+          "year": -111,
+          "precision": "YEAR",
+          "approximate": true
+        },
+        "kind": "RANGE",
+        "note": "Niên đại quy ước để hiển thị dữ liệu demo; các giai đoạn văn hóa cổ đại có tính ước định.",
+        "start": {
+          "year": -500,
+          "precision": "YEAR",
+          "approximate": true
+        },
+        "endState": "KNOWN"
+      },
+      "version": 2,
+      "deletedAt": null,
+      "historicalPhaseId": "52893749-2626-44bc-bf16-6f98aae9c990",
+      "reviewStatus": "APPROVED",
+      "reviewedVersion": 2,
+      "reviewedById": null,
+      "reviewedAt": "2026-10-22T04:12:28.680Z",
+      "reviewNote": "Dữ liệu demo landing, bổ sung tự động theo yêu cầu chủ workspace. Đối chiếu nguồn trực tuyến; không phải xác nhận duyệt biên tập của con người. MP3 là audio mẫu, chưa phải bản đọc kịch bản này.",
+      "revisions": [
+        {
+          "id": "e49f1dad-f24d-4a45-a9f3-2dc7f01877a8",
+          "entityId": "505cedf9-c656-41f5-8827-f6dfde513297",
+          "version": 1,
+          "snapshot": {
+            "id": "505cedf9-c656-41f5-8827-f6dfde513297",
+            "name": "Văn hóa Đông Sơn và truyền thuyết thời Hồng Bàng",
+            "slug": "van-hoa-dong-son-va-truyen-thuyet-thoi-hong-bang-4x2b",
+            "time": {
+              "end": {
+                "year": -111,
+                "precision": "YEAR",
+                "approximate": false
+              },
+              "kind": "RANGE",
+              "start": {
+                "year": -500,
+                "precision": "YEAR",
+                "approximate": true
+              },
+              "endState": "KNOWN"
+            },
+            "aliases": [],
+            "endYear": -111,
+            "summary": "Hình thành văn hóa Đồng Sơn.",
+            "version": 1,
+            "citations": [],
+            "createdAt": "2026-10-22T04:00:02.580Z",
+            "deletedAt": null,
+            "startYear": -500,
+            "updatedAt": "2026-10-22T04:00:02.580Z",
+            "entityType": "EVENT",
+            "reviewNote": null,
+            "reviewedAt": null,
+            "createdById": "MDYzo7AMp4Tm1taqnZTx1NzSAciBrCNr",
+            "reviewStatus": "DRAFT",
+            "reviewedById": null,
+            "reviewedVersion": null,
+            "historicalPhaseId": "af5a816d-29a8-4ef5-954a-5473e675151c"
+          },
+          "createdById": "MDYzo7AMp4Tm1taqnZTx1NzSAciBrCNr",
+          "createdAt": "2026-10-22T04:00:02.600Z"
+        },
+        {
+          "id": "9fcea5b1-0a9a-4d4f-ba5c-551e95a7af3b",
+          "entityId": "505cedf9-c656-41f5-8827-f6dfde513297",
+          "version": 2,
+          "snapshot": {
+            "id": "505cedf9-c656-41f5-8827-f6dfde513297",
+            "name": "Văn hóa Đông Sơn và truyền thuyết thời Hồng Bàng",
+            "slug": "van-hoa-dong-son-va-truyen-thuyet-thoi-hong-bang-4x2b",
+            "time": {
+              "end": {
+                "year": -111,
+                "precision": "YEAR",
+                "approximate": true
+              },
+              "kind": "RANGE",
+              "note": "Niên đại quy ước để hiển thị dữ liệu demo; các giai đoạn văn hóa cổ đại có tính ước định.",
+              "start": {
+                "year": -500,
+                "precision": "YEAR",
+                "approximate": true
+              },
+              "endState": "KNOWN"
+            },
+            "aliases": [],
+            "endYear": -110,
+            "summary": "Hình thành văn hóa Đồng Sơn.",
+            "version": 2,
+            "citations": [
+              {
+                "id": "2b575830-d288-4902-8db8-4ea8a13781dc",
+                "note": "Dữ liệu demo landing, bổ sung tự động theo yêu cầu chủ workspace. Đối chiếu nguồn trực tuyến; không phải xác nhận duyệt biên tập của con người. MP3 là audio mẫu, chưa phải bản đọc kịch bản này.",
+                "excerpt": null,
+                "locator": "Bài trực tuyến: Văn hoá Đông Sơn - Từ dã sử đến sự thực khảo cổ học",
+                "phaseId": null,
+                "entityId": "505cedf9-c656-41f5-8827-f6dfde513297",
+                "periodId": null,
+                "sourceId": "ae0e40d3-bf73-4c8d-ad65-84c6bf7d384a",
+                "createdAt": "2026-10-22T04:12:28.685Z",
+                "sortOrder": 0,
+                "updatedAt": "2026-10-22T04:12:28.685Z",
+                "createdById": "MDYzo7AMp4Tm1taqnZTx1NzSAciBrCNr",
+                "sourceRevision": {
+                  "id": "6654407b-556b-4e65-89d1-dbb126928d26",
+                  "version": 1,
+                  "snapshot": {
+                    "id": "ae0e40d3-bf73-4c8d-ad65-84c6bf7d384a",
+                    "url": "https://baotanglichsuquocgia.vn/vi/Articles/3101/16033/van-hoa-djong-son-tu-da-su-djen-su-thuc-khao-co-hoc.html",
+                    "isbn": null,
+                    "tier": "TIER_3_KHOA_HOC",
+                    "title": "Văn hoá Đông Sơn - Từ dã sử đến sự thực khảo cổ học",
+                    "author": null,
+                    "edition": null,
+                    "version": 1,
+                    "createdAt": "2026-10-22T04:12:28.665Z",
+                    "publisher": "Bảo tàng Lịch sử Quốc gia",
+                    "updatedAt": "2026-10-22T04:12:28.665Z",
+                    "archivedAt": null,
+                    "translator": null,
+                    "verifiedAt": "2026-10-22T04:12:28.658Z",
+                    "createdById": "MDYzo7AMp4Tm1taqnZTx1NzSAciBrCNr",
+                    "fileAssetId": null,
+                    "verifiedById": null,
+                    "originalTitle": null,
+                    "publicationYear": null,
+                    "verifiedVersion": 1,
+                    "verificationNote": "Dữ liệu demo landing, bổ sung tự động theo yêu cầu chủ workspace. Đối chiếu nguồn trực tuyến; không phải xác nhận duyệt biên tập của con người. MP3 là audio mẫu, chưa phải bản đọc kịch bản này.",
+                    "verificationStatus": "VERIFIED"
+                  },
+                  "sourceId": "ae0e40d3-bf73-4c8d-ad65-84c6bf7d384a",
+                  "createdAt": "2026-10-22T04:12:28.670Z",
+                  "createdById": "MDYzo7AMp4Tm1taqnZTx1NzSAciBrCNr",
+                  "fileAssetId": null
+                },
+                "sourceRevisionId": "6654407b-556b-4e65-89d1-dbb126928d26"
+              }
+            ],
+            "createdAt": "2026-10-22T04:00:02.580Z",
+            "deletedAt": null,
+            "startYear": -500,
+            "updatedAt": "2026-10-22T04:12:28.681Z",
+            "entityType": "EVENT",
+            "reviewNote": "Dữ liệu demo landing, bổ sung tự động theo yêu cầu chủ workspace. Đối chiếu nguồn trực tuyến; không phải xác nhận duyệt biên tập của con người. MP3 là audio mẫu, chưa phải bản đọc kịch bản này.",
+            "reviewedAt": "2026-10-22T04:12:28.680Z",
+            "createdById": "MDYzo7AMp4Tm1taqnZTx1NzSAciBrCNr",
+            "reviewStatus": "APPROVED",
+            "reviewedById": null,
+            "reviewedVersion": 2,
+            "historicalPhaseId": "52893749-2626-44bc-bf16-6f98aae9c990"
+          },
+          "createdById": "MDYzo7AMp4Tm1taqnZTx1NzSAciBrCNr",
+          "createdAt": "2026-10-22T04:12:28.691Z"
+        }
+      ],
+      "citations": [
+        {
+          "id": "2b575830-d288-4902-8db8-4ea8a13781dc",
+          "periodId": null,
+          "phaseId": null,
+          "entityId": "505cedf9-c656-41f5-8827-f6dfde513297",
+          "sourceId": "ae0e40d3-bf73-4c8d-ad65-84c6bf7d384a",
+          "sourceRevisionId": "6654407b-556b-4e65-89d1-dbb126928d26",
+          "locator": "Bài trực tuyến: Văn hoá Đông Sơn - Từ dã sử đến sự thực khảo cổ học",
+          "excerpt": null,
+          "note": "Dữ liệu demo landing, bổ sung tự động theo yêu cầu chủ workspace. Đối chiếu nguồn trực tuyến; không phải xác nhận duyệt biên tập của con người. MP3 là audio mẫu, chưa phải bản đọc kịch bản này.",
+          "sortOrder": 0,
+          "createdById": "MDYzo7AMp4Tm1taqnZTx1NzSAciBrCNr",
+          "createdAt": "2026-10-22T04:12:28.685Z",
+          "updatedAt": "2026-10-22T04:12:28.685Z"
+        }
+      ]
+    }
+  },
+  {
+    "id": "90712c65-e0e6-4486-8453-34a99a854d00",
+    "ownerId": "MDYzo7AMp4Tm1taqnZTx1NzSAciBrCNr",
+    "topicId": "8b1f9fc1-226f-448d-83c7-c1fe27ad2870",
+    "historicalPhaseId": "fda0fb61-ddc6-44e9-a887-933c7f844572",
+    "title": "Việt Nam thời kỳ Pháp xâm lược",
+    "slug": "viet-nam-thoi-ky-phap-xam-luoc",
+    "description": "Việt Nam thời kỳ Pháp xâm lược: Ngày 1 tháng 9 năm 1858, liên quân Pháp - Tây Ban Nha tấn công Đà Nẵng, mở đầu cuộc chiến tranh xâm lược Việt Nam. Khám phá cuộc tổng khởi nghĩa tháng Tám năm 1945 qua dấu mốc giành chính quyền ở Hà Nội và không khí đấu tranh giành độc lập.\n\nBộ dữ liệu demo landing; audio dùng tệp MP3 mẫu.",
+    "coverImageAssetId": null,
+    "coverLandscapeAssetId": null,
+    "startYear": 1858,
+    "endYear": 1945,
+    "status": "PUBLISHED",
+    "statusBeforeDelete": null,
+    "adminLockedAt": null,
+    "adminLockedById": null,
+    "publishedAt": "2026-10-22T04:12:29.513Z",
+    "deletedAt": null,
+    "createdAt": "2026-10-22T01:42:13.051Z",
+    "updatedAt": "2026-10-22T04:12:29.513Z",
+    "primaryHistoricalEventId": "5b5842d9-cddb-4b7c-bed0-5f805e38f030",
+    "historicalEntityRevisionId": "f01f6943-8ada-47f2-8dc8-19da23cfd1e1",
+    "publicationEvidence": {
+      "asOf": "2026-10-22T04:12:29.512Z",
+      "event": {
+        "id": "5b5842d9-cddb-4b7c-bed0-5f805e38f030",
+        "name": "Liên quân Pháp - Tây Ban Nha tấn công Đà Nẵng",
+        "slug": "landing-demo-phap-no-sung-xam-luoc",
+        "time": {
+          "at": {
+            "year": 1858,
+            "precision": "YEAR",
+            "approximate": false
+          },
+          "kind": "POINT"
+        },
+        "version": 2
+      },
+      "sources": [
+        {
+          "id": "f4df9dc3-4df5-4f01-886e-67ccc7614a6f",
+          "file": null,
+          "source": {
+            "url": "https://baotanglichsu.vn/vi/Articles/2002/67936/ngay-1-9-1858-lien-quan-phap-tay-ban-nha-no-sung-vao-thanh-dja-nang.html",
+            "isbn": null,
+            "tier": "TIER_3_KHOA_HOC",
+            "title": "Ngày 1/9/1858, liên quân Pháp – Tây Ban Nha nổ súng vào thành Đà Nẵng",
+            "author": null,
+            "edition": null,
+            "publisher": "Bảo tàng Lịch sử Quốc gia",
+            "publicationYear": null
+          },
+          "excerpt": null,
+          "locator": "Bài trực tuyến: Ngày 1/9/1858, liên quân Pháp – Tây Ban Nha nổ súng vào thành Đà Nẵng",
+          "verifiedAt": "2026-10-22T04:12:28.955Z",
+          "sourceVersion": 1,
+          "sourceRevisionId": "c46d3999-fb03-4e93-83c1-796f564c913d"
+        },
+        {
+          "id": "589d64e3-3c03-411a-b218-806f2b2635df",
+          "file": null,
+          "source": {
+            "url": "https://baotanglichsu.vn/VI/Articles/3097/18473/tong-khoi-nghia-cach-mang-thang-tam-nam-1945.html",
+            "isbn": null,
+            "tier": "TIER_3_KHOA_HOC",
+            "title": "Tổng khởi nghĩa Cách mạng tháng Tám năm 1945",
+            "author": null,
+            "edition": null,
+            "publisher": "Bảo tàng Lịch sử Quốc gia",
+            "publicationYear": null
+          },
+          "excerpt": null,
+          "locator": "Bài trực tuyến: Tổng khởi nghĩa Cách mạng tháng Tám năm 1945",
+          "verifiedAt": "2026-10-22T04:12:28.996Z",
+          "sourceVersion": 1,
+          "sourceRevisionId": "662655e4-712a-470d-9142-5287821356d2"
+        }
+      ]
+    },
+    "episodes": [
+      {
+        "id": "874befa1-5499-49b2-9477-851ef7fb4cba",
+        "seriesId": "90712c65-e0e6-4486-8453-34a99a854d00",
+        "title": "Pháp nổ súng xâm lược",
+        "slug": "phap-no-sung-xam-luoc",
+        "description": "Ngày 1 tháng 9 năm 1858, liên quân Pháp - Tây Ban Nha tấn công Đà Nẵng, mở đầu cuộc chiến tranh xâm lược Việt Nam.\n\nBản nghe demo dùng MP3 mẫu để xem và thử giao diện.",
+        "sortOrder": 1,
+        "status": "PUBLISHED",
+        "statusBeforeDelete": null,
+        "adminLockedAt": null,
+        "adminLockedById": null,
+        "publishedAt": "2026-10-22T04:12:29.452Z",
+        "deletedAt": null,
+        "createdAt": "2026-10-22T01:42:13.057Z",
+        "updatedAt": "2026-10-22T04:12:29.453Z",
+        "contentRevision": 4,
+        "narrations": [
+          {
+            "id": "4fbcdf5e-741f-4697-858c-657d4d14a322",
+            "episodeId": "874befa1-5499-49b2-9477-851ef7fb4cba",
+            "narrationType": "THIRD_PERSON",
+            "narratorEntityId": null,
+            "scriptContent": "Ngày mùng một tháng chín năm 1858, tiếng súng của liên quân Pháp - Tây Ban Nha vang lên tại Đà Nẵng. Sự kiện này mở đầu cuộc chiến tranh xâm lược Việt Nam của thực dân Pháp.\n\nĐà Nẵng trở thành nơi chứng kiến bước chuyển lớn trong quan hệ giữa Việt Nam và các thế lực phương Tây. Từ một cuộc tấn công tại cửa biển, đất nước bước vào giai đoạn đối diện nguy cơ mất chủ quyền.\n\nKhi nhìn lại mốc năm 1858, cần đặt sự kiện trong tiến trình lâu dài của cuộc xâm lược và sự kháng cự. Đây là một điểm bắt đầu để tiếp tục tìm hiểu những thay đổi về chính trị, xã hội và cuộc đấu tranh của người Việt trong các thập kỷ sau.",
+            "scriptDocument": {
+              "type": "doc",
+              "content": [
+                {
+                  "type": "paragraph",
+                  "content": [
+                    {
+                      "text": "Ngày mùng một tháng chín năm 1858, tiếng súng của liên quân Pháp - Tây Ban Nha vang lên tại Đà Nẵng. Sự kiện này mở đầu cuộc chiến tranh xâm lược Việt Nam của thực dân Pháp.",
+                      "type": "text"
+                    }
+                  ]
+                },
+                {
+                  "type": "paragraph",
+                  "content": [
+                    {
+                      "text": "Đà Nẵng trở thành nơi chứng kiến bước chuyển lớn trong quan hệ giữa Việt Nam và các thế lực phương Tây. Từ một cuộc tấn công tại cửa biển, đất nước bước vào giai đoạn đối diện nguy cơ mất chủ quyền.",
+                      "type": "text"
+                    }
+                  ]
+                },
+                {
+                  "type": "paragraph",
+                  "content": [
+                    {
+                      "text": "Khi nhìn lại mốc năm 1858, cần đặt sự kiện trong tiến trình lâu dài của cuộc xâm lược và sự kháng cự. Đây là một điểm bắt đầu để tiếp tục tìm hiểu những thay đổi về chính trị, xã hội và cuộc đấu tranh của người Việt trong các thập kỷ sau.",
+                      "type": "text"
+                    }
+                  ]
+                }
+              ]
+            },
+            "audioAnalysis": null,
+            "audioAssetId": "69c19294-a55a-4632-aed3-a069af22e804",
+            "scriptUpdatedAt": "2026-10-22T04:12:28.976Z",
+            "audioAttachedAt": "2026-10-22T01:42:14.504Z",
+            "createdAt": "2026-10-22T01:42:13.059Z",
+            "updatedAt": "2026-10-22T04:12:28.977Z",
+            "audioAsset": {
+              "id": "69c19294-a55a-4632-aed3-a069af22e804",
+              "kind": "AUDIO",
+              "publicId": "su-ky/audio/seed-vietnam/phap-no-sung-xam-luoc-58c6ac7704ceee0a",
+              "status": "READY",
+              "version": "1792633333",
+              "format": "mp3",
+              "sizeBytes": "2850516",
+              "durationMs": 181969,
+              "widthPx": null,
+              "heightPx": null,
+              "uploadedById": "MDYzo7AMp4Tm1taqnZTx1NzSAciBrCNr",
+              "createdAt": "2026-10-22T01:42:14.502Z",
+              "verifiedAt": "2026-10-22T01:42:14.502Z",
+              "detachedAt": null,
+              "deletedAt": null
+            }
+          }
+        ],
+        "attachments": [
+          {
+            "id": "e58c8fe3-9440-4008-9d64-6e12ee8d4901",
+            "episodeId": "874befa1-5499-49b2-9477-851ef7fb4cba",
+            "mediaAssetId": "9fbf5932-1b67-4086-9185-dbfc5b9eccee",
+            "fileName": "07-phap-no-sung-xam-luoc.jpg",
+            "createdAt": "2026-10-22T02:00:16.145Z",
+            "updatedAt": "2026-10-22T02:00:16.145Z"
+          }
+        ],
+        "entityTags": [
+          {
+            "id": "21c60215-9912-46a2-8242-9a6727bd94b6",
+            "episodeId": "874befa1-5499-49b2-9477-851ef7fb4cba",
+            "entityId": "5b5842d9-cddb-4b7c-bed0-5f805e38f030",
+            "status": "CONFIRMED",
+            "origin": "MODERATOR",
+            "confirmedById": null,
+            "confirmedAt": "2026-10-22T04:12:28.986Z",
+            "createdAt": "2026-10-22T04:12:28.986Z"
+          }
+        ]
+      },
+      {
+        "id": "d6f898c5-a5d5-4945-ab00-f72634f2b3b0",
+        "seriesId": "90712c65-e0e6-4486-8453-34a99a854d00",
+        "title": "Cách mạng tháng tám độc lập",
+        "slug": "cach-mang-thang-tam-doc-lap",
+        "description": "Khám phá cuộc tổng khởi nghĩa tháng Tám năm 1945 qua dấu mốc giành chính quyền ở Hà Nội và không khí đấu tranh giành độc lập.\n\nBản nghe demo dùng MP3 mẫu để xem và thử giao diện.",
+        "sortOrder": 2,
+        "status": "PUBLISHED",
+        "statusBeforeDelete": null,
+        "adminLockedAt": null,
+        "adminLockedById": null,
+        "publishedAt": "2026-10-22T04:12:29.487Z",
+        "deletedAt": null,
+        "createdAt": "2026-10-22T01:42:14.513Z",
+        "updatedAt": "2026-10-22T04:12:29.488Z",
+        "contentRevision": 4,
+        "narrations": [
+          {
+            "id": "79d3bcdc-3408-4eec-bdd2-c3d72f2d9850",
+            "episodeId": "d6f898c5-a5d5-4945-ab00-f72634f2b3b0",
+            "narrationType": "THIRD_PERSON",
+            "narratorEntityId": null,
+            "scriptContent": "Tháng Tám năm 1945, tình thế lịch sử mở ra thời cơ giành chính quyền. Tại Hà Nội, ngày mười chín tháng tám trở thành một dấu mốc quan trọng của cuộc tổng khởi nghĩa.\n\nTừ nhiều khu vực, quần chúng tập trung về trung tâm thành phố. Không gian quanh Nhà hát lớn gắn với lời kêu gọi đứng lên giành chính quyền. Khi theo dõi sự kiện, người học cần nhìn cả thời cơ lẫn sự tham gia của đông đảo nhân dân.\n\nCách mạng tháng Tám là một bước ngoặt trong lịch sử Việt Nam. Qua những địa điểm và thời khắc cụ thể, câu chuyện về độc lập trở nên gần gũi hơn, gắn với con người và hành động trong một bối cảnh đặc biệt.",
+            "scriptDocument": {
+              "type": "doc",
+              "content": [
+                {
+                  "type": "paragraph",
+                  "content": [
+                    {
+                      "text": "Tháng Tám năm 1945, tình thế lịch sử mở ra thời cơ giành chính quyền. Tại Hà Nội, ngày mười chín tháng tám trở thành một dấu mốc quan trọng của cuộc tổng khởi nghĩa.",
+                      "type": "text"
+                    }
+                  ]
+                },
+                {
+                  "type": "paragraph",
+                  "content": [
+                    {
+                      "text": "Từ nhiều khu vực, quần chúng tập trung về trung tâm thành phố. Không gian quanh Nhà hát lớn gắn với lời kêu gọi đứng lên giành chính quyền. Khi theo dõi sự kiện, người học cần nhìn cả thời cơ lẫn sự tham gia của đông đảo nhân dân.",
+                      "type": "text"
+                    }
+                  ]
+                },
+                {
+                  "type": "paragraph",
+                  "content": [
+                    {
+                      "text": "Cách mạng tháng Tám là một bước ngoặt trong lịch sử Việt Nam. Qua những địa điểm và thời khắc cụ thể, câu chuyện về độc lập trở nên gần gũi hơn, gắn với con người và hành động trong một bối cảnh đặc biệt.",
+                      "type": "text"
+                    }
+                  ]
+                }
+              ]
+            },
+            "audioAnalysis": null,
+            "audioAssetId": "778a20f5-a510-49f8-a086-3019e105293f",
+            "scriptUpdatedAt": "2026-10-22T04:12:29.017Z",
+            "audioAttachedAt": "2026-10-22T01:42:16.181Z",
+            "createdAt": "2026-10-22T01:42:14.516Z",
+            "updatedAt": "2026-10-22T04:12:29.018Z",
+            "audioAsset": {
+              "id": "778a20f5-a510-49f8-a086-3019e105293f",
+              "kind": "AUDIO",
+              "publicId": "su-ky/audio/seed-vietnam/cach-mang-thang-tam-doc-lap-58c6ac7704ceee0a",
+              "status": "READY",
+              "version": "1792633335",
+              "format": "mp3",
+              "sizeBytes": "2850516",
+              "durationMs": 181969,
+              "widthPx": null,
+              "heightPx": null,
+              "uploadedById": "MDYzo7AMp4Tm1taqnZTx1NzSAciBrCNr",
+              "createdAt": "2026-10-22T01:42:16.180Z",
+              "verifiedAt": "2026-10-22T01:42:16.179Z",
+              "detachedAt": null,
+              "deletedAt": null
+            }
+          }
+        ],
+        "attachments": [
+          {
+            "id": "40ae13ac-8992-4a0d-be55-3289c4533f40",
+            "episodeId": "d6f898c5-a5d5-4945-ab00-f72634f2b3b0",
+            "mediaAssetId": "1f90ee58-05bf-4b1a-b437-5d1a9ae8032d",
+            "fileName": "08-cach-mang-thang-tam-doc-lap.jpg",
+            "createdAt": "2026-10-22T02:01:14.303Z",
+            "updatedAt": "2026-10-22T02:01:14.303Z"
+          }
+        ],
+        "entityTags": [
+          {
+            "id": "c82f8b91-f0ca-4744-b6be-2e769c826afa",
+            "episodeId": "d6f898c5-a5d5-4945-ab00-f72634f2b3b0",
+            "entityId": "144bc8bb-7914-4a2e-9640-7b7b4c186b57",
+            "status": "CONFIRMED",
+            "origin": "MODERATOR",
+            "confirmedById": null,
+            "confirmedAt": "2026-10-22T04:12:29.021Z",
+            "createdAt": "2026-10-22T04:12:29.022Z"
+          }
+        ]
+      }
+    ],
+    "sources": [
+      {
+        "id": "957b7c55-65b5-41db-9246-c15a093dbc65",
+        "seriesId": "90712c65-e0e6-4486-8453-34a99a854d00",
+        "sourceId": "f4df9dc3-4df5-4f01-886e-67ccc7614a6f",
+        "locator": "Bài trực tuyến: Ngày 1/9/1858, liên quân Pháp – Tây Ban Nha nổ súng vào thành Đà Nẵng",
+        "excerpt": null,
+        "sortOrder": 1,
+        "createdAt": "2026-10-22T04:12:29.025Z",
+        "sourceRevisionId": "c46d3999-fb03-4e93-83c1-796f564c913d",
+        "historicalCitationId": "3aa83c72-7165-466d-a6fa-51612d616b5f",
+        "source": {
+          "id": "f4df9dc3-4df5-4f01-886e-67ccc7614a6f",
+          "tier": "TIER_3_KHOA_HOC",
+          "title": "Ngày 1/9/1858, liên quân Pháp – Tây Ban Nha nổ súng vào thành Đà Nẵng",
+          "originalTitle": null,
+          "author": null,
+          "translator": null,
+          "publisher": "Bảo tàng Lịch sử Quốc gia",
+          "publicationYear": null,
+          "edition": null,
+          "isbn": null,
+          "url": "https://baotanglichsu.vn/vi/Articles/2002/67936/ngay-1-9-1858-lien-quan-phap-tay-ban-nha-no-sung-vao-thanh-dja-nang.html",
+          "createdById": "MDYzo7AMp4Tm1taqnZTx1NzSAciBrCNr",
+          "archivedAt": null,
+          "createdAt": "2026-10-22T04:12:28.956Z",
+          "updatedAt": "2026-10-22T04:12:28.956Z",
+          "fileAssetId": null,
+          "version": 1,
+          "verificationStatus": "VERIFIED",
+          "verifiedVersion": 1,
+          "verifiedById": null,
+          "verifiedAt": "2026-10-22T04:12:28.955Z",
+          "verificationNote": "Dữ liệu demo landing, bổ sung tự động theo yêu cầu chủ workspace. Đối chiếu nguồn trực tuyến; không phải xác nhận duyệt biên tập của con người. MP3 là audio mẫu, chưa phải bản đọc kịch bản này."
+        },
+        "sourceRevision": {
+          "id": "c46d3999-fb03-4e93-83c1-796f564c913d",
+          "sourceId": "f4df9dc3-4df5-4f01-886e-67ccc7614a6f",
+          "version": 1,
+          "snapshot": {
+            "id": "f4df9dc3-4df5-4f01-886e-67ccc7614a6f",
+            "url": "https://baotanglichsu.vn/vi/Articles/2002/67936/ngay-1-9-1858-lien-quan-phap-tay-ban-nha-no-sung-vao-thanh-dja-nang.html",
+            "isbn": null,
+            "tier": "TIER_3_KHOA_HOC",
+            "title": "Ngày 1/9/1858, liên quân Pháp – Tây Ban Nha nổ súng vào thành Đà Nẵng",
+            "author": null,
+            "edition": null,
+            "version": 1,
+            "createdAt": "2026-10-22T04:12:28.956Z",
+            "publisher": "Bảo tàng Lịch sử Quốc gia",
+            "updatedAt": "2026-10-22T04:12:28.956Z",
+            "archivedAt": null,
+            "translator": null,
+            "verifiedAt": "2026-10-22T04:12:28.955Z",
+            "createdById": "MDYzo7AMp4Tm1taqnZTx1NzSAciBrCNr",
+            "fileAssetId": null,
+            "verifiedById": null,
+            "originalTitle": null,
+            "publicationYear": null,
+            "verifiedVersion": 1,
+            "verificationNote": "Dữ liệu demo landing, bổ sung tự động theo yêu cầu chủ workspace. Đối chiếu nguồn trực tuyến; không phải xác nhận duyệt biên tập của con người. MP3 là audio mẫu, chưa phải bản đọc kịch bản này.",
+            "verificationStatus": "VERIFIED"
+          },
+          "fileAssetId": null,
+          "createdById": "MDYzo7AMp4Tm1taqnZTx1NzSAciBrCNr",
+          "createdAt": "2026-10-22T04:12:28.957Z"
+        }
+      },
+      {
+        "id": "0abba21f-034e-414c-ba1d-4fffcd0b0396",
+        "seriesId": "90712c65-e0e6-4486-8453-34a99a854d00",
+        "sourceId": "589d64e3-3c03-411a-b218-806f2b2635df",
+        "locator": "Bài trực tuyến: Tổng khởi nghĩa Cách mạng tháng Tám năm 1945",
+        "excerpt": null,
+        "sortOrder": 2,
+        "createdAt": "2026-10-22T04:12:29.027Z",
+        "sourceRevisionId": "662655e4-712a-470d-9142-5287821356d2",
+        "historicalCitationId": null,
+        "source": {
+          "id": "589d64e3-3c03-411a-b218-806f2b2635df",
+          "tier": "TIER_3_KHOA_HOC",
+          "title": "Tổng khởi nghĩa Cách mạng tháng Tám năm 1945",
+          "originalTitle": null,
+          "author": null,
+          "translator": null,
+          "publisher": "Bảo tàng Lịch sử Quốc gia",
+          "publicationYear": null,
+          "edition": null,
+          "isbn": null,
+          "url": "https://baotanglichsu.vn/VI/Articles/3097/18473/tong-khoi-nghia-cach-mang-thang-tam-nam-1945.html",
+          "createdById": "MDYzo7AMp4Tm1taqnZTx1NzSAciBrCNr",
+          "archivedAt": null,
+          "createdAt": "2026-10-22T04:12:28.997Z",
+          "updatedAt": "2026-10-22T04:12:28.997Z",
+          "fileAssetId": null,
+          "version": 1,
+          "verificationStatus": "VERIFIED",
+          "verifiedVersion": 1,
+          "verifiedById": null,
+          "verifiedAt": "2026-10-22T04:12:28.996Z",
+          "verificationNote": "Dữ liệu demo landing, bổ sung tự động theo yêu cầu chủ workspace. Đối chiếu nguồn trực tuyến; không phải xác nhận duyệt biên tập của con người. MP3 là audio mẫu, chưa phải bản đọc kịch bản này."
+        },
+        "sourceRevision": {
+          "id": "662655e4-712a-470d-9142-5287821356d2",
+          "sourceId": "589d64e3-3c03-411a-b218-806f2b2635df",
+          "version": 1,
+          "snapshot": {
+            "id": "589d64e3-3c03-411a-b218-806f2b2635df",
+            "url": "https://baotanglichsu.vn/VI/Articles/3097/18473/tong-khoi-nghia-cach-mang-thang-tam-nam-1945.html",
+            "isbn": null,
+            "tier": "TIER_3_KHOA_HOC",
+            "title": "Tổng khởi nghĩa Cách mạng tháng Tám năm 1945",
+            "author": null,
+            "edition": null,
+            "version": 1,
+            "createdAt": "2026-10-22T04:12:28.997Z",
+            "publisher": "Bảo tàng Lịch sử Quốc gia",
+            "updatedAt": "2026-10-22T04:12:28.997Z",
+            "archivedAt": null,
+            "translator": null,
+            "verifiedAt": "2026-10-22T04:12:28.996Z",
+            "createdById": "MDYzo7AMp4Tm1taqnZTx1NzSAciBrCNr",
+            "fileAssetId": null,
+            "verifiedById": null,
+            "originalTitle": null,
+            "publicationYear": null,
+            "verifiedVersion": 1,
+            "verificationNote": "Dữ liệu demo landing, bổ sung tự động theo yêu cầu chủ workspace. Đối chiếu nguồn trực tuyến; không phải xác nhận duyệt biên tập của con người. MP3 là audio mẫu, chưa phải bản đọc kịch bản này.",
+            "verificationStatus": "VERIFIED"
+          },
+          "fileAssetId": null,
+          "createdById": "MDYzo7AMp4Tm1taqnZTx1NzSAciBrCNr",
+          "createdAt": "2026-10-22T04:12:28.998Z"
+        }
+      }
+    ],
+    "primaryHistoricalEvent": {
+      "id": "5b5842d9-cddb-4b7c-bed0-5f805e38f030",
+      "entityType": "EVENT",
+      "name": "Liên quân Pháp - Tây Ban Nha tấn công Đà Nẵng",
+      "slug": "landing-demo-phap-no-sung-xam-luoc",
+      "aliases": [],
+      "startYear": 1858,
+      "endYear": 1859,
+      "summary": "Ngày 1 tháng 9 năm 1858, liên quân Pháp - Tây Ban Nha tấn công Đà Nẵng, mở đầu cuộc chiến tranh xâm lược Việt Nam.",
+      "createdById": "MDYzo7AMp4Tm1taqnZTx1NzSAciBrCNr",
+      "createdAt": "2026-10-22T04:12:28.962Z",
+      "updatedAt": "2026-10-22T04:12:28.964Z",
+      "time": {
+        "at": {
+          "year": 1858,
+          "precision": "YEAR",
+          "approximate": false
+        },
+        "kind": "POINT"
+      },
+      "version": 2,
+      "deletedAt": null,
+      "historicalPhaseId": "fda0fb61-ddc6-44e9-a887-933c7f844572",
+      "reviewStatus": "APPROVED",
+      "reviewedVersion": 2,
+      "reviewedById": null,
+      "reviewedAt": "2026-10-22T04:12:28.963Z",
+      "reviewNote": "Dữ liệu demo landing, bổ sung tự động theo yêu cầu chủ workspace. Đối chiếu nguồn trực tuyến; không phải xác nhận duyệt biên tập của con người. MP3 là audio mẫu, chưa phải bản đọc kịch bản này.",
+      "revisions": [
+        {
+          "id": "f01f6943-8ada-47f2-8dc8-19da23cfd1e1",
+          "entityId": "5b5842d9-cddb-4b7c-bed0-5f805e38f030",
+          "version": 2,
+          "snapshot": {
+            "id": "5b5842d9-cddb-4b7c-bed0-5f805e38f030",
+            "name": "Liên quân Pháp - Tây Ban Nha tấn công Đà Nẵng",
+            "slug": "landing-demo-phap-no-sung-xam-luoc",
+            "time": {
+              "at": {
+                "year": 1858,
+                "precision": "YEAR",
+                "approximate": false
+              },
+              "kind": "POINT"
+            },
+            "aliases": [],
+            "endYear": 1859,
+            "summary": "Ngày 1 tháng 9 năm 1858, liên quân Pháp - Tây Ban Nha tấn công Đà Nẵng, mở đầu cuộc chiến tranh xâm lược Việt Nam.",
+            "version": 2,
+            "citations": [
+              {
+                "id": "3aa83c72-7165-466d-a6fa-51612d616b5f",
+                "note": "Dữ liệu demo landing, bổ sung tự động theo yêu cầu chủ workspace. Đối chiếu nguồn trực tuyến; không phải xác nhận duyệt biên tập của con người. MP3 là audio mẫu, chưa phải bản đọc kịch bản này.",
+                "excerpt": null,
+                "locator": "Bài trực tuyến: Ngày 1/9/1858, liên quân Pháp – Tây Ban Nha nổ súng vào thành Đà Nẵng",
+                "phaseId": null,
+                "entityId": "5b5842d9-cddb-4b7c-bed0-5f805e38f030",
+                "periodId": null,
+                "sourceId": "f4df9dc3-4df5-4f01-886e-67ccc7614a6f",
+                "createdAt": "2026-10-22T04:12:28.967Z",
+                "sortOrder": 0,
+                "updatedAt": "2026-10-22T04:12:28.967Z",
+                "createdById": "MDYzo7AMp4Tm1taqnZTx1NzSAciBrCNr",
+                "sourceRevision": {
+                  "id": "c46d3999-fb03-4e93-83c1-796f564c913d",
+                  "version": 1,
+                  "snapshot": {
+                    "id": "f4df9dc3-4df5-4f01-886e-67ccc7614a6f",
+                    "url": "https://baotanglichsu.vn/vi/Articles/2002/67936/ngay-1-9-1858-lien-quan-phap-tay-ban-nha-no-sung-vao-thanh-dja-nang.html",
+                    "isbn": null,
+                    "tier": "TIER_3_KHOA_HOC",
+                    "title": "Ngày 1/9/1858, liên quân Pháp – Tây Ban Nha nổ súng vào thành Đà Nẵng",
+                    "author": null,
+                    "edition": null,
+                    "version": 1,
+                    "createdAt": "2026-10-22T04:12:28.956Z",
+                    "publisher": "Bảo tàng Lịch sử Quốc gia",
+                    "updatedAt": "2026-10-22T04:12:28.956Z",
+                    "archivedAt": null,
+                    "translator": null,
+                    "verifiedAt": "2026-10-22T04:12:28.955Z",
+                    "createdById": "MDYzo7AMp4Tm1taqnZTx1NzSAciBrCNr",
+                    "fileAssetId": null,
+                    "verifiedById": null,
+                    "originalTitle": null,
+                    "publicationYear": null,
+                    "verifiedVersion": 1,
+                    "verificationNote": "Dữ liệu demo landing, bổ sung tự động theo yêu cầu chủ workspace. Đối chiếu nguồn trực tuyến; không phải xác nhận duyệt biên tập của con người. MP3 là audio mẫu, chưa phải bản đọc kịch bản này.",
+                    "verificationStatus": "VERIFIED"
+                  },
+                  "sourceId": "f4df9dc3-4df5-4f01-886e-67ccc7614a6f",
+                  "createdAt": "2026-10-22T04:12:28.957Z",
+                  "createdById": "MDYzo7AMp4Tm1taqnZTx1NzSAciBrCNr",
+                  "fileAssetId": null
+                },
+                "sourceRevisionId": "c46d3999-fb03-4e93-83c1-796f564c913d"
+              }
+            ],
+            "createdAt": "2026-10-22T04:12:28.962Z",
+            "deletedAt": null,
+            "startYear": 1858,
+            "updatedAt": "2026-10-22T04:12:28.964Z",
+            "entityType": "EVENT",
+            "reviewNote": "Dữ liệu demo landing, bổ sung tự động theo yêu cầu chủ workspace. Đối chiếu nguồn trực tuyến; không phải xác nhận duyệt biên tập của con người. MP3 là audio mẫu, chưa phải bản đọc kịch bản này.",
+            "reviewedAt": "2026-10-22T04:12:28.963Z",
+            "createdById": "MDYzo7AMp4Tm1taqnZTx1NzSAciBrCNr",
+            "reviewStatus": "APPROVED",
+            "reviewedById": null,
+            "reviewedVersion": 2,
+            "historicalPhaseId": "fda0fb61-ddc6-44e9-a887-933c7f844572"
+          },
+          "createdById": "MDYzo7AMp4Tm1taqnZTx1NzSAciBrCNr",
+          "createdAt": "2026-10-22T04:12:28.973Z"
+        }
+      ],
+      "citations": [
+        {
+          "id": "3aa83c72-7165-466d-a6fa-51612d616b5f",
+          "periodId": null,
+          "phaseId": null,
+          "entityId": "5b5842d9-cddb-4b7c-bed0-5f805e38f030",
+          "sourceId": "f4df9dc3-4df5-4f01-886e-67ccc7614a6f",
+          "sourceRevisionId": "c46d3999-fb03-4e93-83c1-796f564c913d",
+          "locator": "Bài trực tuyến: Ngày 1/9/1858, liên quân Pháp – Tây Ban Nha nổ súng vào thành Đà Nẵng",
+          "excerpt": null,
+          "note": "Dữ liệu demo landing, bổ sung tự động theo yêu cầu chủ workspace. Đối chiếu nguồn trực tuyến; không phải xác nhận duyệt biên tập của con người. MP3 là audio mẫu, chưa phải bản đọc kịch bản này.",
+          "sortOrder": 0,
+          "createdById": "MDYzo7AMp4Tm1taqnZTx1NzSAciBrCNr",
+          "createdAt": "2026-10-22T04:12:28.967Z",
+          "updatedAt": "2026-10-22T04:12:28.967Z"
+        }
+      ]
+    }
+  },
+  {
+    "id": "11cf0b2e-778e-4b47-aed1-aad6f5ffed45",
+    "ownerId": "MDYzo7AMp4Tm1taqnZTx1NzSAciBrCNr",
+    "topicId": "8b1f9fc1-226f-448d-83c7-c1fe27ad2870",
+    "historicalPhaseId": "d410b9fe-f074-4e30-a0fe-bdcabc4d035e",
+    "title": "Việt Nam thời phong kiến",
+    "slug": "viet-nam-thoi-phong-kien",
+    "description": "Việt Nam thời phong kiến: Theo dấu kế sách của Ngô Quyền: phối hợp bãi cọc, thủy triều và thế trận trên sông để đánh bại quân Nam Hán năm 938. Nhìn lại các cuộc kháng chiến năm 1258, 1285 và 1288, từ những chiến thắng trên bộ đến trận quyết chiến Bạch Đằng. Từ cuộc khởi nghĩa năm 1418 đến thắng lợi năm 1427, tìm hiểu vai trò của Lê Lợi, Nguyễn Trãi và sự kết hợp quân sự với ngoại giao. Tìm hiểu cuộc xung đột Trịnh - Nguyễn trong thế kỷ XVII và tình trạng chia cắt Đàng Ngoài, Đàng Trong với giới tuyến sông Gianh. Theo bước cuộc tiến quân của Quang Trung và chiến thắng mùa xuân Kỷ Dậu 1789, giải phóng Thăng Long khỏi quân Thanh.\n\nBộ dữ liệu demo landing; audio dùng tệp MP3 mẫu.",
+    "coverImageAssetId": null,
+    "coverLandscapeAssetId": null,
+    "startYear": 938,
+    "endYear": 1789,
+    "status": "PUBLISHED",
+    "statusBeforeDelete": null,
+    "adminLockedAt": null,
+    "adminLockedById": null,
+    "publishedAt": "2026-10-22T04:12:29.421Z",
+    "deletedAt": null,
+    "createdAt": "2026-10-22T01:42:04.629Z",
+    "updatedAt": "2026-10-22T04:12:29.422Z",
+    "primaryHistoricalEventId": "b9a71917-382c-432c-a228-512db3bef331",
+    "historicalEntityRevisionId": "6256b3da-53b0-4cd9-b8a9-86a0f6b799a4",
+    "publicationEvidence": {
+      "asOf": "2026-10-22T04:12:29.421Z",
+      "event": {
+        "id": "b9a71917-382c-432c-a228-512db3bef331",
+        "name": "Chiến thắng Bạch Đằng năm 938",
+        "slug": "landing-demo-chien-thang-bach-dang-938",
+        "time": {
+          "at": {
+            "year": 938,
+            "precision": "YEAR",
+            "approximate": false
+          },
+          "kind": "POINT"
+        },
+        "version": 2
+      },
+      "sources": [
+        {
+          "id": "d4cc0178-2118-46a8-b1d5-55e44df66bd7",
+          "file": null,
+          "source": {
+            "url": "https://baotanglichsu.vn/vi/Articles/3098/13934/ngo-quyen-va-chien-thang-bach-djang-nam-938.html",
+            "isbn": null,
+            "tier": "TIER_3_KHOA_HOC",
+            "title": "Ngô Quyền và chiến thắng Bạch Đằng năm 938",
+            "author": null,
+            "edition": null,
+            "publisher": "Bảo tàng Lịch sử Quốc gia",
+            "publicationYear": null
+          },
+          "excerpt": null,
+          "locator": "Bài trực tuyến: Ngô Quyền và chiến thắng Bạch Đằng năm 938",
+          "verifiedAt": "2026-10-22T04:12:28.753Z",
+          "sourceVersion": 1,
+          "sourceRevisionId": "0f983e71-19ee-4f89-8d96-68cb719c12d2"
+        },
+        {
+          "id": "f9b3080d-5a80-472a-8057-6fd1b3e6cfa8",
+          "file": null,
+          "source": {
+            "url": "https://baotanglichsuquocgia.vn/vi/Articles/3091/13962/hoi-thao-khoa-hoc-725-nam-chien-thang-bach-djang.html",
+            "isbn": null,
+            "tier": "TIER_3_KHOA_HOC",
+            "title": "Hội thảo khoa học 725 năm chiến thắng Bạch Đằng",
+            "author": null,
+            "edition": null,
+            "publisher": "Bảo tàng Lịch sử Quốc gia",
+            "publicationYear": null
+          },
+          "excerpt": null,
+          "locator": "Bài trực tuyến: Hội thảo khoa học 725 năm chiến thắng Bạch Đằng",
+          "verifiedAt": "2026-10-22T04:12:28.789Z",
+          "sourceVersion": 1,
+          "sourceRevisionId": "ed236853-89ad-424c-959a-73f52f243c64"
+        },
+        {
+          "id": "228a5127-c434-4f46-8dc1-6a3dd7ffaedb",
+          "file": null,
+          "source": {
+            "url": "https://baotanglichsu.vn/vi/Articles/3098/16460/nghe-thuat-quan-su-djoc-djao-cuanguyen-trai-trong-khang-chien-chong-quan-minh.html",
+            "isbn": null,
+            "tier": "TIER_3_KHOA_HOC",
+            "title": "Nghệ thuật quân sự độc đáo của Nguyễn Trãi trong kháng chiến chống quân Minh",
+            "author": null,
+            "edition": null,
+            "publisher": "Bảo tàng Lịch sử Quốc gia",
+            "publicationYear": null
+          },
+          "excerpt": null,
+          "locator": "Bài trực tuyến: Nghệ thuật quân sự độc đáo của Nguyễn Trãi trong kháng chiến chống quân Minh",
+          "verifiedAt": "2026-10-22T04:12:28.826Z",
+          "sourceVersion": 1,
+          "sourceRevisionId": "764eb801-e262-44e9-954e-42663b5b7f32"
+        },
+        {
+          "id": "6e9a5c4d-1aa0-4cce-a28a-57700fd9e2f8",
+          "file": null,
+          "source": {
+            "url": "https://baotanglichsu.vn/vi/Articles/3096/6442/thang-long-ha-noi-thoi-tay-son.html",
+            "isbn": null,
+            "tier": "TIER_3_KHOA_HOC",
+            "title": "Thăng Long - Hà Nội thời Tây Sơn",
+            "author": null,
+            "edition": null,
+            "publisher": "Bảo tàng Lịch sử Quốc gia",
+            "publicationYear": null
+          },
+          "excerpt": null,
+          "locator": "Bài trực tuyến: Thăng Long - Hà Nội thời Tây Sơn",
+          "verifiedAt": "2026-10-22T04:12:28.855Z",
+          "sourceVersion": 1,
+          "sourceRevisionId": "7028bc92-2bdf-409b-b922-168d14857637"
+        },
+        {
+          "id": "bf358b8b-afde-41ae-867b-9f750a9f0092",
+          "file": null,
+          "source": {
+            "url": "https://baotanglichsuquocgia.vn/vi/Articles/3097/15721/ky-niem-225-nam-1789-2014-hoang-dje-quang-trung-nguyen-hue-djai-pha-quan-xam-luoc-man-thanh.html",
+            "isbn": null,
+            "tier": "TIER_3_KHOA_HOC",
+            "title": "Kỷ niệm 225 năm Hoàng đế Quang Trung - Nguyễn Huệ đại phá quân xâm lược Mãn Thanh",
+            "author": null,
+            "edition": null,
+            "publisher": "Bảo tàng Lịch sử Quốc gia",
+            "publicationYear": null
+          },
+          "excerpt": null,
+          "locator": "Bài trực tuyến: Kỷ niệm 225 năm Hoàng đế Quang Trung - Nguyễn Huệ đại phá quân xâm lược Mãn Thanh",
+          "verifiedAt": "2026-10-22T04:12:28.886Z",
+          "sourceVersion": 1,
+          "sourceRevisionId": "931ae431-b5dc-40f1-99cb-34f90690c322"
+        }
+      ]
+    },
+    "episodes": [
+      {
+        "id": "9f056d5d-3ebe-4963-8fe0-28c7bc0ef0c2",
+        "seriesId": "11cf0b2e-778e-4b47-aed1-aad6f5ffed45",
+        "title": "Chiến thắng Bạch Đằng 938",
+        "slug": "chien-thang-bach-dang-938",
+        "description": "Theo dấu kế sách của Ngô Quyền: phối hợp bãi cọc, thủy triều và thế trận trên sông để đánh bại quân Nam Hán năm 938.\n\nBản nghe demo dùng MP3 mẫu để xem và thử giao diện.",
+        "sortOrder": 1,
+        "status": "PUBLISHED",
+        "statusBeforeDelete": null,
+        "adminLockedAt": null,
+        "adminLockedById": null,
+        "publishedAt": "2026-10-22T04:12:29.224Z",
+        "deletedAt": null,
+        "createdAt": "2026-10-22T01:42:04.638Z",
+        "updatedAt": "2026-10-22T04:12:29.225Z",
+        "contentRevision": 4,
+        "narrations": [
+          {
+            "id": "d62f35d6-a45e-4f66-b4af-aafc41e69e3a",
+            "episodeId": "9f056d5d-3ebe-4963-8fe0-28c7bc0ef0c2",
+            "narrationType": "THIRD_PERSON",
+            "narratorEntityId": null,
+            "scriptContent": "Dưới mặt sông Bạch Đằng, những chiếc cọc gỗ là một phần của kế hoạch lớn hơn. Năm 938, Ngô Quyền tổ chức trận đánh chống quân Nam Hán. Ông khai thác địa hình sông nước và nhịp thủy triều để tạo thế chủ động.\n\nKhi nước lên, lực lượng thuyền nhẹ nhử đối phương vào khu vực bố trí trận địa. Khi nước rút, bãi cọc trở thành chướng ngại. Sự phối hợp giữa thời điểm phản công và địa hình khiến đội thuyền xâm lược lâm vào thế bất lợi.\n\nĐiều đáng chú ý không chỉ là một loại vũ khí. Đó còn là hiểu biết về môi trường và khả năng tổ chức lực lượng. Chiến thắng Bạch Đằng năm 938 trở thành dấu mốc lớn trong hành trình xác lập nền độc lập của đất nước.",
+            "scriptDocument": {
+              "type": "doc",
+              "content": [
+                {
+                  "type": "paragraph",
+                  "content": [
+                    {
+                      "text": "Dưới mặt sông Bạch Đằng, những chiếc cọc gỗ là một phần của kế hoạch lớn hơn. Năm 938, Ngô Quyền tổ chức trận đánh chống quân Nam Hán. Ông khai thác địa hình sông nước và nhịp thủy triều để tạo thế chủ động.",
+                      "type": "text"
+                    }
+                  ]
+                },
+                {
+                  "type": "paragraph",
+                  "content": [
+                    {
+                      "text": "Khi nước lên, lực lượng thuyền nhẹ nhử đối phương vào khu vực bố trí trận địa. Khi nước rút, bãi cọc trở thành chướng ngại. Sự phối hợp giữa thời điểm phản công và địa hình khiến đội thuyền xâm lược lâm vào thế bất lợi.",
+                      "type": "text"
+                    }
+                  ]
+                },
+                {
+                  "type": "paragraph",
+                  "content": [
+                    {
+                      "text": "Điều đáng chú ý không chỉ là một loại vũ khí. Đó còn là hiểu biết về môi trường và khả năng tổ chức lực lượng. Chiến thắng Bạch Đằng năm 938 trở thành dấu mốc lớn trong hành trình xác lập nền độc lập của đất nước.",
+                      "type": "text"
+                    }
+                  ]
+                }
+              ]
+            },
+            "audioAnalysis": null,
+            "audioAssetId": "4e191eea-fc08-450b-b02c-5f6fa556b21c",
+            "scriptUpdatedAt": "2026-10-22T04:12:28.774Z",
+            "audioAttachedAt": "2026-10-22T01:42:06.567Z",
+            "createdAt": "2026-10-22T01:42:04.641Z",
+            "updatedAt": "2026-10-22T04:12:28.775Z",
+            "audioAsset": {
+              "id": "4e191eea-fc08-450b-b02c-5f6fa556b21c",
+              "kind": "AUDIO",
+              "publicId": "su-ky/audio/seed-vietnam/chien-thang-bach-dang-938-58c6ac7704ceee0a",
+              "status": "READY",
+              "version": "1792633325",
+              "format": "mp3",
+              "sizeBytes": "2850516",
+              "durationMs": 181969,
+              "widthPx": null,
+              "heightPx": null,
+              "uploadedById": "MDYzo7AMp4Tm1taqnZTx1NzSAciBrCNr",
+              "createdAt": "2026-10-22T01:42:06.564Z",
+              "verifiedAt": "2026-10-22T01:42:06.562Z",
+              "detachedAt": null,
+              "deletedAt": null
+            }
+          }
+        ],
+        "attachments": [
+          {
+            "id": "cb4bd881-36a0-484e-a8b3-0439106455b1",
+            "episodeId": "9f056d5d-3ebe-4963-8fe0-28c7bc0ef0c2",
+            "mediaAssetId": "399034c9-537a-44de-9521-3a667ee04aa1",
+            "fileName": "02-chien-thang-bach-dang.jpg",
+            "createdAt": "2026-10-22T02:03:11.161Z",
+            "updatedAt": "2026-10-22T02:03:11.161Z"
+          }
+        ],
+        "entityTags": [
+          {
+            "id": "d1c7bba8-426f-4a16-8b95-80446f2480a6",
+            "episodeId": "9f056d5d-3ebe-4963-8fe0-28c7bc0ef0c2",
+            "entityId": "b9a71917-382c-432c-a228-512db3bef331",
+            "status": "CONFIRMED",
+            "origin": "MODERATOR",
+            "confirmedById": null,
+            "confirmedAt": "2026-10-22T04:12:28.779Z",
+            "createdAt": "2026-10-22T04:12:28.780Z"
+          }
+        ]
+      },
+      {
+        "id": "ffc6c17e-c509-42e4-af8d-78416bf24fda",
+        "seriesId": "11cf0b2e-778e-4b47-aed1-aad6f5ffed45",
+        "title": "Kháng chiến Mông Nguyên",
+        "slug": "khang-chien-mong-nguyen",
+        "description": "Nhìn lại các cuộc kháng chiến năm 1258, 1285 và 1288, từ những chiến thắng trên bộ đến trận quyết chiến Bạch Đằng.\n\nBản nghe demo dùng MP3 mẫu để xem và thử giao diện.",
+        "sortOrder": 2,
+        "status": "PUBLISHED",
+        "statusBeforeDelete": null,
+        "adminLockedAt": null,
+        "adminLockedById": null,
+        "publishedAt": "2026-10-22T04:12:29.276Z",
+        "deletedAt": null,
+        "createdAt": "2026-10-22T01:42:06.576Z",
+        "updatedAt": "2026-10-22T04:12:29.276Z",
+        "contentRevision": 5,
+        "narrations": [
+          {
+            "id": "28578c4f-3648-46a7-9e8b-30a046050a38",
+            "episodeId": "ffc6c17e-c509-42e4-af8d-78416bf24fda",
+            "narrationType": "THIRD_PERSON",
+            "narratorEntityId": null,
+            "scriptContent": "Trong thế kỷ mười ba, Đại Việt đối diện ba cuộc tiến công của quân Mông - Nguyên. Các mốc 1258, 1285 và 1288 nối thành một hành trình kháng chiến kéo dài nhiều thập kỷ.\n\nNhững địa danh như Đông Bộ Đầu, Hàm Tử, Chương Dương, Tây Kết và Vạn Kiếp gắn với các thắng lợi khác nhau. Không nên gộp mọi trận đánh thành một sự kiện duy nhất. Mỗi cuộc kháng chiến có bối cảnh và diễn biến riêng.\n\nNăm 1288, Bạch Đằng trở thành một điểm kết thúc quan trọng của cuộc xâm lược lần thứ ba. Khi lần theo từng mốc thời gian, người học có thể thấy rõ hơn mối liên hệ giữa các chiến trường và quá trình bảo vệ nền độc lập của Đại Việt.",
+            "scriptDocument": {
+              "type": "doc",
+              "content": [
+                {
+                  "type": "paragraph",
+                  "content": [
+                    {
+                      "text": "Trong thế kỷ mười ba, Đại Việt đối diện ba cuộc tiến công của quân Mông - Nguyên. Các mốc 1258, 1285 và 1288 nối thành một hành trình kháng chiến kéo dài nhiều thập kỷ.",
+                      "type": "text"
+                    }
+                  ]
+                },
+                {
+                  "type": "paragraph",
+                  "content": [
+                    {
+                      "text": "Những địa danh như Đông Bộ Đầu, Hàm Tử, Chương Dương, Tây Kết và Vạn Kiếp gắn với các thắng lợi khác nhau. Không nên gộp mọi trận đánh thành một sự kiện duy nhất. Mỗi cuộc kháng chiến có bối cảnh và diễn biến riêng.",
+                      "type": "text"
+                    }
+                  ]
+                },
+                {
+                  "type": "paragraph",
+                  "content": [
+                    {
+                      "text": "Năm 1288, Bạch Đằng trở thành một điểm kết thúc quan trọng của cuộc xâm lược lần thứ ba. Khi lần theo từng mốc thời gian, người học có thể thấy rõ hơn mối liên hệ giữa các chiến trường và quá trình bảo vệ nền độc lập của Đại Việt.",
+                      "type": "text"
+                    }
+                  ]
+                }
+              ]
+            },
+            "audioAnalysis": null,
+            "audioAssetId": "219244db-9932-4f1f-8eab-edc7a4ed48f7",
+            "scriptUpdatedAt": "2026-10-22T04:12:28.815Z",
+            "audioAttachedAt": "2026-10-22T01:42:07.688Z",
+            "createdAt": "2026-10-22T01:42:06.579Z",
+            "updatedAt": "2026-10-22T04:12:28.816Z",
+            "audioAsset": {
+              "id": "219244db-9932-4f1f-8eab-edc7a4ed48f7",
+              "kind": "AUDIO",
+              "publicId": "su-ky/audio/seed-vietnam/khang-chien-mong-nguyen-58c6ac7704ceee0a",
+              "status": "READY",
+              "version": "1792633327",
+              "format": "mp3",
+              "sizeBytes": "2850516",
+              "durationMs": 181969,
+              "widthPx": null,
+              "heightPx": null,
+              "uploadedById": "MDYzo7AMp4Tm1taqnZTx1NzSAciBrCNr",
+              "createdAt": "2026-10-22T01:42:07.685Z",
+              "verifiedAt": "2026-10-22T01:42:07.684Z",
+              "detachedAt": null,
+              "deletedAt": null
+            }
+          }
+        ],
+        "attachments": [
+          {
+            "id": "e02a271d-ada5-42df-a193-41f0638adcc1",
+            "episodeId": "ffc6c17e-c509-42e4-af8d-78416bf24fda",
+            "mediaAssetId": "a0e6d5a9-d74c-4288-9f6b-6a70af7265ab",
+            "fileName": "03-khang-chien-mong-nguyen.jpg",
+            "createdAt": "2026-10-22T02:03:33.504Z",
+            "updatedAt": "2026-10-22T02:03:33.504Z"
+          }
+        ],
+        "entityTags": [
+          {
+            "id": "1f8ec1e5-37e8-4139-8540-c20fb4ac22c2",
+            "episodeId": "ffc6c17e-c509-42e4-af8d-78416bf24fda",
+            "entityId": "588dc651-c798-49c0-b7a7-1b27ff8ba66a",
+            "status": "CONFIRMED",
+            "origin": "MODERATOR",
+            "confirmedById": null,
+            "confirmedAt": "2026-10-22T04:12:28.819Z",
+            "createdAt": "2026-10-22T04:12:28.819Z"
+          }
+        ]
+      },
+      {
+        "id": "599c8c43-deb1-4f1c-ba14-86b36fada549",
+        "seriesId": "11cf0b2e-778e-4b47-aed1-aad6f5ffed45",
+        "title": "Khởi nghĩa Lam Sơn",
+        "slug": "khoi-nghia-lam-son",
+        "description": "Từ cuộc khởi nghĩa năm 1418 đến thắng lợi năm 1427, tìm hiểu vai trò của Lê Lợi, Nguyễn Trãi và sự kết hợp quân sự với ngoại giao.\n\nBản nghe demo dùng MP3 mẫu để xem và thử giao diện.",
+        "sortOrder": 3,
+        "status": "PUBLISHED",
+        "statusBeforeDelete": null,
+        "adminLockedAt": null,
+        "adminLockedById": null,
+        "publishedAt": "2026-10-22T04:12:29.313Z",
+        "deletedAt": null,
+        "createdAt": "2026-10-22T01:42:07.697Z",
+        "updatedAt": "2026-10-22T04:12:29.314Z",
+        "contentRevision": 4,
+        "narrations": [
+          {
+            "id": "0632723a-6a67-43d5-b2ff-cb6d3627432e",
+            "episodeId": "599c8c43-deb1-4f1c-ba14-86b36fada549",
+            "narrationType": "THIRD_PERSON",
+            "narratorEntityId": null,
+            "scriptContent": "Năm 1418, cuộc khởi nghĩa Lam Sơn mở đầu một chặng đường đấu tranh chống sự thống trị của nhà Minh. Dưới sự lãnh đạo của Lê Lợi, cùng những đóng góp của Nguyễn Trãi, lực lượng khởi nghĩa từng bước phát triển.\n\nCuộc chiến không chỉ diễn ra bằng những trận giao tranh. Hoạt động chính trị và ngoại giao cũng góp phần tạo nên sức mạnh. Đến năm 1427, chiến thắng Chi Lăng - Xương Giang làm thay đổi cục diện, đưa cuộc đấu tranh tới thắng lợi.\n\nTheo dõi hành trình Lam Sơn là tìm hiểu cách một lực lượng vượt qua khó khăn, bảo toàn sức mạnh và lựa chọn thời cơ. Câu chuyện ấy giúp người nghe nhìn lịch sử qua cả quyết định trên chiến trường lẫn nỗ lực kết thúc chiến tranh.",
+            "scriptDocument": {
+              "type": "doc",
+              "content": [
+                {
+                  "type": "paragraph",
+                  "content": [
+                    {
+                      "text": "Năm 1418, cuộc khởi nghĩa Lam Sơn mở đầu một chặng đường đấu tranh chống sự thống trị của nhà Minh. Dưới sự lãnh đạo của Lê Lợi, cùng những đóng góp của Nguyễn Trãi, lực lượng khởi nghĩa từng bước phát triển.",
+                      "type": "text"
+                    }
+                  ]
+                },
+                {
+                  "type": "paragraph",
+                  "content": [
+                    {
+                      "text": "Cuộc chiến không chỉ diễn ra bằng những trận giao tranh. Hoạt động chính trị và ngoại giao cũng góp phần tạo nên sức mạnh. Đến năm 1427, chiến thắng Chi Lăng - Xương Giang làm thay đổi cục diện, đưa cuộc đấu tranh tới thắng lợi.",
+                      "type": "text"
+                    }
+                  ]
+                },
+                {
+                  "type": "paragraph",
+                  "content": [
+                    {
+                      "text": "Theo dõi hành trình Lam Sơn là tìm hiểu cách một lực lượng vượt qua khó khăn, bảo toàn sức mạnh và lựa chọn thời cơ. Câu chuyện ấy giúp người nghe nhìn lịch sử qua cả quyết định trên chiến trường lẫn nỗ lực kết thúc chiến tranh.",
+                      "type": "text"
+                    }
+                  ]
+                }
+              ]
+            },
+            "audioAnalysis": null,
+            "audioAssetId": "347af232-292c-40cc-a787-66d91657eea3",
+            "scriptUpdatedAt": "2026-10-22T04:12:28.844Z",
+            "audioAttachedAt": "2026-10-22T01:42:10.360Z",
+            "createdAt": "2026-10-22T01:42:07.699Z",
+            "updatedAt": "2026-10-22T04:12:28.845Z",
+            "audioAsset": {
+              "id": "347af232-292c-40cc-a787-66d91657eea3",
+              "kind": "AUDIO",
+              "publicId": "su-ky/audio/seed-vietnam/khoi-nghia-lam-son-58c6ac7704ceee0a",
+              "status": "READY",
+              "version": "1792633328",
+              "format": "mp3",
+              "sizeBytes": "2850516",
+              "durationMs": 181969,
+              "widthPx": null,
+              "heightPx": null,
+              "uploadedById": "MDYzo7AMp4Tm1taqnZTx1NzSAciBrCNr",
+              "createdAt": "2026-10-22T01:42:10.358Z",
+              "verifiedAt": "2026-10-22T01:42:10.357Z",
+              "detachedAt": null,
+              "deletedAt": null
+            }
+          }
+        ],
+        "attachments": [
+          {
+            "id": "f35e118a-9a0a-4f5f-9430-3a3aeb810c6b",
+            "episodeId": "599c8c43-deb1-4f1c-ba14-86b36fada549",
+            "mediaAssetId": "c3baf298-6980-426b-990c-525f4fc45b48",
+            "fileName": "04-khoi-nghia-lam-son.jpg",
+            "createdAt": "2026-10-22T02:07:54.456Z",
+            "updatedAt": "2026-10-22T02:07:54.456Z"
+          }
+        ],
+        "entityTags": [
+          {
+            "id": "6ad9056d-0aff-45ed-acbb-0cca40700ff5",
+            "episodeId": "599c8c43-deb1-4f1c-ba14-86b36fada549",
+            "entityId": "2b848c8c-b00b-4da8-99b1-0d2aa2685bbd",
+            "status": "CONFIRMED",
+            "origin": "MODERATOR",
+            "confirmedById": null,
+            "confirmedAt": "2026-10-22T04:12:28.847Z",
+            "createdAt": "2026-10-22T04:12:28.847Z"
+          }
+        ]
+      },
+      {
+        "id": "08993a16-961d-44ce-be18-cc1f374089bf",
+        "seriesId": "11cf0b2e-778e-4b47-aed1-aad6f5ffed45",
+        "title": "Trịnh Nguyễn phân tranh",
+        "slug": "trinh-nguyen-phan-tranh",
+        "description": "Tìm hiểu cuộc xung đột Trịnh - Nguyễn trong thế kỷ XVII và tình trạng chia cắt Đàng Ngoài, Đàng Trong với giới tuyến sông Gianh.\n\nBản nghe demo dùng MP3 mẫu để xem và thử giao diện.",
+        "sortOrder": 4,
+        "status": "PUBLISHED",
+        "statusBeforeDelete": null,
+        "adminLockedAt": null,
+        "adminLockedById": null,
+        "publishedAt": "2026-10-22T04:12:29.352Z",
+        "deletedAt": null,
+        "createdAt": "2026-10-22T01:42:10.370Z",
+        "updatedAt": "2026-10-22T04:12:29.353Z",
+        "contentRevision": 4,
+        "narrations": [
+          {
+            "id": "6f54081a-f21d-4568-9714-c38b18c7936c",
+            "episodeId": "08993a16-961d-44ce-be18-cc1f374089bf",
+            "narrationType": "THIRD_PERSON",
+            "narratorEntityId": null,
+            "scriptContent": "Một dòng sông có thể trở thành giới tuyến trong lịch sử. Cuộc xung đột Trịnh - Nguyễn từ năm 1627 đến năm 1672 không đem lại thắng lợi quyết định cho bên nào. Đất nước tiếp tục bị chia cắt thành Đàng Ngoài và Đàng Trong.\n\nSông Gianh gắn với ranh giới giữa hai vùng quyền lực. Sau khi các trận đánh lớn dừng lại, tình trạng chia cắt vẫn còn tồn tại. Vì vậy, kết thúc một giai đoạn giao tranh không đồng nghĩa với việc đất nước đã thống nhất.\n\nKhi bước sang câu chuyện Tây Sơn, bối cảnh ấy giúp người học hiểu vì sao sự thay đổi các tập đoàn quyền lực lại có ý nghĩa lớn. Lịch sử phân tranh cần được nhìn qua cả chiến sự và hệ quả lâu dài đối với xã hội.",
+            "scriptDocument": {
+              "type": "doc",
+              "content": [
+                {
+                  "type": "paragraph",
+                  "content": [
+                    {
+                      "text": "Một dòng sông có thể trở thành giới tuyến trong lịch sử. Cuộc xung đột Trịnh - Nguyễn từ năm 1627 đến năm 1672 không đem lại thắng lợi quyết định cho bên nào. Đất nước tiếp tục bị chia cắt thành Đàng Ngoài và Đàng Trong.",
+                      "type": "text"
+                    }
+                  ]
+                },
+                {
+                  "type": "paragraph",
+                  "content": [
+                    {
+                      "text": "Sông Gianh gắn với ranh giới giữa hai vùng quyền lực. Sau khi các trận đánh lớn dừng lại, tình trạng chia cắt vẫn còn tồn tại. Vì vậy, kết thúc một giai đoạn giao tranh không đồng nghĩa với việc đất nước đã thống nhất.",
+                      "type": "text"
+                    }
+                  ]
+                },
+                {
+                  "type": "paragraph",
+                  "content": [
+                    {
+                      "text": "Khi bước sang câu chuyện Tây Sơn, bối cảnh ấy giúp người học hiểu vì sao sự thay đổi các tập đoàn quyền lực lại có ý nghĩa lớn. Lịch sử phân tranh cần được nhìn qua cả chiến sự và hệ quả lâu dài đối với xã hội.",
+                      "type": "text"
+                    }
+                  ]
+                }
+              ]
+            },
+            "audioAnalysis": null,
+            "audioAssetId": "60930702-f3b2-416f-bb51-3389eeced361",
+            "scriptUpdatedAt": "2026-10-22T04:12:28.874Z",
+            "audioAttachedAt": "2026-10-22T01:42:11.643Z",
+            "createdAt": "2026-10-22T01:42:10.373Z",
+            "updatedAt": "2026-10-22T04:12:28.875Z",
+            "audioAsset": {
+              "id": "60930702-f3b2-416f-bb51-3389eeced361",
+              "kind": "AUDIO",
+              "publicId": "su-ky/audio/seed-vietnam/trinh-nguyen-phan-tranh-58c6ac7704ceee0a",
+              "status": "READY",
+              "version": "1792633330",
+              "format": "mp3",
+              "sizeBytes": "2850516",
+              "durationMs": 181969,
+              "widthPx": null,
+              "heightPx": null,
+              "uploadedById": "MDYzo7AMp4Tm1taqnZTx1NzSAciBrCNr",
+              "createdAt": "2026-10-22T01:42:11.640Z",
+              "verifiedAt": "2026-10-22T01:42:11.639Z",
+              "detachedAt": null,
+              "deletedAt": null
+            }
+          }
+        ],
+        "attachments": [
+          {
+            "id": "63394160-3746-4b59-ad8c-ae805f7c299c",
+            "episodeId": "08993a16-961d-44ce-be18-cc1f374089bf",
+            "mediaAssetId": "b6432648-5055-4a7a-b494-9f72fe9b647f",
+            "fileName": "05-trinh-nguyen-phan-tranh.jpg",
+            "createdAt": "2026-10-22T02:09:08.976Z",
+            "updatedAt": "2026-10-22T02:09:08.976Z"
+          }
+        ],
+        "entityTags": [
+          {
+            "id": "cf128cb5-91b2-41b3-999f-7f9c9c0518fd",
+            "episodeId": "08993a16-961d-44ce-be18-cc1f374089bf",
+            "entityId": "6ee7fbc0-57af-422b-ac0e-3cf7c1468e90",
+            "status": "CONFIRMED",
+            "origin": "MODERATOR",
+            "confirmedById": null,
+            "confirmedAt": "2026-10-22T04:12:28.877Z",
+            "createdAt": "2026-10-22T04:12:28.878Z"
+          }
+        ]
+      },
+      {
+        "id": "ab6d02dc-86f1-4ab6-a4cf-b37d9d820ee7",
+        "seriesId": "11cf0b2e-778e-4b47-aed1-aad6f5ffed45",
+        "title": "Quang Trung đại phá quân Thanh",
+        "slug": "quang-trung-dai-pha-quan-thanh",
+        "description": "Theo bước cuộc tiến quân của Quang Trung và chiến thắng mùa xuân Kỷ Dậu 1789, giải phóng Thăng Long khỏi quân Thanh.\n\nBản nghe demo dùng MP3 mẫu để xem và thử giao diện.",
+        "sortOrder": 5,
+        "status": "PUBLISHED",
+        "statusBeforeDelete": null,
+        "adminLockedAt": null,
+        "adminLockedById": null,
+        "publishedAt": "2026-10-22T04:12:29.392Z",
+        "deletedAt": null,
+        "createdAt": "2026-10-22T01:42:11.653Z",
+        "updatedAt": "2026-10-22T04:12:29.392Z",
+        "contentRevision": 4,
+        "narrations": [
+          {
+            "id": "6eb5bc4f-6590-40f9-8fe4-5508193aa8fd",
+            "episodeId": "ab6d02dc-86f1-4ab6-a4cf-b37d9d820ee7",
+            "narrationType": "THIRD_PERSON",
+            "narratorEntityId": null,
+            "scriptContent": "Cuối năm 1788, trước cuộc tiến quân của nhà Thanh, Nguyễn Huệ lên ngôi Hoàng đế, lấy niên hiệu Quang Trung và tổ chức hành quân ra Bắc. Mùa xuân Kỷ Dậu 1789 trở thành thời điểm của một cuộc phản công quyết định.\n\nCác đợt tiến công liên tiếp làm thay đổi nhanh chóng tình thế. Quân Tây Sơn giành thắng lợi và tiến vào Thăng Long. Chiến thắng gắn với khả năng tổ chức, tốc độ hành quân và sự chủ động lựa chọn thời điểm đánh.\n\nKhi tìm hiểu sự kiện, hãy lần theo trình tự từ tình thế cuối năm 1788 đến các trận đánh mùa xuân 1789. Cách nhìn theo diễn biến giúp chúng ta hiểu thành quả ấy như kết quả của nhiều quyết định nối tiếp nhau.",
+            "scriptDocument": {
+              "type": "doc",
+              "content": [
+                {
+                  "type": "paragraph",
+                  "content": [
+                    {
+                      "text": "Cuối năm 1788, trước cuộc tiến quân của nhà Thanh, Nguyễn Huệ lên ngôi Hoàng đế, lấy niên hiệu Quang Trung và tổ chức hành quân ra Bắc. Mùa xuân Kỷ Dậu 1789 trở thành thời điểm của một cuộc phản công quyết định.",
+                      "type": "text"
+                    }
+                  ]
+                },
+                {
+                  "type": "paragraph",
+                  "content": [
+                    {
+                      "text": "Các đợt tiến công liên tiếp làm thay đổi nhanh chóng tình thế. Quân Tây Sơn giành thắng lợi và tiến vào Thăng Long. Chiến thắng gắn với khả năng tổ chức, tốc độ hành quân và sự chủ động lựa chọn thời điểm đánh.",
+                      "type": "text"
+                    }
+                  ]
+                },
+                {
+                  "type": "paragraph",
+                  "content": [
+                    {
+                      "text": "Khi tìm hiểu sự kiện, hãy lần theo trình tự từ tình thế cuối năm 1788 đến các trận đánh mùa xuân 1789. Cách nhìn theo diễn biến giúp chúng ta hiểu thành quả ấy như kết quả của nhiều quyết định nối tiếp nhau.",
+                      "type": "text"
+                    }
+                  ]
+                }
+              ]
+            },
+            "audioAnalysis": null,
+            "audioAssetId": "eaf58075-8b69-4db9-a713-38c53f8a9936",
+            "scriptUpdatedAt": "2026-10-22T04:12:28.903Z",
+            "audioAttachedAt": "2026-10-22T01:42:13.044Z",
+            "createdAt": "2026-10-22T01:42:11.656Z",
+            "updatedAt": "2026-10-22T04:12:28.904Z",
+            "audioAsset": {
+              "id": "eaf58075-8b69-4db9-a713-38c53f8a9936",
+              "kind": "AUDIO",
+              "publicId": "su-ky/audio/seed-vietnam/quang-trung-dai-pha-quan-thanh-58c6ac7704ceee0a",
+              "status": "READY",
+              "version": "1792633332",
+              "format": "mp3",
+              "sizeBytes": "2850516",
+              "durationMs": 181969,
+              "widthPx": null,
+              "heightPx": null,
+              "uploadedById": "MDYzo7AMp4Tm1taqnZTx1NzSAciBrCNr",
+              "createdAt": "2026-10-22T01:42:13.040Z",
+              "verifiedAt": "2026-10-22T01:42:13.039Z",
+              "detachedAt": null,
+              "deletedAt": null
+            }
+          }
+        ],
+        "attachments": [
+          {
+            "id": "52eae9f6-694b-4a74-a158-e26dd7c19786",
+            "episodeId": "ab6d02dc-86f1-4ab6-a4cf-b37d9d820ee7",
+            "mediaAssetId": "81a5145d-df92-492d-8d54-b21edb12a503",
+            "fileName": "06-quang-trung-dai-pha-quan-thanh.jpg",
+            "createdAt": "2026-10-22T02:09:25.644Z",
+            "updatedAt": "2026-10-22T02:09:25.644Z"
+          }
+        ],
+        "entityTags": [
+          {
+            "id": "ded07449-21cf-40fe-9996-0e9098ad345f",
+            "episodeId": "ab6d02dc-86f1-4ab6-a4cf-b37d9d820ee7",
+            "entityId": "496a8da3-c007-41c2-b7f0-bcc85bda33c2",
+            "status": "CONFIRMED",
+            "origin": "MODERATOR",
+            "confirmedById": null,
+            "confirmedAt": "2026-10-22T04:12:28.906Z",
+            "createdAt": "2026-10-22T04:12:28.907Z"
+          }
+        ]
+      }
+    ],
+    "sources": [
+      {
+        "id": "51f263f1-72d1-4526-8933-298cd572169f",
+        "seriesId": "11cf0b2e-778e-4b47-aed1-aad6f5ffed45",
+        "sourceId": "d4cc0178-2118-46a8-b1d5-55e44df66bd7",
+        "locator": "Bài trực tuyến: Ngô Quyền và chiến thắng Bạch Đằng năm 938",
+        "excerpt": null,
+        "sortOrder": 1,
+        "createdAt": "2026-10-22T04:12:28.910Z",
+        "sourceRevisionId": "0f983e71-19ee-4f89-8d96-68cb719c12d2",
+        "historicalCitationId": "e4d70bd5-d5ab-4c20-bfdb-5fd506d7acdd",
+        "source": {
+          "id": "d4cc0178-2118-46a8-b1d5-55e44df66bd7",
+          "tier": "TIER_3_KHOA_HOC",
+          "title": "Ngô Quyền và chiến thắng Bạch Đằng năm 938",
+          "originalTitle": null,
+          "author": null,
+          "translator": null,
+          "publisher": "Bảo tàng Lịch sử Quốc gia",
+          "publicationYear": null,
+          "edition": null,
+          "isbn": null,
+          "url": "https://baotanglichsu.vn/vi/Articles/3098/13934/ngo-quyen-va-chien-thang-bach-djang-nam-938.html",
+          "createdById": "MDYzo7AMp4Tm1taqnZTx1NzSAciBrCNr",
+          "archivedAt": null,
+          "createdAt": "2026-10-22T04:12:28.754Z",
+          "updatedAt": "2026-10-22T04:12:28.754Z",
+          "fileAssetId": null,
+          "version": 1,
+          "verificationStatus": "VERIFIED",
+          "verifiedVersion": 1,
+          "verifiedById": null,
+          "verifiedAt": "2026-10-22T04:12:28.753Z",
+          "verificationNote": "Dữ liệu demo landing, bổ sung tự động theo yêu cầu chủ workspace. Đối chiếu nguồn trực tuyến; không phải xác nhận duyệt biên tập của con người. MP3 là audio mẫu, chưa phải bản đọc kịch bản này."
+        },
+        "sourceRevision": {
+          "id": "0f983e71-19ee-4f89-8d96-68cb719c12d2",
+          "sourceId": "d4cc0178-2118-46a8-b1d5-55e44df66bd7",
+          "version": 1,
+          "snapshot": {
+            "id": "d4cc0178-2118-46a8-b1d5-55e44df66bd7",
+            "url": "https://baotanglichsu.vn/vi/Articles/3098/13934/ngo-quyen-va-chien-thang-bach-djang-nam-938.html",
+            "isbn": null,
+            "tier": "TIER_3_KHOA_HOC",
+            "title": "Ngô Quyền và chiến thắng Bạch Đằng năm 938",
+            "author": null,
+            "edition": null,
+            "version": 1,
+            "createdAt": "2026-10-22T04:12:28.754Z",
+            "publisher": "Bảo tàng Lịch sử Quốc gia",
+            "updatedAt": "2026-10-22T04:12:28.754Z",
+            "archivedAt": null,
+            "translator": null,
+            "verifiedAt": "2026-10-22T04:12:28.753Z",
+            "createdById": "MDYzo7AMp4Tm1taqnZTx1NzSAciBrCNr",
+            "fileAssetId": null,
+            "verifiedById": null,
+            "originalTitle": null,
+            "publicationYear": null,
+            "verifiedVersion": 1,
+            "verificationNote": "Dữ liệu demo landing, bổ sung tự động theo yêu cầu chủ workspace. Đối chiếu nguồn trực tuyến; không phải xác nhận duyệt biên tập của con người. MP3 là audio mẫu, chưa phải bản đọc kịch bản này.",
+            "verificationStatus": "VERIFIED"
+          },
+          "fileAssetId": null,
+          "createdById": "MDYzo7AMp4Tm1taqnZTx1NzSAciBrCNr",
+          "createdAt": "2026-10-22T04:12:28.755Z"
+        }
+      },
+      {
+        "id": "e3a0fa35-21d9-4426-b8b6-2a19e59de176",
+        "seriesId": "11cf0b2e-778e-4b47-aed1-aad6f5ffed45",
+        "sourceId": "f9b3080d-5a80-472a-8057-6fd1b3e6cfa8",
+        "locator": "Bài trực tuyến: Hội thảo khoa học 725 năm chiến thắng Bạch Đằng",
+        "excerpt": null,
+        "sortOrder": 2,
+        "createdAt": "2026-10-22T04:12:28.912Z",
+        "sourceRevisionId": "ed236853-89ad-424c-959a-73f52f243c64",
+        "historicalCitationId": null,
+        "source": {
+          "id": "f9b3080d-5a80-472a-8057-6fd1b3e6cfa8",
+          "tier": "TIER_3_KHOA_HOC",
+          "title": "Hội thảo khoa học 725 năm chiến thắng Bạch Đằng",
+          "originalTitle": null,
+          "author": null,
+          "translator": null,
+          "publisher": "Bảo tàng Lịch sử Quốc gia",
+          "publicationYear": null,
+          "edition": null,
+          "isbn": null,
+          "url": "https://baotanglichsuquocgia.vn/vi/Articles/3091/13962/hoi-thao-khoa-hoc-725-nam-chien-thang-bach-djang.html",
+          "createdById": "MDYzo7AMp4Tm1taqnZTx1NzSAciBrCNr",
+          "archivedAt": null,
+          "createdAt": "2026-10-22T04:12:28.790Z",
+          "updatedAt": "2026-10-22T04:12:28.790Z",
+          "fileAssetId": null,
+          "version": 1,
+          "verificationStatus": "VERIFIED",
+          "verifiedVersion": 1,
+          "verifiedById": null,
+          "verifiedAt": "2026-10-22T04:12:28.789Z",
+          "verificationNote": "Dữ liệu demo landing, bổ sung tự động theo yêu cầu chủ workspace. Đối chiếu nguồn trực tuyến; không phải xác nhận duyệt biên tập của con người. MP3 là audio mẫu, chưa phải bản đọc kịch bản này."
+        },
+        "sourceRevision": {
+          "id": "ed236853-89ad-424c-959a-73f52f243c64",
+          "sourceId": "f9b3080d-5a80-472a-8057-6fd1b3e6cfa8",
+          "version": 1,
+          "snapshot": {
+            "id": "f9b3080d-5a80-472a-8057-6fd1b3e6cfa8",
+            "url": "https://baotanglichsuquocgia.vn/vi/Articles/3091/13962/hoi-thao-khoa-hoc-725-nam-chien-thang-bach-djang.html",
+            "isbn": null,
+            "tier": "TIER_3_KHOA_HOC",
+            "title": "Hội thảo khoa học 725 năm chiến thắng Bạch Đằng",
+            "author": null,
+            "edition": null,
+            "version": 1,
+            "createdAt": "2026-10-22T04:12:28.790Z",
+            "publisher": "Bảo tàng Lịch sử Quốc gia",
+            "updatedAt": "2026-10-22T04:12:28.790Z",
+            "archivedAt": null,
+            "translator": null,
+            "verifiedAt": "2026-10-22T04:12:28.789Z",
+            "createdById": "MDYzo7AMp4Tm1taqnZTx1NzSAciBrCNr",
+            "fileAssetId": null,
+            "verifiedById": null,
+            "originalTitle": null,
+            "publicationYear": null,
+            "verifiedVersion": 1,
+            "verificationNote": "Dữ liệu demo landing, bổ sung tự động theo yêu cầu chủ workspace. Đối chiếu nguồn trực tuyến; không phải xác nhận duyệt biên tập của con người. MP3 là audio mẫu, chưa phải bản đọc kịch bản này.",
+            "verificationStatus": "VERIFIED"
+          },
+          "fileAssetId": null,
+          "createdById": "MDYzo7AMp4Tm1taqnZTx1NzSAciBrCNr",
+          "createdAt": "2026-10-22T04:12:28.792Z"
+        }
+      },
+      {
+        "id": "eae78fe9-f40c-4025-a290-9aec07405f93",
+        "seriesId": "11cf0b2e-778e-4b47-aed1-aad6f5ffed45",
+        "sourceId": "228a5127-c434-4f46-8dc1-6a3dd7ffaedb",
+        "locator": "Bài trực tuyến: Nghệ thuật quân sự độc đáo của Nguyễn Trãi trong kháng chiến chống quân Minh",
+        "excerpt": null,
+        "sortOrder": 3,
+        "createdAt": "2026-10-22T04:12:28.915Z",
+        "sourceRevisionId": "764eb801-e262-44e9-954e-42663b5b7f32",
+        "historicalCitationId": null,
+        "source": {
+          "id": "228a5127-c434-4f46-8dc1-6a3dd7ffaedb",
+          "tier": "TIER_3_KHOA_HOC",
+          "title": "Nghệ thuật quân sự độc đáo của Nguyễn Trãi trong kháng chiến chống quân Minh",
+          "originalTitle": null,
+          "author": null,
+          "translator": null,
+          "publisher": "Bảo tàng Lịch sử Quốc gia",
+          "publicationYear": null,
+          "edition": null,
+          "isbn": null,
+          "url": "https://baotanglichsu.vn/vi/Articles/3098/16460/nghe-thuat-quan-su-djoc-djao-cuanguyen-trai-trong-khang-chien-chong-quan-minh.html",
+          "createdById": "MDYzo7AMp4Tm1taqnZTx1NzSAciBrCNr",
+          "archivedAt": null,
+          "createdAt": "2026-10-22T04:12:28.827Z",
+          "updatedAt": "2026-10-22T04:12:28.827Z",
+          "fileAssetId": null,
+          "version": 1,
+          "verificationStatus": "VERIFIED",
+          "verifiedVersion": 1,
+          "verifiedById": null,
+          "verifiedAt": "2026-10-22T04:12:28.826Z",
+          "verificationNote": "Dữ liệu demo landing, bổ sung tự động theo yêu cầu chủ workspace. Đối chiếu nguồn trực tuyến; không phải xác nhận duyệt biên tập của con người. MP3 là audio mẫu, chưa phải bản đọc kịch bản này."
+        },
+        "sourceRevision": {
+          "id": "764eb801-e262-44e9-954e-42663b5b7f32",
+          "sourceId": "228a5127-c434-4f46-8dc1-6a3dd7ffaedb",
+          "version": 1,
+          "snapshot": {
+            "id": "228a5127-c434-4f46-8dc1-6a3dd7ffaedb",
+            "url": "https://baotanglichsu.vn/vi/Articles/3098/16460/nghe-thuat-quan-su-djoc-djao-cuanguyen-trai-trong-khang-chien-chong-quan-minh.html",
+            "isbn": null,
+            "tier": "TIER_3_KHOA_HOC",
+            "title": "Nghệ thuật quân sự độc đáo của Nguyễn Trãi trong kháng chiến chống quân Minh",
+            "author": null,
+            "edition": null,
+            "version": 1,
+            "createdAt": "2026-10-22T04:12:28.827Z",
+            "publisher": "Bảo tàng Lịch sử Quốc gia",
+            "updatedAt": "2026-10-22T04:12:28.827Z",
+            "archivedAt": null,
+            "translator": null,
+            "verifiedAt": "2026-10-22T04:12:28.826Z",
+            "createdById": "MDYzo7AMp4Tm1taqnZTx1NzSAciBrCNr",
+            "fileAssetId": null,
+            "verifiedById": null,
+            "originalTitle": null,
+            "publicationYear": null,
+            "verifiedVersion": 1,
+            "verificationNote": "Dữ liệu demo landing, bổ sung tự động theo yêu cầu chủ workspace. Đối chiếu nguồn trực tuyến; không phải xác nhận duyệt biên tập của con người. MP3 là audio mẫu, chưa phải bản đọc kịch bản này.",
+            "verificationStatus": "VERIFIED"
+          },
+          "fileAssetId": null,
+          "createdById": "MDYzo7AMp4Tm1taqnZTx1NzSAciBrCNr",
+          "createdAt": "2026-10-22T04:12:28.829Z"
+        }
+      },
+      {
+        "id": "a5fa7c3d-9995-4181-921f-57d0c004ac9b",
+        "seriesId": "11cf0b2e-778e-4b47-aed1-aad6f5ffed45",
+        "sourceId": "6e9a5c4d-1aa0-4cce-a28a-57700fd9e2f8",
+        "locator": "Bài trực tuyến: Thăng Long - Hà Nội thời Tây Sơn",
+        "excerpt": null,
+        "sortOrder": 4,
+        "createdAt": "2026-10-22T04:12:28.918Z",
+        "sourceRevisionId": "7028bc92-2bdf-409b-b922-168d14857637",
+        "historicalCitationId": null,
+        "source": {
+          "id": "6e9a5c4d-1aa0-4cce-a28a-57700fd9e2f8",
+          "tier": "TIER_3_KHOA_HOC",
+          "title": "Thăng Long - Hà Nội thời Tây Sơn",
+          "originalTitle": null,
+          "author": null,
+          "translator": null,
+          "publisher": "Bảo tàng Lịch sử Quốc gia",
+          "publicationYear": null,
+          "edition": null,
+          "isbn": null,
+          "url": "https://baotanglichsu.vn/vi/Articles/3096/6442/thang-long-ha-noi-thoi-tay-son.html",
+          "createdById": "MDYzo7AMp4Tm1taqnZTx1NzSAciBrCNr",
+          "archivedAt": null,
+          "createdAt": "2026-10-22T04:12:28.855Z",
+          "updatedAt": "2026-10-22T04:12:28.855Z",
+          "fileAssetId": null,
+          "version": 1,
+          "verificationStatus": "VERIFIED",
+          "verifiedVersion": 1,
+          "verifiedById": null,
+          "verifiedAt": "2026-10-22T04:12:28.855Z",
+          "verificationNote": "Dữ liệu demo landing, bổ sung tự động theo yêu cầu chủ workspace. Đối chiếu nguồn trực tuyến; không phải xác nhận duyệt biên tập của con người. MP3 là audio mẫu, chưa phải bản đọc kịch bản này."
+        },
+        "sourceRevision": {
+          "id": "7028bc92-2bdf-409b-b922-168d14857637",
+          "sourceId": "6e9a5c4d-1aa0-4cce-a28a-57700fd9e2f8",
+          "version": 1,
+          "snapshot": {
+            "id": "6e9a5c4d-1aa0-4cce-a28a-57700fd9e2f8",
+            "url": "https://baotanglichsu.vn/vi/Articles/3096/6442/thang-long-ha-noi-thoi-tay-son.html",
+            "isbn": null,
+            "tier": "TIER_3_KHOA_HOC",
+            "title": "Thăng Long - Hà Nội thời Tây Sơn",
+            "author": null,
+            "edition": null,
+            "version": 1,
+            "createdAt": "2026-10-22T04:12:28.855Z",
+            "publisher": "Bảo tàng Lịch sử Quốc gia",
+            "updatedAt": "2026-10-22T04:12:28.855Z",
+            "archivedAt": null,
+            "translator": null,
+            "verifiedAt": "2026-10-22T04:12:28.855Z",
+            "createdById": "MDYzo7AMp4Tm1taqnZTx1NzSAciBrCNr",
+            "fileAssetId": null,
+            "verifiedById": null,
+            "originalTitle": null,
+            "publicationYear": null,
+            "verifiedVersion": 1,
+            "verificationNote": "Dữ liệu demo landing, bổ sung tự động theo yêu cầu chủ workspace. Đối chiếu nguồn trực tuyến; không phải xác nhận duyệt biên tập của con người. MP3 là audio mẫu, chưa phải bản đọc kịch bản này.",
+            "verificationStatus": "VERIFIED"
+          },
+          "fileAssetId": null,
+          "createdById": "MDYzo7AMp4Tm1taqnZTx1NzSAciBrCNr",
+          "createdAt": "2026-10-22T04:12:28.857Z"
+        }
+      },
+      {
+        "id": "4c060734-af03-41a4-b919-9fee55192290",
+        "seriesId": "11cf0b2e-778e-4b47-aed1-aad6f5ffed45",
+        "sourceId": "bf358b8b-afde-41ae-867b-9f750a9f0092",
+        "locator": "Bài trực tuyến: Kỷ niệm 225 năm Hoàng đế Quang Trung - Nguyễn Huệ đại phá quân xâm lược Mãn Thanh",
+        "excerpt": null,
+        "sortOrder": 5,
+        "createdAt": "2026-10-22T04:12:28.921Z",
+        "sourceRevisionId": "931ae431-b5dc-40f1-99cb-34f90690c322",
+        "historicalCitationId": null,
+        "source": {
+          "id": "bf358b8b-afde-41ae-867b-9f750a9f0092",
+          "tier": "TIER_3_KHOA_HOC",
+          "title": "Kỷ niệm 225 năm Hoàng đế Quang Trung - Nguyễn Huệ đại phá quân xâm lược Mãn Thanh",
+          "originalTitle": null,
+          "author": null,
+          "translator": null,
+          "publisher": "Bảo tàng Lịch sử Quốc gia",
+          "publicationYear": null,
+          "edition": null,
+          "isbn": null,
+          "url": "https://baotanglichsuquocgia.vn/vi/Articles/3097/15721/ky-niem-225-nam-1789-2014-hoang-dje-quang-trung-nguyen-hue-djai-pha-quan-xam-luoc-man-thanh.html",
+          "createdById": "MDYzo7AMp4Tm1taqnZTx1NzSAciBrCNr",
+          "archivedAt": null,
+          "createdAt": "2026-10-22T04:12:28.886Z",
+          "updatedAt": "2026-10-22T04:12:28.886Z",
+          "fileAssetId": null,
+          "version": 1,
+          "verificationStatus": "VERIFIED",
+          "verifiedVersion": 1,
+          "verifiedById": null,
+          "verifiedAt": "2026-10-22T04:12:28.886Z",
+          "verificationNote": "Dữ liệu demo landing, bổ sung tự động theo yêu cầu chủ workspace. Đối chiếu nguồn trực tuyến; không phải xác nhận duyệt biên tập của con người. MP3 là audio mẫu, chưa phải bản đọc kịch bản này."
+        },
+        "sourceRevision": {
+          "id": "931ae431-b5dc-40f1-99cb-34f90690c322",
+          "sourceId": "bf358b8b-afde-41ae-867b-9f750a9f0092",
+          "version": 1,
+          "snapshot": {
+            "id": "bf358b8b-afde-41ae-867b-9f750a9f0092",
+            "url": "https://baotanglichsuquocgia.vn/vi/Articles/3097/15721/ky-niem-225-nam-1789-2014-hoang-dje-quang-trung-nguyen-hue-djai-pha-quan-xam-luoc-man-thanh.html",
+            "isbn": null,
+            "tier": "TIER_3_KHOA_HOC",
+            "title": "Kỷ niệm 225 năm Hoàng đế Quang Trung - Nguyễn Huệ đại phá quân xâm lược Mãn Thanh",
+            "author": null,
+            "edition": null,
+            "version": 1,
+            "createdAt": "2026-10-22T04:12:28.886Z",
+            "publisher": "Bảo tàng Lịch sử Quốc gia",
+            "updatedAt": "2026-10-22T04:12:28.886Z",
+            "archivedAt": null,
+            "translator": null,
+            "verifiedAt": "2026-10-22T04:12:28.886Z",
+            "createdById": "MDYzo7AMp4Tm1taqnZTx1NzSAciBrCNr",
+            "fileAssetId": null,
+            "verifiedById": null,
+            "originalTitle": null,
+            "publicationYear": null,
+            "verifiedVersion": 1,
+            "verificationNote": "Dữ liệu demo landing, bổ sung tự động theo yêu cầu chủ workspace. Đối chiếu nguồn trực tuyến; không phải xác nhận duyệt biên tập của con người. MP3 là audio mẫu, chưa phải bản đọc kịch bản này.",
+            "verificationStatus": "VERIFIED"
+          },
+          "fileAssetId": null,
+          "createdById": "MDYzo7AMp4Tm1taqnZTx1NzSAciBrCNr",
+          "createdAt": "2026-10-22T04:12:28.888Z"
+        }
+      }
+    ],
+    "primaryHistoricalEvent": {
+      "id": "b9a71917-382c-432c-a228-512db3bef331",
+      "entityType": "EVENT",
+      "name": "Chiến thắng Bạch Đằng năm 938",
+      "slug": "landing-demo-chien-thang-bach-dang-938",
+      "aliases": [],
+      "startYear": 938,
+      "endYear": 939,
+      "summary": "Theo dấu kế sách của Ngô Quyền: phối hợp bãi cọc, thủy triều và thế trận trên sông để đánh bại quân Nam Hán năm 938.",
+      "createdById": "MDYzo7AMp4Tm1taqnZTx1NzSAciBrCNr",
+      "createdAt": "2026-10-22T04:12:28.760Z",
+      "updatedAt": "2026-10-22T04:12:28.762Z",
+      "time": {
+        "at": {
+          "year": 938,
+          "precision": "YEAR",
+          "approximate": false
+        },
+        "kind": "POINT"
+      },
+      "version": 2,
+      "deletedAt": null,
+      "historicalPhaseId": "d410b9fe-f074-4e30-a0fe-bdcabc4d035e",
+      "reviewStatus": "APPROVED",
+      "reviewedVersion": 2,
+      "reviewedById": null,
+      "reviewedAt": "2026-10-22T04:12:28.761Z",
+      "reviewNote": "Dữ liệu demo landing, bổ sung tự động theo yêu cầu chủ workspace. Đối chiếu nguồn trực tuyến; không phải xác nhận duyệt biên tập của con người. MP3 là audio mẫu, chưa phải bản đọc kịch bản này.",
+      "revisions": [
+        {
+          "id": "6256b3da-53b0-4cd9-b8a9-86a0f6b799a4",
+          "entityId": "b9a71917-382c-432c-a228-512db3bef331",
+          "version": 2,
+          "snapshot": {
+            "id": "b9a71917-382c-432c-a228-512db3bef331",
+            "name": "Chiến thắng Bạch Đằng năm 938",
+            "slug": "landing-demo-chien-thang-bach-dang-938",
+            "time": {
+              "at": {
+                "year": 938,
+                "precision": "YEAR",
+                "approximate": false
+              },
+              "kind": "POINT"
+            },
+            "aliases": [],
+            "endYear": 939,
+            "summary": "Theo dấu kế sách của Ngô Quyền: phối hợp bãi cọc, thủy triều và thế trận trên sông để đánh bại quân Nam Hán năm 938.",
+            "version": 2,
+            "citations": [
+              {
+                "id": "e4d70bd5-d5ab-4c20-bfdb-5fd506d7acdd",
+                "note": "Dữ liệu demo landing, bổ sung tự động theo yêu cầu chủ workspace. Đối chiếu nguồn trực tuyến; không phải xác nhận duyệt biên tập của con người. MP3 là audio mẫu, chưa phải bản đọc kịch bản này.",
+                "excerpt": null,
+                "locator": "Bài trực tuyến: Ngô Quyền và chiến thắng Bạch Đằng năm 938",
+                "phaseId": null,
+                "entityId": "b9a71917-382c-432c-a228-512db3bef331",
+                "periodId": null,
+                "sourceId": "d4cc0178-2118-46a8-b1d5-55e44df66bd7",
+                "createdAt": "2026-10-22T04:12:28.765Z",
+                "sortOrder": 0,
+                "updatedAt": "2026-10-22T04:12:28.765Z",
+                "createdById": "MDYzo7AMp4Tm1taqnZTx1NzSAciBrCNr",
+                "sourceRevision": {
+                  "id": "0f983e71-19ee-4f89-8d96-68cb719c12d2",
+                  "version": 1,
+                  "snapshot": {
+                    "id": "d4cc0178-2118-46a8-b1d5-55e44df66bd7",
+                    "url": "https://baotanglichsu.vn/vi/Articles/3098/13934/ngo-quyen-va-chien-thang-bach-djang-nam-938.html",
+                    "isbn": null,
+                    "tier": "TIER_3_KHOA_HOC",
+                    "title": "Ngô Quyền và chiến thắng Bạch Đằng năm 938",
+                    "author": null,
+                    "edition": null,
+                    "version": 1,
+                    "createdAt": "2026-10-22T04:12:28.754Z",
+                    "publisher": "Bảo tàng Lịch sử Quốc gia",
+                    "updatedAt": "2026-10-22T04:12:28.754Z",
+                    "archivedAt": null,
+                    "translator": null,
+                    "verifiedAt": "2026-10-22T04:12:28.753Z",
+                    "createdById": "MDYzo7AMp4Tm1taqnZTx1NzSAciBrCNr",
+                    "fileAssetId": null,
+                    "verifiedById": null,
+                    "originalTitle": null,
+                    "publicationYear": null,
+                    "verifiedVersion": 1,
+                    "verificationNote": "Dữ liệu demo landing, bổ sung tự động theo yêu cầu chủ workspace. Đối chiếu nguồn trực tuyến; không phải xác nhận duyệt biên tập của con người. MP3 là audio mẫu, chưa phải bản đọc kịch bản này.",
+                    "verificationStatus": "VERIFIED"
+                  },
+                  "sourceId": "d4cc0178-2118-46a8-b1d5-55e44df66bd7",
+                  "createdAt": "2026-10-22T04:12:28.755Z",
+                  "createdById": "MDYzo7AMp4Tm1taqnZTx1NzSAciBrCNr",
+                  "fileAssetId": null
+                },
+                "sourceRevisionId": "0f983e71-19ee-4f89-8d96-68cb719c12d2"
+              }
+            ],
+            "createdAt": "2026-10-22T04:12:28.760Z",
+            "deletedAt": null,
+            "startYear": 938,
+            "updatedAt": "2026-10-22T04:12:28.762Z",
+            "entityType": "EVENT",
+            "reviewNote": "Dữ liệu demo landing, bổ sung tự động theo yêu cầu chủ workspace. Đối chiếu nguồn trực tuyến; không phải xác nhận duyệt biên tập của con người. MP3 là audio mẫu, chưa phải bản đọc kịch bản này.",
+            "reviewedAt": "2026-10-22T04:12:28.761Z",
+            "createdById": "MDYzo7AMp4Tm1taqnZTx1NzSAciBrCNr",
+            "reviewStatus": "APPROVED",
+            "reviewedById": null,
+            "reviewedVersion": 2,
+            "historicalPhaseId": "d410b9fe-f074-4e30-a0fe-bdcabc4d035e"
+          },
+          "createdById": "MDYzo7AMp4Tm1taqnZTx1NzSAciBrCNr",
+          "createdAt": "2026-10-22T04:12:28.770Z"
+        }
+      ],
+      "citations": [
+        {
+          "id": "e4d70bd5-d5ab-4c20-bfdb-5fd506d7acdd",
+          "periodId": null,
+          "phaseId": null,
+          "entityId": "b9a71917-382c-432c-a228-512db3bef331",
+          "sourceId": "d4cc0178-2118-46a8-b1d5-55e44df66bd7",
+          "sourceRevisionId": "0f983e71-19ee-4f89-8d96-68cb719c12d2",
+          "locator": "Bài trực tuyến: Ngô Quyền và chiến thắng Bạch Đằng năm 938",
+          "excerpt": null,
+          "note": "Dữ liệu demo landing, bổ sung tự động theo yêu cầu chủ workspace. Đối chiếu nguồn trực tuyến; không phải xác nhận duyệt biên tập của con người. MP3 là audio mẫu, chưa phải bản đọc kịch bản này.",
+          "sortOrder": 0,
+          "createdById": "MDYzo7AMp4Tm1taqnZTx1NzSAciBrCNr",
+          "createdAt": "2026-10-22T04:12:28.765Z",
+          "updatedAt": "2026-10-22T04:12:28.765Z"
+        }
+      ]
+    }
+  },
+  {
+    "id": "8666cf33-3914-46a9-a531-ae9569f5cb39",
+    "ownerId": "MDYzo7AMp4Tm1taqnZTx1NzSAciBrCNr",
+    "topicId": "8b1f9fc1-226f-448d-83c7-c1fe27ad2870",
+    "historicalPhaseId": "a0a212bd-ca22-4f2f-be17-5637e6338e93",
+    "title": "Việt Nam thời kỳ đổi mới",
+    "slug": "viet-nam-thoi-ky-doi-moi",
+    "description": "Việt Nam thời kỳ đổi mới: Đại hội VI diễn ra tại Hà Nội từ ngày 15 đến 18 tháng 12 năm 1986, mở đầu đường lối Đổi mới trong bối cảnh đất nước cần những thay đổi sâu rộng.\n\nBộ dữ liệu demo landing; audio dùng tệp MP3 mẫu.",
+    "coverImageAssetId": null,
+    "coverLandscapeAssetId": null,
+    "startYear": 1986,
+    "endYear": 1986,
+    "status": "PUBLISHED",
+    "statusBeforeDelete": null,
+    "adminLockedAt": null,
+    "adminLockedById": null,
+    "publishedAt": "2026-10-22T04:12:29.568Z",
+    "deletedAt": null,
+    "createdAt": "2026-10-22T01:42:16.187Z",
+    "updatedAt": "2026-10-22T04:12:29.569Z",
+    "primaryHistoricalEventId": "6e1b8791-85dd-476d-880a-33ed6644a62d",
+    "historicalEntityRevisionId": "ada3c2dd-82e3-49b7-9356-9d9ca009e87a",
+    "publicationEvidence": {
+      "asOf": "2026-10-22T04:12:29.568Z",
+      "event": {
+        "id": "6e1b8791-85dd-476d-880a-33ed6644a62d",
+        "name": "Đại hội VI khởi xướng công cuộc Đổi mới",
+        "slug": "landing-demo-dai-hoi-dang-toan-quoc-lan-thu-vi-doi-moi",
+        "time": {
+          "at": {
+            "year": 1986,
+            "precision": "YEAR",
+            "approximate": false
+          },
+          "kind": "POINT"
+        },
+        "version": 2
+      },
+      "sources": [
+        {
+          "id": "467b94d9-049c-45bb-ba41-a71c1f636212",
+          "file": null,
+          "source": {
+            "url": "https://tulieuvankien.dangcongsan.vn/ban-chap-hanh-trung-uong-dang/dai-hoi-dang/lan-thu-vi/dai-hoi-dai-bieu-toan-quoc-lan-thu-vi-cua-dang-19",
+            "isbn": null,
+            "tier": "TIER_3_KHOA_HOC",
+            "title": "Đại hội đại biểu toàn quốc lần thứ VI của Đảng",
+            "author": null,
+            "edition": null,
+            "publisher": "Tư liệu - Văn kiện Đảng",
+            "publicationYear": null
+          },
+          "excerpt": null,
+          "locator": "Bài trực tuyến: Đại hội đại biểu toàn quốc lần thứ VI của Đảng",
+          "verifiedAt": "2026-10-22T04:12:29.058Z",
+          "sourceVersion": 1,
+          "sourceRevisionId": "6d005556-e890-4a76-a85e-67cc34d2002f"
+        }
+      ]
+    },
+    "episodes": [
+      {
+        "id": "58913625-d533-4c85-b57a-bf29fb846a6b",
+        "seriesId": "8666cf33-3914-46a9-a531-ae9569f5cb39",
+        "title": "Đại hội Đảng toàn quốc lần thứ VI khởi xướng công cuộc \"Đổi mới\"",
+        "slug": "dai-hoi-dang-toan-quoc-lan-thu-vi-doi-moi",
+        "description": "Đại hội VI diễn ra tại Hà Nội từ ngày 15 đến 18 tháng 12 năm 1986, mở đầu đường lối Đổi mới trong bối cảnh đất nước cần những thay đổi sâu rộng.\n\nBản nghe demo dùng MP3 mẫu để xem và thử giao diện.",
+        "sortOrder": 1,
+        "status": "PUBLISHED",
+        "statusBeforeDelete": null,
+        "adminLockedAt": null,
+        "adminLockedById": null,
+        "publishedAt": "2026-10-22T04:12:29.542Z",
+        "deletedAt": null,
+        "createdAt": "2026-10-22T01:42:16.192Z",
+        "updatedAt": "2026-10-22T04:12:29.543Z",
+        "contentRevision": 4,
+        "narrations": [
+          {
+            "id": "acf85900-c551-4f2f-9a63-5a290c418c67",
+            "episodeId": "58913625-d533-4c85-b57a-bf29fb846a6b",
+            "narrationType": "THIRD_PERSON",
+            "narratorEntityId": null,
+            "scriptContent": "Từ ngày mười lăm đến ngày mười tám tháng mười hai năm 1986, Đại hội đại biểu toàn quốc lần thứ sáu của Đảng họp tại Hà Nội. Đại hội đánh dấu sự khởi đầu của đường lối Đổi mới.\n\nĐổi mới đặt ra yêu cầu xem xét thực trạng và thay đổi cách lãnh đạo, tổ chức cùng phương thức quản lý. Những quyết định của Đại hội gắn với việc tìm hướng giải quyết khó khăn của đất nước, trước hết trong lĩnh vực kinh tế.\n\nĐây là một dấu mốc để tìm hiểu quá trình chuyển biến diễn ra trong nhiều năm sau đó. Khi học về Đổi mới, cần phân biệt quyết định khởi đầu với những bước triển khai và kết quả ở các giai đoạn tiếp theo.",
+            "scriptDocument": {
+              "type": "doc",
+              "content": [
+                {
+                  "type": "paragraph",
+                  "content": [
+                    {
+                      "text": "Từ ngày mười lăm đến ngày mười tám tháng mười hai năm 1986, Đại hội đại biểu toàn quốc lần thứ sáu của Đảng họp tại Hà Nội. Đại hội đánh dấu sự khởi đầu của đường lối Đổi mới.",
+                      "type": "text"
+                    }
+                  ]
+                },
+                {
+                  "type": "paragraph",
+                  "content": [
+                    {
+                      "text": "Đổi mới đặt ra yêu cầu xem xét thực trạng và thay đổi cách lãnh đạo, tổ chức cùng phương thức quản lý. Những quyết định của Đại hội gắn với việc tìm hướng giải quyết khó khăn của đất nước, trước hết trong lĩnh vực kinh tế.",
+                      "type": "text"
+                    }
+                  ]
+                },
+                {
+                  "type": "paragraph",
+                  "content": [
+                    {
+                      "text": "Đây là một dấu mốc để tìm hiểu quá trình chuyển biến diễn ra trong nhiều năm sau đó. Khi học về Đổi mới, cần phân biệt quyết định khởi đầu với những bước triển khai và kết quả ở các giai đoạn tiếp theo.",
+                      "type": "text"
+                    }
+                  ]
+                }
+              ]
+            },
+            "audioAnalysis": null,
+            "audioAssetId": "c2541978-fe0a-4ece-9735-5b521883a06a",
+            "scriptUpdatedAt": "2026-10-22T04:12:29.073Z",
+            "audioAttachedAt": "2026-10-22T01:42:17.378Z",
+            "createdAt": "2026-10-22T01:42:16.194Z",
+            "updatedAt": "2026-10-22T04:12:29.074Z",
+            "audioAsset": {
+              "id": "c2541978-fe0a-4ece-9735-5b521883a06a",
+              "kind": "AUDIO",
+              "publicId": "su-ky/audio/seed-vietnam/dai-hoi-dang-toan-quoc-lan-thu-vi-doi-moi-58c6ac7704ceee0a",
+              "status": "READY",
+              "version": "1792633336",
+              "format": "mp3",
+              "sizeBytes": "2850516",
+              "durationMs": 181969,
+              "widthPx": null,
+              "heightPx": null,
+              "uploadedById": "MDYzo7AMp4Tm1taqnZTx1NzSAciBrCNr",
+              "createdAt": "2026-10-22T01:42:17.377Z",
+              "verifiedAt": "2026-10-22T01:42:17.376Z",
+              "detachedAt": null,
+              "deletedAt": null
+            }
+          }
+        ],
+        "attachments": [
+          {
+            "id": "08f8f83b-61a9-4cbb-be1c-536ec43f755a",
+            "episodeId": "58913625-d533-4c85-b57a-bf29fb846a6b",
+            "mediaAssetId": "fa4297d9-0bc5-4ef3-a54c-c3c8b2fde444",
+            "fileName": "10-dai-hoi-vi-doi-moi.jpg",
+            "createdAt": "2026-10-22T01:51:29.728Z",
+            "updatedAt": "2026-10-22T01:51:29.728Z"
+          }
+        ],
+        "entityTags": [
+          {
+            "id": "b57095a5-fba7-4ba8-8d3c-94b3794e32d2",
+            "episodeId": "58913625-d533-4c85-b57a-bf29fb846a6b",
+            "entityId": "6e1b8791-85dd-476d-880a-33ed6644a62d",
+            "status": "CONFIRMED",
+            "origin": "MODERATOR",
+            "confirmedById": null,
+            "confirmedAt": "2026-10-22T04:12:29.076Z",
+            "createdAt": "2026-10-22T04:12:29.077Z"
+          }
+        ]
+      }
+    ],
+    "sources": [
+      {
+        "id": "25fe40d8-6aca-4652-82ed-b9241a7966a4",
+        "seriesId": "8666cf33-3914-46a9-a531-ae9569f5cb39",
+        "sourceId": "467b94d9-049c-45bb-ba41-a71c1f636212",
+        "locator": "Bài trực tuyến: Đại hội đại biểu toàn quốc lần thứ VI của Đảng",
+        "excerpt": null,
+        "sortOrder": 1,
+        "createdAt": "2026-10-22T04:12:29.079Z",
+        "sourceRevisionId": "6d005556-e890-4a76-a85e-67cc34d2002f",
+        "historicalCitationId": "0e43cffb-a2bf-43b4-a380-f2b090523951",
+        "source": {
+          "id": "467b94d9-049c-45bb-ba41-a71c1f636212",
+          "tier": "TIER_3_KHOA_HOC",
+          "title": "Đại hội đại biểu toàn quốc lần thứ VI của Đảng",
+          "originalTitle": null,
+          "author": null,
+          "translator": null,
+          "publisher": "Tư liệu - Văn kiện Đảng",
+          "publicationYear": null,
+          "edition": null,
+          "isbn": null,
+          "url": "https://tulieuvankien.dangcongsan.vn/ban-chap-hanh-trung-uong-dang/dai-hoi-dang/lan-thu-vi/dai-hoi-dai-bieu-toan-quoc-lan-thu-vi-cua-dang-19",
+          "createdById": "MDYzo7AMp4Tm1taqnZTx1NzSAciBrCNr",
+          "archivedAt": null,
+          "createdAt": "2026-10-22T04:12:29.059Z",
+          "updatedAt": "2026-10-22T04:12:29.059Z",
+          "fileAssetId": null,
+          "version": 1,
+          "verificationStatus": "VERIFIED",
+          "verifiedVersion": 1,
+          "verifiedById": null,
+          "verifiedAt": "2026-10-22T04:12:29.058Z",
+          "verificationNote": "Dữ liệu demo landing, bổ sung tự động theo yêu cầu chủ workspace. Đối chiếu nguồn trực tuyến; không phải xác nhận duyệt biên tập của con người. MP3 là audio mẫu, chưa phải bản đọc kịch bản này."
+        },
+        "sourceRevision": {
+          "id": "6d005556-e890-4a76-a85e-67cc34d2002f",
+          "sourceId": "467b94d9-049c-45bb-ba41-a71c1f636212",
+          "version": 1,
+          "snapshot": {
+            "id": "467b94d9-049c-45bb-ba41-a71c1f636212",
+            "url": "https://tulieuvankien.dangcongsan.vn/ban-chap-hanh-trung-uong-dang/dai-hoi-dang/lan-thu-vi/dai-hoi-dai-bieu-toan-quoc-lan-thu-vi-cua-dang-19",
+            "isbn": null,
+            "tier": "TIER_3_KHOA_HOC",
+            "title": "Đại hội đại biểu toàn quốc lần thứ VI của Đảng",
+            "author": null,
+            "edition": null,
+            "version": 1,
+            "createdAt": "2026-10-22T04:12:29.059Z",
+            "publisher": "Tư liệu - Văn kiện Đảng",
+            "updatedAt": "2026-10-22T04:12:29.059Z",
+            "archivedAt": null,
+            "translator": null,
+            "verifiedAt": "2026-10-22T04:12:29.058Z",
+            "createdById": "MDYzo7AMp4Tm1taqnZTx1NzSAciBrCNr",
+            "fileAssetId": null,
+            "verifiedById": null,
+            "originalTitle": null,
+            "publicationYear": null,
+            "verifiedVersion": 1,
+            "verificationNote": "Dữ liệu demo landing, bổ sung tự động theo yêu cầu chủ workspace. Đối chiếu nguồn trực tuyến; không phải xác nhận duyệt biên tập của con người. MP3 là audio mẫu, chưa phải bản đọc kịch bản này.",
+            "verificationStatus": "VERIFIED"
+          },
+          "fileAssetId": null,
+          "createdById": "MDYzo7AMp4Tm1taqnZTx1NzSAciBrCNr",
+          "createdAt": "2026-10-22T04:12:29.060Z"
+        }
+      }
+    ],
+    "primaryHistoricalEvent": {
+      "id": "6e1b8791-85dd-476d-880a-33ed6644a62d",
+      "entityType": "EVENT",
+      "name": "Đại hội VI khởi xướng công cuộc Đổi mới",
+      "slug": "landing-demo-dai-hoi-dang-toan-quoc-lan-thu-vi-doi-moi",
+      "aliases": [],
+      "startYear": 1986,
+      "endYear": 1987,
+      "summary": "Đại hội VI diễn ra tại Hà Nội từ ngày 15 đến 18 tháng 12 năm 1986, mở đầu đường lối Đổi mới trong bối cảnh đất nước cần những thay đổi sâu rộng.",
+      "createdById": "MDYzo7AMp4Tm1taqnZTx1NzSAciBrCNr",
+      "createdAt": "2026-10-22T04:12:29.063Z",
+      "updatedAt": "2026-10-22T04:12:29.064Z",
+      "time": {
+        "at": {
+          "year": 1986,
+          "precision": "YEAR",
+          "approximate": false
+        },
+        "kind": "POINT"
+      },
+      "version": 2,
+      "deletedAt": null,
+      "historicalPhaseId": "a0a212bd-ca22-4f2f-be17-5637e6338e93",
+      "reviewStatus": "APPROVED",
+      "reviewedVersion": 2,
+      "reviewedById": null,
+      "reviewedAt": "2026-10-22T04:12:29.064Z",
+      "reviewNote": "Dữ liệu demo landing, bổ sung tự động theo yêu cầu chủ workspace. Đối chiếu nguồn trực tuyến; không phải xác nhận duyệt biên tập của con người. MP3 là audio mẫu, chưa phải bản đọc kịch bản này.",
+      "revisions": [
+        {
+          "id": "ada3c2dd-82e3-49b7-9356-9d9ca009e87a",
+          "entityId": "6e1b8791-85dd-476d-880a-33ed6644a62d",
+          "version": 2,
+          "snapshot": {
+            "id": "6e1b8791-85dd-476d-880a-33ed6644a62d",
+            "name": "Đại hội VI khởi xướng công cuộc Đổi mới",
+            "slug": "landing-demo-dai-hoi-dang-toan-quoc-lan-thu-vi-doi-moi",
+            "time": {
+              "at": {
+                "year": 1986,
+                "precision": "YEAR",
+                "approximate": false
+              },
+              "kind": "POINT"
+            },
+            "aliases": [],
+            "endYear": 1987,
+            "summary": "Đại hội VI diễn ra tại Hà Nội từ ngày 15 đến 18 tháng 12 năm 1986, mở đầu đường lối Đổi mới trong bối cảnh đất nước cần những thay đổi sâu rộng.",
+            "version": 2,
+            "citations": [
+              {
+                "id": "0e43cffb-a2bf-43b4-a380-f2b090523951",
+                "note": "Dữ liệu demo landing, bổ sung tự động theo yêu cầu chủ workspace. Đối chiếu nguồn trực tuyến; không phải xác nhận duyệt biên tập của con người. MP3 là audio mẫu, chưa phải bản đọc kịch bản này.",
+                "excerpt": null,
+                "locator": "Bài trực tuyến: Đại hội đại biểu toàn quốc lần thứ VI của Đảng",
+                "phaseId": null,
+                "entityId": "6e1b8791-85dd-476d-880a-33ed6644a62d",
+                "periodId": null,
+                "sourceId": "467b94d9-049c-45bb-ba41-a71c1f636212",
+                "createdAt": "2026-10-22T04:12:29.067Z",
+                "sortOrder": 0,
+                "updatedAt": "2026-10-22T04:12:29.067Z",
+                "createdById": "MDYzo7AMp4Tm1taqnZTx1NzSAciBrCNr",
+                "sourceRevision": {
+                  "id": "6d005556-e890-4a76-a85e-67cc34d2002f",
+                  "version": 1,
+                  "snapshot": {
+                    "id": "467b94d9-049c-45bb-ba41-a71c1f636212",
+                    "url": "https://tulieuvankien.dangcongsan.vn/ban-chap-hanh-trung-uong-dang/dai-hoi-dang/lan-thu-vi/dai-hoi-dai-bieu-toan-quoc-lan-thu-vi-cua-dang-19",
+                    "isbn": null,
+                    "tier": "TIER_3_KHOA_HOC",
+                    "title": "Đại hội đại biểu toàn quốc lần thứ VI của Đảng",
+                    "author": null,
+                    "edition": null,
+                    "version": 1,
+                    "createdAt": "2026-10-22T04:12:29.059Z",
+                    "publisher": "Tư liệu - Văn kiện Đảng",
+                    "updatedAt": "2026-10-22T04:12:29.059Z",
+                    "archivedAt": null,
+                    "translator": null,
+                    "verifiedAt": "2026-10-22T04:12:29.058Z",
+                    "createdById": "MDYzo7AMp4Tm1taqnZTx1NzSAciBrCNr",
+                    "fileAssetId": null,
+                    "verifiedById": null,
+                    "originalTitle": null,
+                    "publicationYear": null,
+                    "verifiedVersion": 1,
+                    "verificationNote": "Dữ liệu demo landing, bổ sung tự động theo yêu cầu chủ workspace. Đối chiếu nguồn trực tuyến; không phải xác nhận duyệt biên tập của con người. MP3 là audio mẫu, chưa phải bản đọc kịch bản này.",
+                    "verificationStatus": "VERIFIED"
+                  },
+                  "sourceId": "467b94d9-049c-45bb-ba41-a71c1f636212",
+                  "createdAt": "2026-10-22T04:12:29.060Z",
+                  "createdById": "MDYzo7AMp4Tm1taqnZTx1NzSAciBrCNr",
+                  "fileAssetId": null
+                },
+                "sourceRevisionId": "6d005556-e890-4a76-a85e-67cc34d2002f"
+              }
+            ],
+            "createdAt": "2026-10-22T04:12:29.063Z",
+            "deletedAt": null,
+            "startYear": 1986,
+            "updatedAt": "2026-10-22T04:12:29.064Z",
+            "entityType": "EVENT",
+            "reviewNote": "Dữ liệu demo landing, bổ sung tự động theo yêu cầu chủ workspace. Đối chiếu nguồn trực tuyến; không phải xác nhận duyệt biên tập của con người. MP3 là audio mẫu, chưa phải bản đọc kịch bản này.",
+            "reviewedAt": "2026-10-22T04:12:29.064Z",
+            "createdById": "MDYzo7AMp4Tm1taqnZTx1NzSAciBrCNr",
+            "reviewStatus": "APPROVED",
+            "reviewedById": null,
+            "reviewedVersion": 2,
+            "historicalPhaseId": "a0a212bd-ca22-4f2f-be17-5637e6338e93"
+          },
+          "createdById": "MDYzo7AMp4Tm1taqnZTx1NzSAciBrCNr",
+          "createdAt": "2026-10-22T04:12:29.070Z"
+        }
+      ],
+      "citations": [
+        {
+          "id": "0e43cffb-a2bf-43b4-a380-f2b090523951",
+          "periodId": null,
+          "phaseId": null,
+          "entityId": "6e1b8791-85dd-476d-880a-33ed6644a62d",
+          "sourceId": "467b94d9-049c-45bb-ba41-a71c1f636212",
+          "sourceRevisionId": "6d005556-e890-4a76-a85e-67cc34d2002f",
+          "locator": "Bài trực tuyến: Đại hội đại biểu toàn quốc lần thứ VI của Đảng",
+          "excerpt": null,
+          "note": "Dữ liệu demo landing, bổ sung tự động theo yêu cầu chủ workspace. Đối chiếu nguồn trực tuyến; không phải xác nhận duyệt biên tập của con người. MP3 là audio mẫu, chưa phải bản đọc kịch bản này.",
+          "sortOrder": 0,
+          "createdById": "MDYzo7AMp4Tm1taqnZTx1NzSAciBrCNr",
+          "createdAt": "2026-10-22T04:12:29.067Z",
+          "updatedAt": "2026-10-22T04:12:29.067Z"
+        }
+      ]
+    }
+  }
+]

@@ -323,6 +323,8 @@ export const PublicSeriesDetailDocSchema = z.object({
       slug: z.string(),
       title: z.string(),
       sortOrder: z.number().int(),
+      description: z.string().nullable(),
+      poster: PublicCoverSchema.describe("Poster IMAGE đã sẵn sàng; null nếu chưa có"),
       narrations: z.array(PublicNarrationSchema),
       viewer: z
         .object({

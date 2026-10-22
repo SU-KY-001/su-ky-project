@@ -4,7 +4,7 @@ import { PublicSeriesListItemSchema } from "./listening";
 const cover = z.object({ url: z.string() }).nullable();
 export const LibrarySeriesSchema = PublicSeriesListItemSchema.extend({ cover, coverLandscape: cover });
 export const LibraryNarrationSchema = z.object({ id: z.string().uuid(), type: z.enum(["FIRST_PERSON", "THIRD_PERSON"]), durationMs: z.number().nullable(), available: z.boolean() });
-export const LibraryChapterSchema = z.object({ id: z.string().uuid(), slug: z.string(), title: z.string(), sortOrder: z.number(), narrations: z.array(LibraryNarrationSchema) });
+export const LibraryChapterSchema = z.object({ id: z.string().uuid(), slug: z.string(), title: z.string(), description: z.string().nullable().optional(), poster: cover.optional(), sortOrder: z.number(), narrations: z.array(LibraryNarrationSchema) });
 export const LibrarySeriesDetailSchema = z.object({ id: z.string().uuid(), slug: z.string(), title: z.string(), description: z.string().nullable(), cover, episodes: z.array(LibraryChapterSchema), historicalEvent: z.object({ id: z.string(), name: z.string() }).optional() });
 export const LibraryEpisodeSchema = z.object({ id: z.string().uuid(), slug: z.string(), title: z.string(), description: z.string().nullable(), hasQuiz: z.boolean(), narrations: z.array(LibraryNarrationSchema.extend({ narrator: z.object({ name: z.string() }).nullable() })) });
 export const PublicHonorsQuerySchema = z.object({ period: z.enum(["week", "month"]).default("week") });

@@ -11,9 +11,10 @@ import { useCurrentUser } from "@/shared/hooks/useCurrentUser";
 import { AccountProfile } from "@/features/auth";
 
 const links = [
-  { label: "Dòng lịch sử", target: "library-history" },
-  { label: "Podcast", target: "library-podcasts" },
-  { label: "Lịch phát hành", target: "upcoming" },
+  { label: "Khám phá lịch sử", target: "library-history" },
+  { label: "Series & podcast", target: "library-podcasts" },
+  { label: "Quiz", target: "library-quiz" },
+  { label: "Lịch phát sóng", target: "upcoming" },
 ];
 
 function jumpTo(target: string): void {

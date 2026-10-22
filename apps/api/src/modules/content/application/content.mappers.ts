@@ -34,6 +34,11 @@ export function mapEpisodeAttachment(
   };
 }
 
+function mapEpisodePoster(attachments: EpisodeAttachmentEntity[] | undefined, storage?: MediaStorageGateway) {
+  const poster = attachments?.find((item) => item.mediaAsset.kind === "IMAGE" && item.mediaAsset.status === "READY" && !item.mediaAsset.deletedAt);
+  return poster ? { assetId: poster.mediaAsset.id, url: storage?.deliveryUrl(poster.mediaAsset) ?? null, fileName: poster.fileName, sizeBytes: poster.mediaAsset.sizeBytes === null ? null : Number(poster.mediaAsset.sizeBytes) } : null;
+}
+
 export function mapSeriesSource(
   item: SeriesSourceWithSourceEntity,
   storage?: MediaStorageGateway,
@@ -234,6 +239,7 @@ export function mapSeriesDetail(
         slug: episode.slug,
         sortOrder: episode.sortOrder,
         status: episode.status,
+        poster: mapEpisodePoster(episode.attachments, storage),
         progress: {
           hasThirdPersonScript: Boolean(third?.scriptContent?.trim()),
           hasThirdPersonAudio: third?.audioAsset?.status === "READY",
@@ -285,7 +291,6 @@ export async function mapWorkspace(
   episode: EpisodeWorkspaceEntity,
   storage?: MediaStorageGateway,
 ) {
-  const poster = episode.attachments.find((item) => item.mediaAsset.kind === "IMAGE");
   return {
     id: episode.id,
     seriesId: episode.seriesId,
@@ -305,7 +310,7 @@ export async function mapWorkspace(
     narrations: await Promise.all(
       episode.narrations.map((item) => mapNarration(item, storage)),
     ),
-    poster: poster ? { assetId: poster.mediaAsset.id, url: storage?.deliveryUrl(poster.mediaAsset) ?? null, fileName: poster.fileName, sizeBytes: poster.mediaAsset.sizeBytes === null ? null : Number(poster.mediaAsset.sizeBytes) } : null,
+    poster: mapEpisodePoster(episode.attachments, storage),
     attachments: episode.attachments.filter((item) => item.mediaAsset.kind === "DOCUMENT").map((item) =>
       mapEpisodeAttachment(item, storage),
     ),
