@@ -4,7 +4,7 @@ import { Database } from "bun:sqlite";
 import { z } from "zod";
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
-import { quoteInPage } from "./quote-check";
+import { quoteInPage } from "../src/modules/ai-assist/sources/quote-check";
 import type { ToolDefinition } from "@earendil-works/pi-coding-agent";
 import { runStructuredAgent } from "../src/modules/ai-engine/structured-agent-runner";
 
