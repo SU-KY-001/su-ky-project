@@ -5,6 +5,7 @@ import {
   SessionManager,
   SettingsManager,
   createAgentSession,
+  type ToolDefinition,
 } from "@earendil-works/pi-coding-agent";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -84,6 +85,8 @@ export interface StructuredAgentRequest<T> {
   schema: z.ZodType<T>;
   /** `WEB` loads pi-web-access only; default `NONE` disables every tool. */
   tools?: "WEB" | "NONE";
+  /** Backend-owned, read-only tools for this run only; their names become the allowlist. */
+  customTools?: ToolDefinition[];
   /** Tag for logs and trace events. */
   label?: string;
   /** Receives lifecycle events (turn/message/tool); streaming deltas are only logged. */
@@ -142,7 +145,10 @@ export async function runStructuredAgent<T>(request: StructuredAgentRequest<T>):
     resourceLoader,
     thinkingLevel: env.PI_THINKING_LEVEL,
   };
-  if (useWebTools) {
+  if (request.customTools?.length) {
+    sessionOptions.tools = request.customTools.map((tool) => tool.name);
+    sessionOptions.customTools = request.customTools;
+  } else if (useWebTools) {
     // Allowlist là bộ lọc cứng trên registry: mọi tool khác bị loại bỏ.
     sessionOptions.tools = [...WEB_TOOL_NAMES];
   } else {
