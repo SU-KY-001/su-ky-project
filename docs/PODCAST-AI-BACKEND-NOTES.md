@@ -1,5 +1,7 @@
 # Podcast AI Backend Notes
 
+> **Phần AI Assistant (script-analysis / script-suggestions) đã bị thay thế** bởi `plans/reports/brainstorm-261015-podcast-ai-script-assistant.md` (bộ route `ai-checks`, bảng `AiCheck`/`AiCheckItem`). Khi hai tài liệu mâu thuẫn về AI Assistant thì báo cáo đó là nguồn đúng. Phần ElevenLabs/giọng AI vẫn có hiệu lực ở đây. Notes sẽ được viết lại ở phase 5 của `plans/261015-1640-podcast-ai-source-check-p1/`.
+
 Tài liệu này ghi lại hướng mở rộng backend cho AI Assistant và ElevenLabs sau khi wizard sản xuất podcast truyền thống đã ổn định. Các mục dưới đây không thuộc phạm vi triển khai hiện tại.
 
 ## Nguyên tắc

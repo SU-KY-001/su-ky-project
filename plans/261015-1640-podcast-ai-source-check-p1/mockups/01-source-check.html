@@ -1,0 +1,175 @@
+<!doctype html><html lang="vi"><head><meta charset="utf-8"><title>AI rà kịch bản (P1)</title><meta name="viewport" content="width=device-width,initial-scale=1"><link rel="stylesheet" href="mock.css">
+<style>[hidden]{display:none!important}.editor p.cur{background:var(--info-bg);border-radius:4px;box-shadow:-8px 0 0 var(--info-bg),8px 0 0 var(--info-bg)}.editor p.flag{border-bottom:2px solid var(--warn)}.editor p.ok{border-bottom:2px solid var(--ok)}</style></head><body>
+<div class="top"><div class="crumb">Studio / Hào khí Đại Việt / <b>Tập 3: Cuộc dời đô</b></div><div class="row"><span class="low">Đã lưu 10:42</span><button class="btn p">Tiếp tục<i class="ph-bold ph-arrow-right"></i></button></div></div>
+<div class="steps"><span class="step done"><em><i class="ph-bold ph-check"></i></em>Thông tin</span><span class="step on"><em>2</em>Kịch bản</span><span class="step"><em>3</em>Giọng đọc</span><span class="step"><em>4</em>Xem lại</span></div>
+<div class="wrap"><div class="cols">
+ <section class="card">
+  <div class="toolbar"><span>B</span><span>I</span><span>H2</span></div>
+  <div class="editor" id="ed" contenteditable="true" spellcheck="false">
+   <p data-ref="b1">Năm 1010, Lý Thái Tổ dời đô về Thăng Long, mở ra một chương mới cho quốc gia Đại Việt.</p>
+   <p data-ref="b2">Chiếu dời đô nêu rõ vùng đất trung tâm trời đất, đất rộng mà bằng phẳng, nơi mà con cháu muôn đời về sau đều có thể trông thấy cảnh dân cư đông đúc sung túc.</p>
+   <p data-ref="b3">Năm 938, Trần Bạch Đằng là người chỉ huy trận đánh trên sông, đập tan quân Nam Hán.</p>
+   <p data-ref="b4">Quân Nguyên Mông sau này có hơn 500 nghìn người nhưng vẫn thất bại.</p>
+   <p data-ref="b5">Triều Lý đóng đô tại Thăng Long suốt 215 năm.</p>
+  </div>
+  <p class="low">Bạn có thể gõ và sửa trực tiếp. Đoạn nào đã đổi từ lúc AI rà, nút "Áp dụng đề xuất" sẽ từ chối để không ghi đè chữ của bạn.</p>
+ </section>
+
+ <aside data-panel data-view="idle" class="stack">
+  <h3 style="font-size:15px">Trợ lý AI</h3>
+
+  <div data-v="idle" class="card tight">
+   <h2 class="big">AI rà kịch bản</h2>
+   <p class="muted">AI đọc kịch bản và nhắc chỗ có thể sai sự thật, chỗ khó đọc thành tiếng hoặc mạch chưa liền. Đó chỉ là cảnh báo nhẹ. Bạn quyết định, AI không tự sửa.</p>
+   <button class="btn p" data-open="#m-config"><i class="ph-bold ph-magnifying-glass"></i>Bắt đầu rà</button>
+   <p class="low">Lần rà gần nhất: chưa có.</p>
+   <div class="alert warn" id="rerr" hidden><i class="ph-bold ph-warning"></i><span></span></div>
+  </div>
+
+  <div data-v="running" class="card tight">
+   <div class="row sp"><h3>AI đang rà…</h3><span class="tag t-info">Đang chạy</span></div>
+   <div class="meter"><span data-fill="92%"></span></div>
+   <p class="low">Bạn vẫn có thể tiếp tục gõ kịch bản trong lúc chờ.</p>
+   <button class="btn" data-go="idle"><i class="ph-bold ph-x"></i>Hủy</button>
+  </div>
+
+  <div data-v="list" class="card tight">
+   <div class="row sp"><h2 class="big" id="lcount"></h2><span class="tag t-warn">AI nghi ngờ, chưa xác minh</span></div>
+   <p class="low" id="lsum"></p>
+   <p class="low" id="ltrace"></p>
+   <div class="stack s8" id="list"></div>
+   <div class="row"><button class="btn sm" data-open="#m-config"><i class="ph-bold ph-arrow-clockwise"></i>Rà lại</button></div>
+   <p class="low">AI có thể báo nhầm hoặc bỏ sót. Bấm một dòng để xem chi tiết.</p>
+  </div>
+
+  <div data-v="detail" class="card tight">
+   <div class="row sp"><div class="row"><span class="tag" id="dkind"></span><span class="tag t-mute" id="dsev"></span></div><span class="low" id="dwhere"></span></div>
+   <span class="tag t-warn" style="justify-self:start">AI nghi ngờ, chưa xác minh</span>
+   <p id="dmsg"></p>
+   <div class="stack s8" id="dsug"><h3>Đề xuất sửa</h3><div class="diff" id="ddiff"></div></div>
+   <div class="stack s8" id="dev"></div>
+   <div class="alert warn" id="dstale" hidden><i class="ph-bold ph-warning"></i><span>Đoạn đã đổi, chạy lại. Hệ thống không ghi đè chữ của bạn.</span></div>
+   <div class="alert ok" id="dapplied" hidden><i class="ph-bold ph-check-circle"></i><span>Đã áp dụng vào đoạn này. Bấm <kbd>Ctrl</kbd>+<kbd>Z</kbd> trong editor để hoàn tác.</span></div>
+   <button class="btn" id="dapply"><i class="ph-bold ph-check"></i>Áp dụng đề xuất</button>
+   <div class="row sp"><button class="btn" data-go="list">Quay lại</button><button class="btn p" id="ddone">Hoàn tất</button></div>
+  </div>
+ </aside>
+</div></div>
+
+<div class="modal" id="m-config"><div class="dialog">
+ <div class="dhead"><div><p class="low">AI rà kịch bản</p><h2 class="dtitle">Rà phần nào?</h2></div><div class="dots"><span></span><span></span></div></div>
+ <div data-s="1" data-title="Rà phần nào?"><div class="dbody">
+  <label class="opt"><input type="radio" name="sc" value="all" checked><div><b>Cả kịch bản</b><span class="low">5 đoạn.</span></div></label>
+  <label class="opt" id="sc-sel"><input type="radio" name="sc" value="sel"><div><b>Đoạn đang chọn</b><span class="low" id="sc-hint"></span></div></label></div>
+  <div class="dfoot"><button class="btn" data-close>Đóng</button><button class="btn p" data-step-go="2">Tiếp<i class="ph-bold ph-arrow-right"></i></button></div></div>
+ <div data-s="2" data-title="Ghi chú cho AI"><div class="dbody">
+  <label class="f">Ghi chú cho AI <small>Tùy chọn. AI có thể đọc nguồn của series làm nền, nếu series có.</small><textarea rows="3" placeholder="Ví dụ: bỏ qua đoạn mở đầu vì đó là lời dẫn"></textarea></label>
+  <div class="alert info"><i class="ph-bold ph-info"></i><span>Nội dung kịch bản được gửi tới nhà cung cấp AI. AI không ghi gì vào kịch bản.</span></div></div>
+  <div class="dfoot"><button class="btn" data-step-go="1">Quay lại</button><button class="btn p" id="run" data-close data-go="running" data-target="aside[data-panel]"><i class="ph-bold ph-play"></i>Chạy</button></div></div>
+</div></div>
+<p class="note">Mockup tĩnh có tương tác. Gõ Esc để đóng hộp thoại.</p>
+<script src="mock.js"></script>
+<script>
+const P = $("aside[data-panel]"), ED = $("#ed");
+const KIND = { FACT_DOUBT: ["Nghi sai", "t-bad"], READABILITY: ["Đọc thành tiếng", "t-info"] };
+const kindOf = (it) => (it.basis === "NOT_FOUND" ? ["Chưa thấy trong nguồn", "t-mute"] : KIND[it.kind]);
+const hash = (s) => { let h = 5381; for (const c of s) h = ((h << 5) + h + c.charCodeAt(0)) | 0; return h; };
+const txt = (p) => p.textContent.trim();
+let items = [], cur = null;
+const blk = (ref) => $(`#ed p[data-ref="${ref}"]`);
+// Từ-diff đơn giản bằng LCS.
+function wdiff(a, b) {
+  const x = a.split(/\s+/), y = b.split(/\s+/), L = Array.from({ length: x.length + 1 }, () => Array(y.length + 1).fill(0));
+  for (let i = x.length - 1; i >= 0; i--) for (let j = y.length - 1; j >= 0; j--) L[i][j] = x[i] === y[j] ? L[i + 1][j + 1] + 1 : Math.max(L[i + 1][j], L[i][j + 1]);
+  let i = 0, j = 0, o = [];
+  const push = (t, w) => { const l = o[o.length - 1]; l && l[0] === t ? l[1].push(w) : o.push([t, [w]]); };
+  while (i < x.length || j < y.length) {
+    if (i < x.length && j < y.length && x[i] === y[j]) { push("=", x[i]); i++; j++; }
+    else if (j < y.length && (i === x.length || L[i][j + 1] >= L[i + 1][j])) push("+", y[j++]);
+    else push("-", x[i++]);
+  }
+  const esc = (s) => s.replace(/[&<>]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" })[c]);
+  return o.map(([t, w]) => (t === "=" ? esc(w.join(" ")) : t === "+" ? `<ins>${esc(w.join(" "))}</ins>` : `<del>${esc(w.join(" "))}</del>`)).join(" ");
+}
+const num = (it) => `Đoạn ${+it.ref.slice(1)}`;
+function paint() {
+  $$("#ed p").forEach((p) => p.classList.remove("flag", "ok", "cur"));
+  items.forEach((it) => { const p = blk(it.ref); if (p) p.classList.add(it.appliedAt ? "ok" : "flag"); });
+  if (cur) blk(cur.ref)?.classList.add("cur");
+}
+function renderList() {
+  const seen = items.filter((i) => i.status === "REVIEWED").length;
+  $("#lcount").textContent = items.length ? `${items.length} cảnh báo` : "Không có cảnh báo";
+  $("#lsum").textContent = `${seen} đã xem, ${items.length - seen} chưa xem`;
+  $("#list").innerHTML = "";
+  items.forEach((it, n) => {
+    const b = document.createElement("button"), k = kindOf(it);
+    b.className = "opt"; b.style.alignItems = "center";
+    b.innerHTML = `<div style="flex:1;min-width:0"><div class="row wr"><span class="tag ${k[1]}">${k[0]}</span><span class="low" style="display:inline">${num(it)}</span></div><span class="low" style="color:var(--text);font-size:13px">${esc(it.message.replace(/ AI nghi ngờ.*$/, ""))}</span></div><div class="stack s8" style="justify-items:end"><span class="tag ${it.status === "REVIEWED" ? "t-ok" : "t-mute"}">${it.status === "REVIEWED" ? "đã xem" : "chưa xem"}</span>${it.appliedAt ? '<span class="tag t-info">đã áp dụng</span>' : ""}</div>`;
+    b.onclick = () => open(n);
+    $("#list").append(b);
+  });
+  paint();
+}
+function open(n) {
+  cur = items[n];
+  const k = kindOf(cur), p = blk(cur.ref);
+  $("#dkind").className = "tag " + k[1]; $("#dkind").textContent = k[0];
+  $("#dsev").textContent = "Mức " + cur.severity.toLowerCase(); $("#dwhere").textContent = num(cur);
+  $("#dmsg").textContent = cur.message;
+  const stale = !p || hash(txt(p)) !== cur.hash && !cur.appliedAt;
+  $("#ddiff").innerHTML = cur.to ? wdiff(cur.orig, cur.to) : ""; $("#dsug").hidden = !cur.to;
+  $("#dev").innerHTML = cur.evidence.length ? "<h3>Nguồn đối chiếu</h3>" + cur.evidence.map((e) => `<blockquote class="low" style="margin:0;padding-left:10px;border-left:2px solid var(--border)">\u201c${esc(e.quote)}\u201d<br>Đại Việt sử ký toàn thư, tr. ${e.page}</blockquote>`).join("") : cur.basis === "NOT_FOUND" ? '<p class="low">Hệ thống chưa dẫn được câu nguồn nguyên văn cho chỗ này. Điều đó không có nghĩa là sai.</p>' : "";
+  $("#dstale").hidden = !stale; $("#dapplied").hidden = !cur.appliedAt;
+  $("#dapply").disabled = !!cur.appliedAt; // .btn[disabled] đã mờ + chặn click
+  $("#dapply").style.display = cur.appliedAt || !cur.to ? "none" : "";
+  setView(P, "detail"); paint(); p?.scrollIntoView({ block: "center", behavior: "smooth" });
+}
+$("#dapply").onclick = () => {
+  const p = blk(cur.ref);
+  if (!p || hash(txt(p)) !== cur.hash) { $("#dstale").hidden = false; return; } // chống ghi đè chữ mod đã sửa
+  p.textContent = cur.to; cur.appliedAt = new Date().toISOString();
+  $("#dapplied").hidden = false; $("#dstale").hidden = true; $("#dapply").style.display = "none"; paint(); blk(cur.ref).classList.add("cur");
+};
+$("#ddone").onclick = () => { cur.status = "REVIEWED"; cur = null; renderList(); setView(P, "list"); };
+P.addEventListener("view", (e) => {
+  $$(".card", P).forEach((c) => c.classList.add("in")); // thẻ hiện sau khi ẩn: không đợi IntersectionObserver
+  if (e.detail === "running") capture();
+  if (e.detail === "list") { cur = null; renderList(); }
+  if (e.detail === "idle") { runCtl?.abort(); items = []; cur = null; paint(); }
+});
+const API = "http://localhost:8799/check", SEV = { HIGH: "Cao", MEDIUM: "Vừa", LOW: "Thấp" };
+let scope = "all", selRef = null, runCtl = null;
+const esc = (s) => String(s).replace(/[&<>]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;" })[c]);
+// Chụp đoạn tại thời điểm chạy (hash + chữ lúc gửi), rồi gọi agent thật qua server spike. Hủy = abort fetch.
+async function capture() {
+  const sent = $$("#ed p").filter((p) => scope === "all" || p.dataset.ref === selRef).map((p) => ({ ref: p.dataset.ref, text: txt(p) }));
+  const ctl = (runCtl = new AbortController());
+  $("#rerr").hidden = true;
+  try {
+    const res = await fetch(API, { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ blocks: sent, note: $("#m-config textarea").value.trim() }), signal: ctl.signal });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(data.message || data.error || `HTTP ${res.status}`);
+    if (runCtl !== ctl) return;
+    items = data.items.map((it) => { const s = sent.find((b) => b.ref === it.blockRef); return { ref: it.blockRef, kind: it.kind, basis: it.basis, severity: SEV[it.severity], message: it.message, to: it.suggestion, evidence: it.evidence, orig: s.text, hash: hash(s.text), status: "OPEN", appliedAt: null }; });
+    const t = data.trace;
+    $("#ltrace").textContent = `AI đã tra nguồn ${t.toolCalls} lần, mở ${t.pagesRead.length ? "tr. " + t.pagesRead.join(", ") : "không trang nào"}, mất ${(t.durationMs / 1000).toFixed(1)} giây.`;
+    setView(P, "list");
+  } catch (e) {
+    if (ctl.signal.aborted || runCtl !== ctl) return;
+    setView(P, "idle");
+    $("#rerr span").textContent = `Không chạy được: ${e.message}. Kiểm tra server spike (cổng 8799).`; $("#rerr").hidden = false;
+  }
+}
+// Chọn "Đoạn đang chọn" chỉ được khi con trỏ/bôi đen đang nằm trong một đoạn của editor.
+document.addEventListener("mousedown", (e) => {
+  if (!e.target.closest('[data-open="#m-config"]')) return;
+  const s = getSelection(), el = s.anchorNode && (s.anchorNode.nodeType === 1 ? s.anchorNode : s.anchorNode.parentElement), p = el && ED.contains(el) ? el.closest("p") : null;
+  selRef = p ? p.dataset.ref : null;
+  const r = $("#sc-sel input"); r.disabled = !p; $("#sc-sel").style.opacity = p ? 1 : .5;
+  $("#sc-hint").textContent = p ? `${num({ ref: selRef })} đang chọn.` : "Bấm vào một đoạn trong editor trước để dùng lựa chọn này.";
+  if (!p) $("input[name=sc][value=all]").checked = true;
+});
+$("#run").addEventListener("click", () => { scope = $("input[name=sc]:checked").value; }, true);
+</script>
+</body></html>

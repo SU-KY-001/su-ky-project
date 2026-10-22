@@ -1,0 +1,37 @@
+<!doctype html><html lang="vi"><head><meta charset="utf-8"><title>Duyệt tập (P5)</title><meta name="viewport" content="width=device-width,initial-scale=1"><link rel="stylesheet" href="mock.css">
+<style>.script{max-height:150px;overflow:hidden;position:relative;line-height:1.9;font-size:14px}.script.open{max-height:360px;overflow:auto}.script p{margin:0 0 10px}.script:not(.open)::after{content:"";position:absolute;inset:auto 0 0;height:48px;background:linear-gradient(transparent,var(--card))}.ready td{padding:10px 12px}.ready td:first-child{width:24px}</style></head><body>
+<div class="top"><div class="crumb">Quản trị / Lịch phát hành / <b>Tập 3: Cuộc dời đô</b></div><span class="low">Người duyệt: Phạm Thu Hà (không phải người sản xuất, không phải AI)</span></div>
+<div class="wrap" style="max-width:1100px"><div class="cols" style="grid-template-columns:minmax(0,1fr) 400px">
+ <section class="stack">
+  <div class="row sp"><div><p class="low">Chờ duyệt · phiên bản 3</p><h2>Tập 3: Cuộc dời đô</h2></div><span class="tag t-warn">Chờ duyệt</span></div>
+  <div class="card stack"><div class="row sp"><h3>Kịch bản</h3><button class="btn sm" id="exp"><i class="ph-bold ph-arrows-out-simple"></i>Xem hết 12 đoạn</button></div>
+   <div class="script" id="script"></div></div>
+  <div class="card stack"><h3>Âm thanh</h3><div class="wave"></div><div class="row"><button class="btn"><i class="ph-bold ph-play"></i>Nghe từ đầu</button><span class="low">04:12 · giọng AI</span></div>
+   <p class="low">Hệ thống không biết bạn đã nghe bao nhiêu, nên không có ô tick nghe xong.</p></div>
+ </section>
+ <aside class="stack">
+  <div class="card stack"><h3>Tình trạng tập</h3><p class="low">Hệ thống tự tính từ dữ liệu, bạn không chỉnh được.</p>
+   <table class="ready" id="ready"></table>
+   <div class="alert info" id="aisum"><i class="ph-bold ph-robot"></i><span>AI đã rà: 3 cảnh báo, 2 đã xem. AI nghi ngờ, chưa xác minh; đây chỉ là gợi ý tham khảo.</span></div>
+   <label class="f">Ghi chú <small id="hint">Bắt buộc khi Yêu cầu chỉnh sửa.</small><textarea rows="4" id="note" placeholder="Nêu rõ phần cần sửa"></textarea></label>
+   <p class="low" id="why"></p>
+   <div class="row"><button class="btn" id="chg"><i class="ph-bold ph-x-circle"></i>Yêu cầu chỉnh sửa</button><button class="btn p" id="ok"><i class="ph-bold ph-check-circle"></i>Duyệt</button></div>
+   <p class="low">Ghi chú và quyết định được lưu, gắn với phiên bản 3.</p></div>
+ </aside>
+</div></div>
+<p class="note"><label class="row" style="justify-content:center"><input type="checkbox" id="sim">Mô phỏng: thiếu âm thanh (để xem Duyệt bị khóa)</label> Mockup tĩnh có tương tác.</p>
+<script src="mock.js"></script>
+<script>
+const PARAS = ["Mùa thu năm 1010, một đoàn thuyền ngược sông Hồng hướng về vùng đất Đại La.", "Hoa Lư đã giữ nước qua hai triều Đinh và Tiền Lê, nhưng đất ấy chật hẹp.", "Lý Công Uẩn nhìn xa hơn núi non hiểm trở của cố đô.", "\"Chiếu dời đô nêu rõ vùng đất trung tâm trời đất.\"", "Đất rộng mà bằng phẳng, dân không khổ vì ngập lụt.", "Quyết định ấy mở ra một chương mới cho quốc gia Đại Việt.", "Thăng Long dần trở thành trung tâm chính trị.", "Triều Lý cho xây cung điện, đền chùa, mở chợ búa.", "Dân cư đông dần, nghề thủ công phát triển.", "Các triều đại sau tiếp tục chọn nơi này làm kinh đô.", "Tên Thăng Long gắn với hình ảnh rồng bay lên.", "Hơn nghìn năm sau, nơi ấy vẫn là trái tim của đất nước."];
+$("#script").innerHTML = PARAS.map((t) => `<p>${t}</p>`).join("");
+$("#exp").addEventListener("click", () => { const o = $("#script").classList.toggle("open"); $("#exp").lastChild.textContent = o ? "Thu gọn" : "Xem hết 12 đoạn"; });
+const ITEMS = (noAudio) => [["ok", "Có tên tập"], ["ok", "Có kịch bản"], noAudio ? ["bad", "Chưa có âm thanh sẵn sàng"] : ["ok", "Âm thanh sẵn sàng"], ["warn", "Thẻ nhân vật, sự kiện đã xác nhận: 2 thẻ chưa xác nhận"], ["ok", "Giọng AI không còn đoạn chưa tạo lại sau khi sửa"]];
+function sync() {
+  const items = ITEMS($("#sim").checked), missing = items.filter((i) => i[0] === "bad"), warns = items.filter((i) => i[0] === "warn");
+  $("#ready").innerHTML = items.map(([k, t]) => `<tr><td><span class="dot ${k}"></span></td><td>${t}</td><td>${k === "ok" ? '<span class="tag t-ok">Đủ</span>' : k === "warn" ? '<span class="tag t-warn">Cảnh báo</span>' : '<span class="tag t-bad">Thiếu</span>'}</td></tr>`).join("");
+  $("#ok").disabled = !!missing.length; $("#chg").disabled = !$("#note").value.trim();
+  $("#why").textContent = missing.length ? `Chưa thể Duyệt: ${missing.map((m) => m[1].toLowerCase()).join(", ")}.` : warns.length ? "Có thể Duyệt. Cảnh báo không chặn, nhưng bạn nên xem." : "Có thể Duyệt.";
+}
+$("#note").addEventListener("input", sync); $("#sim").addEventListener("change", sync); sync();
+</script>
+</body></html>
