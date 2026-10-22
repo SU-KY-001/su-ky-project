@@ -58,6 +58,12 @@ cd apps/api && bun run seed:content
 ```
 Script không tạo tài khoản. Mỗi lần chạy nó đọc trạng thái hiện có và chỉ tạo phần còn thiếu (series, từng tập, từng bản kể), nên chạy lại an toàn kể cả sau khi lần trước lỗi giữa chừng. Series chỉ hiện với tài khoản đã seed.
 
+Để có dữ liệu đầy đủ cho UI moderator (ảnh bìa đứng/ngang, audio, series đủ trạng thái, lịch phát hành, phân công, review, ticket đổi người), chạy **sau** `db:deploy` + `db:seed`:
+```bash
+cd apps/api && bun run seed:demo
+```
+Ghi thẳng vào DB, cần `CLOUDINARY_CLOUD_NAME`, `CLOUDINARY_API_KEY`, `CLOUDINARY_API_SECRET` trong `.env` (Cloudinary tự tải ảnh/audio từ URL công khai nên asset là thật). Tuỳ chọn: `CLOUDINARY_FOLDER` (mặc định `su-ky`), `SEED_PORTRAIT_URL_BASE`, `SEED_LANDSCAPE_URL_BASE` (mặc định picsum.photos), `SEED_AUDIO_URL` (mặc định mp3 mẫu của SoundHelix). Series nhận diện theo slug; chạy lại an toàn kể cả sau lần lỗi giữa chừng. Phân công dùng tài khoản moderator có sẵn, chỉ thêm `demo-mod-N@suky.local` (không đăng nhập được) khi có dưới 2 moderator. Test phục hồi: `RUN_INTEGRATION=1 bun test tests/seed-demo.test.ts` với `DATABASE_URL` trỏ DB có chữ `test` (xem `.env.test.example`).
+
 ### 4. Khởi động Môi trường Development
 ```bash
 bun run dev
