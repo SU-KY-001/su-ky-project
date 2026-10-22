@@ -64,7 +64,7 @@ export function createAiCheckRoute(service: AiCheckService, stream: CheckStreamD
       if (open >= MAX_STREAMS_PER_USER) throw new DomainError(429, "RATE_LIMITED", "Mở quá nhiều kết nối theo dõi");
       openStreams.set(session.user.id, open + 1);
       const lastEventId = parseLastEventId(c.req.header("Last-Event-ID"));
-      return streamSSE(c, async (sse) => {
+      const response = streamSSE(c, async (sse) => {
         const abort = new AbortController();
         sse.onAbort(() => abort.abort());
         try {
@@ -79,6 +79,11 @@ export function createAiCheckRoute(service: AiCheckService, stream: CheckStreamD
           else openStreams.set(session.user.id, left);
         }
       });
+      // Hono merges headers set on the context over the built response, and streamSSE itself sets Cache-Control on the
+      // context: override it after the call so the proxy-facing pair is exact (no transform, no buffering).
+      c.header("Cache-Control", "no-cache, no-transform");
+      c.header("X-Accel-Buffering", "no");
+      return response;
     }
     );
 }
