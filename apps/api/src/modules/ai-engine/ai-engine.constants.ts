@@ -5,6 +5,6 @@ export const PI_MODEL_REFRESH_TIMEOUT_MS = 1500;
 
 /** Model used when PI_MODEL is unset, keyed by PI_PROVIDER. */
 export const DEFAULT_PI_MODEL_BY_PROVIDER: Record<string, string> = {
-  google: "gemini-2.5-flash",
+  google: "gemini-3.5-flash-lite",
   "opencode-go": "minimax-m3",
 };

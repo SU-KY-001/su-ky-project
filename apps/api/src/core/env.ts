@@ -34,6 +34,12 @@ const envSchema = z
       .enum(["off", "minimal", "low", "medium", "high", "xhigh", "max"])
       .default("medium"),
     PI_WEB_ACCESS_DIR: z.string().min(1).optional(),
+    // One retry layer only (Pi's own); another on top turns a 429 into a retry storm.
+    PI_RETRY_MAX: z.preprocess(emptyAsUndefined, z.coerce.number().int().min(0).default(2)),
+    PI_RETRY_BASE_DELAY_MS: z.preprocess(emptyAsUndefined, z.coerce.number().int().positive().default(2000)),
+    PI_PROVIDER_TIMEOUT_MS: z.preprocess(emptyAsUndefined, z.coerce.number().int().positive().default(60000)),
+    // Whole-run deadline across all tool turns; PI_PROVIDER_TIMEOUT_MS only bounds a single request.
+    PI_RUN_TIMEOUT_MS: z.preprocess(emptyAsUndefined, z.coerce.number().int().positive().default(300000)),
   })
   .superRefine((data, ctx) => {
     if (data.NODE_ENV === "production") {
