@@ -1036,3 +1036,18 @@ model AiCheckItem {
   @@index([checkId, status], map: "ai_check_items_check_id_status_idx")
   @@map("ai_check_items")
 }
+
+/// Moderator-owned narrative angles for AI drafting. Unique (user_id, lower(name)) is an expression index
+/// (raw SQL in the migration; Prisma does not model it). Built-in angles live in api code, not here.
+model AiNarrativeAngle {
+  id          String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId      String   @map("user_id") @db.VarChar(36)
+  name        String   @db.VarChar(60)
+  description String   @db.VarChar(160)
+  guide       String   @db.VarChar(500)
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt   DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  @@index([userId], map: "ai_narrative_angles_user_id_idx")
+  @@map("ai_narrative_angles")
+}

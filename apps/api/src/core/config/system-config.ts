@@ -43,6 +43,7 @@ export const SYSTEM_CONFIGS = {
   "rate_limit.media_upload": { schema: rateLimitSchema, defaultValue: { limit: 30, windowSeconds: 3600 } },
   "rate_limit.listening_progress": { schema: rateLimitSchema, defaultValue: { limit: 20, windowSeconds: 60 } },
   "rate_limit.ai_check": { schema: rateLimitSchema, defaultValue: { limit: 10, windowSeconds: 3600 } },
+  "rate_limit.ai_generate": { schema: rateLimitSchema, defaultValue: { limit: 60, windowSeconds: 3600 } },
   "ai_assist.enabled": { schema: z.boolean(), defaultValue: true },
 } as const;
 

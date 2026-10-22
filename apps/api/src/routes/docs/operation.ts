@@ -20,7 +20,7 @@ import { component, parametersFrom, type JsonSchema } from "./registry";
  */
 export type Access = "public" | "optional" | "user" | "studio" | "moderator" | "admin";
 
-export type RatePolicy = "write" | "media_upload" | "listening_progress" | "ai_check";
+export type RatePolicy = "write" | "media_upload" | "listening_progress" | "ai_check" | "ai_generate";
 
 type Method = "get" | "post" | "put" | "patch" | "delete";
 
@@ -89,6 +89,7 @@ const RATE_DOC: Record<RatePolicy, string> = {
   media_upload: "upload media",
   listening_progress: "đồng bộ tiến trình nghe",
   ai_check: "AI rà kịch bản",
+  ai_generate: "AI soạn thảo",
 };
 
 const IDEMPOTENCY_NOTES: Array<[number, string]> = [

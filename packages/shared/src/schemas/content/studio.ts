@@ -97,6 +97,10 @@ export const SeriesDetailSchema = z.object({
 
 export const SeriesEpisodeListSchema = SeriesDetailSchema.shape.episodes;
 
+/** Server-side reading speed, so every client estimates duration from the same `script.words_per_minute`. */
+export const ScriptConfigSchema = z.object({ wordsPerMinute: z.number().int().positive() });
+export type ScriptConfig = z.infer<typeof ScriptConfigSchema>;
+
 export const NarrationSchema = z.object({
   id: uuid,
   type: z.enum(["THIRD_PERSON", "FIRST_PERSON"]),

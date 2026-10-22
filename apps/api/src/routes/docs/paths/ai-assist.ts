@@ -1,4 +1,19 @@
-import { AiCheckItemSchema, AiCheckSchema, CreateAiCheckSchema, PatchAiCheckItemSchema } from "@repo/shared";
+import {
+  AiCheckItemSchema,
+  AiCheckSchema,
+  AngleListSchema,
+  AngleSchema,
+  CreateAiCheckSchema,
+  CreateAngleSchema,
+  CreateOutlineSchema,
+  DraftSectionRequestSchema,
+  DraftSectionResponseSchema,
+  OutlineResponseSchema,
+  PatchAiCheckItemSchema,
+  RewriteRequestSchema,
+  RewriteResponseSchema,
+  UpdateAngleSchema,
+} from "@repo/shared";
 import { z } from "zod";
 import { operation, type Paths } from "../operation";
 
@@ -14,6 +29,18 @@ const itemParams = {
   pathParamDocs: { id: "ID tập (UUID)", checkId: "ID lượt rà (UUID)", itemId: "ID mục cảnh báo (UUID)" },
 } as const;
 const NOT_FOUND = "`NOT_FOUND`: tập, lượt rà hoặc mục không tồn tại, hoặc tập không thuộc bạn (Admin xem được mọi tập)";
+const ANGLES = "/api/studio/ai/angles";
+const COMPOSE = "/api/studio/episodes/{id}/ai";
+const COMPOSE_ERRORS: Record<number, string> = {
+  404: NOT_FOUND,
+  422: "`VALIDATION_ERROR`: góc kể hoặc nhân vật kể không tồn tại; `SCRIPT_TOO_LONG`: số từ đích hoặc đoạn chọn vượt trần; `HASH_MISMATCH` (rewrite): `hash` không khớp `text`",
+  429: "`RATE_LIMITED` (kèm `Retry-After`): hết hạn mức `rate_limit.ai_generate`; `AI_CONCURRENCY_LIMIT`: quá `AI_ASSIST_MAX_CONCURRENT_PER_USER` lời gọi đang chạy",
+  502: "`AI_BAD_OUTPUT`: đầu ra hỏng sau một lần sửa schema hoặc không còn phần hợp lệ",
+  503: "`AI_DISABLED`: tắt bằng `ai_assist.enabled`; `AI_UNAVAILABLE`: chưa cấu hình hoặc nhà cung cấp tạm lỗi; `AI_PROVIDER_AUTH` / `AI_PROVIDER_QUOTA`: nhà cung cấp từ chối",
+  504: "`AI_TIMEOUT`: quá `AI_ASSIST_CALL_TIMEOUT_MS`",
+};
+const angleParams = { pathParams: z.object({ id: z.string().min(1) }), pathParamDocs: { id: "ID góc kể (UUID)" } } as const;
+const ANGLE_NOT_FOUND = "`NOT_FOUND`: góc kể không tồn tại, là góc có sẵn, hoặc không thuộc bạn";
 
 const CreatedCheckSchema = z.object({ id: z.string().uuid() });
 const CheckListSchema = z.object({ items: z.array(AiCheckSchema) });
@@ -107,6 +134,106 @@ export const aiAssistPaths: Paths = {
       ok: { status: 200, description: "Mục sau khi cập nhật", schema: { name: "AiCheckItem", schema: AiCheckItemSchema } },
       rate: "write",
       errors: { 404: NOT_FOUND },
+    }),
+  },
+  [ANGLES]: {
+    get: operation({
+      id: "listAiAngles",
+      tag: TAG,
+      summary: "Góc kể: có sẵn và của bạn",
+      description: "Góc có sẵn (`builtin: true`, id `builtin:<slug>`) đứng trước, rồi góc của bạn theo thời điểm tạo.",
+      access: "studio",
+      ok: { status: 200, description: "Danh sách góc kể", schema: { name: "AiAngleList", schema: AngleListSchema } },
+    }),
+    post: operation({
+      id: "createAiAngle",
+      tag: TAG,
+      summary: "Tạo góc kể",
+      description: "`name` (1-60), `description` (tối đa 160), `guide` (tối đa 500) được chuẩn hóa NFC, bỏ ký tự điều khiển, cắt khoảng trắng đầu cuối.",
+      access: "studio",
+      body: { name: "CreateAiAngle", schema: CreateAngleSchema },
+      ok: { status: 201, description: "Góc kể đã tạo", schema: { name: "AiAngle", schema: AngleSchema } },
+      rate: "write",
+      errors: {
+        409: "`ANGLE_NAME_TAKEN`: trùng tên (không phân biệt hoa thường) với góc của bạn hoặc góc có sẵn",
+        422: "`VALIDATION_ERROR`: trường sai; `ANGLE_LIMIT`: đã đủ số góc tối đa mỗi người (`AI_ANGLE_MAX_PER_USER`)",
+      },
+    }),
+  },
+  [`${ANGLES}/{id}`]: {
+    patch: operation({
+      id: "updateAiAngle",
+      tag: TAG,
+      summary: "Sửa góc kể",
+      description: "Chỉ sửa được góc của bạn; góc có sẵn hoặc của người khác trả `404`.",
+      access: "studio",
+      ...angleParams,
+      body: { name: "UpdateAiAngle", schema: UpdateAngleSchema },
+      ok: { status: 200, description: "Góc kể sau khi sửa", schema: { name: "AiAngle", schema: AngleSchema } },
+      rate: "write",
+      errors: { 404: ANGLE_NOT_FOUND, 409: "`ANGLE_NAME_TAKEN`: trùng tên", 422: "`VALIDATION_ERROR`" },
+    }),
+    delete: operation({
+      id: "deleteAiAngle",
+      tag: TAG,
+      summary: "Xóa góc kể",
+      description: "Xóa thật. Dàn ý và kịch bản đã viết không tham chiếu góc kể nên không bị ảnh hưởng.",
+      access: "studio",
+      ...angleParams,
+      ok: { status: 204, description: "Đã xóa" },
+      rate: "write",
+      errors: { 404: ANGLE_NOT_FOUND },
+    }),
+  },
+  [`${COMPOSE}/outline`]: {
+    post: operation({
+      id: "createAiOutline",
+      tag: TAG,
+      summary: "AI lập dàn ý",
+      description: [
+        "Đồng bộ, không lưu DB. `targetWords` đo bằng số từ (`script.words_per_minute` quy ra phút). Server tự nạp góc kể theo `angleId`; `guide` không bao giờ lấy từ client.",
+        "`sections[].targetWords` chia theo `weight`, tổng đúng bằng `targetWords`. `sources` cho biết đã dùng bao nhiêu nguồn của series. Hủy request thì hủy lời gọi model.",
+      ].join("\n\n"),
+      access: "studio",
+      ...episodeParams,
+      body: { name: "CreateAiOutline", schema: CreateOutlineSchema },
+      ok: { status: 200, description: "Dàn ý đề xuất", schema: { name: "AiOutlineResponse", schema: OutlineResponseSchema } },
+      rate: "ai_generate",
+      errors: COMPOSE_ERRORS,
+    }),
+  },
+  [`${COMPOSE}/draft-section`]: {
+    post: operation({
+      id: "createAiDraftSection",
+      tag: TAG,
+      summary: "AI viết một phần",
+      description: [
+        "Đồng bộ, không lưu DB. Viết phần `outline[index]`; phần i cần `previousText` của phần i-1 để nối mạch (client gọi tuần tự).",
+        "`lengthStatus` (SHORT/LONG ngoài ±25% mục tiêu), `exceedsLimit` (vượt `remainingChars`) và `novelNumbers` (số không có trong đề bài, dàn ý, nguồn) chỉ là thông tin cho UI, không chặn.",
+      ].join("\n\n"),
+      access: "studio",
+      ...episodeParams,
+      body: { name: "CreateAiDraftSection", schema: DraftSectionRequestSchema },
+      ok: { status: 200, description: "Lời kể của phần", schema: { name: "AiDraftSectionResponse", schema: DraftSectionResponseSchema } },
+      rate: "ai_generate",
+      errors: COMPOSE_ERRORS,
+    }),
+  },
+  [`${COMPOSE}/rewrite`]: {
+    post: operation({
+      id: "createAiRewrite",
+      tag: TAG,
+      summary: "AI viết lại đoạn",
+      description: [
+        "Đồng bộ, không lưu DB. Server tính lại `hash` của từng block, lệch thì `422 HASH_MISMATCH`. `count` tối đa `AI_REWRITE_MAX_VARIANTS`.",
+        "`returned < requested` khi bản trùng gốc, trùng nhau, rỗng hoặc quá khác độ dài bị loại; không còn bản nào thì `502 AI_NO_VARIANTS`. Bản có số lạ được giữ, kèm `novelNumbers`.",
+      ].join("\n\n"),
+      access: "studio",
+      ...episodeParams,
+      body: { name: "CreateAiRewrite", schema: RewriteRequestSchema },
+      ok: { status: 200, description: "Các bản viết lại", schema: { name: "AiRewriteResponse", schema: RewriteResponseSchema } },
+      rate: "ai_generate",
+      errors: { ...COMPOSE_ERRORS, 502: `${COMPOSE_ERRORS[502]}; \`AI_NO_VARIANTS\`: không còn bản hợp lệ nào` },
     }),
   },
 };

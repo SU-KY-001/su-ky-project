@@ -95,6 +95,10 @@ Bạn có thể sử dụng `make` hoặc gọi trực tiếp bằng `bun`:
 | **Mở Prisma Studio UI** | `make db-studio` | `cd packages/db && bun run prisma studio` |
 | **Dọn dẹp cache & build** | `make clean` | `bun run clean` |
 
+### AI soạn thảo (dàn ý, viết phần, viết lại)
+
+`POST /api/studio/episodes/:id/ai/{outline,draft-section,rewrite}` chạy đồng bộ, không lưu DB, qua `model-gate` và cờ `ai_assist.enabled`. Cấu hình trong `.env` (đều tùy chọn): `AI_ASSIST_CALL_TIMEOUT_MS` (mặc định 90000, hạn chót một lời gọi, gồm thời gian chờ slot), `AI_REWRITE_MAX_VARIANTS` (mặc định 10, tối đa 10), `AI_ASSIST_MAX_SOURCE_CHARS` (mặc định 8000, tổng ký tự trích đoạn nguồn của series đưa vào prompt), `AI_ASSIST_MAX_CONCURRENT_PER_USER` dùng chung. Hạn mức: `rate_limit.ai_generate` trong SystemConfig. Log chỉ ghi độ dài, token, thời gian; không ghi nội dung kịch bản hay prompt. Đo thời lượng bằng số từ chia `script.words_per_minute`. Đổi prompt = tăng `*_PROMPT_VERSION` trong `compose/constants.ts` và chạy lại ca vàng (`apps/api/src/modules/ai-assist/compose/golden/*.golden.ts`, dữ liệu ca; chưa có test runner).
+
 ---
 
 ## Tài Liệu Chi Tiết

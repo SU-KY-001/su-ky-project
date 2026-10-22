@@ -5,8 +5,19 @@ import { env } from "../core/env";
 const MODERATOR_EMAIL = "mod@suky.local";
 const SERIES_SLUG = "phase4-toan-thu-postgres-fixture";
 const SOURCE_URL = "https://vi.wikipedia.org/wiki/%C4%90%E1%BA%A1i_Vi%E1%BB%87t_s%E1%BB%AD_k%C3%BD_to%C3%A0n_th%C6%B0";
-const SCRIPT_CONTENT =
-  "Đức, thành Hoa Lư gọi là phủ Trường Yên, sông Hồng gọi là sông Thiên Đức.";
+/** One entry = one editor paragraph, so a review sees real separate blocks with valid refs. */
+const SCRIPT_PARAGRAPHS = [
+  "Năm 1010, Lý Thái Tổ dời đô từ Hoa Lư về Thăng Long, mở ra một chương mới cho quốc gia Đại Việt.",
+  "Theo sử cũ, thành Hoa Lư gọi là phủ Trường Yên, còn sông Hồng khi ấy gọi là sông Thiên Đức.",
+  "Năm 938, Trần Bạch Đằng là người chỉ huy trận đánh trên sông, đập tan quân Nam Hán.",
+  "Quân Nguyên Mông sau này có hơn 500 nghìn người nhưng vẫn thất bại trước quân dân nhà Trần.",
+  "Triều Lý đóng đô tại Thăng Long suốt 215 năm.",
+] as const;
+const SCRIPT_CONTENT = SCRIPT_PARAGRAPHS.join("\n\n");
+const SCRIPT_DOCUMENT = {
+  type: "doc",
+  content: SCRIPT_PARAGRAPHS.map((text) => ({ type: "paragraph", content: [{ type: "text", text }] })),
+};
 
 function pdfPath(): string {
   const index = process.argv.indexOf("--pdf");
@@ -73,9 +84,10 @@ if (existing) {
       episodeId: episode.id,
       narrationType: "THIRD_PERSON",
       scriptContent: SCRIPT_CONTENT,
+      scriptDocument: SCRIPT_DOCUMENT,
       scriptUpdatedAt: new Date(),
     },
-    update: { scriptContent: SCRIPT_CONTENT, scriptUpdatedAt: new Date() },
+    update: { scriptContent: SCRIPT_CONTENT, scriptDocument: SCRIPT_DOCUMENT, scriptUpdatedAt: new Date() },
   });
 } else {
   const assetId = crypto.randomUUID();
@@ -134,6 +146,7 @@ if (existing) {
         episodeId: episode.id,
         narrationType: "THIRD_PERSON",
         scriptContent: SCRIPT_CONTENT,
+        scriptDocument: SCRIPT_DOCUMENT,
         scriptUpdatedAt: new Date(),
       },
     });

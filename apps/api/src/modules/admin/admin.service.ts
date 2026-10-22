@@ -69,6 +69,7 @@ const configDescriptions: Record<keyof typeof SYSTEM_CONFIGS, string> = {
   "rate_limit.media_upload": "Giới hạn upload media",
   "rate_limit.listening_progress": "Giới hạn cập nhật tiến trình nghe",
   "rate_limit.ai_check": "Giới hạn AI rà kịch bản",
+  "rate_limit.ai_generate": "Giới hạn AI soạn thảo",
   "ai_assist.enabled": "Bật trợ lý AI",
 };
 

@@ -50,6 +50,15 @@ export const ERROR_CODES = [
   "AI_DISABLED",
   "AI_CHECK_ALREADY_RUNNING",
   "AI_CONCURRENCY_LIMIT",
+  "ANGLE_NAME_TAKEN",
+  "ANGLE_LIMIT",
+  "AI_BAD_OUTPUT",
+  "AI_NO_VARIANTS",
+  "AI_TIMEOUT",
+  "AI_PROVIDER_AUTH",
+  "AI_PROVIDER_QUOTA",
+  "HASH_MISMATCH",
+  "SCRIPT_TOO_LONG",
   "HTTP_ERROR",
 ] as const;
 
@@ -64,6 +73,7 @@ export const RETRYABLE_ERROR_CODES = [
   "AI_DISABLED",
   "AI_CHECK_ALREADY_RUNNING",
   "AI_CONCURRENCY_LIMIT",
+  "AI_TIMEOUT",
 ] as const satisfies readonly ErrorCode[];
 
 export const ErrorResponseSchema = z.object({

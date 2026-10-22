@@ -59,6 +59,12 @@ const envSchema = z
     AI_ASSIST_HEARTBEAT_MS: z.preprocess(emptyAsUndefined, z.coerce.number().int().positive().default(15000)),
     AI_ASSIST_RUN_HEARTBEAT_MS: z.preprocess(emptyAsUndefined, z.coerce.number().int().positive().default(10000)),
     AI_ASSIST_STALE_AFTER_MS: z.preprocess(emptyAsUndefined, z.coerce.number().int().positive().default(60000)),
+    // Narrative angles a moderator may own (built-ins do not count).
+    AI_ANGLE_MAX_PER_USER: z.preprocess(emptyAsUndefined, z.coerce.number().int().positive().default(50)),
+    // Synchronous compose calls (outline / draft-section / rewrite), see spec-prompts-compose.md
+    AI_ASSIST_CALL_TIMEOUT_MS: z.preprocess(emptyAsUndefined, z.coerce.number().int().positive().default(90000)),
+    AI_REWRITE_MAX_VARIANTS: z.preprocess(emptyAsUndefined, z.coerce.number().int().min(1).max(10).default(10)),
+    AI_ASSIST_MAX_SOURCE_CHARS: z.preprocess(emptyAsUndefined, z.coerce.number().int().positive().default(8000)),
   })
   .superRefine((data, ctx) => {
     if (data.NODE_ENV === "production") {
