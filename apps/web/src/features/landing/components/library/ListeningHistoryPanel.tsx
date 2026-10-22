@@ -12,9 +12,10 @@ function formatDate(value: Date): string {
 
 export function ListeningHistoryPanel({ onResume }: { onResume: (seriesSlug: string, episodeId: string) => void }): ReactElement {
   const [page, setPage] = useState(1);
+  const [status, setStatus] = useState<"all" | "in_progress" | "completed">("all");
   const query = useQuery({
-    queryKey: ["listening-history", page],
-    queryFn: ({ signal }) => libraryService.history({ page, limit: 10 }, signal),
+    queryKey: ["listening-history", page, status],
+    queryFn: ({ signal }) => libraryService.history({ page, limit: 10, status }, signal),
     staleTime: 15_000,
   });
 
@@ -23,6 +24,9 @@ export function ListeningHistoryPanel({ onResume }: { onResume: (seriesSlug: str
   if (query.data.items.length === 0) return <LibraryState title="Bạn chưa có lịch sử nghe" description="Bắt đầu nghe một tập podcast để lưu lại tiến trình của bạn." />;
 
   return <div className="space-y-5">
+    <div className="flex flex-wrap gap-2" role="group" aria-label="Lọc lịch sử nghe">
+      {([["all", "Tất cả"], ["in_progress", "Đang nghe"], ["completed", "Đã hoàn thành"]] as const).map(([value, label]) => <Button key={value} size="sm" variant={status === value ? "default" : "outline"} aria-pressed={status === value} onClick={() => { setStatus(value); setPage(1); }}>{label}</Button>)}
+    </div>
     <div className="grid gap-3 md:grid-cols-2">
       {query.data.items.map((item) => {
         const percent = Math.round(Math.min(100, Math.max(0, item.percent)));
