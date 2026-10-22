@@ -80,9 +80,12 @@ export function AudioPlayback({ narrationId, userId, playlist = false, controlsH
     const interval = window.setInterval(() => { void save(); }, Math.max(5000, value.sync.intervalMs));
     const element = audio.current;
     const flush = (): void => { void save(); };
+    const flushWhenHidden = (): void => { if (document.visibilityState === "hidden") flush(); };
     element?.addEventListener("pause", flush);
     element?.addEventListener("ended", flush);
-    return () => { window.clearInterval(interval); element?.removeEventListener("pause", flush); element?.removeEventListener("ended", flush); element?.pause(); void save(); };
+    document.addEventListener("visibilitychange", flushWhenHidden);
+    window.addEventListener("pagehide", flush);
+    return () => { window.clearInterval(interval); element?.removeEventListener("pause", flush); element?.removeEventListener("ended", flush); document.removeEventListener("visibilitychange", flushWhenHidden); window.removeEventListener("pagehide", flush); element?.pause(); void save(); };
   }, [playback.data, narrationId, queryClient]);
 
   if (playback.isPending) return playlist ? <p role="status" className="py-3 text-xs text-ink-soft">Đang mở bản thu…</p> : <LibraryState loading />;
