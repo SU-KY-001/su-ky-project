@@ -6,13 +6,7 @@ import { Badge } from "@/shared/components/ui/badge";
 import { Button } from "@/shared/components/ui/button";
 import { Separator } from "@/shared/components/ui/separator";
 import { scrollToLandingTarget } from "../hooks/useLandingMotion";
-
-const discoveryLinks = [
-  { label: "Khám phá lịch sử", target: "library-history" },
-  { label: "Series và podcast", target: "library-podcasts" },
-  { label: "Quiz", target: "library-quiz" },
-  { label: "Lịch phát sóng", target: "upcoming" },
-];
+import { landingLinks } from "../navigation";
 
 export function LandingFooter(): ReactElement {
   const navigate = useNavigate();
@@ -37,7 +31,7 @@ export function LandingFooter(): ReactElement {
           <nav aria-labelledby="footer-discover-heading" className="flex flex-col items-start gap-4">
             <h2 id="footer-discover-heading" className="text-sm font-semibold">Khám phá Sử Ký</h2>
             <ul className="flex flex-col items-start gap-1">
-              {discoveryLinks.map(({ label, target }) => (
+              {landingLinks.map(({ label, target }) => (
                 <li key={target}>
                   <Button variant="link" className="h-auto justify-start whitespace-normal px-0 py-2 text-left text-muted-foreground" onClick={() => jumpTo(target)}>
                     {label}
