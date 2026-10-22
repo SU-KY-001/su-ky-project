@@ -1,3 +1,6 @@
+.library-history-timeline { scrollbar-width: none; }
+.library-history-timeline::-webkit-scrollbar { display: none; }
+
 .library-choice {
   border: 0;
   border-radius: var(--radius-xl);

@@ -1,3 +1,4 @@
+import { CardBadge, cardBadgeToneForStatus } from "@/shared/components/dashboard/CardBadge";
 import { useState } from "react";
 import { useMutation } from "@tanstack/react-query";
 import type { HistoricalEntityDetailDto } from "@repo/shared";
@@ -58,15 +59,13 @@ export function HistoricalReviewPanel({
   return (
     <section className="space-y-3" aria-label="Kiểm duyệt nội dung">
       <h3 className="font-semibold">Kiểm duyệt · phiên bản {entity.version}</h3>
-      <p className="text-sm">
-        {entity.reviewStatus === "IN_REVIEW"
+      <CardBadge type="status" tone={cardBadgeToneForStatus(entity.reviewStatus)}>{entity.reviewStatus === "IN_REVIEW"
           ? "Đang chờ người khác duyệt"
           : entity.reviewStatus === "APPROVED"
             ? "Đã duyệt"
             : entity.reviewStatus === "CHANGES_REQUESTED"
               ? "Cần chỉnh sửa"
-              : "Bản nháp"}
-      </p>
+              : "Bản nháp"}</CardBadge>
       {entity.reviewNote ? (
         <p className="text-sm">Nhận xét: {entity.reviewNote}</p>
       ) : null}

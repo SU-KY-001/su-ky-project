@@ -15,7 +15,8 @@
     "check-types": "tsc --noEmit",
     "test": "bun test",
     "seed:content": "bun --env-file=../../.env src/scripts/seed-content.ts",
-    "seed:demo": "bun --env-file=../../.env src/scripts/seed-demo.ts"
+    "seed:demo": "bun --env-file=../../.env src/scripts/seed-demo.ts",
+    "seed:vietnam-podcasts": "bun --env-file=../../.env src/scripts/seed-vietnam-podcasts.ts"
   },
   "dependencies": {
     "@earendil-works/pi-coding-agent": "^1.1.0",

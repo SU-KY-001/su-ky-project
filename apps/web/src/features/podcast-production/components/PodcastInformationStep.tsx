@@ -67,67 +67,28 @@ export function PodcastInformationStep({
           {state.episodeId ? "Cập nhật tên và mô tả của tập podcast." : "Chọn series và bổ sung thông tin ngắn gọn cho tập mới."}
         </p>
       </header>
-      <div className="grid gap-5 lg:grid-cols-2">
-        <div className="space-y-4">
-          {state.episodeId ? (
-            <div className="space-y-4">
-              <div><p className="text-sm font-semibold text-mod-text">Series</p><p className="mt-2 rounded-lg border border-mod-border bg-mod-canvas-accent px-3 py-3 text-sm text-mod-text">{seriesName || "Chưa có"}</p></div>
-              <div><p className="text-sm font-semibold text-mod-text">Sự kiện lịch sử</p><p className="mt-2 rounded-lg border border-mod-border bg-mod-canvas-accent px-3 py-3 text-sm text-mod-text">{eventName || "Chưa có"}</p></div>
-            </div>
-          ) : (
-            <>
-              <FormField label="Series" htmlFor="podcast-series">
-                <ModeratorSelect
-                  id="podcast-series"
-                  label="Series"
-                  value={state.seriesId}
-                  disabled={busy}
-                  onValueChange={onSelectSeries}
-                  options={seriesOptions}
-                  placeholder="Chọn series"
-                />
-                {hasMoreSeries ? (
-                  <Button type="button" variant="ghost" onClick={onLoadMore} disabled={busy}>
-                    Tải thêm series
-                  </Button>
-                ) : null}
-              </FormField>
-              <FormField label="Sự kiện lịch sử" htmlFor="podcast-event">
-                <Input
-                  id="podcast-event"
-                  className={formField}
-                  value={eventName}
-                  placeholder={state.seriesId ? "Series chưa gắn sự kiện" : "Chọn series trước"}
-                  disabled
-                  readOnly
-                />
-              </FormField>
-            </>
-          )}
-          <PodcastPosterField value={state.poster} busy={busy} readOnly={false} onChange={onPosterChange} onBusyChange={onPosterBusyChange} />
+      <div className="space-y-5">
+        <div className="grid items-start gap-5 lg:grid-cols-2">
+          <FormField label="Series" htmlFor="podcast-series">
+            {state.episodeId ? (
+              <Input id="podcast-series" className={`${formField} h-11`} value={seriesName || "Chưa có"} disabled readOnly />
+            ) : (
+              <ModeratorSelect id="podcast-series" label="Series" value={state.seriesId} disabled={busy} onValueChange={onSelectSeries} options={seriesOptions} placeholder="Chọn series" />
+            )}
+          </FormField>
+          <FormField label="Sự kiện lịch sử" htmlFor="podcast-event">
+            <Input id="podcast-event" className={`${formField} h-11`} value={eventName} placeholder={state.seriesId ? "Series chưa gắn sự kiện" : "Chọn series trước"} disabled readOnly />
+          </FormField>
         </div>
-        <div className="space-y-4">
-          <FormField label="Tên tập podcast" htmlFor="podcast-name">
-            <Input
-              id="podcast-name"
-              className={formField}
-              value={state.title}
-              disabled={busy}
-              onChange={(event) => onChange({ title: event.target.value })}
-              placeholder="Ví dụ: Chiến thắng Bạch Đằng năm 938"
-            />
-          </FormField>
+        {!state.episodeId && hasMoreSeries && <Button type="button" variant="ghost" size="sm" onClick={onLoadMore} disabled={busy}>Tải thêm series</Button>}
+        <FormField label="Tên tập podcast" htmlFor="podcast-name">
+          <Input id="podcast-name" className={`${formField} h-11`} value={state.title} disabled={busy} onChange={(event) => onChange({ title: event.target.value })} placeholder="Ví dụ: Chiến thắng Bạch Đằng năm 938" />
+        </FormField>
+        <div className="grid items-start gap-5 lg:grid-cols-2">
           <FormField label="Mô tả" htmlFor="podcast-description">
-            <Textarea
-              autoGrow
-              id="podcast-description"
-              className={`${formField} min-h-28`}
-              value={state.description}
-              disabled={busy}
-              onChange={(event) => onChange({ description: event.target.value })}
-              placeholder="Tóm tắt nội dung và góc kể của tập podcast"
-            />
+            <Textarea id="podcast-description" className={`${formField} h-56 min-h-56 resize-none overflow-y-auto`} value={state.description} disabled={busy} onChange={(event) => onChange({ description: event.target.value })} placeholder="Tóm tắt nội dung và góc kể của tập podcast" />
           </FormField>
+          <PodcastPosterField value={state.poster} busy={busy} readOnly={false} onChange={onPosterChange} onBusyChange={onPosterBusyChange} />
         </div>
       </div>
       {error ? <p role="alert" className="text-sm text-mod-danger">{error}</p> : null}

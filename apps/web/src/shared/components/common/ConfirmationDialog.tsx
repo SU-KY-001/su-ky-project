@@ -7,6 +7,7 @@ export interface ConfirmationRequest {
   title: string;
   description: string;
   confirmLabel: string;
+  cancelLabel?: string;
   destructive?: boolean;
 }
 
@@ -20,7 +21,7 @@ export function ConfirmationDialog({ request, onResolve }: ConfirmationDialogPro
     <AlertDialogContent>
       <AlertDialogHeader><AlertDialogTitle>{request?.title}</AlertDialogTitle><AlertDialogDescription>{request?.description}</AlertDialogDescription></AlertDialogHeader>
       <AlertDialogFooter>
-        <AlertDialogCancel onClick={() => onResolve(false)}>Quay lại</AlertDialogCancel>
+        <AlertDialogCancel onClick={() => onResolve(false)}>{request?.cancelLabel ?? "Quay lại"}</AlertDialogCancel>
         <AlertDialogAction className={request?.destructive ? "bg-mod-danger hover:bg-mod-danger/90" : undefined} onClick={() => onResolve(true)}>{request?.confirmLabel}</AlertDialogAction>
       </AlertDialogFooter>
     </AlertDialogContent>

@@ -1,8 +1,7 @@
 import { Component, lazy, Suspense, useEffect, type ReactNode } from "react";
 import { HeroCarousel } from "../../features/landing/components/HeroCarousel";
-import { LandingHeader } from "../../features/landing/components/LandingHeader";
-import { scrollToLandingTarget, useLandingMotion } from "../../features/landing/hooks/useLandingMotion";
-import { LightRays } from "@/shared/components/ui/light-rays";
+import { LandingPageShell } from "../../features/landing/components/LandingPageShell";
+import { scrollToLandingTarget } from "../../features/landing/hooks/useLandingMotion";
 import { Outlet } from "react-router";
 
 const LandingContent = lazy(() => import("./LandingContent").then(({ LandingContent: Content }) => ({ default: Content })));
@@ -38,7 +37,7 @@ function LandingFooterError() {
 }
 
 export function LandingPage() {
-  useLandingMotion();
+
 
   useEffect(() => {
     const id = window.location.hash.slice(1);
@@ -49,25 +48,9 @@ export function LandingPage() {
 
   return (
     <>
-      <div id="landing-page" className="landing-scroll-area relative isolate bg-paper">
-        <div id="landing-content">
-          <LandingHeader />
-          <main>
-            <HeroCarousel />
-            <LandingContentBoundary fallback={<LandingContentError />}>
-              <Suspense fallback={null}>
-                <LandingContent />
-              </Suspense>
-            </LandingContentBoundary>
-          </main>
-          <LandingContentBoundary fallback={<LandingFooterError />}>
-            <Suspense fallback={null}>
-              <LandingFooter />
-            </Suspense>
-          </LandingContentBoundary>
-        </div>
-        <LightRays className="fixed inset-0 z-30 opacity-70" count={6} color="rgba(181, 138, 60, 0.24)" blur={52} speed={22} length="110vh" />
-      </div>
+      <LandingPageShell footer={<LandingContentBoundary fallback={<LandingFooterError />}><Suspense fallback={null}><LandingFooter /></Suspense></LandingContentBoundary>}>
+        <main><HeroCarousel /><LandingContentBoundary fallback={<LandingContentError />}><Suspense fallback={null}><LandingContent /></Suspense></LandingContentBoundary></main>
+      </LandingPageShell>
       <Outlet />
     </>
   );

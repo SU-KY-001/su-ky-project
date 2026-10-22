@@ -1,3 +1,5 @@
+import { CardBadge, cardBadgeToneForStatus } from "@/shared/components/dashboard/CardBadge";
+import { ImageThumbnail } from "@/shared/components/common/ImageThumbnail";
 import { Fragment, useState, type ReactNode } from "react";
 import { useLocation, useMatch, useNavigate, useSearchParams } from "react-router";
 import { useMutation, useQuery } from "@tanstack/react-query";
@@ -28,7 +30,6 @@ import {
 } from "@/features/moderator/components/ModeratorTable";
 import {
   ModeratorTreeNode,
-  ContentKindIcon,
   ContentKindLegend,
 } from "@/features/moderator/components/ModeratorTreeNode";
 import { ModeratorSectionPanel } from "@/features/moderator/components/ModeratorSectionPanel";
@@ -38,6 +39,7 @@ import { formField } from "@/features/moderator/components/CreationPage";
 import { ModeratorSelect } from "@/features/moderator/components/ModeratorSelect";
 import { notify } from "@/shared/lib/notifications";
 import { newIdempotencyKey } from "@/lib/idempotency";
+import { errorMessage, isApiError } from "@/lib/apiError";
 import {
   useHistoricalEntities,
   useHistoricalEvent,
@@ -84,6 +86,16 @@ function SeriesEvidence({
   const topic = topics.data?.items.find(
     (item) => item.slug === NATIONAL_HISTORY_TOPIC_SLUG,
   );
+  const missingChecklist = series.publishChecklist.items.filter((item) => !item.ok);
+  const notifyNotPublishable = () => {
+    const requirements = missingChecklist.map((item) => checklistLabels[item.key] ?? item.key);
+    notify.error({
+      title: "Chưa thể phát hành series",
+      description: requirements.length
+        ? `Cần hoàn tất: ${requirements.join(", ")}.`
+        : "Series chưa đủ điều kiện. Hãy tải lại thông tin và kiểm tra checklist phát hành.",
+    });
+  };
   const mutation = useMutation({
     mutationFn: async (action: {
       kind: "patch" | "source" | "remove" | "publish" | "hide";
@@ -110,6 +122,14 @@ function SeriesEvidence({
       if (action.kind === "patch") setEditing(false);
       notify.success({ title: "Đã cập nhật series." });
     },
+    onError: (error, action) => {
+      if (action.kind !== "publish") return;
+      if (isApiError(error) && error.errorCode === "SERIES_NOT_PUBLISHABLE") {
+        notifyNotPublishable();
+        return;
+      }
+      notify.error({ title: "Không thể phát hành series", description: errorMessage(error) });
+    },
   });
   const evidence = PublicationEvidenceSchema.safeParse(
     series.publicationEvidence,
@@ -120,8 +140,6 @@ function SeriesEvidence({
     ) ?? [];
   if (event.data && !eventOptions.some((item) => item.value === event.data.id))
     eventOptions.push({ value: event.data.id, label: event.data.name });
-  const missingChecklist = series.publishChecklist.items.filter((item) => !item.ok);
-
   const resetEditing = () => {
     setTitle(series.title);
     setDescription(series.description ?? "");
@@ -145,9 +163,7 @@ function SeriesEvidence({
                 Thông tin series
               </h2>
             </div>
-            <span className="rounded-full border border-mod-kind-series/25 bg-mod-surface px-3 py-1 text-xs font-semibold text-mod-kind-series">
-              {series.status === "PUBLISHED" ? "Đã phát hành" : series.status === "HIDDEN" ? "Đã ẩn" : "Bản nháp"}
-            </span>
+            <CardBadge type="status" tone={cardBadgeToneForStatus(series.status)}>{series.status === "PUBLISHED" ? "Đã phát hành" : series.status === "HIDDEN" ? "Đã ẩn" : "Bản nháp"}</CardBadge>
           </div>
 
           {editing ? (
@@ -265,7 +281,7 @@ function SeriesEvidence({
                       <div className="min-w-0">
                         <p className="font-medium text-mod-text">{citation.source.title}</p>
                         <p className="mt-0.5 text-xs text-mod-text-secondary">
-                          {citation.locator || "Chưa có vị trí trích"} · {citation.outdated ? "Phiên bản cũ" : citation.source.verificationStatus === "VERIFIED" ? "Đã xác minh" : "Chưa xác minh"}
+                          {citation.locator || "Chưa có vị trí trích"} · <CardBadge type="status" tone={citation.outdated ? "warning" : cardBadgeToneForStatus(citation.source.verificationStatus)}>{citation.outdated ? "Phiên bản cũ" : citation.source.verificationStatus === "VERIFIED" ? "Đã xác minh" : "Chưa xác minh"}</CardBadge>
                         </p>
                       </div>
                       <Button
@@ -338,7 +354,13 @@ function SeriesEvidence({
               type="button"
               className={primaryAction}
               disabled={mutation.isPending}
-              onClick={() => mutation.mutate({ kind: series.status === "PUBLISHED" ? "hide" : "publish" })}
+              onClick={() => {
+                if (series.status !== "PUBLISHED" && missingChecklist.length > 0) {
+                  notifyNotPublishable();
+                  return;
+                }
+                mutation.mutate({ kind: series.status === "PUBLISHED" ? "hide" : "publish" });
+              }}
             >
               {mutation.isPending ? "Đang xử lý…" : series.status === "PUBLISHED" ? "Ẩn series" : "Phát hành series"}
             </Button>
@@ -383,7 +405,7 @@ function SeriesDetailDialog({ id, onEditEpisode }: { id: string; onEditEpisode: 
                       <div className="min-w-0 flex-1">
                         <p className="font-semibold text-mod-text">{episode.title}</p>
                         <p className="mt-1 text-xs text-mod-text-secondary">
-                          Tập {episode.sortOrder} · {episode.status === "PUBLISHED" ? "Đã phát hành" : episode.status === "HIDDEN" ? "Đã ẩn" : "Bản nháp"}
+                          Tập {episode.sortOrder} · <CardBadge type="status" tone={cardBadgeToneForStatus(episode.status)}>{episode.status === "PUBLISHED" ? "Đã phát hành" : episode.status === "HIDDEN" ? "Đã ẩn" : "Bản nháp"}</CardBadge>
                         </p>
                       </div>
                       <Button
@@ -434,23 +456,23 @@ function SeriesBranch({
           <TableRow key={e.id} className="mod-tree-child">
             <TableHead scope="row" className={tableCell}>
               <div className="flex min-w-0 items-center gap-2.5 pl-7">
-                <ContentKindIcon kind="episode" />
+                <ImageThumbnail src={e.poster?.url} alt={`Poster ${e.title}`} />
                 <span className="mod-tree-name">{e.title}</span>
               </div>
             </TableHead>
             <TableCell className={tableCell}>{e.sortOrder}</TableCell>
             <TableCell className={tableCell}>
-              {e.progress.hasThirdPersonScript ? "Có kịch bản" : "Chưa có"}
+              <CardBadge type="status" tone={e.progress.hasThirdPersonScript ? "success" : "warning"}>{e.progress.hasThirdPersonScript ? "Có kịch bản" : "Chưa có"}</CardBadge>
             </TableCell>
             <TableCell className={tableCell}>
-              {e.progress.hasThirdPersonAudio ? "Có âm thanh" : "Chưa có"}
+              <CardBadge type="status" tone={e.progress.hasThirdPersonAudio ? "success" : "warning"}>{e.progress.hasThirdPersonAudio ? "Có âm thanh" : "Chưa có"}</CardBadge>
             </TableCell>
             <TableCell className={tableCell}>
-              {e.status === "PUBLISHED"
+              <CardBadge type="status" tone={cardBadgeToneForStatus(e.status)}>{e.status === "PUBLISHED"
                 ? "Đã phát hành"
                 : e.status === "HIDDEN"
                   ? "Đã ẩn"
-                  : "Bản nháp"}
+                  : "Bản nháp"}</CardBadge>
             </TableCell>
             <TableCell className={tableCell}>
               <DashboardRowActions label={e.title} actions={[{ id: "edit", label: "Chỉnh sửa", icon: PencilSimple, onSelect: () => onEditEpisode(e.id) }]} />
@@ -591,11 +613,11 @@ export function PodcastWorkspace() {
                 <TableCell className={tableCell}>—</TableCell>
                 <TableCell className={tableCell}>—</TableCell>
                 <TableCell className={tableCell}>
-                  {s.status === "PUBLISHED"
+                  <CardBadge type="status" tone={cardBadgeToneForStatus(s.status)}>{s.status === "PUBLISHED"
                     ? "Đã phát hành"
                     : s.status === "HIDDEN"
                       ? "Đã ẩn"
-                      : "Bản nháp"}
+                      : "Bản nháp"}</CardBadge>
                 </TableCell>
                 <TableCell className={tableCell}>
                   <DashboardRowActions label={s.title} actions={[{ id: "detail", label: "Xem chi tiết", icon: Eye, onSelect: () => go(moderatorPodcastPath.series(s.id)) }]} />
