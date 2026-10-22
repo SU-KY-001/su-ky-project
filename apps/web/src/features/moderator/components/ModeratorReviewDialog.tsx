@@ -4,6 +4,7 @@ import { errorMessage } from "@/lib/apiError";
 import { notify } from "@/shared/lib/notifications";
 import { Button } from "@/shared/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/shared/components/ui/dialog";
+import { CardBadge } from "@/shared/components/dashboard/CardBadge";
 import { ReleaseReviewPanel, type ReviewDecisionInput } from "@/features/release-review/ReleaseReviewPanel";
 import { moderatorReleaseService } from "../services/moderatorReleaseService";
 
@@ -45,7 +46,10 @@ export function ModeratorReviewDialog({ scheduleId, title, reviewRevision, onClo
         <div className="mod-scrollbar-hidden min-h-0 flex-1 overflow-y-auto overscroll-contain p-5 sm:p-6">
           {content.isPending ? <div className="ui-skeleton min-h-60 rounded-xl" aria-label="Đang tải nội dung kiểm duyệt" />
             : content.isError ? <div className="flex min-h-40 items-center justify-center"><Button variant="outline" onClick={() => void content.refetch()}>Tải lại nội dung</Button></div>
-            : <ReleaseReviewPanel content={content.data} validRevision={content.data.readiness.contentRevision === reviewRevision && !content.isFetching} reviewRevision={reviewRevision} pending={decide.isPending} noteId="mod-review-note" onDecide={(input) => decide.mutate(input)} />}
+            : <div className="space-y-5">
+                <div className="flex flex-wrap items-center gap-2"><CardBadge type="status" tone="info">Chờ kiểm duyệt</CardBadge><span className="text-xs text-mod-text-secondary">Phiên bản {reviewRevision}</span></div>
+                <ReleaseReviewPanel content={content.data} validRevision={content.data.readiness.contentRevision === reviewRevision && !content.isFetching} reviewRevision={reviewRevision} pending={decide.isPending} noteId="mod-review-note" onDecide={(input) => decide.mutate(input)} />
+              </div>}
         </div>
         <DialogFooter className="shrink-0 border-t border-mod-border px-5 py-4 sm:px-6"><Button variant="outline" disabled={decide.isPending} onClick={onClose}>Đóng</Button></DialogFooter>
       </DialogContent>

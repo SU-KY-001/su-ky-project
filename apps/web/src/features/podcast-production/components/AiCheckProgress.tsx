@@ -1,28 +1,30 @@
-import { useEffect, useState, type ReactElement } from "react";
-import { LoaderCircle } from "lucide-react";
+import type { ReactElement } from "react";
+import { X } from "lucide-react";
 import type { AiCheck } from "@repo/shared";
 import { Button } from "@/shared/components/ui/button";
 
-const CLOCK_TICK_MS = 1000;
+const PERCENT = 100;
+/** Keeps the bar visibly moving before the first block returns (processed 0 of N). */
+const MIN_FILL_PERCENT = 8;
 
-export function AiCheckProgress({ check, found, onCancel }: { check: AiCheck; found: number; onCancel: () => void }): ReactElement {
-  const [now, setNow] = useState(() => Date.now());
-  useEffect(() => {
-    const timer = window.setInterval(() => setNow(Date.now()), CLOCK_TICK_MS);
-    return () => window.clearInterval(timer);
-  }, []);
-  const seconds = Math.max(0, Math.round((now - check.startedAt.getTime()) / 1000));
+export function AiCheckProgress({ check, found, onCancel }: { check: Pick<AiCheck, "processedBlocks" | "totalBlocks" | "failedBlocks">; found: number; onCancel?: () => void }): ReactElement {
+  const done = check.totalBlocks > 0 ? Math.round((check.processedBlocks / check.totalBlocks) * PERCENT) : 0;
+  const fill = Math.min(PERCENT, Math.max(MIN_FILL_PERCENT, done));
   return (
     <div className="space-y-3" role="status" aria-busy="true">
-      <p className="flex items-center gap-2 font-semibold text-mod-text">
-        <LoaderCircle size={16} className="animate-spin text-mod-primary" aria-hidden="true" /> AI đang chạy…
-      </p>
-      <p className="text-sm text-mod-text-secondary">
-        Đã xét {check.processedBlocks}/{check.totalBlocks} đoạn · {seconds} giây · {found} cảnh báo
+      <div className="flex items-center justify-between gap-2">
+        <h4 className="font-bold text-mod-text">AI đang rà…</h4>
+        <span className="rounded-full bg-focus/10 px-2 py-0.5 text-xs font-bold text-focus">Đang chạy</span>
+      </div>
+      <div role="progressbar" aria-valuemin={0} aria-valuemax={PERCENT} aria-valuenow={done} aria-label="Tiến độ rà" className="h-2 overflow-hidden rounded-full bg-mod-canvas-accent">
+        <span className="block h-full rounded-full bg-mod-primary transition-[width] duration-500" style={{ width: `${fill}%` }} />
+      </div>
+      <p className="text-xs text-mod-text-secondary">
+        Đã xét {check.processedBlocks}/{check.totalBlocks} đoạn · {found} cảnh báo
         {check.failedBlocks > 0 ? ` · ${check.failedBlocks} đoạn không rà được` : ""}
       </p>
-      <p className="text-xs text-mod-text-secondary">Đóng tab vẫn không mất: AI chạy nền, mở lại tập sẽ thấy kết quả.</p>
-      <Button type="button" variant="outline" size="sm" onClick={onCancel}>Hủy</Button>
+      <p className="text-xs text-mod-text-secondary">Bạn vẫn có thể tiếp tục gõ kịch bản trong lúc chờ.</p>
+      {onCancel ? <Button type="button" variant="outline" size="sm" onClick={onCancel}><X size={14} aria-hidden="true" /> Hủy</Button> : null}
     </div>
   );
 }

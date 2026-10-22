@@ -14,6 +14,7 @@ import { ModeratorTickets } from "@/features/moderator/components/ModeratorTicke
 const Timeline = lazy(() => import("./ModeratorTimelinePage").then((module) => ({ default: module.ModeratorTimelinePage })));
 const Podcast = lazy(() => import("./PodcastProductionPage").then((module) => ({ default: module.PodcastProductionPage })));
 const Library = lazy(() => import("./ModeratorLibraryFeaturePage").then((module) => ({ default: module.ModeratorLibraryFeaturePage })));
+const Angles = lazy(() => import("@/features/podcast-production/angles/AngleManagePage").then((module) => ({ default: module.AngleManagePage })));
 
 const CREATE_MILESTONE_QUERY = "?create=milestone";
 
@@ -39,6 +40,7 @@ function WorkspaceContent({ section, creatingMilestone, onAction }: WorkspaceCon
     case "tickets": return <ModeratorTickets />;
     case "schedule": return <ModeratorReleaseSchedule />;
     case "pending": return <ModeratorReviewQueue />;
+    case "angles": return <Angles />;
     default: return <Library key={section} section={section} />;
   }
 }

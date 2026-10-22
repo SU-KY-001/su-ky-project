@@ -16,6 +16,8 @@ import {
   createObjectUrlLease,
   isSupportedPodcastAudio,
 } from "../audioAnalysis";
+import { useWordsPerMinute } from "../hooks/usePodcastProduction";
+import { estimatedDurationMs } from "../scriptDuration";
 
 const statusLabel = {
   PASS: "Đạt",
@@ -41,9 +43,9 @@ export function UploadedAudioPanel({
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState("");
   const [confirmReplace, setConfirmReplace] = useState(false);
-  const estimatedDurationMs = wizard.state.scriptText.trim()
-    ? Math.round((wizard.state.scriptText.trim().split(/\s+/).length / 150) * 60_000)
-    : 0;
+  const wordsPerMinute = useWordsPerMinute();
+  // Config still loading: 0 means "no estimate", which the analysis reports as UNKNOWN rather than a wrong number.
+  const estimatedMs = wordsPerMinute ? estimatedDurationMs(wizard.state.scriptText, wordsPerMinute) : 0;
 
   useEffect(() => () => leaseRef.current?.dispose(), []);
 
@@ -61,7 +63,7 @@ export function UploadedAudioPanel({
     setLocalPreview(leaseRef.current?.replace(selected) ?? null);
     setAnalyzing(true);
     try {
-      setAnalysis(await analyzePodcastAudio(selected, estimatedDurationMs));
+      setAnalysis(await analyzePodcastAudio(selected, estimatedMs));
     } catch {
       setAnalysis(null);
       setError("Không đọc được thông tin âm thanh. Hãy thử một file khác.");

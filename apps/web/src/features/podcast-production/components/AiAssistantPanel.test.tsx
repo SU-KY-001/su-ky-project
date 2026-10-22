@@ -79,13 +79,19 @@ it("retries only PATCH after an apply acknowledgement failure", async () => {
     throw new Error(`Unexpected request: ${method} ${url}`);
   }) as unknown as typeof fetch;
 
-  const replaceBlockText = mock(() => "ok" as const);
+  let blockText = "Bản gốc";
+  const replaceBlockText = mock(() => {
+    blockText = "Bản đề xuất";
+    return "ok" as const;
+  });
+  const setBlockHighlights = mock(() => undefined);
   const editorRef = {
     current: {
-      getBlocks: () => [{ ref: "b0", text: "Bản gốc", hash: hashBlockText("Bản gốc"), prev: "", dup: 1 }],
+      getBlocks: () => [{ ref: "b0", text: blockText, hash: hashBlockText(blockText), prev: "", dup: 1 }],
       getSelectionBlocks: () => [],
       focusBlock: () => undefined,
       replaceBlockText,
+      setBlockHighlights,
       insertCitation: () => undefined,
     },
   } as unknown as RefObject<RichScriptEditorHandle | null>;
@@ -109,5 +115,8 @@ it("retries only PATCH after an apply acknowledgement failure", async () => {
 
   expect(replaceBlockText).toHaveBeenCalledTimes(1);
   expect(patchCalls).toBe(2);
-  expect(host.textContent).toContain("Đã áp dụng");
+  expect(host.textContent).toContain("Đã áp dụng vào đoạn này. Bấm Ctrl+Z trong editor để hoàn tác.");
+  // The block no longer matches the snapshot hash because we replaced it: that must not read as a conflict.
+  expect(host.textContent).not.toContain("Đoạn đã đổi, chạy lại");
+  expect(setBlockHighlights).toHaveBeenLastCalledWith([{ ref: "b0", kind: "current" }]);
 });

@@ -1,4 +1,4 @@
-import type { ReadinessItem, ReadinessKey } from "@repo/shared";
+import type { EpisodeReadiness, ReadinessItem, ReadinessKey } from "@repo/shared";
 
 /** Returns the row text, or null to hide the row (e.g. "all fine" rows that add no information). */
 type Label = (item: ReadinessItem) => string | null;
@@ -47,3 +47,36 @@ export const readinessLabels: Record<ReadinessKey, Label> = {
 };
 
 export const AI_READINESS_KEYS: ReadonlySet<ReadinessKey> = new Set(["AI_REVIEW_NOT_RUN", "AI_REVIEW_SUMMARY", "AI_REVIEW_STALE", "AI_REVIEW_INCOMPLETE"]);
+
+/** The mock's three row labels; INFO rows are notes, not a state of the episode, so they carry no label. */
+export const STATE_LABEL: Partial<Record<ReadinessItem["state"], { text: string; tone: "ok" | "warn" | "missing" }>> = {
+  OK: { text: "Đủ", tone: "ok" },
+  WARN: { text: "Cảnh báo", tone: "warn" },
+  MISSING: { text: "Thiếu", tone: "missing" },
+};
+
+/** First required row that is not OK: the reason shown next to the locked "Duyệt" button. */
+export function firstMissing(readiness: EpisodeReadiness): string | null {
+  const item = readiness.items.find((row) => row.level === "REQUIRED" && row.state !== "OK");
+  return item ? readinessLabels[item.key](item) : null;
+}
+
+export interface ReviewReason {
+  tone: "blocked" | "warn" | "ok";
+  text: string;
+}
+
+/** Three states from the mock: something required is missing, only warnings, or clean. Warnings never block. */
+export function reviewReason(readiness: EpisodeReadiness): ReviewReason {
+  if (!readiness.ready) return { tone: "blocked", text: `Chưa thể Duyệt: ${firstMissing(readiness) ?? "tập chưa đủ điều kiện."}` };
+  const warned = readiness.items.some((row) => row.state === "WARN" && !AI_READINESS_KEYS.has(row.key) && readinessLabels[row.key](row));
+  return warned ? { tone: "warn", text: "Có thể Duyệt. Cảnh báo không chặn, nhưng bạn nên xem." } : { tone: "ok", text: "Có thể Duyệt." };
+}
+
+/** One non-empty line per paragraph, matching how the script is stored (`\n` between paragraphs). */
+export const paragraphCount = (script: string): number => script.split(/\n+/).filter((line) => line.trim()).length;
+
+export function formatClock(ms: number): string {
+  const total = Math.round(ms / MS_PER_SECOND);
+  return `${String(Math.floor(total / SECONDS_PER_MINUTE)).padStart(2, "0")}:${String(total % SECONDS_PER_MINUTE).padStart(2, "0")}`;
+}

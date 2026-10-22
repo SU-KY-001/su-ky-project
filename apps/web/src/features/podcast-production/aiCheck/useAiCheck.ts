@@ -8,8 +8,9 @@ const SSE_EVENTS = ["item", "progress", "done", "failed"] as const;
 export interface AiCheckState {
   check: AiCheck | null;
   items: AiCheckItem[];
-  /** True between the click on "Chạy" and the first response. */
   starting: boolean;
+  /** When the newest finished (not cancelled) check ended; null when there is none. */
+  lastRunAt: Date | null;
   start: (episodeId: string, input: CreateAiCheckInput) => Promise<void>;
   cancel: () => Promise<void>;
   patchItem: (itemId: string, patch: PatchAiCheckItemInput) => Promise<AiCheckItem>;
@@ -20,6 +21,7 @@ export function useAiCheck(episodeId: string | null): AiCheckState {
   const [check, setCheck] = useState<AiCheck | null>(null);
   const [items, setItems] = useState<AiCheckItem[]>([]);
   const [starting, setStarting] = useState(false);
+  const [lastRunAt, setLastRunAt] = useState<Date | null>(null);
   const stream = useRef<EventSource | null>(null);
   const active = useRef<{ episodeId: string; checkId: string } | null>(null);
 
@@ -37,6 +39,7 @@ export function useAiCheck(episodeId: string | null): AiCheckState {
       stream.current = source;
       const settle = (next: AiCheck) => {
         setCheck(next);
+        if (next.finishedAt) setLastRunAt(next.finishedAt);
         source.close();
         if (stream.current === source) stream.current = null;
       };
@@ -71,8 +74,11 @@ export function useAiCheck(episodeId: string | null): AiCheckState {
     if (!episodeId) return;
     let cancelled = false;
     void (async () => {
-      const latest = (await api.recent(episodeId)).items[0];
-      if (!latest || cancelled) return;
+      const recent = (await api.recent(episodeId)).items;
+      if (cancelled) return;
+      setLastRunAt(recent.find((entry) => entry.status !== "CANCELLED")?.finishedAt ?? null);
+      const latest = recent[0];
+      if (!latest || latest.status === "CANCELLED") return;
       const detail = await api.get(episodeId, latest.id);
       if (cancelled) return;
       setItems(detail.items);
@@ -101,11 +107,14 @@ export function useAiCheck(episodeId: string | null): AiCheckState {
     [follow],
   );
 
+  /** Cancel means "throw this run away": the server stops it, the panel returns to idle with no results. */
   const cancel = useCallback(async () => {
     if (!active.current) return;
-    const next = await api.cancel(active.current.episodeId, active.current.checkId);
+    await api.cancel(active.current.episodeId, active.current.checkId);
     closeStream();
-    setCheck(next);
+    active.current = null;
+    setCheck(null);
+    setItems([]);
   }, [closeStream]);
 
   const patchItem = useCallback(async (itemId: string, patch: PatchAiCheckItemInput) => {
@@ -115,5 +124,5 @@ export function useAiCheck(episodeId: string | null): AiCheckState {
     return updated;
   }, []);
 
-  return { check, items, starting, start, cancel, patchItem };
+  return { check, items, starting, lastRunAt, start, cancel, patchItem };
 }

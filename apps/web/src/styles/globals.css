@@ -337,6 +337,21 @@ body.workspace-scroll-lock {
   font-weight: 700;
 }
 
+/* AI review highlights (decorations only; see aiCheck/blockHighlights.ts). */
+.podcast-rich-editor .ai-block-flag {
+  border-bottom: 2px solid var(--color-bronze);
+}
+
+.podcast-rich-editor .ai-block-applied {
+  border-bottom: 2px solid var(--modSuccess);
+}
+
+.podcast-rich-editor .ai-block-current {
+  border-radius: 4px;
+  background: color-mix(in srgb, var(--color-focus) 10%, transparent);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--color-focus) 45%, transparent), -8px 0 0 color-mix(in srgb, var(--color-focus) 10%, transparent), 8px 0 0 color-mix(in srgb, var(--color-focus) 10%, transparent);
+}
+
 .app-toast {
   will-change: transform, opacity;
 }

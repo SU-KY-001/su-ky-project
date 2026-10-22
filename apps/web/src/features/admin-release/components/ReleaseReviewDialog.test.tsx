@@ -77,7 +77,7 @@ it("locks 'Yêu cầu chỉnh sửa' until a note is written", async () => {
 it("locks approval and names the first missing required item when the episode is not ready", async () => {
   const { review } = await renderReview({ notReady: true });
   expect(button("Duyệt nội dung")?.disabled).toBe(true);
-  expect(document.body.textContent).toContain("Chưa thể duyệt: Chưa có âm thanh ngôi thứ ba sẵn sàng");
+  expect(document.body.textContent).toContain("Chưa thể Duyệt: Chưa có âm thanh ngôi thứ ba sẵn sàng");
   expect(review).not.toHaveBeenCalled();
 });
 
@@ -94,4 +94,13 @@ it("keeps detail open and reports a failed decision through toast", async () => 
   expect(onClose).not.toHaveBeenCalled();
   expect(useNotificationStore.getState().notifications.at(-1)?.description).toBe("Phiên bản đã được người khác xử lý");
   expect(document.body.querySelector('[role="alert"]')).toBeNull();
+});
+
+it("collapses the script by default and expands it on demand", async () => {
+  await renderReview();
+  expect(document.body.querySelector('[data-testid="script-body"]')?.className).toContain("max-h-[150px]");
+  await act(async () => button("Xem hết 1 đoạn")?.click());
+  expect(document.body.querySelector('[data-testid="script-body"]')?.className).toContain("max-h-[360px]");
+  expect(button("Thu gọn")).toBeDefined();
+  expect(document.body.textContent).toContain("Có thể Duyệt.");
 });

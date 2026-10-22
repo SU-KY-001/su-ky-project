@@ -14,6 +14,7 @@ import {
   AttachEpisodeDocumentSchema,
   EpisodeAttachmentSchema,
   EpisodePosterSchema,
+  ScriptConfigSchema,
   ImageUploadPolicySchema,
 } from "@repo/shared";
 import { client } from "@/lib/client";
@@ -32,6 +33,7 @@ export const headers = (key: string) => ({ headers: { "Idempotency-Key": key } }
 export const NATIONAL_HISTORY_TOPIC_SLUG = "lich-su-dan-toc";
 export const podcastProductionService = {
   imagePolicy: (signal?: AbortSignal) => parse(studio["media-assets"]["image-policy"].$get({}, { init: { signal } }), ImageUploadPolicySchema),
+  scriptConfig: () => parse(studio["script-config"].$get(), ScriptConfigSchema),
   async uploadPoster(file: File, signal: AbortSignal) {
     const assetId = await uploadCatalogMedia(file, "IMAGE", signal);
     const asset = await parse(studio["media-assets"][":id"].$get({ param: { id: assetId } }, { init: { signal } }), z.object({ previewUrl: z.string() }));

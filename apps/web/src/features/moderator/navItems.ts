@@ -7,6 +7,7 @@ import {
   ClipboardText,
   Headphones,
   MapTrifold,
+  PencilSimpleLine,
   Ticket,
 } from "@phosphor-icons/react";
 import type { ShellNavItem } from "./components/ModeratorShell";
@@ -34,5 +35,7 @@ export function moderatorWorkspaceNav(activeSection: ModeratorSection): ShellNav
     { id: "publishing-heading", label: "XUẤT BẢN", active: false, groupStart: true },
     link("moderator-pending", "Cần xử lý", CheckSquareOffset, "pending"),
     link("moderator-schedule", "Lịch phát hành", CalendarBlank, "schedule"),
+    { id: "settings-heading", label: "CÀI ĐẶT", active: false, groupStart: true },
+    link("moderator-angles", "Góc kể", PencilSimpleLine, "angles"),
   ];
 }

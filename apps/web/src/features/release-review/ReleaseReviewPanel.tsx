@@ -3,7 +3,10 @@ import { ArrowSquareOut, CheckCircle, FileText, Info, Warning, XCircle } from "@
 import type { EpisodeReadiness, EpisodeWorkspaceDto, ReadinessItem, ReviewContent } from "@repo/shared";
 import { Button } from "@/shared/components/ui/button";
 import { Textarea } from "@/shared/components/ui/textarea";
-import { AI_READINESS_KEYS, readinessLabels } from "./readinessLabels";
+import { cn } from "@/lib/utils";
+import { useCurrentUser } from "@/shared/hooks/useCurrentUser";
+import { CollapsibleScript } from "./CollapsibleScript";
+import { AI_READINESS_KEYS, formatClock, readinessLabels, reviewReason, STATE_LABEL, type ReviewReason } from "./readinessLabels";
 
 export type ReviewDecisionInput =
   | { decision: "APPROVE"; contentRevision: number; reviewNote: string | null }
@@ -11,6 +14,17 @@ export type ReviewDecisionInput =
 
 const NARRATION_TITLE = { THIRD_PERSON: "Lời kể ngôi thứ ba", FIRST_PERSON: "Lời kể ngôi thứ nhất" } as const;
 const NOTE_MAX_CHARS = 5000;
+
+const REASON_CLASS: Record<ReviewReason["tone"], string> = {
+  blocked: "text-xs font-semibold text-mod-danger",
+  warn: "text-xs font-semibold text-mod-attention",
+  ok: "text-xs font-semibold text-mod-success",
+};
+const STATE_PILL_CLASS = {
+  ok: "bg-mod-success/10 text-mod-success",
+  warn: "bg-mod-attention/10 text-mod-attention",
+  missing: "bg-mod-danger/10 text-mod-danger",
+} as const;
 
 export function EpisodeReviewBody({ episode }: { episode: EpisodeWorkspaceDto }): ReactElement {
   return (
@@ -26,11 +40,17 @@ export function EpisodeReviewBody({ episode }: { episode: EpisodeWorkspaceDto })
             <h3 className="text-sm font-semibold">{NARRATION_TITLE[narration.type]}{narration.narrator ? ` · ${narration.narrator.name}` : ""}</h3>
             <div className="space-y-2">
               <h4 className="text-xs font-semibold text-mod-text-secondary">Bản thu âm</h4>
-              {narration.audio?.previewUrl ? <audio controls preload="none" src={narration.audio.previewUrl} className="w-full" aria-label={`Nghe bản thu ${narration.type === "THIRD_PERSON" ? "ngôi thứ ba" : "ngôi thứ nhất"}`} /> : <p className="text-sm text-mod-text-secondary">Chưa có bản thu âm để nghe.</p>}
+              {narration.audio?.previewUrl ? (
+                <>
+                  <audio controls preload="none" src={narration.audio.previewUrl} className="w-full" aria-label={`Nghe bản thu ${narration.type === "THIRD_PERSON" ? "ngôi thứ ba" : "ngôi thứ nhất"}`} />
+                  {narration.audio.durationMs ? <p className="text-xs text-mod-text-secondary">{formatClock(narration.audio.durationMs)}</p> : null}
+                  <p className="text-xs text-mod-text-secondary">Hệ thống không biết bạn đã nghe bao nhiêu, nên không có ô tick nghe xong.</p>
+                </>
+              ) : <p className="text-sm text-mod-text-secondary">Chưa có bản thu âm để nghe.</p>}
             </div>
             <div className="space-y-2">
               <h4 className="text-xs font-semibold text-mod-text-secondary">Kịch bản</h4>
-              <p className="whitespace-pre-wrap text-sm leading-7 [overflow-wrap:anywhere]">{narration.scriptContent || "Chưa có kịch bản."}</p>
+              {narration.scriptContent ? <CollapsibleScript text={narration.scriptContent} /> : <p className="text-sm leading-7">Chưa có kịch bản.</p>}
             </div>
           </section>
         ))
@@ -75,17 +95,11 @@ function Group({ title, items }: { title: string; items: Array<{ item: Readiness
       <h4 className="text-xs font-bold uppercase tracking-wide text-mod-text-secondary">{title}</h4>
       <ul className="space-y-1.5">
         {items.map(({ item, text }, index) => (
-          <li key={`${item.key}-${index}`} className="flex items-start gap-2 text-sm leading-5">{STATE_ICON[item.state]}<span>{text}</span></li>
+          <li key={`${item.key}-${index}`} className="flex items-start gap-2 text-sm leading-5">{STATE_ICON[item.state]}<span className="min-w-0 flex-1">{text}</span>{STATE_LABEL[item.state] ? <span className={cn("shrink-0 rounded-full px-2 py-0.5 text-xs font-bold", STATE_PILL_CLASS[STATE_LABEL[item.state]!.tone])}>{STATE_LABEL[item.state]!.text}</span> : null}</li>
         ))}
       </ul>
     </section>
   );
-}
-
-/** First required row that is not OK: the reason shown next to the locked "Duyệt" button. */
-export function firstMissing(readiness: EpisodeReadiness): string | null {
-  const item = readiness.items.find((row) => row.level === "REQUIRED" && row.state !== "OK");
-  return item ? readinessLabels[item.key](item) : null;
 }
 
 export function ReadinessColumn({ readiness }: { readiness: EpisodeReadiness }): ReactElement {
@@ -118,19 +132,21 @@ interface Props {
 /** Shared two-column review surface for Admin and Moderator reviewers: content left, system readiness + decision right. */
 export function ReleaseReviewPanel({ content, validRevision, reviewRevision, pending, onDecide, noteId }: Props): ReactElement {
   const [note, setNote] = useState("");
-  const missing = content.readiness.ready ? null : firstMissing(content.readiness);
+  const { data: user } = useCurrentUser();
+  const reason = reviewReason(content.readiness);
   const trimmed = note.trim();
   return (
     <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_20rem]">
+      {user ? <p className="text-xs text-mod-text-secondary lg:col-span-2">Người duyệt: <b className="text-mod-text">{user.name}</b> (không phải người sản xuất, không phải AI)</p> : null}
       <EpisodeReviewBody episode={content.episode} />
       <aside className="space-y-5 lg:border-l lg:border-mod-border lg:pl-6">
         <ReadinessColumn readiness={content.readiness} />
         {validRevision ? (
           <div className="space-y-3 border-t border-mod-border pt-4">
-            <label htmlFor={noteId} className="text-sm font-semibold">Nhận xét kiểm duyệt</label>
-            <Textarea id={noteId} value={note} onChange={(event) => setNote(event.target.value)} maxLength={NOTE_MAX_CHARS} rows={4} disabled={pending} placeholder="Bắt buộc khi yêu cầu chỉnh sửa" className="resize-none border-mod-border bg-mod-surface" />
-            <p className="text-xs text-mod-text-secondary">Người sản xuất thấy nhận xét này ở trang Công việc của họ (không có thông báo đẩy).</p>
-            {missing ? <p role="alert" className="text-xs font-semibold text-mod-danger">Chưa thể duyệt: {missing}</p> : null}
+            <label htmlFor={noteId} className="text-sm font-semibold">Ghi chú</label>
+            <Textarea id={noteId} value={note} onChange={(event) => setNote(event.target.value)} maxLength={NOTE_MAX_CHARS} rows={4} disabled={pending} placeholder="Nêu rõ phần cần sửa" className="resize-none border-mod-border bg-mod-surface" />
+            <p className="text-xs text-mod-text-secondary">Bắt buộc khi Yêu cầu chỉnh sửa.</p>
+            <p role={reason.tone === "blocked" ? "alert" : "status"} className={REASON_CLASS[reason.tone]}>{reason.text}</p>
             <div className="flex flex-wrap justify-end gap-2">
               <Button type="button" variant="outline" disabled={pending || !trimmed} onClick={() => onDecide({ decision: "REQUEST_CHANGES", contentRevision: reviewRevision, reviewNote: trimmed })}>
                 <XCircle size={17} />Yêu cầu chỉnh sửa
@@ -139,6 +155,7 @@ export function ReleaseReviewPanel({ content, validRevision, reviewRevision, pen
                 <CheckCircle size={17} />{pending ? "Đang xử lý…" : "Duyệt nội dung"}
               </Button>
             </div>
+            <p className="text-xs text-mod-text-secondary">Ghi chú và quyết định được lưu, gắn với phiên bản {reviewRevision}. Người sản xuất thấy nhận xét này ở trang Công việc của họ (không có thông báo đẩy).</p>
           </div>
         ) : (
           <p className="border-t border-mod-border pt-4 text-sm leading-6 text-mod-text-secondary">Phiên bản đã được xử lý hoặc nội dung đã thay đổi. Người sản xuất cần gửi lại phiên bản hiện tại nếu muốn kiểm duyệt tiếp.</p>

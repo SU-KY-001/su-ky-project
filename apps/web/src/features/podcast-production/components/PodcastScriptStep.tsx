@@ -23,8 +23,11 @@ import { cn } from "@/lib/utils";
 import type { PodcastCreationWizard } from "../hooks/usePodcastCreationWizard";
 import {
   usePodcastEpisode,
+  useWordsPerMinute,
   usePodcastInvalidation,
 } from "../hooks/usePodcastProduction";
+import { savedAtLabel } from "../aiCheck/presentation";
+import { estimatedReadMinutes, scriptWordCount } from "../scriptDuration";
 import {
   emptyScriptDocument,
   scriptCharacterCount,
@@ -33,6 +36,9 @@ import {
 import { podcastProductionService as api } from "../services/podcastProductionService";
 import { RichScriptEditor, type RichScriptEditorHandle } from "./RichScriptEditor";
 import { AiAssistantPanel } from "./AiAssistantPanel";
+import { ComposeCards } from "./draft/ComposeCards";
+import { RewriteDialog } from "../rewrite/RewriteDialog";
+import type { SelectionRange } from "../aiCheck/editorBlocks";
 import { ScriptSourcesPanel } from "./ScriptSourcesPanel";
 
 interface PendingDocument {
@@ -61,15 +67,18 @@ export function PodcastScriptStep({
   const editorRef = useRef<RichScriptEditorHandle>(null);
   const changed = useRef(false);
   const [panel, setPanel] = useState<"assistant" | "sources">("assistant");
+  const [rewriteRange, setRewriteRange] = useState<SelectionRange | null>(null);
   const [pendingDocuments, setPendingDocuments] = useState<PendingDocument[]>([]);
   const [saving, setSaving] = useState(false);
   const [saveState, setSaveState] = useState<"idle" | "saved" | "error">("idle");
+  const [savedAt, setSavedAt] = useState<Date | null>(null);
   const [error, setError] = useState("");
   const [pasteWarning, setPasteWarning] = useState("");
   const episode = usePodcastEpisode(wizard.state.episodeId ?? "");
   const invalidate = usePodcastInvalidation();
   const document = wizard.state.scriptDocument ?? emptyScriptDocument();
   const characterCount = scriptCharacterCount(document);
+  const wordsPerMinute = useWordsPerMinute();
 
   const persistScript = async (): Promise<void> => {
     setSaving(true);
@@ -77,6 +86,7 @@ export function PodcastScriptStep({
     try {
       await wizard.saveScript(wizard.state.scriptDocument ?? emptyScriptDocument());
       setSaveState("saved");
+      setSavedAt(new Date());
     } catch (caught) {
       setSaveState("error");
       setError(caught instanceof Error ? caught.message : "Không lưu được kịch bản.");
@@ -181,9 +191,12 @@ export function PodcastScriptStep({
           <p className="mt-1 text-sm text-mod-text-secondary">Soạn nội dung, gắn nguồn và tải tài liệu bổ sung.</p>
         </div>
         <div className="text-right text-xs text-mod-text-secondary">
-          <p>{characterCount.toLocaleString("vi-VN")} ký tự · khoảng {Math.max(1, Math.round(characterCount / 850))} phút đọc</p>
+          <p>
+            {characterCount.toLocaleString("vi-VN")} ký tự · {scriptWordCount(wizard.state.scriptText).toLocaleString("vi-VN")} từ
+            {wordsPerMinute ? ` · khoảng ${estimatedReadMinutes(wizard.state.scriptText, wordsPerMinute)} phút đọc` : ""}
+          </p>
           <p className={cn("mt-1", saveState === "error" ? "text-mod-danger" : "text-mod-success")}>
-            {saving ? "Đang lưu tự động…" : saveState === "saved" ? "Đã lưu tự động" : saveState === "error" ? "Chưa lưu được" : "Chưa có thay đổi"}
+            {saving ? "Đang lưu tự động…" : saveState === "saved" && savedAt ? savedAtLabel(savedAt) : saveState === "error" ? "Chưa lưu được" : "Chưa có thay đổi"}
           </p>
         </div>
       </div>
@@ -193,6 +206,7 @@ export function PodcastScriptStep({
           <RichScriptEditor
             ref={editorRef}
             initialDocument={document}
+            onRewriteRequest={setRewriteRange}
             onPasteLimitReached={(limit) => {
               setPasteWarning(
                 `Kịch bản hỗ trợ tối đa ${limit.toLocaleString("vi-VN")} ký tự. Phần nội dung vượt giới hạn không được chèn.`,
@@ -268,19 +282,23 @@ export function PodcastScriptStep({
           </div>
           <div className="p-4">
             {panel === "assistant" ? (
-              <AiAssistantPanel
-                editorRef={editorRef}
-                episodeId={wizard.state.episodeId ?? null}
-                ensureEpisode={wizard.ensureDraft}
-                sources={sources}
-                hasScript={characterCount > 0}
-              />
+              <>
+                <AiAssistantPanel
+                  editorRef={editorRef}
+                  episodeId={wizard.state.episodeId ?? null}
+                  ensureEpisode={wizard.ensureDraft}
+                  sources={sources}
+                  hasScript={characterCount > 0}
+                />
+                <ComposeCards editorRef={editorRef} episodeId={wizard.state.episodeId ?? null} ensureEpisode={wizard.ensureDraft} wordsPerMinute={wordsPerMinute} scriptChars={characterCount} />
+              </>
             ) : (
               <ScriptSourcesPanel sources={sources} onInsert={(sourceId) => editorRef.current?.insertCitation(sourceId)} />
             )}
           </div>
         </aside>
       </div>
+      <RewriteDialog range={rewriteRange} onClose={() => setRewriteRange(null)} editorRef={editorRef} episodeId={wizard.state.episodeId ?? null} ensureEpisode={wizard.ensureDraft} />
     </section>
   );
 }
