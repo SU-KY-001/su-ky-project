@@ -5,6 +5,7 @@ import { Button } from "@/shared/components/ui/button";
 import { cn } from "@/lib/utils";
 import { libraryService } from "../../services/libraryService";
 import { LibraryPages, LibraryState } from "./LibraryPrimitives";
+import { useCurrentUser } from "@/shared/hooks/useCurrentUser";
 
 function formatDate(value: Date): string {
   return new Intl.DateTimeFormat("vi-VN", { dateStyle: "medium", timeStyle: "short" }).format(value);
@@ -12,21 +13,26 @@ function formatDate(value: Date): string {
 
 export function ListeningHistoryPanel({ onResume }: { onResume: (seriesSlug: string, episodeId: string) => void }): ReactElement {
   const [page, setPage] = useState(1);
+  const session = useCurrentUser();
   const [status, setStatus] = useState<"all" | "in_progress" | "completed">("all");
   const query = useQuery({
-    queryKey: ["listening-history", page, status],
+    queryKey: ["listening-history", session.data?.id, page, status],
     queryFn: ({ signal }) => libraryService.history({ page, limit: 10, status }, signal),
     staleTime: 15_000,
+    enabled: Boolean(session.data),
   });
 
-  if (query.isPending) return <LibraryState loading />;
-  if (query.isError) return <LibraryState error title="Chưa tải được lịch sử nghe" description="Vui lòng thử lại sau." retry={() => { void query.refetch(); }} />;
-  if (query.data.items.length === 0) return <LibraryState title="Bạn chưa có lịch sử nghe" description="Bắt đầu nghe một tập podcast để lưu lại tiến trình của bạn." />;
+  const emptyState = {
+    all: { title: "Bạn chưa có lịch sử nghe", description: "Bắt đầu nghe một tập podcast để lưu lại tiến trình của bạn." },
+    in_progress: { title: "Bạn chưa có podcast đang nghe dở", description: "Các tập podcast chưa hoàn thành sẽ xuất hiện tại đây." },
+    completed: { title: "Bạn chưa hoàn thành podcast nào", description: "Các tập podcast đã hoàn thành sẽ xuất hiện tại đây." },
+  }[status];
 
   return <div className="space-y-5">
     <div className="flex flex-wrap gap-2" role="group" aria-label="Lọc lịch sử nghe">
       {([["all", "Tất cả"], ["in_progress", "Đang nghe"], ["completed", "Đã hoàn thành"]] as const).map(([value, label]) => <Button key={value} size="sm" variant={status === value ? "default" : "outline"} aria-pressed={status === value} onClick={() => { setStatus(value); setPage(1); }}>{label}</Button>)}
     </div>
+    {query.isPending ? <LibraryState loading /> : query.isError ? <LibraryState error title="Chưa tải được lịch sử nghe" description="Vui lòng thử lại sau." retry={() => { void query.refetch(); }} /> : query.data.items.length === 0 ? <LibraryState {...emptyState} /> : <>
     <div className="grid gap-3 md:grid-cols-2">
       {query.data.items.map((item) => {
         const percent = Math.round(Math.min(100, Math.max(0, item.percent)));
@@ -50,5 +56,6 @@ export function ListeningHistoryPanel({ onResume }: { onResume: (seriesSlug: str
       })}
     </div>
     <LibraryPages page={query.data.page} limit={query.data.limit} total={query.data.total} onChange={setPage} />
+    </>}
   </div>;
 }
