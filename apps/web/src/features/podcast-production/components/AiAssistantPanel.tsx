@@ -35,7 +35,15 @@ export function AiAssistantPanel({ editorRef, episodeId, ensureEpisode, sources,
   const running = starting || check?.status === "RUNNING";
   const blocks = item ? (editorRef.current?.getBlocks() ?? []) : [];
   const located = item ? locateBlock(blocks, item) : "conflict";
-  const currentText = located === "conflict" ? null : (blocks.find((block) => block.ref === located)?.text ?? null);
+  const currentText =
+    located === "conflict"
+      ? null
+      : (blocks.find((block) => block.ref === located)?.text ?? null);
+  const conflictNotice: ApplyNotice =
+    item?.suggestion && located === "conflict"
+      ? { kind: "conflict", text: "Đoạn đã đổi, chạy lại. Chữ của bạn không bị ghi đè." }
+      : null;
+  const visibleNotice = notice ?? conflictNotice;
 
   const openDialog = (scope: ReviewScope = "ALL"): void => {
     setError("");
@@ -115,7 +123,7 @@ export function AiAssistantPanel({ editorRef, episodeId, ensureEpisode, sources,
           item={item}
           currentText={currentText}
           sourceTitle={sourceTitle}
-          notice={notice}
+          notice={visibleNotice}
           busy={busy}
           onApply={() => void apply()}
           onRerunSelection={() => openDialog("SELECTION")}

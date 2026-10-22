@@ -56,6 +56,28 @@ describe("release HTTP routes", () => {
     expect(invalid.status).toBe(400);
     expect(calls).toHaveLength(1);
   });
+
+  it("serves review content through both Admin and Moderator routes", async () => {
+    const calls: unknown[][] = [];
+    const payload = {
+      episode: { id: "episode-1", readiness: { ready: true, contentRevision: 3, computedAt: new Date(), items: [] } },
+      readiness: { ready: true, contentRevision: 3, computedAt: new Date(), items: [] },
+      aiSummary: null,
+    };
+    const app = createTestApp({
+      reviewContent: (...args: unknown[]) => {
+        calls.push(args);
+        return payload;
+      },
+    });
+
+    const admin = await app.request(`/api/admin/releases/${scheduleId}/review-content`);
+    const moderator = await app.request(`/api/studio/releases/${scheduleId}/review-content`);
+
+    expect(admin.status).toBe(200);
+    expect(moderator.status).toBe(200);
+    expect(calls.map((call) => (call[0] as Session).user.role)).toEqual(["admin", "moderator"]);
+  });
   it("accepts trimmed search and moderator filters", () => {
     expect(ReleaseScheduleQuerySchema.parse({
       q: "  trường sơn  ",

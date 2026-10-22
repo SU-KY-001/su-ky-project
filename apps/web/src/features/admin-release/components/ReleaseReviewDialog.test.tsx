@@ -53,7 +53,10 @@ it("loads script, playable audio and documents before submitting the exact revis
   expect(document.body.querySelector("script")).toBeNull();
   expect(document.body.querySelector("audio")?.getAttribute("src")).toBe("https://example.org/recording.mp3");
   expect(document.body.querySelector('a[href="https://example.org/document.pdf"]')?.textContent).toContain("Tài liệu chiến dịch.pdf");
-  await act(async () => button("Duyệt nội dung")?.click());
+  await act(async () => {
+    button("Duyệt nội dung")?.click();
+    await new Promise((resolve) => setTimeout(resolve, 30));
+  });
   expect(review).toHaveBeenCalledWith(schedule.id, { decision: "APPROVE", contentRevision: 3, reviewNote: null });
   expect(onClose).toHaveBeenCalled();
   expect(useNotificationStore.getState().notifications.at(-1)?.status).toBe("success");

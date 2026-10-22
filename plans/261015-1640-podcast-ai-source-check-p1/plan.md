@@ -1,11 +1,11 @@
 ---
 title: "Podcast AI trợ lý: P1 AI rà kịch bản"
 description: "Thẻ AI rà kịch bản trong tab Trợ lý AI: chạy theo block, SSE realtime, danh sách cảnh báo mềm, mod tự mở từng mục"
-status: pending
+status: in-progress
 priority: P1
 effort: 8 phases (0-7); P1 = phase 0-5, soạn thảo = phase 6, tình trạng tập/duyệt = phase 7
 mode: fast
-branch: dev
+branch: feat/podcast-ai-script-review
 created: 2026-10-15
 updated: 2026-10-22
 blockedBy: []
@@ -68,6 +68,23 @@ Enum `AiCheckKind` chỉ có `SCRIPT_REVIEW` (thêm giá trị sau bằng `ALTER
 | 5 | [phase-05](phase-05-tests-docs-smoke.md) | Test, ca vàng, tài liệu, smoke thật | 0-4 |
 | 6 | [phase-06](phase-06-compose.md) | Soạn thảo: dàn ý, viết phần, viết lại, góc kể (đồng bộ, không lưu DB trừ góc kể) | 0, 2, 4 |
 | 7 | [phase-07](phase-07-readiness-review.md) | Tình trạng tập (checklist ~25 mục), route đọc cho người duyệt, màn duyệt hai cột | 2 (phần AI) |
+
+## Trạng thái thực thi (2026-10-22)
+
+| Phase | Trạng thái | Thực tế / điều kiện còn lại |
+|---|---|---|
+| 0 | `completed` | Ai-engine hardening, provider errors, usage, abort, retry, redact log và readiness AI đã triển khai; smoke cơ bản đã chạy. |
+| 1 | `completed` | Migration `AiCheck`/`AiCheckItem`, shared schemas và rate limit đã triển khai; typecheck/migration đã kiểm. |
+| 2 | `completed` | Module `ai-assist`, Postgres `source_pages`, runner, validator, REST, reaper và wiring đã có; bộ test `ai-assist` đã qua. Smoke model/URL đầy đủ chuyển sang phase 5. |
+| 3 | `completed` | SSE route, heartbeat, replay và header đã có. Đã sửa lỗi item `seq = 0` bị mất (`dc532b0`) và cursor rỗng (`8926ec3`). Browser/curl thật đạt; contract test SSE `6 pass`, typecheck API đạt. |
+| 4 | `in-progress` | Panel, config dialog, detail, apply/conflict guard và hook SSE đã có. Browser đã kiểm login, editor, danh sách, chi tiết và config; web contract/UI tests `28 pass`, typecheck đạt, có test Apply retry và conflict guard. Chưa smoke browser với dữ liệu thật có `suggestion`, chưa kiểm F5 live trong session này. |
+| 5 | `pending` | Chưa hoàn tất golden/integration tests, README/ADR, smoke model thật 5/20 block, đo Postgres và smoke URL/browser đầy đủ. |
+| 6 | `pending` | Chưa triển khai compose: outline, draft-section, rewrite và narrative angles. |
+| 7 | `in-progress` | Readiness DTO/API/review panel đã có; đã sửa hợp đồng `EpisodeWorkspace.readiness` (`7bfa2b3`). Readiness contract `5 pass`, release service `22 pass`, HTTP route `12 pass`, typecheck API/web/shared đạt. Chưa smoke admin/mod thật và chưa chạy toàn bộ integration DB. |
+
+**Kết luận:** phase 3 đã đóng ở mức implementation + contract/smoke. Phase 0-2 và 3 đã hoàn tất; phase 4 và 7 còn nghiệm thu browser/integration; phase 5 và 6 chưa đóng.
+
+**Blocker hiện tại:** phase 4 cần dữ liệu review có `suggestion` để smoke Apply/conflict/PATCH retry bằng browser. Test component đã bao phủ Apply retry và conflict guard, nhưng chưa thay đổi dữ liệu thật trong dev DB.
 
 **Đặc tả logic chi tiết (đọc trước khi code phase tương ứng):**
 - [spec-source-agent.md](spec-source-agent.md): **hướng chạy AI rà kịch bản (phiên agent có công cụ, kho trang nguồn, kiểm câu trích). Thắng khi khác file dưới.**

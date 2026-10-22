@@ -44,7 +44,7 @@ const level = (
 ): ReadinessItem => ({ key, level: levelValue, state, ...extra });
 
 function requiredChecklist(episode: EpisodeWorkspaceEntity): ReadinessItem[] {
-  const third = episode.narrations.find(
+  const third = (episode.narrations ?? []).find(
     (item) => item.narrationType === "THIRD_PERSON",
   );
   return [
@@ -108,7 +108,7 @@ function audioAndScript(
   const rows: ReadinessItem[] = [];
   for (const narration of narrations) {
     const type = narration.type;
-    const entity = episode.narrations.find((item) => item.id === narration.id);
+    const entity = (episode.narrations ?? []).find((item) => item.id === narration.id);
     const warn = (
       key: ReadinessItem["key"],
       params?: ReadinessItem["params"],
@@ -169,7 +169,7 @@ function audioAndScript(
 
 function firstPerson(episode: EpisodeWorkspaceEntity): ReadinessItem[] {
   const rows: ReadinessItem[] = [];
-  for (const narration of episode.narrations.filter(
+  for (const narration of (episode.narrations ?? []).filter(
     (item) => item.narrationType === "FIRST_PERSON",
   )) {
     const missing = [
@@ -189,10 +189,10 @@ function firstPerson(episode: EpisodeWorkspaceEntity): ReadinessItem[] {
 }
 
 function entityTags(episode: EpisodeWorkspaceEntity): ReadinessItem[] {
-  const suggested = episode.entityTags.filter(
+  const suggested = (episode.entityTags ?? []).filter(
     (tag) => tag.status === "SUGGESTED",
   ).length;
-  const confirmed = episode.entityTags.some(
+  const confirmed = (episode.entityTags ?? []).some(
     (tag) => tag.status === "CONFIRMED",
   );
   return [
@@ -208,7 +208,7 @@ function entityTags(episode: EpisodeWorkspaceEntity): ReadinessItem[] {
 }
 
 function episodeProfile(episode: EpisodeWorkspaceEntity): ReadinessItem[] {
-  const hasPoster = episode.attachments.some(
+  const hasPoster = (episode.attachments ?? []).some(
     (item) =>
       item.mediaAsset.kind === "IMAGE" &&
       item.mediaAsset.status === "READY" &&
@@ -256,7 +256,7 @@ function aiRows(
   ];
   const scriptChangedAt = Math.max(
     0,
-    ...episode.narrations.map((item) => item.scriptUpdatedAt?.getTime() ?? 0),
+    ...(episode.narrations ?? []).map((item) => item.scriptUpdatedAt?.getTime() ?? 0),
   );
   if (summary.createdAt.getTime() < scriptChangedAt)
     rows.push(level("AI_REVIEW_STALE", "INFO", "INFO"));

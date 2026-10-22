@@ -306,6 +306,35 @@ describe("release service", () => {
     )).rejects.toMatchObject({ status: 403 });
   });
 
+  it("rejects review submission when required episode checklist items are incomplete", async () => {
+    const { releaseService, repository } = service(undefined, false);
+    repository.current = schedule({ status: "SCHEDULED" });
+
+    await expect(
+      releaseService.submitReview(
+        session("mod-author", "moderator"),
+        "schedule-1",
+        3,
+        "correlation-checklist-submit",
+      ),
+    ).rejects.toMatchObject({ status: 422, code: "CHECKLIST_INCOMPLETE" });
+  });
+
+  it("rejects approval when required episode checklist items are incomplete", async () => {
+    const { releaseService, repository } = service(undefined, false);
+    repository.current = schedule({ status: "SCHEDULED" });
+    repository.latestReview = { ...approvedReview(), status: "IN_REVIEW" };
+
+    await expect(
+      releaseService.reviewEpisode(
+        session("mod-reviewer", "moderator"),
+        "schedule-1",
+        { decision: "APPROVE", contentRevision: 3, reviewNote: null },
+        "correlation-checklist-approve",
+      ),
+    ).rejects.toMatchObject({ status: 422, code: "CHECKLIST_INCOMPLETE" });
+  });
+
   it("prevents an assigned producer from reviewing their own schedule", async () => {
     const { releaseService, repository } = service();
     repository.current = schedule({ status: "SCHEDULED" });
