@@ -28,7 +28,7 @@ const service = new AiCheckService({
 });
 
 export function createStudioAiAssistRoute() {
-  return createAiCheckRoute(service);
+  return createAiCheckRoute(service, { repo, hub, heartbeatMs: config.heartbeatMs });
 }
 
 /** Closes RUNNING checks whose heartbeat is stale (crash, restart); called by the maintenance job. */

@@ -66,6 +66,22 @@ export const aiAssistPaths: Paths = {
       errors: { 404: NOT_FOUND },
     }),
   },
+  [`${BASE}/{checkId}/events/stream`]: {
+    get: operation({
+      id: "streamAiCheckEvents",
+      tag: TAG,
+      summary: "Theo dõi lượt rà theo thời gian thực (SSE)",
+      description: [
+        "`text/event-stream`. Sự kiện `item` có `id` = `seq` và `data` là `AiCheckItem`; `progress` mang `{ processedBlocks, totalBlocks, failedBlocks }`; `done`/`failed` mang `AiCheck` rồi server đóng luồng.",
+        "Nối lại bằng header `Last-Event-ID` (`EventSource` tự gửi): chỉ nhận mục có `seq` lớn hơn, không trùng. Lượt đã xong phát lại toàn bộ mục rồi đóng.",
+        "Comment `: ping` định kỳ để proxy không cắt kết nối rảnh. Mỗi người dùng tối đa vài kết nối cùng lúc.",
+      ].join("\n\n"),
+      access: "studio",
+      ...checkParams,
+      ok: { status: 200, description: "Luồng sự kiện", contentType: "text/event-stream", contentSchema: { type: "string" } },
+      errors: { 404: NOT_FOUND, 429: "`RATE_LIMITED`: quá nhiều kết nối theo dõi đang mở" },
+    }),
+  },
   [`${BASE}/{checkId}/cancel`]: {
     post: operation({
       id: "cancelAiCheck",

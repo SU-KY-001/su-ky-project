@@ -21,6 +21,7 @@ export const TEST_CONFIG: AiAssistConfig = {
   batchMaxChars: 4000,
   maxToolCalls: 12,
   runHeartbeatMs: 60_000,
+  heartbeatMs: 50,
   staleAfterMs: 60_000,
 };
 

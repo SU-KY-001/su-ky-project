@@ -86,6 +86,12 @@ export class AiCheckService {
     return { check, items: await this.deps.repo.listItems(checkId) };
   }
 
+  /** Episode access + check belongs to the episode; throws 404 otherwise. Used before an SSE stream opens. */
+  async authorizeRead(session: Session, episodeId: string, checkId: string): Promise<void> {
+    await this.deps.content.loadEpisodeForRead(session, episodeId);
+    await this.requireCheck(episodeId, checkId);
+  }
+
   async cancel(session: Session, episodeId: string, checkId: string): Promise<AiCheck> {
     await this.deps.content.loadEpisodeForRead(session, episodeId);
     await this.requireCheck(episodeId, checkId);

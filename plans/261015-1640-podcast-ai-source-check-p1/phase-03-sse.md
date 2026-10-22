@@ -4,9 +4,9 @@ Phụ thuộc: phase 2 (writer phát sự kiện sau khi insert). Cơ chế SSE 
 
 ## Files
 
-- Tạo `apps/api/src/modules/ai-assist/application/check-event-hub.ts` (`EventEmitter` theo `checkId`, API `publish(checkId, event)` / `subscribe(checkId, listener) => unsubscribe`)
-- Tạo `apps/api/src/modules/ai-assist/application/check-stream.ts` (thuật toán đối chiếu, thuần logic nhận repo + hub, dễ test)
-- Sửa `presentation/ai-check.routes.ts` (route `GET .../events` dùng `streamSSE` của `hono/streaming`)
+- `application/check-hub.ts` đã có từ phase 2 (không tạo `check-event-hub.ts`). Hub chỉ **đánh thức** vòng lặp; sự thật luôn đọc lại từ DB.
+- Tạo `apps/api/src/modules/ai-assist/application/check-stream.ts` (`runCheckStream`, `parseLastEventId`; thuần logic nhận repo + hub, có test)
+- Sửa `presentation/ai-check.routes.ts`: route `GET .../ai-checks/:checkId/events/stream` (đuôi `/events/stream` để `bypassEventStreams(etag())` sẵn có bỏ qua etag; `compress` của Hono đã bỏ qua `text/event-stream`, đã chạy thật xác nhận). Trần `MAX_STREAMS_PER_USER` = 4, vượt → 429.
 - Sửa `routes/docs/paths/ai-assist.ts` (mô tả SSE, `text/event-stream`, header `Last-Event-ID`)
 
 ## Hợp đồng sự kiện

@@ -10,6 +10,7 @@ export interface AiAssistConfig {
   batchMaxChars: number;
   maxToolCalls: number;
   runHeartbeatMs: number;
+  heartbeatMs: number;
   staleAfterMs: number;
 }
 
@@ -23,6 +24,7 @@ export function readAiAssistConfig(): AiAssistConfig {
     batchMaxChars: env.AI_ASSIST_BATCH_MAX_CHARS,
     maxToolCalls: env.AI_ASSIST_MAX_TOOL_CALLS,
     runHeartbeatMs: env.AI_ASSIST_RUN_HEARTBEAT_MS,
+    heartbeatMs: env.AI_ASSIST_HEARTBEAT_MS,
     staleAfterMs: env.AI_ASSIST_STALE_AFTER_MS,
   };
 }
