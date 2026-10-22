@@ -14,6 +14,10 @@ import type {
   SeriesListItemEntity,
   SeriesSourceWithSourceEntity,
 } from "../domain/content.entity";
+import {
+  computeEpisodeReadiness,
+  episodeChecklistFromReadiness,
+} from "./episode-readiness";
 
 export function mapEpisodeAttachment(
   attachment: EpisodeAttachmentEntity,
@@ -176,23 +180,7 @@ export function seriesChecklist(series: SeriesDetailEntity) {
 }
 
 export function episodeChecklist(episode: EpisodeWorkspaceEntity) {
-  const third = episode.narrations.find(
-    (item) => item.narrationType === "THIRD_PERSON",
-  );
-  const items = [
-    { key: "BASIC_INFO", ok: Boolean(episode.title.trim()) },
-    { key: "THIRD_PERSON_SCRIPT", ok: Boolean(third?.scriptContent?.trim()) },
-    { key: "THIRD_PERSON_AUDIO", ok: third?.audioAsset?.status === "READY" },
-  ];
-  const warnings: Array<{ key: string; count?: number }> = [];
-  if (episode.series.status !== "PUBLISHED")
-    warnings.push({ key: "SERIES_NOT_PUBLISHED" });
-  const unconfirmed = episode.entityTags.filter(
-    (tag) => tag.status !== "CONFIRMED",
-  ).length;
-  if (unconfirmed)
-    warnings.push({ key: "ENTITY_TAGS_UNCONFIRMED", count: unconfirmed });
-  return { ready: items.every((item) => item.ok), items, warnings };
+  return episodeChecklistFromReadiness(computeEpisodeReadiness(episode));
 }
 
 export function mapSeriesDetail(
@@ -294,6 +282,14 @@ export async function mapWorkspace(
   episode: EpisodeWorkspaceEntity,
   storage?: MediaStorageGateway,
 ) {
+  const narrations = await Promise.all(
+    episode.narrations.map((item) => mapNarration(item, storage)),
+  );
+  const readiness = computeEpisodeReadiness(
+    episode,
+    narrations,
+    { minScriptWords: await getSystemConfig("readiness.min_script_words") },
+  );
   return {
     id: episode.id,
     seriesId: episode.seriesId,
@@ -310,14 +306,13 @@ export async function mapWorkspace(
       : null,
     publishedAt: episode.publishedAt,
     updatedAt: episode.updatedAt,
-    narrations: await Promise.all(
-      episode.narrations.map((item) => mapNarration(item, storage)),
-    ),
+    narrations,
     poster: mapEpisodePoster(episode.attachments, storage),
-    attachments: episode.attachments.filter((item) => item.mediaAsset.kind === "DOCUMENT").map((item) =>
-      mapEpisodeAttachment(item, storage),
-    ),
+    attachments: episode.attachments
+      .filter((item) => item.mediaAsset.kind === "DOCUMENT")
+      .map((item) => mapEpisodeAttachment(item, storage)),
     entityTags: episode.entityTags.map(mapEntityTag),
-    publishChecklist: episodeChecklist(episode),
+    publishChecklist: episodeChecklistFromReadiness(readiness),
+    readiness,
   };
 }

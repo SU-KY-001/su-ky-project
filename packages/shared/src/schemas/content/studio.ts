@@ -3,6 +3,7 @@ import { ContentStatusSchema } from "../common";
 import { SeriesSourceSchema, HistoricalEntityTypeSchema } from "./catalog";
 import { AudioAnalysisSchema, EditorDocumentSchema } from "./editor-document";
 import { EpisodePosterSchema } from "./episode";
+import { EpisodeReadinessSchema } from "./readiness";
 const uuid = z.string().uuid(),
   timestamp = z.coerce.date();
 const LockSchema = z
@@ -172,6 +173,7 @@ export const EpisodeWorkspaceSchema = z.object({
       z.object({ key: z.string(), count: z.number().int().optional() }),
     ),
   }),
+  readiness: EpisodeReadinessSchema,
 });
 
 export type StudioSeriesDetailDto = z.infer<typeof SeriesDetailSchema>;

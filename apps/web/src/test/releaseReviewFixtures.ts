@@ -22,7 +22,7 @@ export function releaseReviewFixture(): { schedule: ReleaseScheduleRecord; episo
     }],
     attachments: [{ id: "00000000-0000-4000-8000-000000000007", fileName: "Tài liệu chiến dịch.pdf", createdAt: timestamp,
       asset: { assetId: "00000000-0000-4000-8000-000000000008", format: "pdf", sizeBytes: 1024, previewUrl: "https://example.org/document.pdf" } }],
-    entityTags: [], publishChecklist: { ready: true, items: [], warnings: [] },
+    entityTags: [], publishChecklist: { ready: true, items: [], warnings: [] }, readiness: { ready: true, contentRevision: 3, computedAt: timestamp, items: [] },
   };
   return { schedule, episode };
 }

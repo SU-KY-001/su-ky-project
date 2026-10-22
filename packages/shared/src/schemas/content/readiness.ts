@@ -1,5 +1,4 @@
 import { z } from "zod";
-import { EpisodeWorkspaceSchema } from "./studio";
 
 export const READINESS_KEYS = [
   "BASIC_INFO",
@@ -56,14 +55,7 @@ export const EpisodeAiSummarySchema = z.object({
   applied: z.number().int(),
 });
 
-export const ReviewContentSchema = z.object({
-  episode: EpisodeWorkspaceSchema,
-  readiness: EpisodeReadinessSchema,
-  /** Null when the AI assistant is off or no check exists (readiness carries AI_REVIEW_NOT_RUN). */
-  aiSummary: EpisodeAiSummarySchema.nullable(),
-});
 
 export type ReadinessItem = z.infer<typeof ReadinessItemSchema>;
 export type EpisodeReadiness = z.infer<typeof EpisodeReadinessSchema>;
 export type EpisodeAiSummary = z.infer<typeof EpisodeAiSummarySchema>;
-export type ReviewContent = z.infer<typeof ReviewContentSchema>;
