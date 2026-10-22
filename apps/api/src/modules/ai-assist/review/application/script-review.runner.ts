@@ -1,18 +1,18 @@
-import { AgentProviderError, createRunGuard, runStructuredAgent } from "../../ai-engine";
-import { logger } from "../../../core/logger";
-import type { CheckBlock, ReviewSource } from "../ai-assist.types";
-import type { AiAssistConfig } from "../ai-assist.config";
+import { AgentProviderError, createRunGuard, runStructuredAgent } from "../../../ai-engine";
+import { logger } from "../../../../core/logger";
+import type { CheckBlock, ReviewSource } from "../domain/review.types";
+import type { AiAssistConfig } from "../review.config";
 import type { AiCheckFinalStatus, AiCheckRepository } from "../domain/ai-check.repository";
 import { batchBlocks } from "../input/batcher";
 import { buildUserPrompt } from "../input/script-review.input";
 import { SCRIPT_REVIEW_PROMPT } from "../prompts/script-review.prompt";
 import { ScriptReviewOutputSchema } from "../schemas/script-review.schema";
 import { buildSourceToolkit } from "../sources/source-tools";
-import type { SourcePageStore } from "../ai-assist.types";
+import type { SourcePageStore } from "../domain/review.types";
 import { validateItems } from "../validators/items";
 import { CheckWriter } from "./check-writer";
 import type { CheckHub } from "./check-hub";
-import type { ModelGate } from "./model-gate";
+import type { ModelGate } from "../../model-gate";
 
 export type AgentRunner = typeof runStructuredAgent;
 

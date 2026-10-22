@@ -1,4 +1,4 @@
-import type { ValidatedItem } from "../ai-assist.types";
+import type { ValidatedItem } from "../domain/review.types";
 import type { AiCheckRepository, ProgressDelta } from "../domain/ai-check.repository";
 import type { CheckHub } from "./check-hub";
 

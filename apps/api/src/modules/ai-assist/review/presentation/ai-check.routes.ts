@@ -3,10 +3,10 @@ import { zValidator } from "@hono/zod-validator";
 import { Hono } from "hono";
 import { streamSSE } from "hono/streaming";
 import { z } from "zod";
-import { DomainError } from "../../../core/errors/domain-error";
-import { idempotency, rateLimit, throwOnInvalid } from "../../../core/middleware";
-import type { AppEnv } from "../../../types";
-import { requireAuth, requireRole } from "../../auth";
+import { DomainError } from "../../../../core/errors/domain-error";
+import { idempotency, rateLimit, throwOnInvalid } from "../../../../core/middleware";
+import type { AppEnv } from "../../../../types";
+import { requireAuth, requireRole } from "../../../auth";
 import type { AiCheckService } from "../application/ai-check.service";
 import { parseLastEventId, runCheckStream, type CheckStreamDeps } from "../application/check-stream";
 

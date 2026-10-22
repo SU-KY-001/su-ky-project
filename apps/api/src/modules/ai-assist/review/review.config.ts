@@ -1,4 +1,4 @@
-import { env } from "../../core/env";
+import { env } from "../../../core/env";
 
 export interface AiAssistConfig {
   /** Deadline for one whole check (all batches). */

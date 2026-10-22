@@ -1,4 +1,4 @@
-import type { CheckBlock, ReviewSource } from "../ai-assist.types";
+import type { CheckBlock, ReviewSource } from "../domain/review.types";
 
 const escapeText = (s: string) => s.normalize("NFC").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 const escapeAttr = (s: string) => escapeText(s).replace(/"/g, "&quot;");

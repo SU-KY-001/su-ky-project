@@ -2,9 +2,9 @@ import { CreateOutlineSchema, DraftSectionRequestSchema, RewriteRequestSchema } 
 import { zValidator } from "@hono/zod-validator";
 import { Hono } from "hono";
 import { z } from "zod";
-import { rateLimit, throwOnInvalid } from "../../../core/middleware";
-import type { AppEnv } from "../../../types";
-import { requireAuth, requireRole } from "../../auth";
+import { rateLimit, throwOnInvalid } from "../../../../core/middleware";
+import type { AppEnv } from "../../../../types";
+import { requireAuth, requireRole } from "../../../auth";
 import type { ComposeService } from "../application/compose.service";
 
 const episodeParam = z.object({ id: z.string().uuid() });

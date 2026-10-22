@@ -1,6 +1,6 @@
 import { describe, expect, it } from "bun:test";
-import type { PageHit, ReviewSource, SourcePageStore } from "../../src/modules/ai-assist/ai-assist.types";
-import { buildSourceToolkit, MAX_PAGES_PER_READ } from "../../src/modules/ai-assist/sources/source-tools";
+import type { PageHit, ReviewSource, SourcePageStore } from "../../src/modules/ai-assist/review/domain/review.types";
+import { buildSourceToolkit, MAX_PAGES_PER_READ } from "../../src/modules/ai-assist/review/sources/source-tools";
 import { createToolResultListener, selectSessionTools, WEB_TOOL_NAMES } from "../../src/modules/ai-engine/tool-hooks";
 
 /** In-memory stand-in for the Postgres store: pages keyed by "sourceId:page". */

@@ -1,6 +1,6 @@
 import { afterAll, beforeAll, describe, expect, it } from "bun:test";
 import { prisma } from "@repo/db";
-import { createPostgresSourcePageStore } from "../../src/modules/ai-assist/sources/postgres-source-page-store";
+import { createPostgresSourcePageStore } from "../../src/modules/ai-assist/review/sources/postgres-source-page-store";
 import { assertTestDatabase, createModerator, removeFixtures, RUN_INTEGRATION, uniqueSuffix } from "../support/integration";
 
 const SEARCH_LIMIT = 5;

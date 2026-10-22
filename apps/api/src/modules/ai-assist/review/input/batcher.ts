@@ -1,4 +1,4 @@
-import type { CheckBlock } from "../ai-assist.types";
+import type { CheckBlock } from "../domain/review.types";
 
 /**
  * Groups adjacent blocks into sessions. A new batch starts when adding the next block would exceed

@@ -1,6 +1,6 @@
 import { prisma } from "@repo/db";
-import type { NarratorInput } from "../compose/input/outline.input";
-import type { SourceExcerpt } from "../compose/input/xml";
+import type { NarratorInput } from "../input/outline.input";
+import type { SourceExcerpt } from "../input/xml";
 
 /** What compose prompts need beyond the episode row: series source excerpts and the narrator entity. */
 export interface ComposeContextLoader {

@@ -1,5 +1,5 @@
 import { AI_CHECK_MAX_EVIDENCE } from "@repo/shared";
-import type { CheckBlock, EvidenceItem, ReviewSource, SourceToolkit, ValidatedItem } from "../ai-assist.types";
+import type { CheckBlock, EvidenceItem, ReviewSource, SourceToolkit, ValidatedItem } from "../domain/review.types";
 import type { ScriptReviewOutput } from "../schemas/script-review.schema";
 import { quoteInPage } from "../sources/quote-check";
 

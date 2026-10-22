@@ -1,8 +1,8 @@
 import { describe, expect, it } from "bun:test";
-import type { CheckBlock, ReviewSource } from "../../src/modules/ai-assist/ai-assist.types";
-import { batchBlocks } from "../../src/modules/ai-assist/input/batcher";
-import type { ScriptReviewOutput } from "../../src/modules/ai-assist/schemas/script-review.schema";
-import { validateItems } from "../../src/modules/ai-assist/validators/items";
+import type { CheckBlock, ReviewSource } from "../../src/modules/ai-assist/review/domain/review.types";
+import { batchBlocks } from "../../src/modules/ai-assist/review/input/batcher";
+import type { ScriptReviewOutput } from "../../src/modules/ai-assist/review/schemas/script-review.schema";
+import { validateItems } from "../../src/modules/ai-assist/review/validators/items";
 
 const PAGE_TEXT = "Mùa thu năm 1010, vua Lý Thái Tổ dời đô từ Hoa Lư ra thành Đại La.";
 const BLOCK_TEXT = "Năm 1100, vua Lý Thái Tổ dời đô từ Hoa Lư ra thành Đại La.";

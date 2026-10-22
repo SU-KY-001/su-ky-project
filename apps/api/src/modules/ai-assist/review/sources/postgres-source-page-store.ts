@@ -1,5 +1,5 @@
 import { Prisma, prisma } from "@repo/db";
-import type { PageHit, SourcePageStore } from "../ai-assist.types";
+import type { PageHit, SourcePageStore } from "../domain/review.types";
 
 const MAX_QUERY_WORDS = 12;
 const EXCERPT_MAX_WORDS = 28;

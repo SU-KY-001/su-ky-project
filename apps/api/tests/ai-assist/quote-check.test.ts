@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { quoteInPage } from "../../src/modules/ai-assist/sources/quote-check";
+import { quoteInPage } from "../../src/modules/ai-assist/review/sources/quote-check";
 
 const PAGE = "Quân Tống chết hơn 1 nghìn người. Quách Quỳ lui quân, lại lấy châu Quảng Nguyên\ncủa ta. Vua sai Lý Thường Kiệt đón đánh, đến sông Như Nguyệt533\nđánh tan được [9b] giặc.";
 

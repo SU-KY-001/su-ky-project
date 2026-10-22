@@ -1,6 +1,6 @@
 import { Prisma, prisma } from "@repo/db";
 import type { AiCheck, AiCheckItem } from "@repo/shared";
-import type { ValidatedItem } from "../ai-assist.types";
+import type { ValidatedItem } from "../domain/review.types";
 import type { AiCheckRepository, CreateRunningCheckInput, CreateRunningCheckResult } from "../domain/ai-check.repository";
 
 type CheckRow = Prisma.AiCheckGetPayload<{ include: { items: { select: { status: true } } } }>;

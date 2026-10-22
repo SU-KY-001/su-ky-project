@@ -1,5 +1,5 @@
 import { PrismaEpisodeRepository } from "../content/infrastructure/prisma-content.repository";
-import { getEpisodeAiSummary } from "../ai-assist/infrastructure/episode-ai-summary";
+import { getEpisodeAiSummary } from "../ai-assist/review/infrastructure/episode-ai-summary";
 import { mediaStorage } from "../media";
 import { ReleaseService } from "./application/release.service";
 import { ContentReleasePublisher } from "./application/release.mappers";

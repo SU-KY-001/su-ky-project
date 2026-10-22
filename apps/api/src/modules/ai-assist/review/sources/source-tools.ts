@@ -1,5 +1,5 @@
 import type { ToolDefinition } from "@earendil-works/pi-coding-agent";
-import type { ReviewSource, SourcePageStore, SourceToolkit, ToolResultEvent } from "../ai-assist.types";
+import type { ReviewSource, SourcePageStore, SourceToolkit, ToolResultEvent } from "../domain/review.types";
 
 export const SEARCH_LIMIT = 5;
 export const MAX_PAGES_PER_READ = 3;

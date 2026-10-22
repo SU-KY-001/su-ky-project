@@ -5,7 +5,7 @@ import { z } from "zod";
 import { rateLimit, throwOnInvalid } from "../../../core/middleware";
 import type { AppEnv } from "../../../types";
 import { requireAuth, requireRole } from "../../auth";
-import type { AngleService } from "../angles/angle.service";
+import type { AngleService } from "./angle.service";
 
 // Not `.uuid()`: the service answers 404 for any id that is not the caller's angle (built-ins included).
 const angleParam = z.object({ id: z.string().min(1).max(64) });

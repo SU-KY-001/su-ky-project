@@ -1,5 +1,5 @@
 import type { AiCheck, AiCheckItem, PatchAiCheckItemInput } from "@repo/shared";
-import type { ValidatedItem } from "../ai-assist.types";
+import type { ValidatedItem } from "./review.types";
 
 export type AiCheckFinalStatus = "SUCCEEDED" | "FAILED" | "CANCELLED";
 

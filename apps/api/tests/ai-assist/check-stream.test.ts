@@ -1,7 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import type { AiCheck, AiCheckItem } from "@repo/shared";
-import { CheckHub } from "../../src/modules/ai-assist/application/check-hub";
-import { parseLastEventId, runCheckStream, type SseFrame } from "../../src/modules/ai-assist/application/check-stream";
+import { CheckHub } from "../../src/modules/ai-assist/review/application/check-hub";
+import { parseLastEventId, runCheckStream, type SseFrame } from "../../src/modules/ai-assist/review/application/check-stream";
 
 const CHECK_ID = "00000000-0000-4000-8000-000000000001";
 

@@ -1,6 +1,6 @@
-import { DomainError } from "../../../core/errors/domain-error";
-import { AgentAbortedError, AgentProviderError, AgentTimeoutError, AgentValidationError } from "../../ai-engine";
-import { ComposeBadOutputError } from "../compose/errors";
+import { DomainError } from "../../../../core/errors/domain-error";
+import { AgentAbortedError, AgentProviderError, AgentTimeoutError, AgentValidationError } from "../../../ai-engine";
+import { ComposeBadOutputError } from "../errors";
 
 export interface MappedFailure {
   /** A DomainError for every known failure; anything unexpected is passed through unchanged. */

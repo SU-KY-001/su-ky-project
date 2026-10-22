@@ -1,14 +1,14 @@
 import { prisma } from "@repo/db";
 import type { CreateAiCheckInput } from "@repo/shared";
 import { hashBlockText } from "@repo/shared";
-import type { AiAssistConfig } from "../../src/modules/ai-assist/ai-assist.config";
-import { AiCheckService } from "../../src/modules/ai-assist/application/ai-check.service";
-import { CheckHub } from "../../src/modules/ai-assist/application/check-hub";
-import { ModelGate } from "../../src/modules/ai-assist/application/model-gate";
-import { createScriptReviewRunner, type AgentRunner } from "../../src/modules/ai-assist/application/script-review.runner";
-import { PrismaAiCheckRepository } from "../../src/modules/ai-assist/infrastructure/prisma-ai-check.repository";
-import { createPostgresSourcePageStore } from "../../src/modules/ai-assist/sources/postgres-source-page-store";
-import type { ScriptReviewOutput } from "../../src/modules/ai-assist/schemas/script-review.schema";
+import type { AiAssistConfig } from "../../src/modules/ai-assist/review/review.config";
+import { AiCheckService } from "../../src/modules/ai-assist/review/application/ai-check.service";
+import { CheckHub } from "../../src/modules/ai-assist/review/application/check-hub";
+import { ModelGate } from "../../src/modules/ai-assist/model-gate";
+import { createScriptReviewRunner, type AgentRunner } from "../../src/modules/ai-assist/review/application/script-review.runner";
+import { PrismaAiCheckRepository } from "../../src/modules/ai-assist/review/infrastructure/prisma-ai-check.repository";
+import { createPostgresSourcePageStore } from "../../src/modules/ai-assist/review/sources/postgres-source-page-store";
+import type { ScriptReviewOutput } from "../../src/modules/ai-assist/review/schemas/script-review.schema";
 import type { StructuredAgentRequest } from "../../src/modules/ai-engine";
 import { contentService } from "../../src/modules/content";
 

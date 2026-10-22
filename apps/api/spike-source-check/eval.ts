@@ -6,7 +6,7 @@
 import { Database } from "bun:sqlite";
 import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { quoteInPage } from "../src/modules/ai-assist/sources/quote-check";
+import { quoteInPage } from "../src/modules/ai-assist/review/sources/quote-check";
 import { SCRIPTS, type Case } from "./eval-cases";
 
 const URL = process.env.SPIKE_URL ?? "http://localhost:8799/check";

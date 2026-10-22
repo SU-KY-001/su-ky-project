@@ -10,13 +10,13 @@ import {
   type RewriteResponse,
 } from "@repo/shared";
 import type { ZodType } from "zod";
-import { DomainError } from "../../../core/errors/domain-error";
-import { logger } from "../../../core/logger";
-import { AiDisabledError, AiUnavailableError, createRunGuard, type AgentUsage } from "../../ai-engine";
-import type { Session } from "../../auth";
-import type { ContentService } from "../../content/application/content.service";
-import type { ResolvedAngle } from "../angles/angle.service";
-import type { ComposeConfig } from "../compose/compose.config";
+import { DomainError } from "../../../../core/errors/domain-error";
+import { logger } from "../../../../core/logger";
+import { AiDisabledError, AiUnavailableError, createRunGuard, type AgentUsage } from "../../../ai-engine";
+import type { Session } from "../../../auth";
+import type { ContentService } from "../../../content/application/content.service";
+import type { ResolvedAngle } from "../../angles/angle.service";
+import type { ComposeConfig } from "../compose.config";
 import {
   APPROX_CHARS_PER_WORD,
   COMPOSE_LOG_SCOPE,
@@ -24,25 +24,25 @@ import {
   DRAFT_PROMPT_VERSION,
   OUTLINE_PROMPT_VERSION,
   REWRITE_PROMPT_VERSION,
-} from "../compose/constants";
-import { buildDraftInput } from "../compose/input/draft-section.input";
-import { buildOutlineInput, type NarratorInput } from "../compose/input/outline.input";
-import { buildRewriteInput } from "../compose/input/rewrite.input";
-import { buildSourcesBlock, type SeriesContext, type SourcesBlock } from "../compose/input/xml";
-import { ComposeBadOutputError } from "../compose/errors";
+} from "../constants";
+import { buildDraftInput } from "../input/draft-section.input";
+import { buildOutlineInput, type NarratorInput } from "../input/outline.input";
+import { buildRewriteInput } from "../input/rewrite.input";
+import { buildSourcesBlock, type SeriesContext, type SourcesBlock } from "../input/xml";
+import { ComposeBadOutputError } from "../errors";
 import { mapComposeFailure } from "./compose-failure";
-import { DRAFT_SECTION_PROMPT } from "../compose/prompts/draft-section.prompt";
-import { OUTLINE_PROMPT } from "../compose/prompts/outline.prompt";
-import { REWRITE_PROMPT } from "../compose/prompts/rewrite.prompt";
-import { DraftSectionOutputSchema } from "../compose/schemas/draft-section.schema";
-import { OutlineOutputSchema } from "../compose/schemas/outline.schema";
-import { RewriteOutputSchema } from "../compose/schemas/rewrite.schema";
-import { validateDraft } from "../compose/validators/draft";
-import { validateOutline } from "../compose/validators/outline";
-import { validateVariants } from "../compose/validators/variants";
+import { DRAFT_SECTION_PROMPT } from "../prompts/draft-section.prompt";
+import { OUTLINE_PROMPT } from "../prompts/outline.prompt";
+import { REWRITE_PROMPT } from "../prompts/rewrite.prompt";
+import { DraftSectionOutputSchema } from "../schemas/draft-section.schema";
+import { OutlineOutputSchema } from "../schemas/outline.schema";
+import { RewriteOutputSchema } from "../schemas/rewrite.schema";
+import { validateDraft } from "../validators/draft";
+import { validateOutline } from "../validators/outline";
+import { validateVariants } from "../validators/variants";
 import type { ComposeContextLoader } from "../infrastructure/compose-context";
-import type { AgentRunner } from "./script-review.runner";
-import type { ModelGate } from "./model-gate";
+import type { AgentRunner } from "../../review/application/script-review.runner";
+import type { ModelGate } from "../../model-gate";
 
 type ComposeFn = "outline" | "draft-section" | "rewrite";
 
