@@ -7,6 +7,7 @@ import {
   ClipboardText,
   Headphones,
   MapTrifold,
+  Question,
   Ticket,
 } from "@phosphor-icons/react";
 import type { ShellNavItem } from "./components/ModeratorShell";
@@ -36,6 +37,7 @@ export function moderatorWorkspaceNav(
     { id: "historical-sources", label: "Nguồn tư liệu", icon: BookOpenText, active: activeSection === "sources", onSelect: () => onSelect("sources") },
     { id: "podcast-heading", label: "SẢN XUẤT PODCAST", active: false, groupStart: true },
     { id: "podcast-production", label: "Sản xuất podcast", icon: Headphones, active: activeSection === "podcast", onSelect: () => onSelect("podcast") },
+    { id: "quiz-production", label: "Bộ quiz", icon: Question, active: activeSection === "quiz", onSelect: () => onSelect("quiz") },
     { id: "moderator-assignments", label: "Nhiệm vụ của tôi", icon: ClipboardText, active: activeSection === "assignments", onSelect: () => onSelect("assignments") },
     { id: "moderator-tickets", label: "Ticket", icon: Ticket, active: activeSection === "tickets", onSelect: () => onSelect("tickets") },
     { id: "publishing-heading", label: "XUẤT BẢN", active: false, groupStart: true },

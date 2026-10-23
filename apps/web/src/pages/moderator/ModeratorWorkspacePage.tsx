@@ -12,6 +12,7 @@ import { ModeratorTickets } from "@/features/moderator/components/ModeratorTicke
 const Timeline = lazy(() => import("./ModeratorTimelinePage").then((module) => ({ default: module.ModeratorTimelinePage })));
 const Podcast = lazy(() => import("./PodcastProductionPage").then((module) => ({ default: module.PodcastProductionPage })));
 const Library = lazy(() => import("./ModeratorLibraryFeaturePage").then((module) => ({ default: module.ModeratorLibraryFeaturePage })));
+const Quiz = lazy(() => import("@/features/quiz/QuizWorkspace").then((module) => ({ default: module.QuizWorkspace })));
 
 interface WorkspaceContentProps {
   section: ModeratorSection;
@@ -24,6 +25,7 @@ function WorkspaceContent({ section, creation, onAction }: WorkspaceContentProps
     case "overview": return <ModeratorDashboardPage onAction={onAction} />;
     case "timeline": return <Timeline initialCreating={creation === "add-milestone"} />;
     case "podcast": return <Podcast initialKind={creation === "create-series" ? "series" : creation === "create-episode" ? "episode" : undefined} />;
+    case "quiz": return <Quiz />;
     case "assignments": return <ModeratorAssignments />;
     case "tickets": return <ModeratorTickets />;
     case "schedule": return <ModeratorReleaseSchedule />;
