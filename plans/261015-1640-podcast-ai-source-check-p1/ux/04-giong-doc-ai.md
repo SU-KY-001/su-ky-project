@@ -1,6 +1,6 @@
 # UX 04: Giọng đọc AI (TTS)
 
-Nguồn: `mockups/04-voice-wizard.html`. Phạm vi: **chưa có phase** (chờ spike T0 với khóa MiniMax thật; xem `plan.md` mục "Phát hiện" số 7 và `plans/reports/research-261022-minimax-tts-api.md`). Mock ghi phụ thuộc: khóa MiniMax thật, ffmpeg trên host, giọng tiếng Việt thứ hai.
+Triển khai hiện tại (2026-10-23): Gemini TTS một người kể. Chọn giọng bằng một select dùng component `ModeratorSelect`, thay nhóm thẻ radio; đủ Riko, Kore, Charon, Puck, Aoede với tên và mô tả trong từng option. Khóa select khi đang bắt đầu/tạo audio. Nguồn mock lịch sử: `mockups/04-voice-wizard.html`; các mục wizard MiniMax/tốc độ/cao độ bên dưới không mô tả tính năng hiện hành.
 
 ## 1. Vào trang
 

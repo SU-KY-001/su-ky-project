@@ -2,7 +2,8 @@ import { useState, type ReactElement } from "react";
 import { AI_VOICES, type AiVoice } from "@repo/shared";
 import { LoaderCircle, Mic, X } from "lucide-react";
 import { Button } from "@/shared/components/ui/button";
-import { cn } from "@/lib/utils";
+import { FormField } from "@/features/moderator/components/CreationPage";
+import { ModeratorSelect } from "@/features/moderator/components/ModeratorSelect";
 import type { PodcastCreationWizard } from "../hooks/usePodcastCreationWizard";
 import { useVoiceJob } from "../voice/useVoiceJob";
 import { UploadedAudioPanel } from "./UploadedAudioPanel";
@@ -27,16 +28,22 @@ export function AiVoicePanel({ wizard, published }: { wizard: PodcastCreationWiz
         <p className="mt-1 text-sm text-mod-text-secondary">AI đọc kịch bản đã lưu của tập (bỏ qua các tiêu đề phần). Mỗi lần tạo tốn lượt gọi dịch vụ giọng đọc, nên hãy chọn giọng trước.</p>
       </div>
 
-      <fieldset className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5" disabled={running || starting}>
-        <legend className="sr-only">Giọng đọc</legend>
-        {AI_VOICES.map((id) => (
-          <label key={id} className={cn("cursor-pointer rounded-xl border p-3", voice === id ? "border-mod-primary bg-mod-primary/5" : "border-mod-border hover:bg-mod-canvas-accent")}>
-            <input type="radio" name="ai-voice" className="sr-only" checked={voice === id} onChange={() => setVoice(id)} />
-            <span className="block font-bold text-mod-text">{VOICE_LABEL[id].name}</span>
-            <span className="block text-xs text-mod-text-secondary">{VOICE_LABEL[id].detail}</span>
-          </label>
-        ))}
-      </fieldset>
+      <div className="max-w-lg">
+        <FormField label="Giọng đọc" htmlFor="ai-voice">
+          <ModeratorSelect
+            id="ai-voice"
+            label="Giọng đọc"
+            value={voice}
+            onValueChange={(value) => {
+              const selected = AI_VOICES.find((id) => id === value);
+              if (selected) setVoice(selected);
+            }}
+            options={AI_VOICES.map((id) => ({ value: id, label: `${VOICE_LABEL[id].name} — ${VOICE_LABEL[id].detail}` }))}
+            placeholder="Chọn giọng đọc"
+            disabled={running || starting}
+          />
+        </FormField>
+      </div>
 
       {!episodeId || !hasScript ? <p className="rounded-lg border border-mod-attention/30 bg-mod-attention/5 p-3 text-sm text-mod-attention">Cần có kịch bản đã lưu ở bước Kịch bản trước khi tạo giọng.</p> : null}
 
