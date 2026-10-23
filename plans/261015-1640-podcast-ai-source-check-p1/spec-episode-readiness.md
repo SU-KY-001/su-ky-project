@@ -1,5 +1,7 @@
 # Đặc tả "Tình trạng tập" (checklist kiểm duyệt cấp prod)
 
+> Cập nhật 2026-10-23: các mô tả “hiện tại”, “cần xác nhận” dưới đây là lịch sử thiết kế phase 7. [Phase 8](phase-08-publication-gates.md) là hợp đồng mới đã triển khai: snapshot khi quyết định, hồ sơ kết luận khi APPROVE, lý do chấp nhận cảnh báo và ngoại lệ Admin có lý do/audit. Ba mục REQUIRED vẫn giữ nguyên; publication transaction còn kiểm bằng chứng lịch sử và approval hiện hành. `readiness.ready` không phải toàn bộ điều kiện xuất bản.
+
 Ngày 2026-10-22. Thay thế bảng 5 dòng trong `plans/reports/review-criteria-261022-podcast-episode.md` (đó chỉ đủ cho mockup). Mockup: `mockups/05-review-dialog.html`. Tinh thần giữ nguyên: **hệ thống tự tính, người duyệt chỉ đọc/nghe rồi quyết; không tick tay; chỉ ghi điều hệ thống thấy được; AI chỉ là một dòng "nghi ngờ, chưa xác minh"**.
 
 ## 1. Hiện trạng đã đọc (căn cứ)

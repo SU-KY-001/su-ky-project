@@ -52,6 +52,14 @@ bun run db:deploy
 bun run db:seed
 ```
 
+### Podcast: cổng duyệt và ngoại lệ Admin
+
+- Chạy `bun run db:generate` và `bun run db:deploy` trong `packages/db` khi cập nhật schema.
+- Duyệt tập ghi kết luận nội dung/nguồn, quyền, bản nghe, thông báo AI và lý do chấp nhận cảnh báo theo đúng phiên bản.
+- Admin có thể xuất bản thẳng từ màn chi tiết kiểm duyệt, nhưng phải ghi lý do ngoại lệ (tối thiểu 20 ký tự) và hồ sơ kết luận; vẫn kiểm nguồn/audio, hạn quyền và ghi audit.
+- Audio AI mới gắn với hash kịch bản lúc tạo. Job TTS chưa gắn vẫn ở RAM/temp và mất khi API restart.
+- Profile hiện tại là thư viện Sử Ký, không RSS/Apple/Spotify. Chi tiết: [Podcast AI và cổng xuất bản](docs/PODCAST-AI-BACKEND-NOTES.md).
+
 Để nạp series/tập/nguồn mẫu cho trang moderator (qua HTTP API, API phải đang chạy), đặt `SEED_MOD_EMAIL`, `SEED_MOD_PASSWORD` của một tài khoản moderator **đã có trong DB** và `SEED_SOURCE_URL_BASE` (URL gốc cho link nguồn mẫu) rồi chạy:
 ```bash
 cd apps/api && bun run seed:content

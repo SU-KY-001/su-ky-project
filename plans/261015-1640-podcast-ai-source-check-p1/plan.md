@@ -69,7 +69,7 @@ Enum `AiCheckKind` chỉ có `SCRIPT_REVIEW` (thêm giá trị sau bằng `ALTER
 | 6 | [phase-06](phase-06-compose.md) | Soạn thảo: dàn ý, viết phần, viết lại, góc kể (đồng bộ, không lưu DB trừ góc kể) | 0, 2, 4 |
 | 7 | [phase-07](phase-07-readiness-review.md) | Tình trạng tập (checklist ~25 mục), route đọc cho người duyệt, màn duyệt hai cột | 2 (phần AI) |
 
-## Trạng thái thực thi (2026-10-22)
+## Trạng thái thực thi (cập nhật 2026-10-23)
 
 | Phase | Trạng thái | Thực tế / điều kiện còn lại |
 |---|---|---|
@@ -79,12 +79,13 @@ Enum `AiCheckKind` chỉ có `SCRIPT_REVIEW` (thêm giá trị sau bằng `ALTER
 | 3 | `completed` | SSE route, heartbeat, replay và header đã có. Đã sửa lỗi item `seq = 0` bị mất (`dc532b0`) và cursor rỗng (`8926ec3`). Browser/curl thật đạt; contract test SSE `6 pass`, typecheck API đạt. |
 | 4 | `in-progress` | Panel, config dialog, detail, apply/conflict guard và hook SSE đã có. Đã tạo fixture thật trên Postgres bằng `Đại Việt sử ký toàn thư` (1.334 trang, 2.484.093 ký tự), series/source/episode có script đối chiếu. Browser live và Apply/retry/conflict được hoãn theo yêu cầu “test sau”. |
 | 5 | `pending` | Chưa hoàn tất golden/integration tests, README/ADR, smoke model thật 5/20 block, đo Postgres và smoke URL/browser đầy đủ. |
-| 6 | `pending` | Chưa triển khai compose: outline, draft-section, rewrite và narrative angles. |
-| 7 | `in-progress` | Readiness DTO/API/review panel đã có; đã sửa hợp đồng `EpisodeWorkspace.readiness` (`7bfa2b3`). Readiness contract `5 pass`, release service `22 pass`, HTTP route `12 pass`, typecheck API/web/shared đạt. Chưa smoke admin/mod thật và chưa chạy toàn bộ integration DB. |
+| 6 | `implemented` | Outline, draft-section, rewrite, narrative angles và AI dock đã triển khai; đợt này không chạy lại model/compose E2E. |
+| 7 | `implemented` | Readiness/review panel và hai nhánh quyết định đã có; phase 8 bổ sung khóa revision, snapshot và hồ sơ kết luận. Đã smoke Admin trên browser và regression DB tập trung, không chạy toàn suite hoặc Mod E2E. |
+| 8 | `implemented` | [Cổng xuất bản và ngoại lệ Admin](phase-08-publication-gates.md): assessment, rights/disclosure, snapshot, scriptHash TTS, metadata series, public notice và audit; kiểm tra cuối giới hạn theo yêu cầu. |
 
-**Kết luận:** phase 3 đã đóng ở mức implementation + contract/smoke. Phase 0-2 và 3 đã hoàn tất; phase 4 và 7 còn nghiệm thu browser/integration; phase 5 và 6 chưa đóng.
+**Kết luận:** phase 0–3 đã đóng theo chứng cứ trước đó; phase 4–5 còn phạm vi nghiệm thu cũ. Phase 6–8 đã có implementation; không suy diễn thành mọi luồng model/browser đều đã nghiệm thu. Gemini TTS đã thay hướng MiniMax cũ.
 
-**Blocker hiện tại:** phase 4 không còn bị block bởi dữ liệu nguồn: source VERIFIED, `verifiedVersion = version`, và toàn bộ trang đã có trong Postgres. Chỉ còn nghiệm thu browser/Apply/retry/conflict khi người dùng cho phép test. Phase 7 còn thiếu smoke admin/mod và full integration DB.
+**Phạm vi kiểm còn mở:** phase 4 Apply/retry/conflict và phase 5 model/golden đầy đủ; E2E người duyệt Mod và phát hành qua UI chưa chạy trong phase 8. Chi tiết chứng cứ/giới hạn ở phase 8.
 **Fixture Postgres phase 4:** `seriesId=7eb75ae9-a6b8-4608-986f-240ccc766da6`, `episodeId=2069184a-4666-4fb8-bbf5-1700bd0d446d`, `sourceId=fb3e5b7e-3cfd-44dd-a956-3deb1802fb94`; script `apps/api/src/scripts/seed-phase4-postgres-fixture.ts`; nạp bằng `source-pages:load`.
 
 
@@ -94,7 +95,7 @@ Enum `AiCheckKind` chỉ có `SCRIPT_REVIEW` (thêm giá trị sau bằng `ALTER
 - [spec-prompts-compose.md](spec-prompts-compose.md): prompt đầy đủ dàn ý, viết phần, viết lại, giọng văn, góc kể, hợp đồng route.
 - [spec-episode-readiness.md](spec-episode-readiness.md): danh mục checklist kiểm duyệt, quy tắc server, route người duyệt.
 
-**Giao diện mod (mockup HTML):** [mockups/index.html](mockups/index.html). Mockup 01 = P1; 02, 03, 06 = phase 6; 05 = phase 7; **04 (giọng đọc AI) chưa có phase** (chờ spike T0 với khóa MiniMax thật). Đặc tả giao diện: `plans/reports/ui-spec-261022-ai-assistant-mod.md`.
+**Giao diện:** [mockups/index.html](mockups/index.html); 01 rà kịch bản, 02/03/06 compose, 05 duyệt tập, 07 AI dock. Giọng đọc đã triển khai bằng Gemini background jobs. Mock cũ không thắng hợp đồng API; xem [phase 8](phase-08-publication-gates.md).
 
 ## Rủi ro chính và giới hạn trung thực
 
@@ -123,11 +124,11 @@ Xem phase 5. Tóm tắt: cảnh báo hiện dần theo lô block; danh sách d�
 
 ## Chưa kiểm / Quyết định mở
 
-Đã đọc 2026-10-22 (`content.mappers.ts`, `content.service.ts`, `releases/application/release.mappers.ts`, `release.service.ts`, `release-policy.ts`):
-- **Series không nguồn:** `seriesChecklist` (`content.mappers.ts:150-168`) có mục `HAS_SOURCE`; `ContentService.publishSeries` (`content.service.ts:381`) trả 422 `SERIES_NOT_PUBLISHABLE` khi checklist chưa đủ. Tức **series không nguồn không phát hành được** (đã xác minh trên đường `publishSeries`; chưa quét đường publish khác nếu có).
-- **Tập:** `episodeChecklist` (`content.mappers.ts:170-188`) chỉ có `BASIC_INFO`, `THIRD_PERSON_SCRIPT`, `THIRD_PERSON_AUDIO`; cảnh báo `SERIES_NOT_PUBLISHED`, `ENTITY_TAGS_UNCONFIRMED`. `release.service.ts` chỉ gọi `publisher.checklistReady` (= `episodeChecklist(...).ready`, `release.mappers.ts:10-13`) và `release-policy.ts` trả `CHECKLIST_INCOMPLETE`; **không có kiểm nguồn ở tập/phát hành tập**.
-- Mở: với tư duy "nguồn thứ yếu", có giữ ràng buộc `HAS_SOURCE` khi phát hành series không? Plan này không đổi (app có sẵn, ngoài phạm vi).
-- Mở: **góc kể tùy nhập** lưu theo người dùng (`ai_narrative_angles`, thuộc P3) + trang quản lý riêng (mockup 06); trường `guide` (chỉ dẫn cho AI) đưa vào prompt như dữ liệu, tối đa 500 ký tự. Chọn làm mặc định, chờ xác nhận.
+Đối chiếu code 2026-10-23:
+- Series publish kiểm metadata và bằng chứng nguồn đã xác minh/ghim revision; tập publish cũng đi qua `historical-evidence.ts`, không chỉ ba item readiness.
+- Nguồn vẫn chỉ gắn series; kiểm chứng danh mục không chứng minh mọi câu trong podcast đúng. Hồ sơ editorialNote ghi kết luận người duyệt, không có claim register.
+- Góc kể theo người dùng đã triển khai trong `ai-assist/angles`; không còn là quyết định mở.
+- Ngoại lệ Admin bypass review được người dùng cho phép; lý do/assessment bắt buộc, vai trò DB và audit trong transaction. Các luồng thường phải có approval hiện hành.
 - Mở: đề xuất sửa sinh ngay trong lần rà (mặc định đã chọn); đo token/độ trễ có tăng quá mức không ở smoke.
 - Chưa kiểm: model có phân biệt "nghi sai" và "không chắc" đủ tốt không; Pi có bỏ qua retry với 403 không (phase 0).
 - `HAS_SOURCE` web notice và `insertCitation`/tab Nguồn của editor giữ nguyên, plan này không mở rộng cũng không gỡ.
@@ -136,7 +137,7 @@ Xem phase 5. Tóm tắt: cảnh báo hiện dần theo lô block; danh sách d�
 - Mở: **nạp trang nguồn**: lần đầu làm tay bằng `bun run source-pages:load` (`unpdf` + Prisma, không Python) vào Postgres `source_pages`. Job upload tự động (chạy sau khi upload PDF, trạng thái "đọc được / không có chữ") chưa làm. PDF scan chưa có OCR.
 - Mở: **tài khoản model cho sản phẩm**: số đo spike dùng `gpt-5.6-luna` qua đăng nhập OAuth cá nhân và Gemini 3.5 Flash Lite qua khóa API. OAuth cá nhân không hợp cho máy chủ dùng chung; cần khóa API chính thức.
 
-## Phát hiện khi đặc tả chi tiết (2026-10-22), cần người quyết
+## Phát hiện lịch sử khi đặc tả (2026-10-22; mục 1, 2, 5, 7 đã có implementation)
 
 1. **Mod người duyệt không có nội dung để xem** (`ModeratorReviewQueue` chỉ có tiêu đề/ghi chú/nút; route đọc tập giới hạn theo chủ series). Phase 7 thêm route đọc cho người duyệt; đây là việc mới ngoài mock.
 2. **Server không kiểm checklist khi Duyệt/Gửi duyệt** (`release.service.ts:231-334`): Duyệt hiện lọt dù thiếu âm thanh, chỉ không tự `READY_TO_PUBLISH`. Mock khóa nút nên server phải khớp: đổi hành vi, chờ xác nhận (`spec-episode-readiness.md` mục 8).
@@ -144,4 +145,4 @@ Xem phase 5. Tóm tắt: cảnh báo hiện dần theo lô block; danh sách d�
 4. **Đã thay bằng phiên agent có công cụ** (2026-10-22, người dùng quyết): không còn chunk và không còn `<sources>` trong prompt. Mỗi lô block một phiên Pi có công cụ chỉ đọc tra kho trang nguồn (Postgres `source_pages`) và công cụ web cho nguồn URL. Chi tiết ở `spec-source-agent.md`, đo ở `plans/reports/eval-261022-source-check-agent-spike.md` (đo trên SQLite, phải đo lại trên Postgres).
 5. **Cột mới `AiCheckItem.basis`, `AiCheckItem.evidence`, `AiCheck.toolCalls`, `AiCheck.sourcesUsed`, tùy chọn `EpisodeReview.readinessSnapshot`**: thay đổi schema so với thiết kế cũ. (`span` và `skippedBlocks` đã bỏ cùng chunk; xem `spec-source-agent.md`.)
 6. **Ngôn ngữ prompt (Việt hay Anh)** chưa có số liệu: A/B bằng bộ ca vàng ở phase 5 trước khi khóa `PROMPT_VERSION`.
-7. **Giọng đọc AI (mockup 04) chưa có phase**; làm sau spike T0.
+7. **Giọng đọc AI:** đã có Gemini TTS, RAM/temp và upload/attach. Phase 8 thêm scriptHash để không gắn audio từ kịch bản cũ; chưa có queue bền vững qua restart.
