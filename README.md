@@ -82,6 +82,8 @@ bun run dev
 - **API Server**: http://localhost:3005
 - **API Health**: http://localhost:3005/health
 
+Moderator dùng URL riêng cho từng màn: `/moderator/quizzes` mở quiz bản xem trước (dữ liệu mẫu), `/moderator/angles` mở quản lý góc kể. Sidebar điều hướng theo URL; có thể mở trực tiếp hoặc tải lại từng đường dẫn.
+
 ---
 
 ## Các Lệnh Thường Dùng (Makefile & Bun)

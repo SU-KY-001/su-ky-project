@@ -15,6 +15,7 @@ export const moderatorSectionPath = {
   pending: `${BASE}/pending`,
   schedule: `${BASE}/schedule`,
   angles: `${BASE}/angles`,
+  quizzes: `${BASE}/quizzes`,
 } as const satisfies Record<ModeratorSection, string>;
 
 /** Sections other than overview; their URL segment equals the section id. */

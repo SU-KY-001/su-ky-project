@@ -72,6 +72,21 @@ it("opens the screen named by a deep link and marks its nav item current", async
   expect(host.querySelector('a[href="/moderator"]')?.hasAttribute("aria-current")).toBe(false);
 });
 
+it("opens quizzes from a deep link and preserves navigation to angles", async () => {
+  const host = await renderAt("/moderator/quizzes");
+  for (let attempt = 0; attempt < LAZY_LOAD_ATTEMPTS && !host.querySelector('[role="searchbox"]'); attempt++) {
+    await act(async () => { await Bun.sleep(LAZY_LOAD_POLL_MS); });
+  }
+  expect(host.textContent).toContain("Bộ quiz đã tạo");
+  expect(host.querySelector('a[href="/moderator/quizzes"]')?.getAttribute("aria-current")).toBe("page");
+  await act(async () => host.querySelector<HTMLAnchorElement>('a[href="/moderator/angles"]')!.click());
+  for (let attempt = 0; attempt < LAZY_LOAD_ATTEMPTS && location(host) !== "/moderator/angles"; attempt++) {
+    await act(async () => { await Bun.sleep(LAZY_LOAD_POLL_MS); });
+  }
+  expect(location(host)).toBe("/moderator/angles");
+  expect(host.querySelector('a[href="/moderator/angles"]')?.getAttribute("aria-current")).toBe("page");
+});
+
 it("restores the series creation dialog from its URL and keeps list filters when closing it", async () => {
   const host = await renderAt("/moderator/podcast/series/new?status=DRAFT");
   // The podcast screen is lazy-loaded; poll until its dialog mounts.

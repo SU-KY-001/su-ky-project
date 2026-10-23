@@ -9,6 +9,7 @@ import {
   MapTrifold,
   PencilSimpleLine,
   Ticket,
+  Exam,
 } from "@phosphor-icons/react";
 import type { ShellNavItem } from "./components/ModeratorShell";
 import { moderatorSectionPath } from "./paths";
@@ -32,6 +33,7 @@ export function moderatorWorkspaceNav(activeSection: ModeratorSection): ShellNav
     link("podcast-production", "Sản xuất podcast", Headphones, "podcast"),
     link("moderator-assignments", "Nhiệm vụ của tôi", ClipboardText, "assignments"),
     link("moderator-tickets", "Ticket", Ticket, "tickets"),
+    link("moderator-quizzes", "Tạo quiz", Exam, "quizzes"),
     { id: "publishing-heading", label: "XUẤT BẢN", active: false, groupStart: true },
     link("moderator-pending", "Cần xử lý", CheckSquareOffset, "pending"),
     link("moderator-schedule", "Lịch phát hành", CalendarBlank, "schedule"),

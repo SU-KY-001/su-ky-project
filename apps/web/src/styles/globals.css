@@ -60,6 +60,8 @@
   --color-mod-kind-event: var(--modKindEvent);
   --color-mod-kind-series: var(--modKindSeries);
   --color-mod-kind-episode: var(--modKindEpisode);
+  --color-mod-quiz-surface: var(--modQuizSurface);
+  --shadow-mod-quiz: 0 8px 24px -8px color-mix(in srgb, var(--modText) 14%, transparent), 0 2px 6px color-mix(in srgb, var(--modText) 4%, transparent);
 
   --radius-sm: 0.25rem;
   --radius-md: 0.5rem;
@@ -118,6 +120,7 @@
   --modKindEvent: #b8322a;
   --modKindSeries: #76549a;
   --modKindEpisode: #247b78;
+  --modQuizSurface: var(--color-paper-soft);
 
   --history-success: #315b34;
   --history-success-soft: #e4ebdc;
