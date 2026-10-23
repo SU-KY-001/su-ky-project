@@ -6,9 +6,11 @@ Nền tảng Podcast Kể Chuyện Lịch Sử Việt Nam (Đồ án WDP301).
 - **Runtime & Package Manager**: [Bun](https://bun.sh) `v1.4.0`
 - **Monorepo Engine**: [Turborepo](https://turbo.build) `2.x`
 - **Backend API**: [Hono](https://hono.dev) `v4` with end-to-end typed RPC Client
-- **Frontend App**: [React](https://react.dev) `19` + [Vite](https://vite.dev) `6` + [Tailwind CSS](https://tailwindcss.com) `v4` + [TanStack Query](https://tanstack.com/query) `v5`
+- **Frontend Web**: [React](https://react.dev) `19` + [Vite](https://vite.dev) `8` + [Tailwind CSS](https://tailwindcss.com) `4` + [shadcn/ui](https://ui.shadcn.com) + [Magic UI](https://magicui.design) + [TanStack Query](https://tanstack.com/query) `v5`
+- **Frontend Mobile**: [Expo](https://expo.dev) `57` + React Native `0.86` + Tamagui `2`
 - **Database & ORM**: PostgreSQL 18 ([Docker Compose](./compose.yaml) image `postgres:18-alpine`) + [Prisma ORM](https://www.prisma.io) `v6`
 - **Contracts**: [Zod](https://zod.dev) schemas in `@repo/shared`
+- **AI engine** (`apps/api/src/modules/ai-engine`): Pi SDK, chưa nối vào logic chính, khởi tạo lười, khoá AI trong `.env` là tùy chọn. Pipeline workflow AI-first cũ nằm ở [archive/script-workflow](./archive/script-workflow/README.md)
 
 ---
 
@@ -18,7 +20,8 @@ Nền tảng Podcast Kể Chuyện Lịch Sử Việt Nam (Đồ án WDP301).
 su-ky-project/
 ├── apps/
 │   ├── api/          # Hono v4 backend (Bun runtime; exports type AppType)
-│   └── web/          # React 19 + Vite 6 + Tailwind v4 + TanStack Query
+│   ├── web/          # React 19 + Vite 8 + Tailwind CSS + shadcn/ui + Magic UI
+│   └── mobile/       # Expo 57 + React Native + Tamagui
 ├── packages/
 │   ├── db/           # Prisma schema, client, migrations & seed
 │   ├── shared/       # Zod schemas, domain types, contracts
@@ -45,17 +48,23 @@ bun install
 
 ### 3. Khởi tạo Database Schema & Dữ Liệu Mẫu
 ```bash
-bun run db:push
+bun run db:deploy
 bun run db:seed
 ```
+
+Để nạp series/tập/nguồn mẫu cho trang moderator (qua HTTP API, API phải đang chạy), đặt `SEED_MOD_EMAIL`, `SEED_MOD_PASSWORD` của một tài khoản moderator **đã có trong DB** và `SEED_SOURCE_URL_BASE` (URL gốc cho link nguồn mẫu) rồi chạy:
+```bash
+cd apps/api && bun run seed:content
+```
+Script không tạo tài khoản. Mỗi lần chạy nó đọc trạng thái hiện có và chỉ tạo phần còn thiếu (series, từng tập, từng bản kể), nên chạy lại an toàn kể cả sau khi lần trước lỗi giữa chừng. Series chỉ hiện với tài khoản đã seed.
 
 ### 4. Khởi động Môi trường Development
 ```bash
 bun run dev
 ```
 - **Web Client**: http://localhost:5173
-- **API Server**: http://localhost:3000
-- **API Health**: http://localhost:3000/health
+- **API Server**: http://localhost:3005
+- **API Health**: http://localhost:3005/health
 
 ---
 
@@ -73,7 +82,7 @@ Bạn có thể sử dụng `make` hoặc gọi trực tiếp bằng `bun`:
 | **Bật PostgreSQL Docker** | `make db-up` | `docker compose up -d` |
 | **Tắt PostgreSQL Docker** | `make db-down` | `docker compose down` |
 | **Sinh Prisma Client** | `make db-generate` | `bun run db:generate` |
-| **Đồng bộ DB Schema** | `make db-push` | `bun run db:push` |
+| **Áp dụng Prisma migrations** | `make db-deploy` | `bun run db:deploy` |
 | **Nạp dữ liệu mẫu (Seed)** | `make db-seed` | `bun run db:seed` |
 | **Mở Prisma Studio UI** | `make db-studio` | `cd packages/db && bun run prisma studio` |
 | **Dọn dẹp cache & build** | `make clean` | `bun run clean` |

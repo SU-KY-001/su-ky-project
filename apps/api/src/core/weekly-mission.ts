@@ -1,0 +1,129 @@
+import type { Prisma } from "@repo/db";
+
+const MS_PER_HOUR = 60 * 60 * 1000;
+const HOURS_PER_DAY = 24;
+const DAYS_PER_WEEK = 7;
+const MONDAY_UTC_DAY = 1;
+// Asia/Ho_Chi_Minh has no DST, so a fixed offset is exact.
+const VIETNAM_UTC_OFFSET_HOURS = 7;
+const VIETNAM_OFFSET_MS = VIETNAM_UTC_OFFSET_HOURS * MS_PER_HOUR;
+export const WEEK_MS = DAYS_PER_WEEK * HOURS_PER_DAY * MS_PER_HOUR;
+
+export type MissionActivityType = "COMPLETE_EPISODE" | "PASS_QUIZ";
+
+export interface MissionProgressSummary {
+  id: string;
+  title: string;
+  progress: number;
+  target: number;
+  completedNow: boolean;
+  xpAwarded: number;
+}
+
+export function mondayInVietnam(now: Date): Date {
+  const local = new Date(now.getTime() + VIETNAM_OFFSET_MS);
+  const daysSinceMonday =
+    (local.getUTCDay() + DAYS_PER_WEEK - MONDAY_UTC_DAY) % DAYS_PER_WEEK;
+  // Stored as PostgreSQL DATE; UTC midnight represents the Vietnam calendar date.
+  return new Date(
+    Date.UTC(
+      local.getUTCFullYear(),
+      local.getUTCMonth(),
+      local.getUTCDate() - daysSinceMonday,
+    ),
+  );
+}
+
+/**
+ * Exact instants of a Vietnam week. The stored `weekStartDate` is only a calendar-date sentinel
+ * (UTC midnight of the Vietnam date), so the real window is shifted back by the Vietnam offset.
+ */
+export function vietnamWeekWindow(storedWeekDate: Date): {
+  start: Date;
+  end: Date;
+} {
+  const start = new Date(storedWeekDate.getTime() - VIETNAM_OFFSET_MS);
+  return { start, end: new Date(start.getTime() + WEEK_MS) };
+}
+
+/**
+ * Counts one distinct content item towards every active mission of `activityType` in the
+ * current Vietnam week and pays out mission XP once, on the call that reaches the target.
+ * Must run inside the caller's transaction so progress and XP commit together.
+ */
+export async function recordMissionActivity(
+  db: Prisma.TransactionClient,
+  params: {
+    userId: string;
+    activityType: MissionActivityType;
+    contentId: string;
+    now: Date;
+  },
+): Promise<MissionProgressSummary[]> {
+  const { userId, activityType, contentId, now } = params;
+  const missions = await db.weeklyMission.findMany({
+    where: {
+      activityType,
+      weekStartDate: mondayInVietnam(now),
+      activatedAt: { lte: now },
+    },
+  });
+  const updates: MissionProgressSummary[] = [];
+  for (const mission of missions) {
+    const userMission = await db.userWeeklyMission.upsert({
+      where: {
+        weeklyMissionId_userId: { weeklyMissionId: mission.id, userId },
+      },
+      create: { weeklyMissionId: mission.id, userId },
+      update: {},
+    });
+    const counted = await db.userWeeklyMissionItem.createMany({
+      data: [{ userWeeklyMissionId: userMission.id, contentId }],
+      skipDuplicates: true,
+    });
+    if (!counted.count) continue;
+    const progress = await db.userWeeklyMission.update({
+      where: { id: userMission.id },
+      data: { progressCount: { increment: 1 } },
+    });
+    let xpAwarded = 0;
+    let completedNow = false;
+    if (
+      !progress.completedAt &&
+      progress.progressCount >= mission.targetCount
+    ) {
+      await db.userWeeklyMission.update({
+        where: { id: progress.id },
+        data: { completedAt: now },
+      });
+      const award = await db.xpAward.createMany({
+        data: [
+          {
+            userId,
+            sourceType: "WEEKLY_MISSION",
+            sourceId: mission.id,
+            xpAmount: mission.xpReward,
+          },
+        ],
+        skipDuplicates: true,
+      });
+      if (award.count) {
+        xpAwarded = mission.xpReward;
+        completedNow = true;
+        await db.user.update({
+          where: { id: userId },
+          data: { totalXp: { increment: mission.xpReward } },
+        });
+      }
+    }
+    updates.push({
+      id: mission.id,
+      title: mission.title,
+      progress: progress.progressCount,
+      target: mission.targetCount,
+      completedNow,
+      xpAwarded,
+    });
+  }
+  return updates;
+}

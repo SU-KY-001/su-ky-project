@@ -28,7 +28,8 @@ PostgreSQL 17 ──> Prisma ORM ──> Hono v4 (Bun) ──[hc RPC]──> Rea
 ```mermaid
 graph TD
     subgraph Client ["Frontend Layer (Browser)"]
-        UI["React 19 SPA (apps/web)<br/>Vite 6 + Tailwind CSS v4"]
+        UI["React 19 SPA (apps/web)<br/>Vite 8 + Tailwind CSS v4 + shadcn/ui + Magic UI"]
+        MOBILE["Expo 57 + React Native (apps/mobile)<br/>Tamagui + Metro"]
         TQ["TanStack Query v5<br/>Query Cache & Status"]
         RPC_CLIENT["Hono Client (hc)<br/>Typed via AppType"]
     end
@@ -38,7 +39,7 @@ graph TD
     end
 
     subgraph Server ["Backend Layer (Bun v1.4.0)"]
-        HONO["Hono v4 Web Server (apps/api)<br/>app.ts / index.ts (Port 3000)"]
+        HONO["Hono v4 Web Server (apps/api)<br/>app.ts / index.ts (Port 3005)"]
         MW["Middleware Pipeline<br/>RequestId -> Logger -> CORS -> ErrorHandler"]
         VAL["Validation Layer<br/>@hono/zod-validator"]
         ROUTES["Modular Route Controllers<br/>/health, /timeline, /series, /episodes, /figures"]
@@ -175,7 +176,7 @@ sequenceDiagram
   import { hc } from "hono/client";
   import type { AppType } from "@repo/api/types";
 
-  export const client = hc<AppType>(import.meta.env.VITE_API_URL || "http://localhost:3000");
+  export const client = hc<AppType>(import.meta.env.VITE_API_URL || "http://localhost:3005");
   ```
 - **Autocomplete & Type Safety:** Calling `client.api.episodes.$get({ query: ... })` provides complete compile-time validation of query fields and return shapes without manual DTO maintenance.
 
@@ -186,9 +187,12 @@ sequenceDiagram
 - **Asynchronous Cache Management (`TanStack Query v5`):**
   - Configured with `staleTime: 60000` (1 minute) to minimize redundant network calls.
   - Automatic background refetching and status management (`isLoading`, `error`, `data`).
-- **Tailwind CSS v4 Styling:**
-  - Modern CSS-first integration via `@tailwindcss/vite` without legacy config files.
-  - Custom dark theme optimized for reading and cultural gravity (`#0B0D13` obsidian lacquer background).
+- **Web Styling (`apps/web`):**
+  - Tailwind CSS v4 through the Vite plugin, with CSS-first semantic tokens in `apps/web/src/styles/globals.css`.
+  - shadcn/ui and selected Magic UI components are source-owned in the web app; they do not add a styling runtime shared with mobile.
+  - Be Vietnam Pro is global; Manrope is scoped to the moderator dashboard.
+- **Mobile Styling (`apps/mobile`):**
+  - Tamagui remains the native UI and styling system, configured through the root Tamagui config and Expo/Metro integration.
 
 ---
 
@@ -220,7 +224,8 @@ Client Browser                  Hono API Service (Bun)                 PostgreSQ
 ### 6.1 Development Runtime
 - **Database:** Managed via `docker compose up -d` running PostgreSQL 17 Alpine on port `5432`.
 - **Backend API:** Managed via `bun --watch src/index.ts` in `apps/api` with instant process reloads.
-- **Frontend SPA:** Managed via Vite 6 in `apps/web` with Hot Module Replacement (HMR).
+- **Frontend Web:** Managed via Vite 8 in `apps/web` with Hot Module Replacement (HMR), React, and the Tailwind CSS v4 Vite plugin.
+- **Frontend Mobile:** Managed via Expo 57 / React Native 0.86 in `apps/mobile`, with Tamagui configured through Metro.
 - **Orchestration:** Single root command `bun run dev` boots all workspaces concurrently via Turborepo.
 
 ### 6.2 Production Build Strategy

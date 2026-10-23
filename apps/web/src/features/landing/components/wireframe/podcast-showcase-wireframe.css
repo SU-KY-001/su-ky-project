@@ -1,0 +1,142 @@
+.wf-surface::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  border-radius: 32px;
+  background: var(--color-paper-soft);
+}
+
+.wf-surface::after {
+  content: "";
+  position: absolute;
+  inset: -28px -8px -48px;
+  z-index: -2;
+  pointer-events: none;
+  border-radius: 48px;
+  background:
+    radial-gradient(ellipse 35% 28% at 0% 18%, color-mix(in srgb, var(--color-bronze) 20%, transparent), transparent 78%),
+    radial-gradient(ellipse 30% 28% at 100% 58%, color-mix(in srgb, var(--color-vermilion) 9%, transparent), transparent 78%),
+    radial-gradient(ellipse 42% 22% at 18% 88%, color-mix(in srgb, var(--color-bronze) 14%, transparent), transparent 78%);
+  filter: blur(28px);
+}
+
+.wf-surface[data-surface="paper"]::before {
+  box-shadow: inset 0 1px 0 color-mix(in srgb, var(--color-paper-soft) 90%, white), 0 14px 42px -24px color-mix(in srgb, var(--color-ink) 18%, transparent);
+  mask-image: linear-gradient(to bottom, black, black calc(100% - 120px), transparent);
+}
+
+.wf-surface[data-surface="slab"]::before {
+  border-radius: 24px;
+  box-shadow: inset 0 2px 0 color-mix(in srgb, var(--color-paper-soft) 65%, white), 0 3px 8px -3px color-mix(in srgb, var(--color-ink) 16%, transparent), 0 32px 70px -30px color-mix(in srgb, var(--color-ink) 30%, transparent);
+}
+
+.wf-surface[data-surface="slab"]::after {
+  background:
+    radial-gradient(ellipse 28% 15% at 0% 2%, color-mix(in srgb, var(--color-bronze) 22%, transparent), transparent 75%),
+    radial-gradient(ellipse 32% 18% at 100% 96%, color-mix(in srgb, var(--color-vermilion) 12%, transparent), transparent 75%);
+  filter: blur(24px);
+}
+
+.wf-surface[data-surface="light"]::before {
+  inset: -12px -6px -48px;
+  border-radius: 48px;
+  background: color-mix(in srgb, var(--color-paper-soft) 82%, var(--color-paper));
+  mask-image: linear-gradient(to bottom, transparent, black 100px, black calc(100% - 170px), transparent), linear-gradient(to right, transparent, black 48px, black calc(100% - 48px), transparent);
+  mask-composite: intersect;
+}
+
+.wf-surface[data-surface="light"]::after {
+  inset: -56px -8px -80px;
+  background:
+    radial-gradient(ellipse 65% 35% at 0% 25%, color-mix(in srgb, var(--color-bronze) 15%, transparent), transparent 80%),
+    radial-gradient(ellipse 50% 30% at 100% 65%, color-mix(in srgb, var(--color-vermilion) 7%, transparent), transparent 80%),
+    radial-gradient(ellipse 85% 60% at 50% 40%, var(--color-paper-soft), transparent 85%);
+  filter: blur(40px);
+}
+
+.wf-shelf {
+  border-bottom: 8px solid var(--color-line);
+  box-shadow: 0 12px 18px -16px var(--color-ink-soft);
+}
+
+.wf-cover-slot {
+  display: flex;
+  width: min(100%, 180px);
+  aspect-ratio: 2 / 3;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  border: 1px solid var(--color-line);
+  border-left: 8px solid var(--color-bronze);
+  border-radius: 2px 5px 5px 2px;
+  background: var(--color-paper-deep);
+  transform: perspective(900px) rotateY(-12deg);
+  box-shadow: 8px 8px 0 -3px var(--color-paper), 9px 9px 0 -3px var(--color-line);
+  transition: transform 200ms;
+}
+
+.wf-shelf button:hover .wf-cover-slot {
+  transform: perspective(900px) rotateY(0deg) translateY(-6px);
+}
+
+.wf-book-scene {
+  position: relative;
+  width: min(76vw, 560px);
+  aspect-ratio: 1.4;
+  perspective: 1400px;
+}
+
+.wf-book-pages {
+  display: grid;
+  height: 100%;
+  grid-template-columns: 1fr 1fr;
+  border: 1px solid var(--color-line);
+  border-radius: 4px;
+  background: var(--color-paper-soft);
+  box-shadow: 0 16px 35px -24px var(--color-ink);
+}
+
+.wf-book-cover {
+  position: absolute;
+  inset: 0 0 0 50%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 20px;
+  border: 1px solid var(--color-bronze-dark);
+  border-left-width: 8px;
+  border-radius: 0 5px 5px 0;
+  background: var(--color-paper-deep);
+  backface-visibility: hidden;
+  transform-origin: left;
+  transform: rotateY(-8deg);
+  transition: transform 800ms ease;
+}
+
+.wf-book-scene[data-open="true"] .wf-book-cover {
+  transform: rotateY(-175deg);
+  pointer-events: none;
+}
+
+.wf-book-scene[data-open="false"] .wf-book-pages {
+  clip-path: inset(0 0 0 50%);
+}
+
+.wf-turn-page {
+  transform-origin: left;
+  animation: wf-page-turn 450ms ease;
+}
+
+@keyframes wf-page-turn {
+  from { transform: perspective(1000px) rotateY(-65deg); opacity: .3; }
+  to { transform: perspective(1000px) rotateY(0); opacity: 1; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .wf-cover-slot, .wf-book-cover { transition: none; }
+  .wf-turn-page { animation: none; }
+}

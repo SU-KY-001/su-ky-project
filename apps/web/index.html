@@ -1,19 +1,110 @@
 <!doctype html>
-<html lang="vi" class="dark">
+<html lang="vi">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Su-Ky (Sử Ký) — Nền Tảng Podcast Lịch Sử Việt Nam</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link
-      href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Playfair+Display:ital,wght@0,600;0,700;1,600&family=JetBrains+Mono:wght@400;500;600&display=swap"
-      rel="stylesheet"
+    <meta
+      name="description"
+      content="Podcast lịch sử Việt Nam kể lại những sự kiện lớn qua tiếng nói của sử gia và người trong cuộc."
     />
+    <meta name="theme-color" content="#14110F" />
+    <link rel="preload" as="image" href="/src/public/brand-su-ky-viet-nam.png" />
+    <link
+      rel="icon"
+      type="image/png"
+      href="/src/public/logo-su-ky-viet-nam.png"
+    />
+    <style>
+      html,
+      body {
+        min-height: 100%;
+        margin: 0;
+        background: #f4ecdc;
+      }
+
+      #root {
+        min-height: 100vh;
+      }
+
+      .app-boot-loader {
+        box-sizing: border-box;
+        display: grid;
+        min-height: 100vh;
+        place-items: center;
+        padding: 24px;
+        color: #1c1714;
+        font-family: "Be Vietnam Pro", ui-sans-serif, system-ui, sans-serif;
+      }
+
+      .app-boot-loader__content {
+        display: flex;
+        width: 100%;
+        max-width: 360px;
+        flex-direction: column;
+        align-items: center;
+        gap: 16px;
+        text-align: center;
+      }
+
+      .app-boot-loader__content img {
+        width: 220px;
+        height: 110px;
+        max-width: 100%;
+        object-fit: contain;
+      }
+
+      .app-boot-loader__content strong {
+        font-size: 18px;
+        line-height: 1.4;
+      }
+
+      .app-boot-loader__content p {
+        margin: 0;
+        color: #5b4e44;
+        font-size: 14px;
+        line-height: 1.6;
+      }
+
+      .app-boot-loader__track {
+        position: relative;
+        width: 132px;
+        height: 3px;
+        overflow: hidden;
+        border-radius: 999px;
+        background: #e9dcc2;
+      }
+
+      .app-boot-loader__track::after {
+        position: absolute;
+        inset: 0;
+        border-radius: inherit;
+        background: linear-gradient(90deg, transparent, #b8322a, transparent);
+        content: "";
+        animation: app-boot-loader-shimmer 1.5s ease-in-out infinite;
+      }
+
+      @keyframes app-boot-loader-shimmer {
+        from { transform: translateX(-100%); }
+        to { transform: translateX(100%); }
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        .app-boot-loader__track::after { animation: none; }
+      }
+    </style>
+    <title>Sử Ký - Podcast lịch sử Việt Nam</title>
   </head>
-  <body class="bg-[#0B0F17] text-slate-100 antialiased min-h-screen">
-    <div id="root"></div>
+  <body>
+    <div id="root">
+      <main class="app-boot-loader">
+        <div class="app-boot-loader__content" role="status" aria-live="polite" aria-atomic="true">
+          <img src="/src/public/brand-su-ky-viet-nam.png" width="220" height="110" alt="Sử Ký - Podcast lịch sử Việt Nam" />
+          <strong>Đang mở Sử Ký</strong>
+          <p>Đang chuẩn bị không gian nghe lịch sử Việt Nam.</p>
+          <span class="app-boot-loader__track" aria-hidden="true"></span>
+        </div>
+      </main>
+    </div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>
