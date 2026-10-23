@@ -158,9 +158,18 @@ export function ReleaseReviewPanel({ content, validRevision, reviewRevision, pen
       <aside className="space-y-5 lg:border-l lg:border-mod-border lg:pl-6">
         <ReadinessColumn readiness={content.readiness} />
         {validRevision ? (
-          <div className="space-y-3 border-t border-mod-border pt-4">
-            <label htmlFor={noteId} className="text-sm font-semibold">Ghi chú</label>
-            <Textarea id={noteId} value={note} onChange={(event) => setNote(event.target.value)} maxLength={NOTE_MAX_CHARS} rows={4} disabled={pending} placeholder="Nêu rõ phần cần sửa" className="resize-none border-mod-border bg-mod-surface" />
+          <div className="space-y-3 border-t border-mod-border pt-4 font-moderator">
+            <label htmlFor={noteId} className="text-sm font-semibold text-mod-text">Ghi chú</label>
+            <Textarea
+              id={noteId}
+              value={note}
+              onChange={(event) => setNote(event.target.value)}
+              maxLength={NOTE_MAX_CHARS}
+              rows={4}
+              disabled={pending}
+              placeholder="Nêu rõ phần cần sửa để người sản xuất xử lý"
+              className="resize-none border-mod-border bg-mod-surface text-[13px] font-normal leading-5 text-mod-text placeholder:text-mod-text-secondary/60 md:text-[13px]"
+            />
             <p className="text-xs text-mod-text-secondary">Bắt buộc khi Yêu cầu chỉnh sửa. Không cần điền phần xác nhận bên dưới khi yêu cầu chỉnh sửa.</p>
             <div className="space-y-3 border-t border-mod-border pt-4">
               <AssessmentForm idPrefix={noteId} draft={assessment} requirements={requirements} disabled={pending} onChange={setAssessment} />
