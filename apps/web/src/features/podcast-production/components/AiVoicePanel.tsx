@@ -63,7 +63,7 @@ export function AiVoicePanel({ wizard, published }: { wizard: PodcastCreationWiz
       {job?.status === "DONE" && job.durationMs !== null ? <p className="text-sm font-semibold text-mod-text">Đã tạo xong {duration(job.durationMs)} âm thanh. Nghe thử rồi bấm "Dùng làm âm thanh của tập". Giọng này được tạo bằng AI.</p> : null}
 
       {file && job ? (
-        <UploadedAudioPanel wizard={wizard} published={published} incomingFile={file} incomingOrigin={{ kind: "AI_VOICE", voice: job.voice, model: job.model, style: job.style, chars: job.chars }} />
+        <UploadedAudioPanel wizard={wizard} published={published} incomingFile={file} incomingOrigin={{ kind: "AI_VOICE", voice: job.voice, model: job.model, style: job.style, chars: job.chars, scriptHash: job.scriptHash }} />
       ) : null}
     </section>
   );

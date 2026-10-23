@@ -2,11 +2,17 @@ import type {
   CreateReleaseScheduleInput,
   ReviewContent,
   ReviewEpisodeInput,
+  ReviewReadinessSnapshot,
   UpdateReleaseScheduleInput,
 } from "@repo/shared";
 import { DomainError } from "../../../core/errors/domain-error";
 import type { Session } from "../../auth";
 import { evaluateReleaseReadiness } from "../domain/release-policy";
+import {
+  assertAssessmentGate,
+  hasAiVoiceAudio,
+  hasPublicationWarnings,
+} from "../../content/application/publication-gate";
 import type {
   EpisodeReviewEntity,
   ReleaseRepository,
@@ -262,7 +268,8 @@ export class ReleaseService {
         "INVALID_STATE_TRANSITION",
         "Lịch không còn nhận nội dung kiểm duyệt",
       );
-    await this.assertChecklistReady(schedule.episodeId);
+    // Submitting needs only the required checklist; approval is decided later, so readiness never depends on it.
+    await this.loadReviewable(schedule.episodeId, contentRevision);
     return this.repository.createReview({
       scheduleId,
       episodeId: schedule.episodeId,
@@ -304,8 +311,23 @@ export class ReleaseService {
         "STALE_WRITE",
         "Nội dung đã thay đổi sau khi gửi duyệt",
       );
-    if (input.decision === "APPROVE" && schedule.episodeId)
-      await this.assertChecklistReady(schedule.episodeId);
+    if (!schedule.episodeId)
+      throw new DomainError(409, "CONTENT_NOT_READY", "Lịch chưa được liên kết với tập podcast");
+
+    let readinessSnapshot: ReviewReadinessSnapshot;
+    if (input.decision === "APPROVE") {
+      const content = await this.loadReviewable(schedule.episodeId, input.contentRevision);
+      assertAssessmentGate(input.assessment, {
+        hasAiVoice: hasAiVoiceAudio(content.episode.narrations.filter((item) => item.audio)),
+        hasWarnings: hasPublicationWarnings(content.readiness),
+        now: this.clock(),
+      });
+      readinessSnapshot = { readiness: content.readiness, assessment: input.assessment };
+    } else {
+      const content = await this.publisher.reviewContent(schedule.episodeId);
+      if (!content) throw new DomainError(404, "NOT_FOUND", "Không tìm thấy tập podcast");
+      readinessSnapshot = { readiness: content.readiness, assessment: null };
+    }
 
     const status =
       input.decision === "APPROVE" ? "APPROVED" : "CHANGES_REQUESTED";
@@ -316,11 +338,12 @@ export class ReleaseService {
       actorType: session.user.role === "admin" ? "ADMIN" : "MODERATOR",
       reviewNote: input.reviewNote ?? null,
       correlationId,
+      expectedRevision: input.contentRevision,
+      readinessSnapshot,
     });
 
     if (
       status === "APPROVED" &&
-      schedule.episodeId &&
       (await this.publisher.checklistReady(schedule.episodeId))
     ) {
       await this.repository.setStatus({
@@ -353,9 +376,15 @@ export class ReleaseService {
     return content;
   }
 
-  private async assertChecklistReady(episodeId: string): Promise<void> {
-    if (!(await this.publisher.checklistReady(episodeId)))
+  /** Content at exactly `revision` with every required checklist row satisfied; otherwise the specific error. */
+  private async loadReviewable(episodeId: string, revision: number): Promise<ReviewContent> {
+    const content = await this.publisher.reviewContent(episodeId);
+    if (!content) throw new DomainError(404, "NOT_FOUND", "Không tìm thấy tập podcast");
+    if (!content.readiness.ready)
       throw new DomainError(422, "CHECKLIST_INCOMPLETE", "Tập chưa đủ mục bắt buộc (tên tập, kịch bản và âm thanh ngôi thứ ba)");
+    if (content.readiness.contentRevision !== revision)
+      throw new DomainError(409, "STALE_WRITE", "Nội dung đã thay đổi; tải lại phiên bản mới");
+    return content;
   }
 
   async checkReadiness(

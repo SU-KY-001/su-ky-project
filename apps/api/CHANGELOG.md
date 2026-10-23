@@ -5,6 +5,16 @@ Nhãn: `BREAKING` (code cũ gọi sẽ lỗi hoặc sai), `ADDITIVE` (mới, kh�
 
 ## [Unreleased]
 
+### BREAKING — Cổng duyệt và phát hành có kết luận trách nhiệm (2026-10-23)
+- `POST /api/admin/releases/:id/review` và `/api/studio/releases/:id/review` với `decision: "APPROVE"` bắt buộc `assessment` (`editorialNote`, `rightsNote`, `audioNote` 10..5000 ký tự; `credits`, `rightsExpiresAt` ISO, `aiDisclosure`, `warningAcceptance` tùy chọn). Server từ chối khi quyền đã hết hạn (`RIGHTS_EXPIRED`), âm thanh giọng AI thiếu công khai (`AI_DISCLOSURE_REQUIRED`) hoặc còn cảnh báo mà thiếu lý do (`WARNING_ACCEPTANCE_REQUIRED`). `REQUEST_CHANGES` giữ nguyên.
+- Gửi duyệt và quyết định chạy trong transaction khóa tập: revision cũ trả `STALE_WRITE`, quyết định thứ hai trên cùng phiên bản trả `INVALID_REVIEW_STATE`. `EpisodeReviewRecord.readinessSnapshot` lưu readiness + assessment tại lúc quyết định (`null` với bản duyệt cũ).
+- Duyệt ghi `Episode.publicationApproval` cho đúng `contentRevision`; sửa kịch bản/âm thanh/thông tin tập làm approval hết hiệu lực. Phát hành theo lịch kiểm approval hiện hành, hạn quyền, công khai AI và cảnh báo ngay trong transaction phát hành (`APPROVAL_REQUIRED` nếu thiếu). Tập đã phát hành vẫn đọc được; phát hành mới không có snapshot cần duyệt lại.
+- `POST /api/studio/episodes/:id/publish` nay là ngoại lệ **chỉ Admin**: body `{ baseUpdatedAt, exceptionReason (20..5000), assessment }`. Vai trò đọc lại từ DB trong transaction, ghi approval ngoại lệ và audit `episode.published_exception` (lý do, kết luận, revision). Không miễn checklist, bằng chứng nguồn hay tài sản. Moderator nhận `403`.
+- Series có `language` (BCP 47, mặc định `vi`; nhận trong `POST/PATCH /api/studio/series`). Xuất bản Series cần thêm mô tả, ít nhất một ảnh bìa `READY` và ngôn ngữ (`publishChecklist` thêm `DESCRIPTION`, `COVER`, `LANGUAGE`; kiểm lại trong transaction). Owner là người chịu trách nhiệm nội dung.
+- Gắn audio có `origin.kind = AI_VOICE` bắt buộc `origin.scriptHash`; server so với kịch bản hiện tại trong transaction, lệch trả `409 HASH_MISMATCH`.
+- `GET /api/episodes/:slug` thêm `publicationInfo: { aiDisclosure, credits } | null`; ghi chú duyệt, căn cứ quyền và người duyệt không công khai. `EpisodeWorkspace.publicationApproval` chỉ trả approval của revision hiện tại.
+- Migration `20261023120000_publication_gates` (additive): `series.language`, `episodes.publication_approval`, `episode_reviews.readiness_snapshot`.
+
 ### ADDITIVE — Tự nhập trang PDF khi lưu nguồn
 - `POST /api/studio/sources` có PDF đã upload sẽ tải file, tách text từng trang và lưu `source_pages` cùng transaction tạo nguồn, trước khi trả `201`. Lỗi download/parser không tạo nguồn dở dang.
 - Thay PDF khi sửa nguồn sẽ tách lại trang cho phiên bản mới; sửa metadata/lưu trữ/khôi phục giữ trang theo phiên bản, không ghi đè lịch sử.

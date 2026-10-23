@@ -245,7 +245,7 @@ export const aiAssistPaths: Paths = {
   [`${COMPOSE}/voice`]: {
     post: operation({
       id: "createVoiceJob", tag: TAG, summary: "Tạo giọng đọc AI", access: "studio",
-      description: "Chạy nền với kịch bản đã lưu. Trả lại lượt RUNNING hiện có của cùng người dùng và tập. Job và MP3 tạm hết hạn theo TTS_JOB_TTL_MS; khởi động lại API sẽ mất job. Kết quả có voice, model và style để lưu cùng thông tin file khi gắn âm thanh vào tập.",
+      description: "Chạy nền với kịch bản đã lưu. Trả lại lượt RUNNING hiện có của cùng người dùng và tập. Job và MP3 tạm hết hạn theo TTS_JOB_TTL_MS; khởi động lại API sẽ mất job. Kết quả có voice, model, style, `scriptHash` (hash kịch bản đã chuẩn hóa lúc tạo) và `contentRevision`; khi gắn âm thanh vào tập, `origin.scriptHash` được server so với kịch bản hiện tại trong transaction và lệch thì bị từ chối (`HASH_MISMATCH`).",
       ...episodeParams,
       body: { name: "CreateVoiceJob", schema: CreateVoiceJobSchema },
       ok: { status: 202, description: "Lượt tạo giọng", schema: { name: "VoiceJob", schema: VoiceJobSchema } },

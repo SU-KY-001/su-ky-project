@@ -366,6 +366,7 @@ model Series {
   title                      String                    @db.VarChar(255)
   slug                       String                    @unique @db.VarChar(280)
   description                String?                   @db.Text
+  language                   String                    @default("vi") @db.VarChar(35)
   coverImageAssetId          String?                   @map("cover_image_asset_id") @db.Uuid
   coverLandscapeAssetId      String?                   @map("cover_landscape_asset_id") @db.Uuid
   startYear                  Int?                      @map("start_year") @db.Integer
@@ -425,6 +426,8 @@ model Episode {
   releaseSchedules   ReleaseSchedule[]
   reviews            EpisodeReview[]
   aiChecks           AiCheck[]
+  /// Canonical approval `{contentRevision, assessment, approvedById, approvedAt, exceptionReason}`; valid only while contentRevision matches.
+  publicationApproval Json?         @map("publication_approval")
 
   @@index([seriesId, sortOrder], map: "episodes_series_id_sort_order_idx")
   @@map("episodes")
@@ -506,6 +509,7 @@ model EpisodeReview {
   reviewedById  String?             @map("reviewed_by_id") @db.VarChar(36)
   reviewedAt    DateTime?           @map("reviewed_at") @db.Timestamptz(3)
   reviewNote    String?             @map("review_note") @db.Text
+  readinessSnapshot Json?           @map("readiness_snapshot")
   schedule      ReleaseSchedule     @relation(fields: [scheduleId], references: [id], onDelete: Cascade)
   episode       Episode             @relation(fields: [episodeId], references: [id], onDelete: Cascade)
   submittedBy   User                @relation("EpisodeReviewSubmitter", fields: [submittedById], references: [id], onDelete: Restrict)

@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { ScriptHashSchema } from "./ai-voice";
 
 export const SCRIPT_MAX_CHARACTERS = 60_000;
 
@@ -157,6 +158,8 @@ export const AudioOriginSchema = z.discriminatedUnion("kind", [
       model: z.string().min(1).max(80),
       style: z.string().max(200),
       chars: z.number().int().nonnegative(),
+      /** Absent on AI recordings attached before script binding existed; new attachments must carry it (see AttachAudioAnalysisSchema). */
+      scriptHash: ScriptHashSchema.optional(),
     })
     .strict(),
 ]);
@@ -178,4 +181,11 @@ export const AudioAnalysisSchema = z
   .strict();
 
 export type AudioAnalysis = z.infer<typeof AudioAnalysisSchema>;
+
+/** Analysis accepted when attaching a NEW recording: an AI voice must name the script it was generated from. */
+export const AttachAudioAnalysisSchema = AudioAnalysisSchema.superRefine((analysis, ctx) => {
+  if (analysis.origin?.kind === "AI_VOICE" && !analysis.origin.scriptHash) {
+    ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["origin", "scriptHash"], message: "scriptHash là bắt buộc cho giọng đọc AI" });
+  }
+});
 

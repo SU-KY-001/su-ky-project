@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import type { EditorDocument } from "@repo/shared";
 import { extractScriptText } from "../../content/application/script-document";
 
@@ -9,6 +10,27 @@ export function speechParagraphs(document: EditorDocument | null, fallbackText: 
     ? (document.content ?? []).filter((node) => node.type !== "heading").map((node) => extractScriptText({ ...document, content: [node] }))
     : (fallbackText ?? "").split(/\n\s*\n/);
   return blocks.map((block) => block.trim()).filter(Boolean);
+}
+
+/** Narration fields the spoken script is derived from; structurally satisfied by the persisted narration rows. */
+export interface SpeechNarration {
+  narrationType: string;
+  scriptDocument: unknown;
+  scriptContent: string | null;
+}
+
+/** The narration the voice reads: the THIRD_PERSON one. Shared so job start and attach pick the same row. */
+export const speechNarration = <T extends SpeechNarration>(narrations: readonly T[]): T | undefined => narrations.find((item) => item.narrationType === "THIRD_PERSON");
+
+/**
+ * Identity of a spoken script: sha256 (hex) of the normalized spoken paragraphs, so edits that do not change what is read
+ * (headings, blank paragraphs, outer whitespace) keep the hash. The TTS job stores it at start; attach recomputes it from the
+ * current narrations in its transaction and compares, so audio of an older script cannot be attached to a newer one.
+ */
+export function scriptSpeechHash(narrations: readonly SpeechNarration[]): string {
+  const narration = speechNarration(narrations);
+  const paragraphs = speechParagraphs((narration?.scriptDocument ?? null) as EditorDocument | null, narration?.scriptContent ?? null);
+  return createHash("sha256").update(paragraphs.join("\n\n")).digest("hex");
 }
 
 /** Greedy packing of paragraphs into requests of at most `maxChars`; an over-long paragraph is split at sentence ends. */

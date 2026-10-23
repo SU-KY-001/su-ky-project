@@ -7,6 +7,7 @@ import {
   ReleaseReassignmentTicketSchema,
   ReleaseReminderListSchema,
   ReviewContentSchema,
+  type ReviewEpisodeInput,
 } from "@repo/shared";
 import { client } from "@/lib/client";
 import { ApiError } from "@/lib/apiError";
@@ -46,12 +47,7 @@ export const moderatorReleaseService = {
       }),
       EpisodeReviewRecordSchema,
     ),
-  review: (
-    id: string,
-    input:
-      | { decision: "APPROVE"; contentRevision: number; reviewNote?: string | null }
-      | { decision: "REQUEST_CHANGES"; contentRevision: number; reviewNote: string },
-  ) =>
+  review: (id: string, input: ReviewEpisodeInput) =>
     parse(
       releases[":id"].review.$post({ param: { id }, json: input }),
       EpisodeReviewRecordSchema,

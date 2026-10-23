@@ -9,6 +9,11 @@ import { errorHandler } from "../src/core/middleware";
 import { ReleaseScheduleQuerySchema } from "@repo/shared";
 
 const scheduleId = "00000000-0000-4000-8000-000000000001";
+const assessment = {
+  editorialNote: "Đã đối chiếu nguồn chung của series.",
+  rightsNote: "Tài sản thuộc quyền nhóm sản xuất.",
+  audioNote: "Đã nghe toàn bộ bản âm thanh.",
+};
 
 function fakeSession(role: "admin" | "moderator"): Session {
   return { user: { id: `${role}-1`, role } } as Session;
@@ -44,16 +49,26 @@ describe("release HTTP routes", () => {
     } });
     const response = await app.request(`/api/admin/releases/${scheduleId}/review`, {
       method: "POST", headers: { "content-type": "application/json" },
-      body: JSON.stringify({ decision: "APPROVE", contentRevision: 3 }),
+      body: JSON.stringify({ decision: "APPROVE", contentRevision: 3, assessment }),
     });
     expect(response.status).toBe(200);
     expect(calls[0]?.[0]).toMatchObject({ user: { role: "admin" } });
-    expect(calls[0]?.[2]).toMatchObject({ decision: "APPROVE", contentRevision: 3 });
+    expect(calls[0]?.[2]).toMatchObject({ decision: "APPROVE", contentRevision: 3, assessment: { editorialNote: assessment.editorialNote, credits: null, rightsExpiresAt: null } });
     const invalid = await app.request(`/api/admin/releases/${scheduleId}/review`, {
       method: "POST", headers: { "content-type": "application/json" },
       body: JSON.stringify({ decision: "REQUEST_CHANGES", contentRevision: 3 }),
     });
     expect(invalid.status).toBe(400);
+    for (const body of [
+      { decision: "APPROVE", contentRevision: 3 },
+      { decision: "APPROVE", contentRevision: 3, assessment: { ...assessment, audioNote: "ngắn" } },
+      { decision: "APPROVE", contentRevision: 3, assessment: { ...assessment, rightsExpiresAt: "2026-02-30" } },
+    ]) {
+      const rejected = await app.request(`/api/admin/releases/${scheduleId}/review`, {
+        method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body),
+      });
+      expect(rejected.status).toBe(400);
+    }
     expect(calls).toHaveLength(1);
   });
 

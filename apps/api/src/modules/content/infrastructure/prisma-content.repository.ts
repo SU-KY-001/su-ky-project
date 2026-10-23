@@ -8,6 +8,8 @@ import type { Session } from "../../auth";
 import { writeAudit } from "../../../core/audit";
 import { DomainError } from "../../../core/errors/domain-error";
 import { insertWithUniqueSlug } from "../../../core/slug";
+import type { EpisodePublishGate } from "../application/publication-gate";
+import { scriptSpeechHash } from "../../ai-assist/voice/speech-text";
 import type {
   AppendEpisodeInput,
   AttachAudioInput,
@@ -353,6 +355,7 @@ export class PrismaSeriesRepository implements SeriesRepository {
         title: input.title,
         slug: input.slug,
         description: input.description,
+        language: input.language,
         topicId: input.topicId,
         historicalPhaseId: input.historicalPhaseId,
         startYear: input.startYear,
@@ -796,8 +799,8 @@ export class PrismaEpisodeRepository implements EpisodeRepository {
     });
   }
 
-  publishEpisodeWithEvidence(actorId: string | null, id: string, baseUpdatedAt: Date) {
-    return publishWithHistoricalEvidence(actorId, id, baseUpdatedAt, "episode");
+  publishEpisodeWithEvidence(actorId: string | null, id: string, baseUpdatedAt: Date, gate: EpisodePublishGate) {
+    return publishWithHistoricalEvidence(actorId, id, baseUpdatedAt, "episode", gate);
   }
   async publishEpisode(id: string, publishedAt: Date): Promise<void> {
     await prisma.episode.update({
@@ -997,6 +1000,13 @@ export class PrismaEpisodeRepository implements EpisodeRepository {
         where: { id: narrationId },
       });
       await lockEpisodeAndSeries(tx, narration.episodeId);
+      const origin = input.analysis?.origin;
+      if (origin?.kind === "AI_VOICE") {
+        // Re-read under the episode lock: a script saved while the voice was generating must not receive this audio.
+        const narrations = await tx.episodeNarration.findMany({ where: { episodeId: narration.episodeId } });
+        if (origin.scriptHash !== scriptSpeechHash(narrations))
+          throw new DomainError(409, "HASH_MISMATCH", "Kịch bản đã thay đổi sau khi tạo giọng AI; tạo lại giọng đọc cho kịch bản hiện tại");
+      }
       if (
         input.previousAudioAssetId &&
         input.previousAudioAssetId !== input.assetId

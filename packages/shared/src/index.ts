@@ -26,3 +26,4 @@ export * from "./schemas/content/ai-compose";
 export * from "./schemas/content/ai-voice";
 export * from "./schemas/content/readiness";
 export * from "./schemas/content/review-content";
+export * from "./schemas/content/publication-review";

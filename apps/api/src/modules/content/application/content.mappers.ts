@@ -18,6 +18,7 @@ import {
   computeEpisodeReadiness,
   episodeChecklistFromReadiness,
 } from "./episode-readiness";
+import { currentPublicationApproval } from "./publication-gate";
 
 export function mapEpisodeAttachment(
   attachment: EpisodeAttachmentEntity,
@@ -175,6 +176,14 @@ export function seriesChecklist(series: SeriesDetailEntity) {
       key: "HAS_PUBLISHED_EPISODE",
       ok: series.episodes.some((episode) => episode.status === "PUBLISHED"),
     },
+    { key: "DESCRIPTION", ok: Boolean(series.description?.trim()) },
+    {
+      key: "COVER",
+      ok:
+        series.coverImageAsset?.status === "READY" ||
+        series.coverLandscapeAsset?.status === "READY",
+    },
+    { key: "LANGUAGE", ok: Boolean(series.language.trim()) },
   ];
   return { ready: items.every((item) => item.ok), items };
 }
@@ -192,6 +201,7 @@ export function mapSeriesDetail(
     title: series.title,
     slug: series.slug,
     description: series.description,
+    language: series.language,
     status: series.status,
     isDeleted: Boolean(series.deletedAt),
     lock: series.adminLockedAt
@@ -314,5 +324,6 @@ export async function mapWorkspace(
     entityTags: episode.entityTags.map(mapEntityTag),
     publishChecklist: episodeChecklistFromReadiness(readiness),
     readiness,
+    publicationApproval: currentPublicationApproval(episode.publicationApproval, episode.contentRevision),
   };
 }

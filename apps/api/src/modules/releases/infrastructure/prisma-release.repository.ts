@@ -14,6 +14,8 @@ import type {
   UpdateReleaseScheduleRecord,
   ReleaseScheduleListFilter,
 } from "../domain/release.repository";
+import { DomainError } from "../../../core/errors/domain-error";
+import { jsonSnapshot } from "../../catalog/infrastructure/prisma-historical-catalog.repository";
 
 const scheduleInclude = {
   assignments: {
@@ -255,8 +257,43 @@ export class PrismaReleaseRepository implements ReleaseRepository {
     );
   }
 
+  /**
+   * Submit under the episode row lock: the revision, the schedule state and "not already reviewed" are checked in the same
+   * transaction that inserts, so a stale or duplicate submission cannot slip in between check and write.
+   */
   async createReview(input: CreateEpisodeReviewRecord): Promise<EpisodeReviewEntity> {
     return prisma.$transaction(async (tx) => {
+      await tx.$queryRaw`SELECT id FROM episodes WHERE id=${input.episodeId}::uuid FOR UPDATE`;
+      const [schedule, episode, existing] = await Promise.all([
+        tx.releaseSchedule.findUnique({
+          where: { id: input.scheduleId },
+          select: { status: true, episodeId: true },
+        }),
+        tx.episode.findUniqueOrThrow({
+          where: { id: input.episodeId },
+          select: { contentRevision: true },
+        }),
+        tx.episodeReview.findUnique({
+          where: {
+            episodeId_revision: { episodeId: input.episodeId, revision: input.revision },
+          },
+          select: { id: true },
+        }),
+      ]);
+      if (
+        !schedule ||
+        schedule.episodeId !== input.episodeId ||
+        ["RELEASED", "CANCELLED", "PUBLISHING"].includes(schedule.status)
+      )
+        throw new DomainError(409, "INVALID_STATE_TRANSITION", "Lịch không còn nhận nội dung kiểm duyệt");
+      if (episode.contentRevision !== input.revision)
+        throw new DomainError(409, "STALE_WRITE", "Nội dung đã thay đổi; tải lại phiên bản mới trước khi gửi duyệt");
+      if (existing)
+        throw new DomainError(
+          409,
+          "INVALID_REVIEW_STATE",
+          "Phiên bản này đã được gửi duyệt; chỉnh sửa nội dung để tạo phiên bản mới trước khi gửi lại",
+        );
       const review = await tx.episodeReview.create({
         data: {
           scheduleId: input.scheduleId,
@@ -285,20 +322,56 @@ export class PrismaReleaseRepository implements ReleaseRepository {
     });
   }
 
+  /**
+   * Decide under the episode row lock. Only an IN_REVIEW review changes (one winner among concurrent reviewers), the episode
+   * must still be at the reviewed revision, and an approval is written to the episode in the same transaction.
+   */
   async decideReview(input: DecideEpisodeReviewRecord): Promise<EpisodeReviewEntity> {
     return prisma.$transaction(async (tx) => {
       const current = await tx.episodeReview.findUniqueOrThrow({
         where: { id: input.reviewId },
       });
-      const review = await tx.episodeReview.update({
-        where: { id: input.reviewId },
+      await tx.$queryRaw`SELECT id FROM episodes WHERE id=${current.episodeId}::uuid FOR UPDATE`;
+      const episode = await tx.episode.findUniqueOrThrow({
+        where: { id: current.episodeId },
+        select: { contentRevision: true, updatedAt: true },
+      });
+      if (current.revision !== input.expectedRevision)
+        throw new DomainError(409, "INVALID_REVIEW_STATE", "Phiên bản này không ở trạng thái chờ duyệt");
+      if (episode.contentRevision !== input.expectedRevision)
+        throw new DomainError(409, "STALE_WRITE", "Nội dung đã thay đổi sau khi gửi duyệt");
+      const reviewedAt = new Date();
+      const claimed = await tx.episodeReview.updateMany({
+        where: { id: input.reviewId, status: "IN_REVIEW" },
         data: {
           status: input.status,
           reviewedById: input.reviewedById,
-          reviewedAt: new Date(),
+          reviewedAt,
           reviewNote: input.reviewNote,
+          readinessSnapshot: jsonSnapshot(input.readinessSnapshot),
         },
       });
+      if (claimed.count !== 1)
+        throw new DomainError(409, "INVALID_REVIEW_STATE", "Phiên bản này không ở trạng thái chờ duyệt");
+      if (input.status === "APPROVED") {
+        const { assessment } = input.readinessSnapshot;
+        if (!assessment) throw new DomainError(422, "VALIDATION_ERROR", "Duyệt cần kết luận phát hành");
+        await tx.episode.update({
+          where: { id: current.episodeId },
+          // updatedAt is passed back unchanged: approving is not an edit, so editors' baseUpdatedAt stays valid.
+          data: {
+            updatedAt: episode.updatedAt,
+            publicationApproval: jsonSnapshot({
+              contentRevision: input.expectedRevision,
+              assessment,
+              approvedById: input.reviewedById,
+              approvedAt: reviewedAt,
+              exceptionReason: null,
+            }),
+          },
+        });
+      }
+      const review = await tx.episodeReview.findUniqueOrThrow({ where: { id: input.reviewId } });
       await tx.auditLog.create({
         data: {
           actorId: input.reviewedById,
@@ -314,6 +387,7 @@ export class PrismaReleaseRepository implements ReleaseRepository {
             episodeId: review.episodeId,
             revision: review.revision,
             reviewNote: review.reviewNote,
+            assessment: jsonSnapshot(input.readinessSnapshot.assessment),
           },
           correlationId: input.correlationId,
           fromStatus: current.status,

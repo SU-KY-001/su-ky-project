@@ -8,6 +8,7 @@ import { notify } from "@/shared/lib/notifications";
 import { libraryService } from "../../services/libraryService";
 import { LibrarySelect, LibraryState } from "./LibraryPrimitives";
 import { EpisodeQuiz } from "./EpisodeQuiz";
+import { PublicationNoticeView } from "./PublicationNotice";
 import { audioTime } from "./playlistFormat";
 import { Slider } from "@/shared/components/ui/slider";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/shared/components/ui/select";
@@ -130,6 +131,7 @@ export function PodcastPlayer({ chapter }: { chapter: LibraryChapter }): ReactEl
   return <div className="space-y-5 rounded-xl border border-line bg-paper-soft p-5 md:p-6"><div className="flex items-start gap-3"><Headphones size={25} className="shrink-0 text-bronze-dark" aria-hidden="true" /><div><p className="text-xs text-muted-foreground">Đang chọn nghe</p><h3 className="mt-1 font-semibold leading-6">{chapter.title}</h3></div></div>
     {available.length > 1 && <LibrarySelect id={`voice-${chapter.id}`} label="Góc kể" value={selected?.id ?? ""} onChange={setChoice} options={available.map((value) => ({ id: value.id, name: value.type === "FIRST_PERSON" ? "Lời kể nhân vật" : "Người dẫn chuyện" }))} />}
     {session.isPending ? <LibraryState loading /> : session.isError ? <LibraryState error title="Chưa kiểm tra được tài khoản" retry={() => { void session.refetch(); }} /> : session.data && selected ? <AudioPlayback key={`${selected.id}-${session.data.id}`} narrationId={selected.id} userId={session.data.id} /> : <p className="text-sm text-muted-foreground">Bản thu của chương này chưa sẵn sàng.</p>}
+    <PublicationNoticeView info={detail.data?.publicationInfo} />
     {detail.data?.hasQuiz && <EpisodeQuiz key={session.data?.id ?? "guest"} slug={chapter.slug} signedIn={Boolean(session.data)} />}
   </div>;
 }

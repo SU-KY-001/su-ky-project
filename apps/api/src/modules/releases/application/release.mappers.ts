@@ -1,6 +1,7 @@
 import type { EpisodeAiSummary, ReviewContent } from "@repo/shared";
 import type { EpisodeRepository } from "../../content/domain/content.repository";
 import { episodeChecklist, mapWorkspace } from "../../content/application/content.mappers";
+import { hasPublicationWarnings } from "../../content/application/publication-gate";
 import { computeEpisodeReadiness } from "../../content/application/episode-readiness";
 import { getSystemConfig } from "../../../core/config/system-config";
 import { DomainError } from "../../../core/errors/domain-error";
@@ -36,16 +37,20 @@ export class ContentReleasePublisher implements ReleasePublisher {
     return { episode: workspace, readiness, aiSummary: summary };
   }
 
+  /** Scheduled release: the episode must hold an approval for its current revision; the check runs in the publish transaction. */
   async publishEpisode(episodeId: string, baseUpdatedAt: Date): Promise<void> {
-    const episode = await this.episodes.getEpisodeWorkspace(episodeId);
-    if (!episode)
+    const content = await this.reviewContent(episodeId);
+    if (!content)
       throw new DomainError(404, "NOT_FOUND", "Không tìm thấy tập podcast");
-    if (!episodeChecklist(episode).ready)
+    if (!content.readiness.ready)
       throw new DomainError(
         422,
         "EPISODE_NOT_PUBLISHABLE",
         "Tập podcast chưa đạt checklist phát hành",
       );
-    await this.episodes.publishEpisodeWithEvidence(null, episodeId, baseUpdatedAt);
+    await this.episodes.publishEpisodeWithEvidence(null, episodeId, baseUpdatedAt, {
+      mode: "APPROVAL",
+      hasWarnings: hasPublicationWarnings(content.readiness),
+    });
   }
 }

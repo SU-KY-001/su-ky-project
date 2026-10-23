@@ -35,6 +35,7 @@ export interface SeriesEntity {
   title: string;
   slug: string;
   description: string | null;
+  language: string;
   coverImageAssetId: string | null;
   coverLandscapeAssetId: string | null;
   startYear: number | null;
@@ -61,6 +62,8 @@ export interface EpisodeEntity {
   adminLockedAt: Date | null;
   adminLockedById: string | null;
   contentRevision: number;
+  /** Stored `PublicationApproval` JSON; read through `parsePublicationApproval`. */
+  publicationApproval?: unknown;
   publishedAt: Date | null;
   deletedAt: Date | null;
   createdAt: Date;

@@ -329,6 +329,7 @@ function toEntityTag(
 function toEpisodeDetail(row: PrismaEpisodeDetail): EpisodeDetailEntity {
   return {
     ...toEpisode(row),
+    publicationApproval: row.publicationApproval,
     series: {
       ...toSeries(row.series),
       coverImageAsset: row.series.coverImageAsset

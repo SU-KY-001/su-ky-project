@@ -1,4 +1,5 @@
 import { CatalogSourceSchema } from "@repo/shared";
+import { PublicPublicationInfoSchema, ReviewReadinessSnapshotSchema } from "@repo/shared";
 import { z } from "zod";
 import {
   ContentStatusSchema,
@@ -55,6 +56,7 @@ export const EpisodeReviewDocSchema = z.object({
   reviewedById: z.string().nullable(),
   reviewedAt: timestamp.nullable(),
   reviewNote: z.string().nullable(),
+  readinessSnapshot: ReviewReadinessSnapshotSchema.nullable(),
 });
 
 export const ReleaseScheduleDocSchema = z.object({
@@ -386,6 +388,9 @@ export const PublicEpisodeDetailDocSchema = z.object({
     .describe("Chỉ thẻ thực thể đã được Moderator xác nhận"),
   previousEpisode: EpisodeLinkSchema,
   nextEpisode: EpisodeLinkSchema,
+  publicationInfo: PublicPublicationInfoSchema.nullable().describe(
+    "Công khai AI và ghi công từ approval của tập; ghi chú duyệt, căn cứ quyền và người duyệt không công khai",
+  ),
   hasQuiz: z.boolean(),
   viewer: z
     .object({

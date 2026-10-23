@@ -2,8 +2,16 @@ import { prisma, Prisma } from "@repo/db";
 import {
   HistoricalTimeSchema,
   PublicationEvidenceSchema,
+  type PublicationApproval,
   type PublicationEvidenceDto,
 } from "@repo/shared";
+import {
+  assertAssessmentGate,
+  currentPublicationApproval,
+  hasAiVoiceAudio,
+  parseAdminException,
+  type EpisodePublishGate,
+} from "../application/publication-gate";
 import { DomainError } from "../../../core/errors/domain-error";
 import { writeAudit } from "../../../core/audit";
 import {
@@ -194,12 +202,19 @@ export async function collectHistoricalEvidence(
     sources,
   };
 }
+/**
+ * Publishes a series (`gate` null) or an episode inside one transaction. For an episode `gate` decides what authorises it:
+ * the current approval, or an Admin exception whose actor role is re-read from the DB here. Every check and the write
+ * share the lock, so evidence validity, approval and revision cannot drift between check and publish.
+ */
 export async function publishWithHistoricalEvidence(
   actorId: string | null,
   id: string,
   baseUpdatedAt: Date,
   kind: "series" | "episode",
+  gate: EpisodePublishGate | null = null,
 ) {
+  if (kind === "episode" && !gate) throw new Error("Episode publication requires a gate");
   await prisma.$transaction(async (tx) => {
     const reference =
       kind === "episode"
@@ -211,7 +226,11 @@ export async function publishWithHistoricalEvidence(
       await tx.$queryRaw`SELECT id FROM episodes WHERE id=${id}::uuid FOR UPDATE`;
     const series = await tx.series.findUniqueOrThrow({
       where: { id: seriesId },
-      include: { episodes: { where: { deletedAt: null } } },
+      include: {
+        episodes: { where: { deletedAt: null } },
+        coverImageAsset: { select: { status: true } },
+        coverLandscapeAsset: { select: { status: true } },
+      },
     });
     const episode =
       kind === "episode"
@@ -230,7 +249,7 @@ export async function publishWithHistoricalEvidence(
     const actor = actorId
       ? await tx.user.findUnique({
           where: { id: actorId },
-          select: { role: true },
+          select: { role: true, banned: true },
         })
       : null;
     if (
@@ -244,7 +263,8 @@ export async function publishWithHistoricalEvidence(
         "CONTENT_IN_TRASH",
         "Podcast đã xóa hoặc bị khóa",
       );
-    if (episode) {
+    let exception: PublicationApproval | null = null;
+    if (episode && gate) {
       const third = episode.narrations.find(
         (n) => n.narrationType === "THIRD_PERSON",
       );
@@ -254,16 +274,52 @@ export async function publishWithHistoricalEvidence(
           "EPISODE_NOT_PUBLISHABLE",
           "Cần kịch bản và âm thanh hợp lệ",
         );
+      const facts = {
+        hasAiVoice: hasAiVoiceAudio(episode.narrations.filter((n) => n.audioAssetId)),
+        hasWarnings: gate.hasWarnings,
+        now: new Date(),
+      };
+      if (gate.mode === "ADMIN_EXCEPTION") {
+        if (actor?.role !== "admin" || actor.banned)
+          throw new DomainError(403, "FORBIDDEN", "Chỉ Admin được phát hành ngoại lệ");
+        const parsed = parseAdminException(gate);
+        assertAssessmentGate(parsed.assessment, facts);
+        exception = {
+          contentRevision: episode.contentRevision,
+          assessment: parsed.assessment,
+          approvedById: actorId!,
+          approvedAt: facts.now,
+          exceptionReason: parsed.exceptionReason,
+        };
+      } else {
+        const approval = currentPublicationApproval(
+          episode.publicationApproval,
+          episode.contentRevision,
+        );
+        if (!approval)
+          throw new DomainError(
+            409,
+            "APPROVAL_REQUIRED",
+            "Phiên bản hiện tại chưa có phê duyệt phát hành; gửi duyệt và duyệt lại trước khi phát hành",
+          );
+        assertAssessmentGate(approval.assessment, facts);
+      }
     } else if (
       !series.topicId ||
       series.startYear == null ||
       series.endYear == null ||
-      !series.episodes.some((e) => e.status === "PUBLISHED")
+      !series.episodes.some((e) => e.status === "PUBLISHED") ||
+      !series.description?.trim() ||
+      !series.language.trim() ||
+      !(
+        series.coverImageAsset?.status === "READY" ||
+        series.coverLandscapeAsset?.status === "READY"
+      )
     )
       throw new DomainError(
         422,
         "SERIES_NOT_PUBLISHABLE",
-        "Series chưa đủ thông tin phát hành",
+        "Series chưa đủ thông tin phát hành (chủ đề, khoảng năm, mô tả, ảnh bìa, ngôn ngữ và ít nhất một tập đã phát hành)",
       );
     const evidence = await collectHistoricalEvidence(tx, seriesId);
     const preservePublished =
@@ -311,15 +367,27 @@ export async function publishWithHistoricalEvidence(
         data: {
           status: "PUBLISHED",
           publishedAt: episode.publishedAt ?? new Date(),
+          ...(exception ? { publicationApproval: jsonSnapshot(exception) } : {}),
         },
       });
     await writeAudit(tx, {
       actorId,
       actorType: actorId ? "USER" : "SYSTEM",
-      action: `${kind}.published`,
+      action: exception ? "episode.published_exception" : `${kind}.published`,
       resourceType: kind,
       resourceId: id,
-      changes: { evidence: jsonSnapshot(evidence) },
+      changes: {
+        evidence: jsonSnapshot(evidence),
+        ...(episode
+          ? { contentRevision: episode.contentRevision }
+          : {}),
+        ...(exception
+          ? {
+              exceptionReason: exception.exceptionReason,
+              assessment: jsonSnapshot(exception.assessment),
+            }
+          : {}),
+      },
       ipAddress: null,
     });
   });

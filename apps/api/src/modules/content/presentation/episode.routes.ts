@@ -1,4 +1,4 @@
-import { PublishContentSchema } from "@repo/shared";
+import { PublishEpisodeExceptionSchema } from "@repo/shared";
 import {
   AttachAudioSchema,
   AttachEpisodeDocumentSchema,
@@ -102,7 +102,7 @@ export function createEpisodeRoute(
       "/episodes/:id/publish",
       rateLimit("write"),
       zValidator("param", idParam, throwOnInvalid),
-      zValidator("json", PublishContentSchema, throwOnInvalid),
+      zValidator("json", PublishEpisodeExceptionSchema, throwOnInvalid),
       async (c) => {
         const session = c.get("session")!;
         return c.json(
@@ -110,7 +110,7 @@ export function createEpisodeRoute(
             await service.publishEpisode(
               session,
               c.req.valid("param").id,
-              c.req.valid("json").baseUpdatedAt,
+              c.req.valid("json"),
             ),
             storage,
           ),

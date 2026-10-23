@@ -1,9 +1,10 @@
 import type { Session } from "../../auth";
 import {
-  AudioAnalysisSchema,
+  AttachAudioAnalysisSchema,
   EditorDocumentSchema,
   type AudioAnalysis,
   type EditorDocument,
+  type PublishEpisodeExceptionInput,
 } from "@repo/shared";
 import { DomainError } from "../../../core/errors/domain-error";
 import { insertWithUniqueSlug } from "../../../core/slug";
@@ -26,7 +27,8 @@ import type {
   SeriesListItemEntity,
 } from "../domain/content.entity";
 import { getSystemConfig } from "../../../core/config/system-config";
-import { episodeChecklist, seriesChecklist } from "./content.mappers";
+import { mapWorkspace, seriesChecklist } from "./content.mappers";
+import { hasPublicationWarnings } from "./publication-gate";
 import {
   extractCitationSourceIds,
   extractScriptText,
@@ -274,6 +276,7 @@ export class ContentService {
       endYear?: number | null;
       coverImageAssetId?: string | null;
       coverLandscapeAssetId?: string | null;
+      language?: string;
     },
     ipAddress: string | null,
   ): Promise<SeriesDetailEntity> {
@@ -323,6 +326,7 @@ export class ContentService {
       coverImageAssetId?: string | null;
       coverLandscapeAssetId?: string | null;
       baseUpdatedAt?: Date;
+      language?: string;
     },
     ipAddress: string | null,
   ): Promise<SeriesDetailEntity> {
@@ -619,10 +623,14 @@ export class ContentService {
     return this.getEpisodeWorkspace(id);
   }
 
+  /**
+   * Admin direct publish: the only path that skips review. It needs a written reason and a full assessment; the DB actor role,
+   * reason, assessment, evidence and timestamp are all re-checked inside the publish transaction.
+   */
   async publishEpisode(
     session: Session,
     id: string,
-    baseUpdatedAt?: Date,
+    input: PublishEpisodeExceptionInput,
   ): Promise<EpisodeWorkspaceEntity> {
     if (session.user.role !== "admin")
       throw new DomainError(
@@ -633,7 +641,8 @@ export class ContentService {
     const current = await this.loadEpisodeForRead(session, id);
     assertWritable(session, current.series, current);
     const episode = await this.getEpisodeWorkspace(id);
-    if (!episodeChecklist(episode).ready)
+    const { readiness } = await mapWorkspace(episode);
+    if (!readiness.ready)
       throw new DomainError(
         422,
         "EPISODE_NOT_PUBLISHABLE",
@@ -642,7 +651,13 @@ export class ContentService {
     await this.episodes.publishEpisodeWithEvidence(
       session.user.id,
       id,
-      baseUpdatedAt ?? episode.updatedAt,
+      input.baseUpdatedAt,
+      {
+        mode: "ADMIN_EXCEPTION",
+        hasWarnings: hasPublicationWarnings(readiness),
+        exceptionReason: input.exceptionReason,
+        assessment: input.assessment,
+      },
     );
     return this.getEpisodeWorkspace(id);
   }
@@ -916,7 +931,7 @@ export class ContentService {
       );
     }
     const analysis = input.analysis
-      ? AudioAnalysisSchema.parse(input.analysis)
+      ? AttachAudioAnalysisSchema.parse(input.analysis)
       : undefined;
     return this.episodes.attachAudio(narration.id, {
       previousAudioAssetId: narration.audioAssetId,

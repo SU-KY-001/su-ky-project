@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { PaginationQuerySchema } from "./common";
+import { PublicationAssessmentSchema, ReviewReadinessSnapshotSchema } from "./content/publication-review";
 
 export const ReleaseScheduleStatusSchema = z.enum([
   "SCHEDULED",
@@ -85,7 +86,7 @@ export const LinkReleaseEpisodeSchema = z.object({
 });
 
 export const ReviewEpisodeSchema = z.discriminatedUnion("decision", [
-  z.object({ decision: z.literal("APPROVE"), contentRevision: z.number().int().positive(), reviewNote: z.string().trim().max(5000).nullish() }),
+  z.object({ decision: z.literal("APPROVE"), contentRevision: z.number().int().positive(), reviewNote: z.string().trim().max(5000).nullish(), assessment: PublicationAssessmentSchema }),
   z.object({ decision: z.literal("REQUEST_CHANGES"), contentRevision: z.number().int().positive(), reviewNote: z.string().trim().min(1).max(5000) }),
 ]);
 
@@ -122,6 +123,8 @@ export const EpisodeReviewRecordSchema = z.object({
   reviewedById: z.string().nullable(),
   reviewedAt: z.coerce.date().nullable(),
   reviewNote: z.string().nullable(),
+  /** Readiness + assessment as they were at the decision; null for reviews decided before snapshots existed. */
+  readinessSnapshot: ReviewReadinessSnapshotSchema.nullable(),
 });
 
 export const ReleaseScheduleRecordSchema = z.object({

@@ -11,7 +11,7 @@ import { logger } from "../../../core/logger";
 import type { Session } from "../../auth";
 import type { ContentService } from "../../content/application/content.service";
 import { synthesizeWav } from "./gemini-tts";
-import { chunkSpeech, speechParagraphs } from "./speech-text";
+import { chunkSpeech, scriptSpeechHash, speechNarration, speechParagraphs } from "./speech-text";
 
 const execFileAsync = promisify(execFile);
 const LOG_SCOPE = "ai-voice";
@@ -27,6 +27,9 @@ interface Job {
   id: string;
   userId: string;
   episodeId: string;
+  /** Identity of the script the job reads (see scriptSpeechHash) and the episode revision it was read at. */
+  scriptHash: string;
+  contentRevision: number;
   voice: AiVoice;
   status: VoiceJob["status"];
   total: number;
@@ -41,6 +44,7 @@ interface Job {
 
 const toDto = (job: Job): VoiceJob => ({
   id: job.id, status: job.status, voice: job.voice, total: job.total, done: job.done, chars: job.chars, error: job.error, durationMs: job.durationMs,
+  scriptHash: job.scriptHash, contentRevision: job.contentRevision,
   model: env.TTS_MODEL, style: env.TTS_STYLE,
 });
 
@@ -51,7 +55,7 @@ export interface VoiceDeps {
 }
 
 const encodeWithFfmpeg = async (listFile: string, outFile: string): Promise<void> => {
-  // 44.1 kHz is the rate podcast players and browsers expect; Gemini's native 24 kHz is resampled once here.
+  // Gemini's native 24 kHz is resampled once here to the fixed output rate.
   await execFileAsync(env.FFMPEG_PATH, ["-y", "-loglevel", "error", "-f", "concat", "-safe", "0", "-i", listFile, "-codec:a", "libmp3lame", "-ar", String(MP3_SAMPLE_RATE), "-q:a", MP3_QUALITY, outFile], { timeout: FFMPEG_TIMEOUT_MS });
 };
 
@@ -74,15 +78,22 @@ export class VoiceService {
 
   async start(session: Session, episodeId: string, voice: AiVoice): Promise<VoiceJob> {
     const episode = await this.content.getEpisodeForRead(session, episodeId);
-    const narration = episode.narrations.find((item) => item.narrationType === "THIRD_PERSON");
+    const narration = speechNarration(episode.narrations);
     const chunks = chunkSpeech(speechParagraphs((narration?.scriptDocument ?? null) as EditorDocument | null, narration?.scriptContent ?? null), env.TTS_CHUNK_CHARS);
     if (!chunks.length) throw new DomainError(422, "VALIDATION_ERROR", "Tập chưa có kịch bản đã lưu để đọc");
 
+    const scriptHash = scriptSpeechHash(episode.narrations);
     // From here to jobs.set() there is no await: two concurrent starts cannot both pass this check.
     const running = [...this.jobs.values()].find((job) => job.episodeId === episodeId && job.userId === session.user.id && job.status === "RUNNING");
-    if (running) return toDto(running);
+    if (running?.scriptHash === scriptHash && running.voice === voice) return toDto(running);
+    // The script or voice changed since that job started: its audio would be stale, so replace it rather than hand it back.
+    if (running) {
+      running.abort.abort();
+      this.finish(running, "CANCELLED", null);
+    }
     const job: Job = {
-      id: randomUUID(), userId: session.user.id, episodeId, voice, status: "RUNNING", total: chunks.length, done: 0,
+      id: randomUUID(), userId: session.user.id, episodeId, scriptHash, contentRevision: episode.contentRevision,
+      voice, status: "RUNNING", total: chunks.length, done: 0,
       chars: chunks.reduce((sum, chunk) => sum + chunk.length, 0), error: null, durationMs: null, mp3Path: null, finishedAt: null, abort: new AbortController(),
     };
     this.jobs.set(job.id, job);

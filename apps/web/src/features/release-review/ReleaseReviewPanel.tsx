@@ -1,16 +1,26 @@
 import { useState, type ReactElement } from "react";
 import { ArrowSquareOut, CheckCircle, FileText, Info, Warning, XCircle } from "@phosphor-icons/react";
-import type { EpisodeReadiness, EpisodeWorkspaceDto, ReadinessItem, ReviewContent } from "@repo/shared";
+import type { AudioOrigin, EpisodeReadiness, EpisodeWorkspaceDto, ReadinessItem, ReviewContent, ReviewEpisodeInput } from "@repo/shared";
 import { Button } from "@/shared/components/ui/button";
 import { Textarea } from "@/shared/components/ui/textarea";
 import { cn } from "@/lib/utils";
 import { useCurrentUser } from "@/shared/hooks/useCurrentUser";
+import { voiceName } from "@/features/podcast-production/voice/voiceLabels";
+import { AssessmentForm } from "./AssessmentForm";
 import { CollapsibleScript } from "./CollapsibleScript";
+import { assessmentProblems, assessmentRequirements, emptyAssessmentDraft, toAssessment, type AssessmentDraft } from "./publicationAssessment";
 import { AI_READINESS_KEYS, formatClock, readinessLabels, reviewReason, STATE_LABEL, type ReviewReason } from "./readinessLabels";
 
-export type ReviewDecisionInput =
-  | { decision: "APPROVE"; contentRevision: number; reviewNote: string | null }
-  | { decision: "REQUEST_CHANGES"; contentRevision: number; reviewNote: string };
+export type ReviewDecisionInput = ReviewEpisodeInput;
+
+/** Which file and which voice/model made the recording, so the reviewer judges AI audio as AI audio. */
+function AudioOriginLine({ origin }: { origin: AudioOrigin | undefined }): ReactElement {
+  if (origin?.kind === "AI_VOICE") {
+    return <p className="text-xs font-semibold text-mod-attention">Giọng đọc AI: {voiceName(origin.voice)} · mô hình {origin.model} · {origin.chars.toLocaleString("vi-VN")} ký tự. Người nghe cần được thông báo.</p>;
+  }
+  if (origin?.kind === "UPLOAD") return <p className="text-xs text-mod-text-secondary">Tải lên từ máy: {origin.fileName}</p>;
+  return <p className="text-xs text-mod-text-secondary">Chưa ghi nhận nguồn của bản thu (gắn trước khi hệ thống lưu thông tin này).</p>;
+}
 
 const NARRATION_TITLE = { THIRD_PERSON: "Lời kể ngôi thứ ba", FIRST_PERSON: "Lời kể ngôi thứ nhất" } as const;
 const NOTE_MAX_CHARS = 5000;
@@ -44,6 +54,8 @@ export function EpisodeReviewBody({ episode }: { episode: EpisodeWorkspaceDto })
                 <>
                   <audio controls preload="none" src={narration.audio.previewUrl} className="w-full" aria-label={`Nghe bản thu ${narration.type === "THIRD_PERSON" ? "ngôi thứ ba" : "ngôi thứ nhất"}`} />
                   {narration.audio.durationMs ? <p className="text-xs text-mod-text-secondary">{formatClock(narration.audio.durationMs)}</p> : null}
+                  <AudioOriginLine origin={narration.audioAnalysis?.origin} />
+                  {narration.warnings.some(({ key }) => key === "SCRIPT_CHANGED_AFTER_AUDIO") ? <p role="alert" className="text-xs font-semibold text-mod-attention">Kịch bản đã sửa sau khi gắn âm thanh: hãy nghe lại và ghi kết luận bản nghe.</p> : null}
                   <p className="text-xs text-mod-text-secondary">Hệ thống không biết bạn đã nghe bao nhiêu, nên không có ô tick nghe xong.</p>
                 </>
               ) : <p className="text-sm text-mod-text-secondary">Chưa có bản thu âm để nghe.</p>}
@@ -132,11 +144,15 @@ interface Props {
 /** Shared two-column review surface for Admin and Moderator reviewers: content left, system readiness + decision right. */
 export function ReleaseReviewPanel({ content, validRevision, reviewRevision, pending, onDecide, noteId }: Props): ReactElement {
   const [note, setNote] = useState("");
+  const [assessment, setAssessment] = useState<AssessmentDraft>(emptyAssessmentDraft);
   const { data: user } = useCurrentUser();
   const reason = reviewReason(content.readiness);
   const trimmed = note.trim();
+  const requirements = assessmentRequirements(content.episode, content.readiness);
+  const problems = assessmentProblems(assessment, requirements);
+  const canApprove = content.readiness.ready && problems.length === 0;
   return (
-    <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_20rem]">
+    <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_24rem]">
       {user ? <p className="text-xs text-mod-text-secondary lg:col-span-2">Người duyệt: <b className="text-mod-text">{user.name}</b> (không phải người sản xuất, không phải AI)</p> : null}
       <EpisodeReviewBody episode={content.episode} />
       <aside className="space-y-5 lg:border-l lg:border-mod-border lg:pl-6">
@@ -145,13 +161,23 @@ export function ReleaseReviewPanel({ content, validRevision, reviewRevision, pen
           <div className="space-y-3 border-t border-mod-border pt-4">
             <label htmlFor={noteId} className="text-sm font-semibold">Ghi chú</label>
             <Textarea id={noteId} value={note} onChange={(event) => setNote(event.target.value)} maxLength={NOTE_MAX_CHARS} rows={4} disabled={pending} placeholder="Nêu rõ phần cần sửa" className="resize-none border-mod-border bg-mod-surface" />
-            <p className="text-xs text-mod-text-secondary">Bắt buộc khi Yêu cầu chỉnh sửa.</p>
+            <p className="text-xs text-mod-text-secondary">Bắt buộc khi Yêu cầu chỉnh sửa. Không cần điền phần xác nhận bên dưới khi yêu cầu chỉnh sửa.</p>
+            <div className="space-y-3 border-t border-mod-border pt-4">
+              <AssessmentForm idPrefix={noteId} draft={assessment} requirements={requirements} disabled={pending} onChange={setAssessment} />
+              <p className="text-xs text-mod-text-secondary">Bạn chịu trách nhiệm về các xác nhận này; chúng được lưu cùng phiên bản {reviewRevision} và không thay thế đánh giá pháp lý.</p>
+            </div>
             <p role={reason.tone === "blocked" ? "alert" : "status"} className={REASON_CLASS[reason.tone]}>{reason.text}</p>
+            {content.readiness.ready && problems.length ? (
+              <div role="status" className="text-xs text-mod-attention">
+                <p className="font-semibold">Để Duyệt, còn cần:</p>
+                <ul className="list-disc pl-5">{problems.map((problem) => <li key={problem}>{problem}</li>)}</ul>
+              </div>
+            ) : null}
             <div className="flex flex-wrap justify-end gap-2">
               <Button type="button" variant="outline" disabled={pending || !trimmed} onClick={() => onDecide({ decision: "REQUEST_CHANGES", contentRevision: reviewRevision, reviewNote: trimmed })}>
                 <XCircle size={17} />Yêu cầu chỉnh sửa
               </Button>
-              <Button type="button" disabled={pending || !content.readiness.ready} onClick={() => onDecide({ decision: "APPROVE", contentRevision: reviewRevision, reviewNote: trimmed || null })}>
+              <Button type="button" disabled={pending || !canApprove} onClick={() => onDecide({ decision: "APPROVE", contentRevision: reviewRevision, reviewNote: trimmed || null, assessment: toAssessment(assessment) })}>
                 <CheckCircle size={17} />{pending ? "Đang xử lý…" : "Duyệt nội dung"}
               </Button>
             </div>
