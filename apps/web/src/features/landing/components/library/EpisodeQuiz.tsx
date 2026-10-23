@@ -1,7 +1,8 @@
 import { useRef, useState, type FormEvent, type ReactElement } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { ArrowRight, Brain, Check, CheckCircle, LockKey, Trophy, XCircle } from "@phosphor-icons/react";
+import { ArrowLeft, ArrowRight, Brain, Check, CheckCircle, LockKey, Trophy, XCircle } from "@phosphor-icons/react";
 import { Link } from "react-router";
+import { Badge } from "@/shared/components/ui/badge";
 import { Button } from "@/shared/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/shared/components/ui/dialog";
 import { notify } from "@/shared/lib/notifications";
@@ -11,97 +12,83 @@ import { LibraryState } from "./LibraryPrimitives";
 type PublicQuiz = Awaited<ReturnType<typeof libraryService.quiz>>;
 type QuizAttemptResult = Awaited<ReturnType<typeof libraryService.attempt>>;
 
-interface QuizProgressProps {
-  answered: number;
-  total: number;
-}
-
-function QuizProgress({ answered, total }: QuizProgressProps): ReactElement {
-  const percentage = total > 0 ? Math.round((answered / total) * 100) : 0;
-
-  return (
-    <div className="space-y-2" aria-label={`Đã trả lời ${answered} trên ${total} câu`}>
-      <div className="flex items-center justify-between gap-4 text-xs font-medium text-ink-soft">
-        <span>Tiến độ bài làm</span>
-        <span>{answered}/{total} câu</span>
-      </div>
-      <div className="h-1.5 overflow-hidden rounded-full bg-paper-deep" aria-hidden="true">
-        <div className="h-full rounded-full bg-vermilion transition-[width] duration-300 motion-reduce:transition-none" style={{ width: `${percentage}%` }} />
-      </div>
-    </div>
-  );
-}
-
 interface QuizFormProps {
   quiz: PublicQuiz;
+  currentIndex: number;
   answers: Record<string, string>;
   signedIn: boolean;
   isSubmitting: boolean;
   onSelect: (questionId: string, optionId: string) => void;
+  onPrevious: () => void;
+  onNext: () => void;
   onSubmit: (event: FormEvent<HTMLFormElement>) => void;
 }
 
-function QuizForm({ quiz, answers, signedIn, isSubmitting, onSelect, onSubmit }: QuizFormProps): ReactElement {
-  const answeredCount = quiz.questions.filter((question) => Boolean(answers[question.id])).length;
-  const unansweredCount = quiz.questions.length - answeredCount;
-  const complete = unansweredCount === 0;
+function QuizForm({ quiz, currentIndex, answers, signedIn, isSubmitting, onSelect, onPrevious, onNext, onSubmit }: QuizFormProps): ReactElement {
+  const question = quiz.questions[currentIndex];
+  const selectedOptionId = answers[question.id];
+  const isLastQuestion = currentIndex === quiz.questions.length - 1;
+  const progress = Math.round(((currentIndex + 1) / quiz.questions.length) * 100);
 
   return (
     <form onSubmit={onSubmit} className="flex min-h-0 flex-1 flex-col">
-      <div className="border-b border-line bg-paper-soft px-5 py-4 sm:px-8">
-        <QuizProgress answered={answeredCount} total={quiz.questions.length} />
+      <div className="border-b border-line px-5 py-4 sm:px-8">
+        <div className="mb-3 flex items-center justify-between gap-4">
+          <span className="text-xs font-medium text-ink-soft">Câu {currentIndex + 1} / {quiz.questions.length}</span>
+          <span className="text-xs text-ink-soft">{progress}%</span>
+        </div>
+        <div className="h-1.5 overflow-hidden rounded-full bg-paper-deep" role="progressbar" aria-label="Tiến độ bài quiz" aria-valuemin={0} aria-valuemax={100} aria-valuenow={progress}>
+          <div className="h-full rounded-full bg-vermilion transition-[width] duration-300 motion-reduce:transition-none" style={{ width: `${progress}%` }} />
+        </div>
       </div>
 
-      <div className="overflow-y-auto px-5 sm:px-8">
-        {quiz.questions.map((question, index) => (
-          <fieldset key={question.id} disabled={isSubmitting} className="border-b border-line py-7 last:border-b-0 sm:py-8">
-            <legend className="w-full px-0">
-              <span className="flex items-start gap-3">
-                <span className="shrink-0 pt-1 font-mono text-xs text-vermilion" aria-hidden="true">{String(index + 1).padStart(2, "0")}</span>
-                <span className="pt-1 text-sm font-semibold leading-6 text-ink sm:text-base">{question.text}</span>
-              </span>
-            </legend>
+      <fieldset disabled={isSubmitting} className="min-h-0 flex-1 overflow-y-auto px-5 py-7 sm:px-8 sm:py-9">
+        <legend className="sr-only">Câu {currentIndex + 1}: {question.text}</legend>
+        <Badge variant="outline" className="border-line bg-paper-soft text-ink-soft">Chọn một đáp án</Badge>
+        <h3 className="mt-4 max-w-2xl text-xl font-semibold leading-8 text-ink sm:text-2xl">{question.text}</h3>
 
-            <div className="mt-4 grid gap-2.5 sm:grid-cols-2">
-              {question.options.map((option) => {
-                const selected = answers[question.id] === option.id;
-                return (
-                  <label
-                    key={option.id}
-                    className={`group flex min-h-14 cursor-pointer items-center gap-3 border px-3.5 py-3 text-sm leading-6 transition-colors ${selected ? "border-vermilion bg-vermilion/5 text-ink" : "border-line bg-transparent text-ink-soft hover:border-bronze"}`}
-                  >
-                    <input
-                      type="radio"
-                      name={question.id}
-                      value={option.id}
-                      required
-                      checked={selected}
-                      onChange={() => onSelect(question.id, option.id)}
-                      className="sr-only"
-                    />
-                    <span className={`grid size-7 shrink-0 place-items-center border text-xs font-semibold ${selected ? "border-vermilion bg-vermilion text-paper-soft" : "border-line text-bronze-dark group-hover:border-bronze"}`}>
-                      {selected ? <Check size={16} weight="bold" aria-hidden="true" /> : option.label}
-                    </span>
-                    <span>{option.text}</span>
-                  </label>
-                );
-              })}
-            </div>
-          </fieldset>
-        ))}
-      </div>
+        <div className="mt-7 grid gap-3">
+          {question.options.map((option) => {
+            const selected = selectedOptionId === option.id;
+            return (
+              <label
+                key={option.id}
+                className={`group flex min-h-16 cursor-pointer items-center gap-4 rounded-lg border px-4 py-3.5 text-sm leading-6 transition-colors ${selected ? "border-vermilion bg-vermilion/5 text-ink" : "border-line bg-paper-soft text-ink-soft hover:border-bronze hover:text-ink"}`}
+              >
+                <input
+                  type="radio"
+                  name={question.id}
+                  value={option.id}
+                  checked={selected}
+                  onChange={() => onSelect(question.id, option.id)}
+                  className="sr-only"
+                />
+                <span className={`grid size-8 shrink-0 place-items-center rounded-md border text-xs font-semibold ${selected ? "border-vermilion bg-vermilion text-paper-soft" : "border-line bg-paper text-ink-soft group-hover:border-bronze"}`}>
+                  {selected ? <Check size={16} weight="bold" aria-hidden="true" /> : option.label}
+                </span>
+                <span>{option.text}</span>
+              </label>
+            );
+          })}
+        </div>
+      </fieldset>
 
-      <div className="sticky bottom-0 mt-auto flex flex-col gap-3 border-t border-line bg-paper-soft/95 px-5 py-4 backdrop-blur sm:flex-row sm:items-center sm:justify-between sm:px-8">
-        <p className="text-xs leading-5 text-ink-soft" aria-live="polite">
-          {complete ? "Bạn đã hoàn tất. Sẵn sàng xem kết quả." : `Còn ${unansweredCount} câu chưa trả lời.`}
-        </p>
-        {signedIn ? (
-          <Button type="submit" size="lg" disabled={!complete || isSubmitting} className="min-w-36">
+      <div className="flex items-center justify-between gap-3 border-t border-line bg-paper-soft px-5 py-4 sm:px-8">
+        <Button type="button" variant="ghost" onClick={onPrevious} disabled={currentIndex === 0 || isSubmitting}>
+          <ArrowLeft aria-hidden="true" /> Câu trước
+        </Button>
+
+        {!isLastQuestion ? (
+          <Button type="button" onClick={onNext} disabled={!selectedOptionId || isSubmitting}>
+            Câu tiếp theo <ArrowRight aria-hidden="true" />
+          </Button>
+        ) : signedIn ? (
+          <Button type="submit" disabled={!selectedOptionId || isSubmitting}>
             {isSubmitting ? "Đang chấm bài…" : "Nộp bài"}
             {!isSubmitting && <ArrowRight aria-hidden="true" />}
           </Button>
         ) : (
-          <Button asChild size="lg">
+          <Button asChild>
             <Link to="/login"><LockKey aria-hidden="true" /> Đăng nhập để nộp bài</Link>
           </Button>
         )}
@@ -122,53 +109,49 @@ function QuizResult({ quiz, result, onRetry }: QuizResultProps): ReactElement {
   return (
     <div className="min-h-0 flex-1 overflow-y-auto">
       <div className="border-b border-line bg-paper-soft px-5 py-7 sm:px-8">
-        <div className="grid gap-5 sm:grid-cols-[auto_minmax(0,1fr)] sm:items-center">
-          <div className={`grid size-24 place-items-center border-l-4 ${result.isPassed ? "border-bronze" : "border-vermilion"}`}>
-            <div className="text-center">
-              <strong className="block text-3xl font-bold leading-none text-ink">{result.scorePercent}%</strong>
-              <span className="mt-1 block text-[11px] text-ink-soft">điểm số</span>
-            </div>
+        <div className="flex flex-col gap-5 sm:flex-row sm:items-center">
+          <div className="min-w-28 border-l-4 border-vermilion pl-4">
+            <strong className="block text-4xl font-bold leading-none text-ink">{result.scorePercent}%</strong>
+            <span className="mt-2 block text-xs text-ink-soft">{correctCount}/{result.answers.length} câu đúng</span>
           </div>
           <div>
             <div className="mb-2 flex items-center gap-2 text-bronze-dark">
-              {result.isPassed ? <Trophy size={24} weight="fill" aria-hidden="true" /> : <Brain size={24} aria-hidden="true" />}
-              <span className="text-xs font-semibold uppercase tracking-[0.16em]">{result.isPassed ? "Hoàn thành thử thách" : "Tiếp tục ôn luyện"}</span>
+              {result.isPassed ? <Trophy size={21} weight="fill" aria-hidden="true" /> : <Brain size={21} aria-hidden="true" />}
+              <span className="text-xs font-medium">{result.isPassed ? "Đã vượt qua" : "Chưa đạt điểm qua"}</span>
             </div>
-            <h3 className="text-xl font-semibold leading-8 text-ink sm:text-2xl">
-              {result.isPassed ? "Bạn đã vượt qua bài quiz" : "Chỉ còn một chút nữa thôi"}
-            </h3>
-            <p className="mt-2 text-sm leading-6 text-ink-soft">
-              Trả lời đúng {correctCount}/{result.answers.length} câu · Nhận <strong className="text-vermilion">+{result.xpAwarded} XP</strong> · Tổng {result.totalXp.toLocaleString("vi-VN")} XP
-            </p>
+            <h3 className="text-xl font-semibold leading-8 text-ink">{result.isPassed ? "Hoàn thành bài quiz" : "Bạn có thể thử lại"}</h3>
+            <p className="mt-1 text-sm leading-6 text-ink-soft">+{result.xpAwarded} XP · Tổng {result.totalXp.toLocaleString("vi-VN")} XP</p>
           </div>
         </div>
       </div>
 
-      <div className="space-y-4 px-5 py-6 sm:px-8 sm:py-8">
+      <div className="px-5 py-6 sm:px-8">
         <div className="flex items-center justify-between gap-4">
-          <h3 className="font-semibold text-ink">Xem lại đáp án</h3>
+          <h3 className="font-semibold text-ink">Đáp án và lời giải</h3>
           <Button type="button" variant="outline" size="sm" onClick={onRetry}>Làm lại</Button>
         </div>
 
-        {result.answers.map((answer, index) => {
-          const question = quiz.questions.find((item) => item.id === answer.questionId);
-          const selectedOption = question?.options.find((option) => option.id === answer.selectedOptionId);
-          const correctOption = question?.options.find((option) => option.id === answer.correctOptionId);
+        <div className="mt-4">
+          {result.answers.map((answer, index) => {
+            const question = quiz.questions.find((item) => item.id === answer.questionId);
+            const selectedOption = question?.options.find((option) => option.id === answer.selectedOptionId);
+            const correctOption = question?.options.find((option) => option.id === answer.correctOptionId);
 
-          return (
-            <article key={answer.questionId} className="border-t border-line py-5 first:border-t-0">
-              <div className="flex items-start gap-3">
-                {answer.isCorrect ? <CheckCircle size={23} weight="fill" className="mt-0.5 shrink-0 text-bronze-dark" aria-label="Trả lời đúng" /> : <XCircle size={23} weight="fill" className="mt-0.5 shrink-0 text-vermilion" aria-label="Trả lời chưa đúng" />}
-                <div className="min-w-0">
-                  <h4 className="text-sm font-semibold leading-6 text-ink">{index + 1}. {question?.text}</h4>
-                  <p className="mt-2 text-sm leading-6 text-ink-soft">Bạn chọn: <span className={answer.isCorrect ? "font-medium text-bronze-dark" : "font-medium text-vermilion"}>{selectedOption?.label}. {selectedOption?.text}</span></p>
-                  {!answer.isCorrect && <p className="mt-1 text-sm leading-6 text-ink-soft">Đáp án đúng: <span className="font-medium text-ink">{correctOption?.label}. {correctOption?.text}</span></p>}
-                  {answer.explanation && <p className="mt-3 border-l-2 border-bronze pl-3 text-sm leading-6 text-ink-soft">{answer.explanation}</p>}
+            return (
+              <article key={answer.questionId} className="border-t border-line py-5 first:border-t-0">
+                <div className="flex items-start gap-3">
+                  {answer.isCorrect ? <CheckCircle size={21} weight="fill" className="mt-0.5 shrink-0 text-bronze-dark" aria-label="Trả lời đúng" /> : <XCircle size={21} weight="fill" className="mt-0.5 shrink-0 text-vermilion" aria-label="Trả lời chưa đúng" />}
+                  <div className="min-w-0">
+                    <h4 className="text-sm font-semibold leading-6 text-ink">{index + 1}. {question?.text}</h4>
+                    <p className="mt-2 text-sm leading-6 text-ink-soft">Bạn chọn: <span className={answer.isCorrect ? "font-medium text-bronze-dark" : "font-medium text-vermilion"}>{selectedOption?.label}. {selectedOption?.text}</span></p>
+                    {!answer.isCorrect && <p className="mt-1 text-sm leading-6 text-ink-soft">Đáp án đúng: <span className="font-medium text-ink">{correctOption?.label}. {correctOption?.text}</span></p>}
+                    {answer.explanation && <p className="mt-3 border-l-2 border-bronze pl-3 text-sm leading-6 text-ink-soft">{answer.explanation}</p>}
+                  </div>
                 </div>
-              </div>
-            </article>
-          );
-        })}
+              </article>
+            );
+          })}
+        </div>
       </div>
     </div>
   );
@@ -176,6 +159,7 @@ function QuizResult({ quiz, result, onRetry }: QuizResultProps): ReactElement {
 
 export function EpisodeQuiz({ slug, signedIn }: { slug: string; signedIn: boolean }): ReactElement {
   const [open, setOpen] = useState(false);
+  const [currentQuestion, setCurrentQuestion] = useState(0);
   const [answers, setAnswers] = useState<Record<string, string>>({});
   const key = useRef(crypto.randomUUID());
   const queryClient = useQueryClient();
@@ -198,6 +182,7 @@ export function EpisodeQuiz({ slug, signedIn }: { slug: string; signedIn: boolea
   };
 
   const retry = (): void => {
+    setCurrentQuestion(0);
     setAnswers({});
     key.current = crypto.randomUUID();
     submit.reset();
@@ -205,31 +190,34 @@ export function EpisodeQuiz({ slug, signedIn }: { slug: string; signedIn: boolea
 
   return (
     <>
-      <Button size="lg" onClick={() => setOpen(true)} className="group w-full sm:w-auto">
-        <Brain aria-hidden="true" /> Bắt đầu thử thách
-        <ArrowRight className="transition-transform group-hover:translate-x-0.5 motion-reduce:transition-none" aria-hidden="true" />
+      <Button size="lg" onClick={() => setOpen(true)} className="w-full sm:w-auto">
+        Bắt đầu quiz <ArrowRight aria-hidden="true" />
       </Button>
       <Dialog open={open} onOpenChange={setOpen}>
-        <DialogContent className="flex max-h-[92dvh] max-w-3xl grid-rows-none flex-col gap-0 overflow-hidden rounded-lg border-bronze/50 bg-paper p-0 sm:p-0">
-          <DialogHeader className="shrink-0 bg-night px-5 py-5 pr-16 text-paper-soft sm:px-8 sm:py-6 sm:pr-16">
-            <div className="mb-1 text-bronze"><span className="text-[11px] font-semibold tracking-[0.12em]">THỬ TÀI LỊCH SỬ</span></div>
-            <DialogTitle className="text-xl text-paper-soft sm:text-2xl">Kiểm tra điều bạn vừa nghe</DialogTitle>
-            <DialogDescription className="text-paper-deep">Trả lời câu hỏi để ôn kiến thức và ghi nhận thành tích.</DialogDescription>
+        <DialogContent className="flex max-h-[90dvh] min-h-[580px] max-w-2xl grid-rows-none flex-col gap-0 overflow-hidden border-line bg-paper p-0 sm:p-0">
+          <DialogHeader className="shrink-0 border-b border-line bg-paper-soft px-5 py-5 pr-16 sm:px-8 sm:pr-16">
+            <DialogTitle className="text-xl text-ink">Ôn tập sau khi nghe</DialogTitle>
+            <DialogDescription>Chọn đáp án đúng nhất cho từng câu hỏi.</DialogDescription>
           </DialogHeader>
 
           {quiz.isPending ? (
             <div className="px-5 py-8 sm:px-8"><LibraryState loading /></div>
           ) : quiz.isError ? (
             <div className="px-5 py-8 sm:px-8"><LibraryState error title="Chưa tải được bộ câu hỏi" description="Kết nối có thể đang gián đoạn. Bạn hãy thử lại." retry={() => { void quiz.refetch(); }} /></div>
+          ) : quiz.data.questions.length === 0 ? (
+            <div className="px-5 py-8 sm:px-8"><LibraryState title="Bộ câu hỏi đang được chuẩn bị" description="Bạn có thể quay lại tập này sau." /></div>
           ) : submit.data ? (
             <QuizResult quiz={quiz.data} result={submit.data} onRetry={retry} />
           ) : (
             <QuizForm
               quiz={quiz.data}
+              currentIndex={currentQuestion}
               answers={answers}
               signedIn={signedIn}
               isSubmitting={submit.isPending}
               onSelect={selectAnswer}
+              onPrevious={() => setCurrentQuestion((value) => Math.max(0, value - 1))}
+              onNext={() => setCurrentQuestion((value) => Math.min(quiz.data.questions.length - 1, value + 1))}
               onSubmit={(event) => { event.preventDefault(); submit.mutate(); }}
             />
           )}
