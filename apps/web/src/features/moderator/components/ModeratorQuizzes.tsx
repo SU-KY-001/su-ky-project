@@ -13,6 +13,7 @@ import { InteractiveHoverButton } from "@/shared/components/ui/interactive-hover
 import { TableCell, TableRow } from "@/shared/components/ui/table";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/shared/components/ui/dialog";
 import { notify } from "@/shared/lib/notifications";
+import { QuizBuilder } from "@/features/quiz/QuizWorkspace";
 import { ModeratorListToolbar } from "./ModeratorListToolbar";
 import { quizPreviewData, type QuizPreview } from "../quizPreviewData";
 
@@ -34,7 +35,7 @@ const quickTools: QuizQuickTool[] = [
 const PAGE_SIZE = 5;
 const dateFormatter = new Intl.DateTimeFormat("vi-VN", { dateStyle: "short", timeZone: "Asia/Ho_Chi_Minh" });
 
-function QuizQuickTools(): ReactElement {
+function QuizQuickTools({ onManualCreate }: { onManualCreate: () => void }): ReactElement {
   const reducedMotion = useReducedMotion();
   return (
     <section aria-labelledby="quiz-tools-heading" className="space-y-3">
@@ -50,7 +51,7 @@ function QuizQuickTools(): ReactElement {
             </div>
             <div className="flex flex-wrap items-center justify-between gap-3">
               {assisted ? <span className="inline-flex items-center gap-1 text-[11px] font-medium text-mod-primary"><Lightning size={12} weight="fill" aria-hidden="true" />AI hỗ trợ</span> : <span className="text-[11px] font-medium text-mod-text-secondary">Tự do sáng tạo</span>}
-              <InteractiveHoverButton className="min-h-9 px-3 py-1.5 text-xs! text-mod-primary [--color-primary-foreground:var(--color-paper-soft)]" onClick={() => notify.info({ title: `${action} — Bản xem trước`, description: "Chức năng tạo quiz sẽ được bổ sung sau." })}>{action}</InteractiveHoverButton>
+              <InteractiveHoverButton className="min-h-9 px-3 py-1.5 text-xs! text-mod-primary [--color-primary-foreground:var(--color-paper-soft)]" onClick={() => { if (id === "manual") onManualCreate(); else notify.info({ title: `${action} — Bản xem trước`, description: "Chức năng tạo quiz sẽ được bổ sung sau." }); }}>{action}</InteractiveHoverButton>
             </div>
             </div>
             </MagicCard>
@@ -62,6 +63,7 @@ function QuizQuickTools(): ReactElement {
 }
 
 export function ModeratorQuizzes(): ReactElement {
+  const [creating, setCreating] = useState(false);
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState("all");
   const [page, setPage] = useState(1);
@@ -69,10 +71,12 @@ export function ModeratorQuizzes(): ReactElement {
   const filtered = quizPreviewData.filter((quiz) => (status === "all" || quiz.status === status) && `${quiz.title} ${quiz.episode}`.toLocaleLowerCase("vi").includes(search.trim().toLocaleLowerCase("vi")));
   const visible = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
+  if (creating) return <QuizBuilder onBack={() => setCreating(false)} />;
+
   return (
     <div className="flex min-w-0 flex-col gap-6 font-moderator">
       <DashboardHeader eyebrow="KHÔNG GIAN SÁNG TẠO" title="Tạo quiz" description="Biến mỗi câu chuyện lịch sử thành một trải nghiệm ôn tập thú vị." />
-      <QuizQuickTools />
+      <QuizQuickTools onManualCreate={() => setCreating(true)} />
       <DashboardTableCard title="Bộ quiz đã tạo" description="Tìm kiếm và xem lại các bộ câu hỏi của bạn." summary={`${quizPreviewData.length} bộ quiz mẫu`}
         toolbar={<ModeratorListToolbar searchLabel="Tìm tên quiz hoặc tập podcast" searchValue={search} onSearchChange={(value) => { setSearch(value); setPage(1); }} filters={[{ id: "quiz-status", label: "Trạng thái quiz", value: status, onValueChange: (value) => { setStatus(value); setPage(1); }, options: [{ value: "all", label: "Tất cả trạng thái" }, { value: "draft", label: "Bản nháp" }, { value: "ready", label: "Sẵn sàng" }] }]} />}
         footer={<DashboardPagination page={page} limit={PAGE_SIZE} total={filtered.length} itemLabel="bộ quiz" onPageChange={setPage} />}>
