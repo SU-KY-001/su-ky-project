@@ -19,7 +19,17 @@ export const PublicSeriesDetailSchema = z.object({ id: z.string().uuid(), slug: 
 export const PlaybackSchema = z.object({ narrationId: z.string().uuid(), episodeId: z.string().uuid(), audio: z.object({ assetId: z.string().uuid(), url: z.string(), mimeType: z.string(), durationMs: z.number().int() }), progress: z.unknown().nullable(), sync: z.object({ intervalMs: z.number().int(), completionThreshold: z.number() }) });
 export const ListeningProgressSchema = z.object({ assetId: z.string().uuid(), positionMs: z.number().int(), playedBitmap: z.string(), playedSeconds: z.number().int(), percent: z.number(), completedAt: z.coerce.date().nullable() });
 export const ListeningProgressUpdateResultSchema = ListeningProgressSchema.omit({ assetId: true, playedBitmap: true }).extend({ narrationId: z.string().uuid(), completion: z.unknown().nullable() });
-export const ListeningHistoryItemSchema = z.object({ episode: z.unknown(), lastListenedAt: z.coerce.date(), lastNarrationId: z.string().uuid(), lastPositionMs: z.number().int(), percent: z.number(), isCompleted: z.boolean() });
+export const ListeningHistoryEpisodeSchema = z.object({
+  id: z.string().uuid(), slug: z.string(), title: z.string(), available: z.boolean(),
+  series: z.object({ slug: z.string(), title: z.string() }),
+});
+export const ListeningHistoryItemSchema = z.object({ episode: ListeningHistoryEpisodeSchema, lastListenedAt: z.coerce.date(), lastNarrationId: z.string().uuid(), lastPositionMs: z.number().int(), percent: z.number(), isCompleted: z.boolean() });
+export const ListeningHistoryResponseSchema = z.object({
+  items: z.array(ListeningHistoryItemSchema),
+  page: z.number().int(),
+  limit: z.number().int(),
+  total: z.number().int(),
+});
 
 export type PublicSeriesListItemDto = z.infer<typeof PublicSeriesListItemSchema>;
 export type PublicEpisodeDetailDto = z.infer<typeof PublicEpisodeDetailSchema>;
