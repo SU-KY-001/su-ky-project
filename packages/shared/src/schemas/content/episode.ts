@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { AudioAnalysisSchema, EditorDocumentSchema } from "./editor-document";
+import { AttachAudioAnalysisSchema, EditorDocumentSchema } from "./editor-document";
 
 export const NarrationTypeSchema = z.enum(["THIRD_PERSON", "FIRST_PERSON"]);
 export const CreateEpisodeSchema = z.object({
@@ -20,7 +20,7 @@ export const PutNarrationSchema = z.object({
 });
 export const AttachAudioSchema = z.object({
   assetId: z.string().uuid(),
-  analysis: AudioAnalysisSchema.optional(),
+  analysis: AttachAudioAnalysisSchema.optional(),
   confirmReplacePublished: z.boolean().default(false),
 });
 export const AttachEpisodeDocumentSchema = z.object({

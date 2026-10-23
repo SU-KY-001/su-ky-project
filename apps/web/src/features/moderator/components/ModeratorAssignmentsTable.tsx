@@ -12,6 +12,7 @@ import { Input } from "@/shared/components/ui/input";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/shared/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/shared/components/ui/select";
 import { TableCell, TableRow } from "@/shared/components/ui/table";
+import { ReviewHistory } from "@/features/release-review/ReviewHistory";
 import type { AssignableEpisodeSummary, ModeratorAssignmentSummary } from "./ModeratorAssignments";
 
 const labels: Record<string, string> = {
@@ -103,6 +104,7 @@ export function ModeratorAssignmentsView({ assignments, assignableEpisodes = [],
           <dl className="grid gap-4 text-sm sm:grid-cols-2"><div><dt className="text-mod-text-secondary">Hạn sản xuất</dt><dd className="mt-1 font-semibold tabular-nums">{dateFormat.format(selected.productionDeadline)}</dd></div>
             <div><dt className="text-mod-text-secondary">Lịch phát hành</dt><dd className="mt-1 font-semibold tabular-nums">{dateFormat.format(selected.scheduledAt)}</dd></div></dl>
           {selected.reviews[0]?.status === "CHANGES_REQUESTED" && selected.reviews[0].reviewNote ? <section className="border-t border-mod-border pt-4"><h3 className="text-sm font-semibold">Nhận xét kiểm duyệt</h3><p className="mt-2 whitespace-pre-wrap text-sm leading-6">{selected.reviews[0].reviewNote}</p></section> : null}
+          <ReviewHistory reviews={selected.reviews.filter((review) => review.status === "APPROVED")} />
           {selected.episode ? <p className="border-t border-mod-border pt-4 text-sm">Podcast đã liên kết · Phiên bản {selected.episode.contentRevision}</p> : <section className="space-y-3 border-t border-mod-border pt-4">
             <label htmlFor="assignment-episode" className="text-sm font-semibold">Podcast nháp của bạn</label>
             <Select value={selectedEpisodeId} onValueChange={setSelectedEpisodeId}><SelectTrigger id="assignment-episode" aria-label="Podcast nháp của bạn"><SelectValue placeholder="Chọn podcast để thực hiện" /></SelectTrigger>

@@ -37,11 +37,11 @@ export class PiRuntime {
         allowModelNetwork: false,
         modelRefreshTimeoutMs: PI_MODEL_REFRESH_TIMEOUT_MS,
       });
-      const resolvedApiKey =
-        env.PI_API_KEY ||
-        (env.PI_PROVIDER === "google"
-          ? env.GEMINI_API_KEY
-          : env.OPENCODE_API_KEY);
+      // A stored login (e.g. OpenAI OAuth from `/login`) wins; an env key must not overwrite it.
+      const hasStoredCredential = (await this.modelRuntime.listCredentials()).some((c) => c.providerId === env.PI_PROVIDER && c.type === "oauth");
+      const resolvedApiKey = hasStoredCredential
+        ? undefined
+        : env.PI_API_KEY || (env.PI_PROVIDER === "google" ? env.GEMINI_API_KEY?.split(",").map((key) => key.trim()).find(Boolean) : env.OPENCODE_API_KEY);
 
       if (resolvedApiKey) {
         this.modelRuntime.setRuntimeApiKey(env.PI_PROVIDER, resolvedApiKey);
@@ -62,7 +62,7 @@ export class PiRuntime {
           logger.warn({ provider: env.PI_PROVIDER }, "No models found for provider");
         }
       }
-      this.isReady = !!(this.model && resolvedApiKey);
+      this.isReady = !!(this.model && (hasStoredCredential || resolvedApiKey));
       logger.info(
         { provider: env.PI_PROVIDER, model: this.model?.id ?? "none", ready: this.isReady },
         "PiRuntime initialized"

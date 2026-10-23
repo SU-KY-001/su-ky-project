@@ -1,0 +1,165 @@
+<!doctype html><html lang="vi"><head><meta charset="utf-8"><title>Soạn thảo: dàn ý và bản nháp (P3)</title><meta name="viewport" content="width=device-width,initial-scale=1"><link rel="stylesheet" href="mock.css"><style>.chip[data-min]{cursor:pointer}.chip[data-min]:hover{border-color:var(--text)}.anglist{max-height:236px;overflow:auto;align-content:start}.ld{display:flex;gap:10px;align-items:center;padding:28px 0;justify-content:center}.ld i{animation:sp 1s linear infinite}@keyframes sp{to{transform:rotate(360deg)}}</style></head><body>
+<div class="top"><div class="crumb">Studio / Hào khí Đại Việt / <b>Tập 3: Cuộc dời đô</b></div><div class="row"><span class="low">Đã lưu 10:44</span><button class="btn p">Tiếp tục<i class="ph-bold ph-arrow-right"></i></button></div></div>
+<div class="steps"><span class="step done"><em><i class="ph-bold ph-check"></i></em>Thông tin</span><span class="step on"><em>2</em>Kịch bản</span><span class="step"><em>3</em>Giọng đọc</span><span class="step"><em>4</em>Xem lại</span></div>
+<div class="wrap"><div class="cols">
+ <section class="card">
+  <div class="toolbar"><span>B</span><span>I</span><span>H2</span></div>
+  <div class="editor" id="ed" contenteditable="true"><p class="muted" id="empty">Kịch bản đang trống. Viết trực tiếp, hoặc bấm "Soạn bản nháp" ở bên phải để AI soạn dàn ý rồi từng đoạn.</p></div>
+ </section>
+ <aside class="stack">
+  <h3 style="font-size:15px">Trợ lý AI</h3>
+  <div class="card tight">
+   <h2 class="big">Soạn bản nháp</h2>
+   <p class="muted">Bốn bước: nêu đề bài, sửa dàn ý, chọn giọng văn, rồi AI viết từng phần. Không có gì vào kịch bản cho tới khi bạn bấm Chèn.</p>
+   <button class="btn p" data-open="#m-draft"><i class="ph-bold ph-pen-nib"></i>Soạn bản nháp</button>
+   <p class="low">Muốn viết lại một đoạn có sẵn: bôi đen đoạn đó trong editor, nút "Viết lại" sẽ hiện ra.</p>
+  </div>
+ </aside>
+</div></div>
+
+<div class="modal" id="m-draft"><div class="dialog wide">
+ <div class="dhead"><div><p class="low">Soạn bản nháp · Tập 3</p><h2 class="dtitle">Đề bài</h2></div><div class="dots"><span></span><span></span><span></span><span></span></div></div>
+
+ <!-- Bước 1: đề bài -->
+ <div data-s="1" data-title="Đề bài"><div class="dbody">
+  <label class="f">Chủ đề của tập <small>Một câu. AI dùng câu này để định hướng dàn ý.</small><input type="text" value="Vì sao Lý Thái Tổ dời đô từ Hoa Lư ra Thăng Long"></label>
+  <div class="stack s8"><div class="row sp"><h3>Góc kể</h3><div class="row"><a class="btn sm" href="06-narrative-angles.html?new=1" target="_blank" rel="noopener"><i class="ph-bold ph-plus"></i>Tạo góc kể mới</a><a class="btn sm" href="06-narrative-angles.html" target="_blank" rel="noopener"><i class="ph-bold ph-gear"></i>Quản lý</a></div></div>
+   <input type="text" id="ang-q" placeholder="Tìm góc kể" style="display:none">
+   <div id="ang-list" class="stack s8 anglist" role="radiogroup" aria-label="Góc kể"></div>
+   <small class="low" id="ang-note">Góc kể của bạn chỉ bạn thấy. Tạo hoặc sửa ở trang riêng, danh sách này tự cập nhật khi bạn quay lại.</small></div>
+  <div class="stack s8"><h3>Thời lượng mục tiêu</h3>
+   <div class="row wr"><input type="number" id="min" min="1" max="120" value="12" style="width:90px"><span>phút</span><button class="chip" data-min="8">8</button><button class="chip" data-min="12">12</button><button class="chip" data-min="15">15</button></div>
+   <div class="row wr"><span id="chars-hint">≈ 1.800 từ</span><span class="low">hoặc đặt trực tiếp:</span><input type="number" id="chars" min="50" step="50" value="1800" style="width:110px"><span>từ</span></div>
+   <small class="low">Mặc định 150 từ mỗi phút (cùng cấu hình với ước tính thời lượng kịch bản). Sửa số từ sẽ ghi đè phần tính theo phút.</small></div>
+  <p class="low">AI có thể dùng nguồn của series làm ngữ cảnh nền; series chưa có nguồn vẫn soạn được.</p></div>
+  <div class="dfoot"><button class="btn" data-close>Đóng</button><button class="btn p" data-step-go="2">Tạo dàn ý<i class="ph-bold ph-arrow-right"></i></button></div></div>
+
+ <!-- Bước 2: dàn ý sửa được -->
+ <div data-s="2" data-title="Dàn ý"><div class="dbody" id="outline">
+  <div class="ld" id="ol-load"><i class="ph-bold ph-circle-notch"></i><span>AI đang tạo dàn ý…</span></div>
+  <div class="stack" id="ol-body">
+  <p class="muted">AI đề xuất 3 phần. Sửa tiêu đề, mục tiêu, ý chính tùy ý; đổi thứ tự bằng mũi tên.</p>
+  <div id="secs" class="stack">
+  <div class="sec" data-sec><div class="row"><input type="text" value="Mở đầu: chuyến thuyền 1010" style="font-weight:600"><button class="ic" data-act="del-sec"><i class="ph-bold ph-trash"></i></button></div>
+   <label class="f"><small>Mục tiêu của phần</small><input type="text" value="Đưa người nghe vào khoảnh khắc đoàn thuyền ra Đại La"></label>
+   <div class="stack s8 pts"><div class="pt"><input type="text" value="Đoàn thuyền ngược sông Hồng mùa thu 1010"><button class="ic" data-act="del"><i class="ph-bold ph-x"></i></button></div>
+    <div class="pt"><input type="text" value="Nhà vua nhìn vùng đất rộng mà bằng phẳng"><button class="ic" data-act="del"><i class="ph-bold ph-x"></i></button></div></div>
+   <button class="btn sm" data-act="add" style="width:max-content"><i class="ph-bold ph-plus"></i>Thêm ý</button></div>
+  <div class="sec" data-sec><div class="row"><input type="text" value="Bối cảnh: vì sao Hoa Lư không còn phù hợp" style="font-weight:600"><button class="ic" data-act="del-sec"><i class="ph-bold ph-trash"></i></button></div>
+   <label class="f"><small>Mục tiêu của phần</small><input type="text" value="Giải thích hạn chế của kinh đô cũ"></label>
+   <div class="stack s8 pts"><div class="pt"><input type="text" value="Hoa Lư địa thế hiểm trở, chật hẹp"><button class="ic" data-act="del"><i class="ph-bold ph-x"></i></button></div>
+    <div class="pt"><input type="text" value="Triều Lý muốn một đô thành rộng, thuận giao thương"><button class="ic" data-act="del"><i class="ph-bold ph-x"></i></button></div></div>
+   <button class="btn sm" data-act="add" style="width:max-content"><i class="ph-bold ph-plus"></i>Thêm ý</button></div>
+  <div class="sec" data-sec><div class="row"><input type="text" value="Quyết định dời đô" style="font-weight:600"><button class="ic" data-act="del-sec"><i class="ph-bold ph-trash"></i></button></div>
+   <label class="f"><small>Mục tiêu của phần</small><input type="text" value="Kể lại Chiếu dời đô và lựa chọn Đại La"></label>
+   <div class="stack s8 pts"><div class="pt"><input type="text" value="Vua ban Chiếu dời đô năm 1010"><button class="ic" data-act="del"><i class="ph-bold ph-x"></i></button></div></div>
+   <button class="btn sm" data-act="add" style="width:max-content"><i class="ph-bold ph-plus"></i>Thêm ý</button></div>
+  </div>
+  <button class="btn" data-act="add-sec" style="width:max-content"><i class="ph-bold ph-plus"></i>Thêm phần</button></div></div>
+  <div class="dfoot"><button class="btn" data-step-go="1">Quay lại</button><div class="row"><button class="btn" id="regen"><i class="ph-bold ph-arrow-clockwise"></i>Tạo lại dàn ý</button><button class="btn p" id="ol-next" data-step-go="3">Tiếp<i class="ph-bold ph-arrow-right"></i></button></div></div></div>
+
+ <!-- Bước 3: giọng văn -->
+ <div data-s="3" data-title="Giọng văn"><div class="dbody">
+  <div class="stack s8"><h3>Ngôi kể</h3><div class="cols eq">
+   <label class="opt"><input type="radio" name="ng" checked><div><b>Ngôi thứ ba</b><span class="low">Người kể đứng ngoài, thuật lại diễn biến.</span></div></label>
+   <label class="opt" style="opacity:.55"><input type="radio" name="ng" disabled><div><b>Ngôi thứ nhất</b><span class="low">Chưa chọn nhân vật ở bước Thông tin. Chọn xong sẽ dùng được.</span></div></label></div></div>
+  <div class="stack s8"><h3>Giọng văn</h3>
+   <label class="opt"><input type="radio" name="gv" checked><div><b>Điềm đạm</b><span class="low">"Mùa thu năm 1010, một đoàn thuyền ngược sông Hồng về phía Đại La."</span></div></label>
+   <label class="opt"><input type="radio" name="gv"><div><b>Kể chuyện gần gũi</b><span class="low">"Thử hình dung một buổi sáng mùa thu năm 1010, trên sông Hồng có đoàn thuyền lạ."</span></div></label>
+   <label class="opt"><input type="radio" name="gv"><div><b>Trang trọng</b><span class="low">"Năm Canh Tuất, niên hiệu Thuận Thiên, triều đình Lý quyết định dời đô."</span></div></label>
+   <label class="opt"><input type="radio" name="gv" id="gv-custom"><div><b>Tự mô tả…</b><span class="low">Viết bằng lời của bạn giọng văn mong muốn.</span></div></label>
+   <textarea id="gv-text" rows="3" placeholder="Ví dụ: như người kể chuyện đêm khuya, chậm rãi, có chút hoài cổ" style="display:none"></textarea></div>
+  <div class="alert info"><i class="ph-bold ph-info"></i><span>Luôn bật: câu ngắn để đọc thành tiếng, tránh ngoặc đơn và ký hiệu khó đọc. Khi không chắc số liệu, năm hay tên, AI sẽ đánh dấu để bạn kiểm tra thay vì tự bịa.</span></div></div>
+  <div class="dfoot"><button class="btn" data-step-go="2">Quay lại</button><button class="btn p" data-step-go="4"><i class="ph-bold ph-pen-nib"></i>Viết bản nháp</button></div></div>
+
+ <!-- Bước 4: viết (loading rồi xem lại) -->
+ <div data-s="4" data-title="Bản nháp"><div class="dbody"><div class="stack" data-panel data-view="writing" data-first="writing" data-auto="writing:review:3000">
+  <div data-v="writing" class="stack">
+   <div class="row sp"><h3>AI đang viết từng phần</h3><span class="tag t-info">Đang chạy</span></div>
+   <div class="meter"><span data-fill="66%"></span></div>
+   <table><tr><td><i class="ph-bold ph-check-circle" style="color:var(--ok)"></i></td><td>Mở đầu: chuyến thuyền 1010</td><td class="low">đã viết</td></tr>
+    <tr><td><i class="ph-bold ph-circle-notch"></i></td><td>Bối cảnh: vì sao Hoa Lư không còn phù hợp</td><td class="low">đang viết</td></tr>
+    <tr><td><i class="ph-bold ph-circle"></i></td><td>Quyết định dời đô</td><td class="low">đang chờ</td></tr></table>
+   <p class="low">Mỗi phần là một lần gọi riêng. Chưa có gì vào kịch bản cho tới khi bạn bấm Chèn.</p></div>
+  <div data-v="review" class="stack">
+   <div class="seg"><button class="on" data-seg data-go="p1" data-target="#sec-panel">Mở đầu</button><button data-seg data-go="p2" data-target="#sec-panel">Bối cảnh</button><button data-seg data-go="p3" data-target="#sec-panel">Quyết định</button></div>
+   <div data-panel data-view="p1" id="sec-panel" class="stack">
+    <div data-v="p1" class="stack"><div class="diff" style="line-height:1.9">Mùa thu năm 1010, một đoàn thuyền ngược sông Hồng về phía thành Đại La. Nhà vua nhìn vùng đất rộng mà bằng phẳng, giữa trời đất.</div><span class="tag t-info" style="width:max-content">AI soạn</span></div>
+    <div data-v="p2" class="stack"><div class="diff" style="line-height:1.9">Hoa Lư địa thế hiểm trở, nhưng chật hẹp. Triều đình khi ấy cần một đô thành rộng hơn.</div><span class="tag t-info" style="width:max-content">AI soạn</span></div>
+    <div data-v="p3" class="stack"><div class="diff" style="line-height:1.9">Năm 1010, vua ban Chiếu dời đô, chọn Đại La làm kinh đô mới.</div><span class="tag t-info" style="width:max-content">AI soạn</span></div>
+   </div>
+   <div class="row wr"><button class="btn sm" id="edit-sec"><i class="ph-bold ph-pencil-simple"></i>Sửa phần này</button><button class="btn sm" disabled title="Mock chưa có: sẽ gọi lại AI riêng cho phần này"><i class="ph-bold ph-arrow-clockwise"></i>Viết lại phần này</button><button class="btn sm" id="drop-sec"><i class="ph-bold ph-trash"></i>Bỏ phần này</button></div>
+   <label class="f">Chèn vào <select id="ins-pos"><option value="end">Cuối kịch bản</option><option value="caret">Tại vị trí con trỏ</option></select></label>
+  </div></div></div>
+  <div class="dfoot"><button class="btn" data-step-go="3">Quay lại</button><button class="btn p" data-close data-do="insert"><i class="ph-bold ph-arrow-line-down"></i>Chèn 3 phần vào kịch bản</button></div></div>
+</div></div>
+<p class="note">Mockup tĩnh có tương tác: góc kể, thời lượng, dàn ý (đổi thứ tự, thêm, xóa) chạy thật; AI là dữ liệu mẫu có trạng thái chờ; "Chèn" ghi vào editor bên trái.</p>
+<script src="mock.js"></script>
+<script src="angles.js"></script>
+<script>
+const WPM = 150, OL_MS = 2000;
+// Góc kể: danh sách chọn một (có sẵn + của bạn). Tạo/sửa ở trang 06; quay lại tab này thì danh sách tự làm mới, giữ lựa chọn.
+const SEARCH_FROM = 6, angList = $("#ang-list"), angQ = $("#ang-q");
+let angSel = "b1";
+const esc = (t) => t.replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]);
+function renderAngles() {
+  const all = ANGLES.all(), q = angQ.value.trim().toLowerCase();
+  if (!all.some((a) => a.id === angSel)) angSel = all[0].id;
+  angQ.style.display = all.length >= SEARCH_FROM ? "" : "none";
+  const shown = all.filter((a) => !q || `${a.name} ${a.desc}`.toLowerCase().includes(q));
+  angList.innerHTML = shown.length ? shown.map((a) => `<label class="opt"><input type="radio" name="ang" value="${a.id}"${a.id === angSel ? " checked" : ""}><div><b>${esc(a.name)}${a.builtin ? "" : ' <span class="tag t-info">Của bạn</span>'}</b><span class="low">${esc(a.desc || "Không có mô tả")}</span></div></label>`).join("") : '<p class="low">Không có góc kể khớp. Thử từ khóa khác hoặc tạo góc kể mới.</p>';
+}
+angList.addEventListener("change", (e) => { if (e.target.name === "ang") angSel = e.target.value; });
+angQ.addEventListener("input", renderAngles);
+window.addEventListener("focus", renderAngles); window.addEventListener("storage", renderAngles);
+renderAngles();
+// Thời lượng: phút tính ra số từ (script.words_per_minute); sửa số từ trực tiếp thì ghi đè.
+const min = $("#min"), chars = $("#chars"), hint = $("#chars-hint"), fmt = (n) => n.toLocaleString("vi-VN");
+const showChars = () => (hint.textContent = `≈ ${fmt(+chars.value || 0)} từ`);
+const fromMin = () => { chars.value = Math.round((+min.value || 0) * WPM); showChars(); };
+min.addEventListener("input", fromMin); chars.addEventListener("input", showChars);
+$$("[data-min]").forEach((c) => c.addEventListener("click", () => { min.value = c.dataset.min; fromMin(); }));
+// Giọng văn tự mô tả.
+$$("[name=gv]").forEach((r) => r.addEventListener("change", () => { $("#gv-text").style.display = $("#gv-custom").checked ? "" : "none"; }));
+// Dàn ý: loading, sắp xếp, thêm, xóa.
+let olTimer, olDone = false;
+function runOutline() {
+  $("#ol-load").style.display = ""; $("#ol-body").style.display = "none";
+  $("#regen").disabled = $("#ol-next").disabled = true; clearTimeout(olTimer);
+  olTimer = setTimeout(() => { $("#ol-load").style.display = "none"; $("#ol-body").style.display = ""; $("#regen").disabled = $("#ol-next").disabled = false; olDone = true; }, OL_MS);
+}
+document.addEventListener("click", (e) => {
+  const st = e.target.closest("[data-step-go]"); if (st && st.dataset.stepGo === "2" && !olDone && !st.closest("[data-s]").matches("[data-s='3']")) runOutline();
+  if (e.target.closest("#regen")) runOutline();
+  const a = e.target.closest("[data-act]"); if (!a || a.disabled) return;
+  const k = a.dataset.act, sec = a.closest("[data-sec]"), pt = a.closest(".pt");
+  const mkPt = () => { const d = document.createElement("div"); d.className = "pt"; d.innerHTML = '<input type="text" placeholder="Ý chính mới"><button class="ic" data-act="del"><i class="ph-bold ph-x"></i></button>'; return d; };
+  const mkSec = () => { const d = document.createElement("div"); d.className = "sec"; d.dataset.sec = ""; d.innerHTML = '<div class="row"><input type="text" placeholder="Tiêu đề phần mới" style="font-weight:600"><button class="ic" data-act="del-sec"><i class="ph-bold ph-trash"></i></button></div><label class="f"><small>Mục tiêu của phần</small><input type="text"></label><div class="stack s8 pts"></div><button class="btn sm" data-act="add" style="width:max-content"><i class="ph-bold ph-plus"></i>Thêm ý</button>'; return d; };
+  if (k === "del") pt.remove();
+  if (k === "add") $(".pts", sec).append(mkPt());
+  if (k === "del-sec") sec.remove();
+  if (k === "add-sec") $("#secs").append(mkSec());
+});
+const dropped = new Set(), sec = () => $("#sec-panel").dataset.view;
+$("#edit-sec").addEventListener("click", () => { const d = $(`#sec-panel [data-v="${sec()}"] .diff`); d.contentEditable = d.isContentEditable ? "false" : "true"; d.focus(); });
+$("#drop-sec").addEventListener("click", () => {
+  const v = sec(); dropped.has(v) ? dropped.delete(v) : dropped.add(v);
+  $(`#sec-panel [data-v="${v}"]`).style.opacity = dropped.has(v) ? 0.4 : 1;
+  $("#drop-sec").lastChild.textContent = dropped.has(v) ? "Khôi phục phần này" : "Bỏ phần này";
+  $("[data-do=insert]").lastChild.textContent = `Chèn ${3 - dropped.size} phần vào kịch bản`;
+  $("[data-do=insert]").disabled = dropped.size === 3;
+});
+// Chèn đúng chữ đang hiện (kể cả phần mod đã sửa) vào editor.
+$("[data-do=insert]").addEventListener("click", () => {
+  const ed = $("#ed"); $("#empty")?.remove();
+  const titles = { p1: "Mở đầu", p2: "Bối cảnh", p3: "Quyết định" }, frag = document.createDocumentFragment();
+  ["p1", "p2", "p3"].filter((v) => !dropped.has(v)).forEach((v) => {
+    const h = document.createElement("h3"); h.textContent = titles[v]; const p = document.createElement("p");
+    p.append($(`#sec-panel [data-v="${v}"] .diff`).textContent.trim());
+    const t = document.createElement("span"); t.className = "ai-tag"; t.textContent = "AI soạn"; p.append(t); frag.append(h, p);
+  });
+  const a = getSelection().anchorNode, caret = $("#ins-pos").value === "caret", at = caret && a && ed.contains(a) ? (a.nodeType === 1 ? a : a.parentElement).closest("#ed > *") : null;
+  at ? at.after(frag) : caret ? ed.prepend(frag) : ed.append(frag);
+});
+</script>
+</body></html>

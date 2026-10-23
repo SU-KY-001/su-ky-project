@@ -9,7 +9,7 @@ import { ContentService } from "./application/content.service";
 import { createEpisodeRoute } from "./presentation/episode.routes";
 import { createSeriesRoute } from "./presentation/series.routes";
 
-const contentService = new ContentService(
+export const contentService = new ContentService(
   new PrismaSeriesRepository(),
   new PrismaEpisodeRepository(),
 );

@@ -1,5 +1,5 @@
 import { prisma } from "@repo/db";
-import type { UserRole } from "@repo/shared";
+import { PublicationAssessmentSchema, type PublicationAssessment, type UserRole } from "@repo/shared";
 import type { Session } from "../../src/modules/auth";
 
 /**
@@ -60,6 +60,28 @@ export async function createModerator(userId: string) {
       emailVerified: true,
       role: "moderator",
     },
+  });
+}
+
+export async function createAdmin(userId: string) {
+  return prisma.user.create({
+    data: {
+      id: userId,
+      name: "Integration Admin",
+      email: `${userId}@example.com`,
+      emailVerified: true,
+      role: "admin",
+    },
+  });
+}
+
+/** A complete, valid assessment as the API would parse it (nullable fields already normalised). */
+export function validAssessment(overrides: Partial<PublicationAssessment> = {}): PublicationAssessment {
+  return PublicationAssessmentSchema.parse({
+    editorialNote: "Đã đối chiếu kịch bản với nguồn chung của series.",
+    rightsNote: "Tài sản thuộc quyền nhóm sản xuất; không có consent riêng.",
+    audioNote: "Đã nghe toàn bộ bản âm thanh, không phát hiện lỗi.",
+    ...overrides,
   });
 }
 

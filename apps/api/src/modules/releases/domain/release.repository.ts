@@ -4,6 +4,7 @@ import type {
   ReleaseReassignmentTicketStatus,
   ReleaseScheduleScope,
   ReleaseScheduleStatus,
+  ReviewReadinessSnapshot,
 } from "@repo/shared";
 
 export interface ReleaseAssignmentEntity {
@@ -30,6 +31,7 @@ export interface EpisodeReviewEntity {
   reviewedById: string | null;
   reviewedAt: Date | null;
   reviewNote: string | null;
+  readinessSnapshot: unknown;
 }
 
 export interface ReleaseScheduleEntity {
@@ -134,6 +136,10 @@ export interface DecideEpisodeReviewRecord {
   actorType: "ADMIN" | "MODERATOR";
   reviewNote: string | null;
   correlationId: string;
+  /** Revision the reviewer looked at; the transaction rejects the decision if the episode moved on. */
+  expectedRevision: number;
+  /** Readiness + assessment as the reviewer saw it. On APPROVE `assessment` is required and becomes the episode's approval for `expectedRevision`. */
+  readinessSnapshot: ReviewReadinessSnapshot;
 }
 
 export interface AppendReleaseAuditRecord {

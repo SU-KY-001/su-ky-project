@@ -17,6 +17,7 @@ import { auth, currentUserRoute } from "./modules/auth";
 import { adminRoute } from "./modules/admin";
 import { publicCatalogRoute, studioCatalogRoute } from "./modules/catalog";
 import { createStudioContentRoute } from "./modules/content";
+import { createStudioAiAssistRoute } from "./modules/ai-assist";
 import { mediaRoute, mediaStorage } from "./modules/media";
 import { meListeningRoute, publicListeningRoute } from "./modules/listening";
 import { createReleaseRoutes } from "./modules/releases/presentation/release.routes";
@@ -75,6 +76,7 @@ export const routes = app
   .route("/api/studio", studioCatalogRoute)
   .route("/api/studio", studioQuizRoute)
   .route("/api/studio", createStudioContentRoute(mediaStorage))
+  .route("/api/studio", createStudioAiAssistRoute())
   .route("/api/studio/media-assets", mediaRoute)
   .route("/api/admin", adminRoute)
   .route("/api/admin/releases", createReleaseRoutes(releaseService).admin)

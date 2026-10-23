@@ -6,10 +6,19 @@ import {
 } from "../common";
 
 const nullableUuid = z.string().uuid().nullable();
+export const DEFAULT_SERIES_LANGUAGE = "vi";
+const MAX_LANGUAGE_TAG_CHARS = 35;
+/** BCP 47 shape (primary subtag + optional subtags), e.g. `vi`, `en-US`. */
+export const LanguageTagSchema = z
+  .string()
+  .trim()
+  .max(MAX_LANGUAGE_TAG_CHARS)
+  .regex(/^[A-Za-z]{2,3}(-[A-Za-z0-9]{2,8})*$/, "Mã ngôn ngữ không hợp lệ (ví dụ vi, en-US)");
 const seriesFields = z.object({
   title: z.string().trim().min(1).max(200),
   slug: z.string().trim().min(1).max(280).optional(),
   description: z.string().trim().max(5000).nullish(),
+  language: LanguageTagSchema.optional(),
   topicId: nullableUuid.optional(),
   historicalPhaseId: nullableUuid.optional(),
   primaryHistoricalEventId: nullableUuid.optional(),

@@ -48,6 +48,11 @@ export function createReleaseRoutes(
       )),
     )
     .get(
+      "/:id/review-content",
+      zValidator("param", UuidParamSchema, throwOnInvalid),
+      async (c) => c.json(await service.reviewContent(c.get("session")!, c.req.valid("param").id)),
+    )
+    .get(
       "/",
       zValidator("query", ReleaseScheduleQuerySchema, throwOnInvalid),
       async (c) => c.json(await service.listSchedules(c.get("session")!, c.req.valid("query"))),
@@ -269,6 +274,11 @@ export function createReleaseRoutes(
         c.header("Location", `/api/studio/releases/reassignment-tickets/${ticket.id}`);
         return c.json(ticket, 201);
       },
+    )
+    .get(
+      "/:id/review-content",
+      zValidator("param", UuidParamSchema, throwOnInvalid),
+      async (c) => c.json(await service.reviewContent(c.get("session")!, c.req.valid("param").id)),
     )
     .get(
       "/:id/progress",

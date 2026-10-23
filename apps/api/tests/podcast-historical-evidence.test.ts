@@ -15,9 +15,11 @@ import { PrismaCatalogRepository } from "../src/modules/catalog/infrastructure/p
 import {
   RUN_INTEGRATION,
   assertTestDatabase,
+  createAdmin,
   createModerator,
   makeSession,
   removeFixtures,
+  validAssessment,
 } from "./support/integration";
 import { ListeningService } from "../src/modules/listening/application/listening.service";
 import { PrismaListeningRepository } from "../src/modules/listening/infrastructure/prisma-listening.repository";
@@ -26,6 +28,7 @@ import { createHistoricalPresenter } from "../src/modules/catalog/application/hi
 describe.skipIf(!RUN_INTEGRATION)("podcast historical evidence", () => {
   const a = { userId: crypto.randomUUID(), role: "moderator" },
     b = { userId: crypto.randomUUID(), role: "moderator" },
+    adminId = crypto.randomUUID(),
     session = makeSession(a.userId, "moderator");
   let topicId = "";
   const repo = new PrismaHistoricalCatalogRepository(),
@@ -38,10 +41,24 @@ describe.skipIf(!RUN_INTEGRATION)("podcast historical evidence", () => {
       new PrismaSeriesRepository(),
       new PrismaEpisodeRepository(),
     );
+  const adminSession = makeSession(adminId, "admin");
+  /** Admin direct-publish input for the episode's current timestamp; the reason is intentionally explicit. */
+  const exception = () => ({
+    baseUpdatedAt: new Date(),
+    exceptionReason: "Phát hành ngoại lệ để kiểm thử bằng chứng nguồn.",
+    // The short test script raises a SCRIPT_TOO_SHORT warning, so a written acceptance is required.
+    assessment: validAssessment({ warningAcceptance: "Bản kể thử nghiệm ngắn có chủ đích." }),
+  });
+  const publish = async (episodeId: string) =>
+    content.publishEpisode(adminSession, episodeId, {
+      ...exception(),
+      baseUpdatedAt: (await prisma.episode.findUniqueOrThrow({ where: { id: episodeId } })).updatedAt,
+    });
   beforeAll(async () => {
     assertTestDatabase();
     await createModerator(a.userId);
     await createModerator(b.userId);
+    await createAdmin(adminId);
     topicId = (
       await prisma.topic.create({
         data: { slug: crypto.randomUUID(), name: "Evidence test " + a.userId },
@@ -66,6 +83,7 @@ describe.skipIf(!RUN_INTEGRATION)("podcast historical evidence", () => {
       where: { createdById: a.userId },
     });
     await removeFixtures(b.userId);
+    await removeFixtures(adminId);
     if (topicId) await prisma.topic.deleteMany({ where: { id: topicId } });
   });
   it("inherits primary event, selects citations explicitly, rejects draft publication and preserves publication evidence", async () => {
@@ -101,8 +119,20 @@ describe.skipIf(!RUN_INTEGRATION)("podcast historical evidence", () => {
       { kind: "entity", id: event.id },
       { baseVersion: 1, sourceId: source.id, locator: "tr. 20" },
     );
+    const cover = await prisma.mediaAsset.create({
+      data: {
+        kind: "IMAGE",
+        publicId: crypto.randomUUID(),
+        status: "READY",
+        widthPx: 600,
+        heightPx: 800,
+        uploadedById: a.userId,
+      },
+    });
     const input = CreateSeriesSchema.parse({
       title: "Series " + a.userId,
+      description: "Mô tả series dùng cho kiểm thử phát hành.",
+      coverImageAssetId: cover.id,
       primaryHistoricalEventId: event.id,
       topicId,
     });
@@ -136,9 +166,16 @@ describe.skipIf(!RUN_INTEGRATION)("podcast historical evidence", () => {
     await content.attachAudio(session, episode.id, "THIRD_PERSON", {
       assetId: audio.id,
     });
-    await expect(
-      content.publishEpisode(session, episode.id),
-    ).rejects.toMatchObject({ code: "CONTENT_NOT_READY" });
+    await expect(publish(episode.id)).rejects.toMatchObject({
+      code: "CONTENT_NOT_READY",
+    });
+    // A failing evidence check must not leave any partial publication behind.
+    const untouched = await prisma.episode.findUniqueOrThrow({ where: { id: episode.id } });
+    expect(untouched.status).toBe("DRAFT");
+    expect(untouched.publicationApproval).toBeNull();
+    expect(
+      await prisma.auditLog.count({ where: { resourceId: episode.id, action: { startsWith: "episode.published" } } }),
+    ).toBe(0);
     expect(
       CreateSeriesSourceSchema.safeParse({
         historicalCitationId: citation.id,
@@ -167,14 +204,29 @@ describe.skipIf(!RUN_INTEGRATION)("podcast historical evidence", () => {
       decision: "APPROVE",
       note: "Đúng trích dẫn",
     });
-    await content.publishEpisode(session, episode.id);
+    await publish(episode.id);
+    const published = await prisma.episode.findUniqueOrThrow({ where: { id: episode.id } });
+    expect(published.publicationApproval).toMatchObject({
+      contentRevision: published.contentRevision,
+      approvedById: adminId,
+      exceptionReason: exception().exceptionReason,
+    });
+    const audit = await prisma.auditLog.findFirstOrThrow({
+      where: { action: "episode.published_exception", resourceId: episode.id },
+    });
+    expect(audit.actorId).toBe(adminId);
+    expect(audit.changes).toMatchObject({
+      exceptionReason: exception().exceptionReason,
+      contentRevision: published.contentRevision,
+      assessment: { editorialNote: validAssessment().editorialNote },
+    });
     const snapshot = (
       await prisma.series.findUniqueOrThrow({ where: { id: series.id } })
     ).publicationEvidence;
     expect(JSON.stringify(snapshot)).toContain("Ấn bản đầu");
     expect(JSON.stringify(snapshot)).toContain("tr. 20");
     await expect(
-      content.publishEpisode(session, episode.id, episode.updatedAt),
+      content.publishEpisode(adminSession, episode.id, { ...exception(), baseUpdatedAt: episode.updatedAt }),
     ).rejects.toMatchObject({ code: "STALE_WRITE" });
     await content.publishSeries(session, series.id);
     const seriesSnapshot = (
@@ -185,14 +237,14 @@ describe.skipIf(!RUN_INTEGRATION)("podcast historical evidence", () => {
       locator: "tr. 30",
     });
     await expect(
-      content.publishEpisode(session, episode.id),
+      publish(episode.id),
     ).rejects.toMatchObject({ code: "CONTENT_NOT_READY" });
     expect(
       (await prisma.series.findUniqueOrThrow({ where: { id: series.id } }))
         .publicationEvidence,
     ).toEqual(seriesSnapshot);
     await content.deleteSource(session, series.id, extra.id);
-    await content.publishEpisode(session, episode.id);
+    await publish(episode.id);
     expect(
       (await prisma.series.findUniqueOrThrow({ where: { id: series.id } }))
         .publicationEvidence,
@@ -210,6 +262,10 @@ describe.skipIf(!RUN_INTEGRATION)("podcast historical evidence", () => {
     const publicBefore = await listening.getSeriesDetail(series.slug, null);
     expect(publicBefore.evidenceAsOf).not.toBeNull();
     expect(publicBefore.sources[0]?.title).toBe("Ấn bản đầu");
+    const publicEpisode = await listening.getEpisodeDetail(episode.slug, null);
+    expect(publicEpisode.publicationInfo).toEqual({ aiDisclosure: null, credits: null });
+    for (const privateField of ["editorialNote", "rightsNote", "audioNote", "warningAcceptance", "approvedById", "exceptionReason"])
+      expect(JSON.stringify(publicEpisode)).not.toContain(privateField);
     const publicHistory = new PublicHistoricalService(
       repo,
       createHistoricalPresenter(cat, cit, review),
@@ -245,7 +301,7 @@ describe.skipIf(!RUN_INTEGRATION)("podcast historical evidence", () => {
       await gate;
     });
     await locked;
-    const racingPublish = content.publishEpisode(session, episode.id);
+    const racingPublish = publish(episode.id);
     unlock();
     await editing;
     await expect(racingPublish).rejects.toMatchObject({
@@ -266,7 +322,7 @@ describe.skipIf(!RUN_INTEGRATION)("podcast historical evidence", () => {
     expect(publicAfter.sources[0]?.title).toBe("Ấn bản đầu");
     expect(publicAfter.evidenceWarning).toBe("SOURCE_VERIFICATION_WITHDRAWN");
     await expect(
-      content.publishEpisode(session, episode.id),
+      publish(episode.id),
     ).rejects.toMatchObject({ code: "CONTENT_NOT_READY" });
   });
   it("keeps pinned legacy source metadata and PDF without inventing verification", async () => {

@@ -14,13 +14,15 @@ import {
   AttachEpisodeDocumentSchema,
   EpisodeAttachmentSchema,
   EpisodePosterSchema,
+  ScriptConfigSchema,
   ImageUploadPolicySchema,
+  type PublishEpisodeExceptionInput,
 } from "@repo/shared";
 import { client } from "@/lib/client";
 import { ApiError } from "@/lib/apiError";
 import { uploadCatalogMedia } from "@/features/historical-library/services/catalogMediaService";
 const studio = client.api.studio;
-async function parse<S extends z.ZodTypeAny>(
+export async function parse<S extends z.ZodTypeAny>(
   request: Promise<Pick<Response, "ok" | "json" | "status" | "headers">>,
   schema: S,
 ): Promise<z.infer<S>> {
@@ -28,10 +30,11 @@ async function parse<S extends z.ZodTypeAny>(
   if (!r.ok) throw await ApiError.fromResponse(r);
   return schema.parse(r.status === 204 ? undefined : await r.json());
 }
-const headers = (key: string) => ({ headers: { "Idempotency-Key": key } });
+export const headers = (key: string) => ({ headers: { "Idempotency-Key": key } });
 export const NATIONAL_HISTORY_TOPIC_SLUG = "lich-su-dan-toc";
 export const podcastProductionService = {
   imagePolicy: (signal?: AbortSignal) => parse(studio["media-assets"]["image-policy"].$get({}, { init: { signal } }), ImageUploadPolicySchema),
+  scriptConfig: () => parse(studio["script-config"].$get(), ScriptConfigSchema),
   async uploadPoster(file: File, signal: AbortSignal) {
     const assetId = await uploadCatalogMedia(file, "IMAGE", signal);
     const asset = await parse(studio["media-assets"][":id"].$get({ param: { id: assetId } }, { init: { signal } }), z.object({ previewUrl: z.string() }));
@@ -136,11 +139,12 @@ export const podcastProductionService = {
       }),
       SeriesDetailSchema,
     ),
-  publishEpisode: (id: string, baseUpdatedAt: Date) =>
+  /** Admin-only exception publish: the server rejects without a substantial reason and a full assessment. */
+  publishEpisode: (id: string, json: PublishEpisodeExceptionInput) =>
     parse(
       studio.episodes[":id"].publish.$post({
         param: { id },
-        json: { baseUpdatedAt },
+        json,
       }),
       EpisodeWorkspaceSchema,
     ),

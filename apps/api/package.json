@@ -15,7 +15,9 @@
     "check-types": "tsc --noEmit",
     "test": "bun test",
     "seed:content": "bun --env-file=../../.env src/scripts/seed-content.ts",
-    "seed:vietnam-podcasts": "bun --env-file=../../.env src/scripts/seed-vietnam-podcasts.ts"
+    "seed:demo": "bun --env-file=../../.env src/scripts/seed-demo.ts",
+    "seed:vietnam-podcasts": "bun --env-file=../../.env src/scripts/seed-vietnam-podcasts.ts",
+    "source-pages:load": "bun --env-file=../../.env src/scripts/load-source-pages.ts"
   },
   "dependencies": {
     "@earendil-works/pi-coding-agent": "^1.1.0",
@@ -30,6 +32,7 @@
     "pg-boss": "^12.35.0",
     "pi-web-access": "0.37.0",
     "pino": "^10.3.1",
+    "unpdf": "1.8.1",
     "zod": "catalog:",
     "zod-to-json-schema": "^3.25.2"
   },

@@ -30,6 +30,7 @@ it("does not grant self-verification or infer verification from primary-source t
     verifiedAt: null,
     verificationNote: null,
     createdById: "owner",
+    createdAt: new Date().toISOString(),
     archivedAt: null,
   });
   client = new QueryClient({

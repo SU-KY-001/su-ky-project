@@ -18,6 +18,9 @@ import {
   type CatalogSourceDto,
 } from "@repo/shared";
 
+export type SourceSortBy = "title" | "createdAt";
+export type SourceSortDirection = "asc" | "desc";
+
 export type HistoricalKind = "period" | "phase" | "entity";
 export interface HistoricalDraft {
   kind: HistoricalKind;
@@ -231,7 +234,13 @@ export const historicalCatalogService = {
       }),
       z.void(),
     ),
-  sources: (q = "", page = 1, includeArchived = false) =>
+  sources: (
+    q = "",
+    page = 1,
+    includeArchived = false,
+    sortBy: SourceSortBy = "title",
+    sortDirection: SourceSortDirection = "asc",
+  ) =>
     parse(
       studio.sources.$get({
         query: {
@@ -239,6 +248,8 @@ export const historicalCatalogService = {
           page: String(page),
           limit: "20",
           includeArchived: String(includeArchived),
+          sortBy,
+          sortDirection,
         },
       }),
       sourcePage,

@@ -8,6 +8,7 @@ import { libraryService } from "../../services/libraryService";
 import { LibraryState } from "./LibraryPrimitives";
 import { PlaylistArtwork } from "./PlaylistArtwork";
 import { playlistDate, playlistDuration, primaryNarration } from "./playlistFormat";
+import { PublicationNotice } from "./PublicationNotice";
 import { usePodcastAccess } from "../../hooks/usePodcastAccess";
 import { scrollToLandingTarget } from "../../hooks/useLandingMotion";
 import { usePodcastPlaybackStore } from "../../store/podcastPlaybackStore";
@@ -54,7 +55,7 @@ export function SeriesEpisodes({ slug }: { slug: string }): ReactElement {
             const active = playback.episodeId === episode.id && signedIn;
             return <li key={episode.id}><article id={`episode-${episode.id}`} className="playlist-episode scroll-mt-28" data-active={active} data-viewed={selected?.id === episode.id}>
               <PlaylistArtwork sources={[episode.poster?.url]} title={`Poster ${episode.title}`} />
-              <div className="playlist-episode-copy"><h3>{episode.title}</h3><p className="playlist-episode-author">{creator}</p><p className="playlist-episode-summary">{episode.description || "Mô tả đang được bổ sung."}</p><p className="playlist-episode-meta"><time dateTime={episode.publishedAt?.toISOString()}>{playlistDate(episode.publishedAt)}</time><span aria-hidden="true">•</span><span>{playlistDuration(audio?.durationMs)}</span></p></div>
+              <div className="playlist-episode-copy"><h3>{episode.title}</h3><p className="playlist-episode-author">{creator}</p><p className="playlist-episode-summary">{episode.description || "Mô tả đang được bổ sung."}</p><p className="playlist-episode-meta"><time dateTime={episode.publishedAt?.toISOString()}>{playlistDate(episode.publishedAt)}</time><span aria-hidden="true">•</span><span>{playlistDuration(audio?.durationMs)}</span></p>{active || selected?.id === episode.id ? <PublicationNotice slug={episode.slug} /> : null}</div>
               <Button size="icon" className="playlist-play playlist-row-play" aria-label={`${active && playing ? "Tạm dừng" : "Nghe"} ${episode.title}`} disabled={!audio} onClick={() => { void selectEpisode(episode); }}>{active && playing ? <Pause weight="fill" /> : <Play weight="fill" />}</Button>
             </article></li>;
           })}</ol>}

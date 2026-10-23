@@ -36,6 +36,8 @@ function extractAssistantText(message: unknown): string {
 export interface PiTraceContext {
   label: string;
   attempt: number;
+  /** Default true: logs and callbacks carry lengths and ids only, never prompt/source/output text. */
+  redactContent?: boolean;
 }
 
 export interface PiTraceEvent {
@@ -53,7 +55,8 @@ export interface PiTraceSummary {
 }
 
 export function summarizeEvent(
-  event: AgentSessionEvent
+  event: AgentSessionEvent,
+  redactContent = true
 ): { type: string; message: string; metadata: Record<string, unknown> } | null {
   switch (event.type) {
     case "turn_start":
@@ -77,6 +80,13 @@ export function summarizeEvent(
       };
     }
     case "message_update": {
+      if (redactContent) {
+        return {
+          type: "message.streaming",
+          message: "(streaming)",
+          metadata: { streamEvent: event.assistantMessageEvent.type },
+        };
+      }
       const text = extractAssistantText(event.message);
       const delta =
         event.assistantMessageEvent.type === "text_delta"
@@ -98,7 +108,7 @@ export function summarizeEvent(
       const role = "role" in event.message ? String(event.message.role ?? "unknown") : "unknown";
       return {
         type: "message.ended",
-        message: truncate(text || `message ended (${role})`),
+        message: redactContent ? `message ended (${role}, ${text.length} chars)` : truncate(text || `message ended (${role})`),
         metadata: {
           role,
           length: text.length,
@@ -137,6 +147,7 @@ export function attachPiTracer(
   ctx: PiTraceContext,
   onEvent?: (event: PiTraceEvent) => void
 ): { summary: () => PiTraceSummary; detach: () => void } {
+  const redact = ctx.redactContent ?? true;
   const base = logger.child({ scope: "pi", label: ctx.label, attempt: ctx.attempt });
   const startedAt = Date.now();
   let turnCount = 0;
@@ -146,14 +157,14 @@ export function attachPiTracer(
 
   const detach = subscribe((event) => {
     eventCount += 1;
-    const summary = summarizeEvent(event);
+    const summary = summarizeEvent(event, redact);
 
     if (event.type === "turn_start") turnCount += 1;
     if (event.type === "message_update" && event.assistantMessageEvent.type === "text_delta") {
       tokenApprox += Math.max(1, Math.ceil(event.assistantMessageEvent.delta.length / 4));
-      lastTextSnippet = truncate(extractAssistantText(event.message));
+      if (!redact) lastTextSnippet = truncate(extractAssistantText(event.message));
     }
-    if (event.type === "message_end") {
+    if (event.type === "message_end" && !redact) {
       lastTextSnippet = truncate(extractAssistantText(event.message));
     }
 
@@ -161,7 +172,9 @@ export function attachPiTracer(
       base.debug({ piEvent: event.type }, `[${ctx.label}] unmirrored pi event`);
       return;
     }
-    base.info({ piEvent: event.type, ...summary.metadata }, `[${ctx.label}] ${summary.message}`);
+    // Streaming deltas fire hundreds of times per run: debug only, everything else stays at info.
+    const level = summary.type === "message.streaming" ? "debug" : "info";
+    base[level]({ piEvent: event.type, ...summary.metadata }, `[${ctx.label}] ${summary.message}`);
     // Streaming deltas fire dozens of times per run: logged above, not forwarded.
     if (summary.type === "message.streaming" || !onEvent) return;
     try {

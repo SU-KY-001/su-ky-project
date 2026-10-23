@@ -78,6 +78,7 @@ export interface EpisodeEntity {
   statusBeforeDelete: ContentStatus | null;
   adminLockedAt: Date | null;
   adminLockedById: string | null;
+  publicationApproval?: unknown;
   publishedAt: Date | null;
   deletedAt: Date | null;
   createdAt: Date;

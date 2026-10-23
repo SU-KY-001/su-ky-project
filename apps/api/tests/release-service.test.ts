@@ -1,4 +1,5 @@
 import { describe, expect, it } from "bun:test";
+import { PublicationAssessmentSchema, type ReviewContent, type ReviewReadinessSnapshot } from "@repo/shared";
 import type { Session } from "../src/modules/auth";
 import type {
   EpisodeReviewEntity,
@@ -93,7 +94,36 @@ function approvedReview(revision = 3): EpisodeReviewEntity {
     reviewedById: "mod-reviewer",
     reviewedAt: new Date("2026-10-20T11:00:00.000Z"),
     reviewNote: null,
+    readinessSnapshot: null,
   };
+}
+
+const assessment = PublicationAssessmentSchema.parse({
+  editorialNote: "Đã đối chiếu các nguồn chung của series.",
+  rightsNote: "Ảnh và âm thanh thuộc quyền của nhóm sản xuất.",
+  audioNote: "Đã nghe toàn bộ bản âm thanh, không lỗi.",
+});
+
+interface ContentFacts {
+  /** Episode content revision the fake publisher reports. */
+  revision?: number;
+  aiVoice?: boolean;
+  warning?: boolean;
+}
+
+function reviewContentFor(ready: boolean, { revision = 3, aiVoice = false, warning = false }: ContentFacts): ReviewContent {
+  return {
+    episode: {
+      narrations: [{ audio: { assetId: "asset-1" }, audioAnalysis: aiVoice ? { origin: { kind: "AI_VOICE" } } : null }],
+    },
+    readiness: {
+      ready,
+      contentRevision: revision,
+      computedAt: now,
+      items: warning ? [{ key: "SCRIPT_TOO_SHORT", level: "WARNING", state: "WARN" }] : [],
+    },
+    aiSummary: null,
+  } as unknown as ReviewContent;
 }
 
 class FakeReleaseRepository {
@@ -109,6 +139,7 @@ class FakeReleaseRepository {
   audits: string[] = [];
   createdReviews: EpisodeReviewEntity[] = [];
   decisions: Array<{ status: string; reviewer: string; actorType: string }> = [];
+  snapshots: Array<{ expectedRevision: number; readinessSnapshot: ReviewReadinessSnapshot }> = [];
   workloadArgs: Array<{ now: Date; nearDeadlineBefore: Date }> = [];
   ticket: ReleaseReassignmentTicketEntity | null = null;
 
@@ -139,6 +170,7 @@ class FakeReleaseRepository {
       reviewedById: null,
       reviewedAt: null,
       reviewNote: null,
+      readinessSnapshot: null,
     };
     this.createdReviews.push(review);
     this.latestReview = review;
@@ -147,6 +179,7 @@ class FakeReleaseRepository {
   async findLatestReview() { return this.latestReview; }
   async decideReview(input: Parameters<ReleaseRepository["decideReview"]>[0]) {
     this.decisions.push({ status: input.status, reviewer: input.reviewedById, actorType: input.actorType });
+    this.snapshots.push({ expectedRevision: input.expectedRevision, readinessSnapshot: input.readinessSnapshot });
     this.latestReview = { ...this.latestReview!, status: input.status };
     return this.latestReview;
   }
@@ -245,12 +278,14 @@ class FakeReleaseRepository {
 function service(
   repository = new FakeReleaseRepository(),
   checklistReady = true,
+  facts: ContentFacts = {},
 ) {
   let publishCount = 0;
   const releaseService = new ReleaseService(
     repository as unknown as ReleaseRepository,
     {
       checklistReady: async () => checklistReady,
+      reviewContent: async () => reviewContentFor(checklistReady, facts),
       publishEpisode: async () => { publishCount += 1; },
     },
     () => now,
@@ -305,6 +340,35 @@ describe("release service", () => {
     )).rejects.toMatchObject({ status: 403 });
   });
 
+  it("rejects review submission when required episode checklist items are incomplete", async () => {
+    const { releaseService, repository } = service(undefined, false);
+    repository.current = schedule({ status: "SCHEDULED" });
+
+    await expect(
+      releaseService.submitReview(
+        session("mod-author", "moderator"),
+        "schedule-1",
+        3,
+        "correlation-checklist-submit",
+      ),
+    ).rejects.toMatchObject({ status: 422, code: "CHECKLIST_INCOMPLETE" });
+  });
+
+  it("rejects approval when required episode checklist items are incomplete", async () => {
+    const { releaseService, repository } = service(undefined, false);
+    repository.current = schedule({ status: "SCHEDULED" });
+    repository.latestReview = { ...approvedReview(), status: "IN_REVIEW" };
+
+    await expect(
+      releaseService.reviewEpisode(
+        session("mod-reviewer", "moderator"),
+        "schedule-1",
+        { decision: "APPROVE", contentRevision: 3, reviewNote: null, assessment },
+        "correlation-checklist-approve",
+      ),
+    ).rejects.toMatchObject({ status: 422, code: "CHECKLIST_INCOMPLETE" });
+  });
+
   it("prevents an assigned producer from reviewing their own schedule", async () => {
     const { releaseService, repository } = service();
     repository.current = schedule({ status: "SCHEDULED" });
@@ -312,7 +376,7 @@ describe("release service", () => {
     await expect(releaseService.reviewEpisode(
       session("mod-author", "moderator"),
       "schedule-1",
-      { decision: "APPROVE", contentRevision: 3, reviewNote: null },
+      { decision: "APPROVE", contentRevision: 3, reviewNote: null, assessment },
       "correlation-4",
     )).rejects.toMatchObject({ status: 403 });
   });
@@ -324,7 +388,7 @@ describe("release service", () => {
     await releaseService.reviewEpisode(
       session("mod-reviewer", "moderator"),
       "schedule-1",
-      { decision: "APPROVE", contentRevision: 3, reviewNote: null },
+      { decision: "APPROVE", contentRevision: 3, reviewNote: null, assessment },
       "correlation-5",
     );
     expect(repository.statusTransitions.at(-1)).toEqual({
@@ -339,7 +403,7 @@ describe("release service", () => {
     repository.current = schedule({ status: "SCHEDULED" });
     repository.latestReview = { ...approvedReview(), status: "IN_REVIEW" };
     await releaseService.reviewEpisode(session("admin-1", "admin"), "schedule-1", {
-      decision: "APPROVE", contentRevision: 3,
+      decision: "APPROVE", contentRevision: 3, assessment,
     }, "admin-review");
     expect(repository.decisions).toEqual([{ status: "APPROVED", reviewer: "admin-1", actorType: "ADMIN" }]);
     expect(repository.current.status).toBe("READY_TO_PUBLISH");
@@ -350,8 +414,81 @@ describe("release service", () => {
     repository.current = schedule({ status: "SCHEDULED" });
     repository.latestReview = { ...approvedReview(2), status: "IN_REVIEW" };
     await expect(releaseService.reviewEpisode(session("admin-1", "admin"), "schedule-1", {
-      decision: "APPROVE", contentRevision: 2,
+      decision: "APPROVE", contentRevision: 2, assessment,
     }, "stale-admin-review")).rejects.toMatchObject({ status: 409, code: "STALE_WRITE" });
+    expect(repository.decisions).toHaveLength(0);
+  });
+
+  it("stores the assessment and readiness snapshot with an approval for the reviewed revision", async () => {
+    const { releaseService, repository } = service();
+    repository.current = schedule({ status: "SCHEDULED" });
+    repository.latestReview = { ...approvedReview(), status: "IN_REVIEW" };
+    await releaseService.reviewEpisode(session("admin-1", "admin"), "schedule-1", {
+      decision: "APPROVE", contentRevision: 3, assessment,
+    }, "snapshot");
+    expect(repository.snapshots).toHaveLength(1);
+    expect(repository.snapshots[0]).toMatchObject({ expectedRevision: 3, readinessSnapshot: { assessment, readiness: { contentRevision: 3 } } });
+  });
+
+  it("records a changes request with readiness but no assessment", async () => {
+    const { releaseService, repository } = service();
+    repository.current = schedule({ status: "SCHEDULED" });
+    repository.latestReview = { ...approvedReview(), status: "IN_REVIEW" };
+    await releaseService.reviewEpisode(session("admin-1", "admin"), "schedule-1", {
+      decision: "REQUEST_CHANGES", contentRevision: 3, reviewNote: "Cần sửa phần mở đầu",
+    }, "changes");
+    expect(repository.snapshots[0]?.readinessSnapshot.assessment).toBeNull();
+    expect(repository.snapshots[0]?.readinessSnapshot.readiness.contentRevision).toBe(3);
+  });
+
+  it("requires an AI disclosure when the audio is an AI voice", async () => {
+    const { releaseService, repository } = service(undefined, true, { aiVoice: true });
+    repository.current = schedule({ status: "SCHEDULED" });
+    repository.latestReview = { ...approvedReview(), status: "IN_REVIEW" };
+    const approve = (disclosure: string | null) => releaseService.reviewEpisode(session("admin-1", "admin"), "schedule-1", {
+      decision: "APPROVE", contentRevision: 3, assessment: { ...assessment, aiDisclosure: disclosure },
+    }, "ai-disclosure");
+    await expect(approve(null)).rejects.toMatchObject({ status: 422, code: "AI_DISCLOSURE_REQUIRED" });
+    expect(repository.decisions).toHaveLength(0);
+    await approve("Giọng đọc được tạo bằng AI.");
+    expect(repository.decisions).toHaveLength(1);
+  });
+
+  it("requires a written reason when warnings remain", async () => {
+    const { releaseService, repository } = service(undefined, true, { warning: true });
+    repository.current = schedule({ status: "SCHEDULED" });
+    repository.latestReview = { ...approvedReview(), status: "IN_REVIEW" };
+    await expect(releaseService.reviewEpisode(session("admin-1", "admin"), "schedule-1", {
+      decision: "APPROVE", contentRevision: 3, assessment,
+    }, "warning")).rejects.toMatchObject({ status: 422, code: "WARNING_ACCEPTANCE_REQUIRED" });
+    await releaseService.reviewEpisode(session("admin-1", "admin"), "schedule-1", {
+      decision: "APPROVE", contentRevision: 3, assessment: { ...assessment, warningAcceptance: "Bản ngắn có chủ đích." },
+    }, "warning-ok");
+    expect(repository.decisions).toHaveLength(1);
+  });
+
+  it("rejects an approval whose rights have expired", async () => {
+    const { releaseService, repository } = service();
+    repository.current = schedule({ status: "SCHEDULED" });
+    repository.latestReview = { ...approvedReview(), status: "IN_REVIEW" };
+    await expect(releaseService.reviewEpisode(session("admin-1", "admin"), "schedule-1", {
+      decision: "APPROVE", contentRevision: 3, assessment: { ...assessment, rightsExpiresAt: "2026-10-19" },
+    }, "expired")).rejects.toMatchObject({ status: 422, code: "RIGHTS_EXPIRED" });
+    await releaseService.reviewEpisode(session("admin-1", "admin"), "schedule-1", {
+      decision: "APPROVE", contentRevision: 3, assessment: { ...assessment, rightsExpiresAt: "2026-10-20" },
+    }, "valid-through-today");
+    expect(repository.decisions).toHaveLength(1);
+  });
+
+  it("rejects submission and approval when the readiness revision moved past the one submitted", async () => {
+    const { releaseService, repository } = service(undefined, true, { revision: 4 });
+    repository.current = schedule({ status: "SCHEDULED" });
+    await expect(releaseService.submitReview(session("mod-author", "moderator"), "schedule-1", 3, "stale-submit"))
+      .rejects.toMatchObject({ status: 409, code: "STALE_WRITE" });
+    repository.latestReview = { ...approvedReview(), status: "IN_REVIEW" };
+    await expect(releaseService.reviewEpisode(session("admin-1", "admin"), "schedule-1", {
+      decision: "APPROVE", contentRevision: 3, assessment,
+    }, "stale-approve")).rejects.toMatchObject({ status: 409, code: "STALE_WRITE" });
     expect(repository.decisions).toHaveLength(0);
   });
 

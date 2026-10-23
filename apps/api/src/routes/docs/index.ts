@@ -5,6 +5,7 @@ import { API_VERSION } from "../../core/config/app-info";
 import { COMMON_RESPONSES, parameters, securitySchemes } from "./components";
 import { betterAuthPaths, betterAuthSchemas } from "./better-auth-schema";
 import { registeredSchemas } from "./registry";
+import { aiAssistPaths } from "./paths/ai-assist";
 import type { Paths } from "./operation";
 import { catalogPaths } from "./paths/catalog";
 import {historicalCatalogPaths} from "./paths/historical-catalog";
@@ -65,12 +66,13 @@ const TAGS = [
   { name: "Studio Episodes", description: "Moderator biên tập tập: bản kể (kịch bản text, audio upload), thẻ thực thể" },
   { name: "Studio Catalog", description: "Kho nguồn tham khảo và thực thể lịch sử dùng chung" },
   { name: "Studio Media", description: "Upload và xác minh audio, ảnh, PDF qua Cloudinary" },
+  { name: "Studio AI", description: "Trợ lý AI cho moderator: rà kịch bản đối chiếu nguồn đã xác minh (cảnh báo mềm, không tự sửa)" },
 ] as const;
 
 const TAG_GROUPS = [
   { name: "Hệ thống và tài khoản", tags: ["System", "Authentication", "Admin", "Release Coordination"] },
   { name: "Người nghe", tags: ["Catalog", "Listening", "Quiz", "Missions"] },
-  { name: "Studio (Moderator)", tags: ["Studio Series", "Studio Episodes", "Studio Catalog", "Studio Media"] },
+  { name: "Studio (Moderator)", tags: ["Studio Series", "Studio Episodes", "Studio Catalog", "Studio Media", "Studio AI"] },
 ] as const;
 
 // Hand-written auth entries come last so their curated docs override the generated ones.
@@ -86,6 +88,7 @@ const allPaths: Paths = {
   ...studioPaths,
   ...releasePaths,
   ...mediaPaths,
+  ...aiAssistPaths,
 };
 
 export const openApiSpec = {

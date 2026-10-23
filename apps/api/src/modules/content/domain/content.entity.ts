@@ -35,6 +35,7 @@ export interface SeriesEntity {
   title: string;
   slug: string;
   description: string | null;
+  language: string;
   coverImageAssetId: string | null;
   coverLandscapeAssetId: string | null;
   startYear: number | null;
@@ -60,6 +61,9 @@ export interface EpisodeEntity {
   statusBeforeDelete: ContentStatus | null;
   adminLockedAt: Date | null;
   adminLockedById: string | null;
+  contentRevision: number;
+  /** Stored `PublicationApproval` JSON; read through `parsePublicationApproval`. */
+  publicationApproval?: unknown;
   publishedAt: Date | null;
   deletedAt: Date | null;
   createdAt: Date;
@@ -99,6 +103,18 @@ export interface SeriesSourceEntity {
   excerpt: string | null;
   sortOrder: number;
   createdAt: Date;
+}
+
+/** Source of a series as the AI review needs it; `verifiedVersion` is not in the studio payload. */
+export interface SeriesReviewSourceEntity {
+  sourceId: string;
+  title: string;
+  url: string | null;
+  hasFile: boolean;
+  version: number;
+  verificationStatus: string;
+  verifiedVersion: number | null;
+  sortOrder: number;
 }
 
 export interface EpisodeEntityTagEntity {

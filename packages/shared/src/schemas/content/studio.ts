@@ -3,6 +3,8 @@ import { ContentStatusSchema } from "../common";
 import { SeriesSourceSchema, HistoricalEntityTypeSchema } from "./catalog";
 import { AudioAnalysisSchema, EditorDocumentSchema } from "./editor-document";
 import { EpisodePosterSchema } from "./episode";
+import { EpisodeReadinessSchema } from "./readiness";
+import { PublicationApprovalSchema } from "./publication-review";
 const uuid = z.string().uuid(),
   timestamp = z.coerce.date();
 const LockSchema = z
@@ -37,6 +39,7 @@ export const SeriesDetailSchema = z.object({
   title: z.string(),
   slug: z.string(),
   description: z.string().nullable(),
+  language: z.string().describe("Ngôn ngữ nội dung (BCP 47), mặc định `vi`"),
   status: ContentStatusSchema,
   isDeleted: z.boolean(),
   lock: LockSchema,
@@ -67,7 +70,9 @@ export const SeriesDetailSchema = z.object({
     ),
   cover: CoverSchema,
   coverLandscape: CoverSchema,
-  owner: z.object({ id: z.string(), name: z.string() }),
+  owner: z
+    .object({ id: z.string(), name: z.string() })
+    .describe("Người chịu trách nhiệm nội dung của series (không có vai trò biên tập viên riêng)"),
   publishedAt: timestamp.nullable(),
   updatedAt: timestamp.describe(
     "Gửi lại làm `baseUpdatedAt` khi PATCH để phát hiện ghi đè",
@@ -95,6 +100,10 @@ export const SeriesDetailSchema = z.object({
 });
 
 export const SeriesEpisodeListSchema = SeriesDetailSchema.shape.episodes;
+
+/** Server-side reading speed, so every client estimates duration from the same `script.words_per_minute`. */
+export const ScriptConfigSchema = z.object({ wordsPerMinute: z.number().int().positive() });
+export type ScriptConfig = z.infer<typeof ScriptConfigSchema>;
 
 export const NarrationSchema = z.object({
   id: uuid,
@@ -172,6 +181,9 @@ export const EpisodeWorkspaceSchema = z.object({
       z.object({ key: z.string(), count: z.number().int().optional() }),
     ),
   }),
+  readiness: EpisodeReadinessSchema,
+  /** Approval covering the current revision (review or admin exception); null when none exists or it is for an older revision. */
+  publicationApproval: PublicationApprovalSchema.nullable(),
 });
 
 export type StudioSeriesDetailDto = z.infer<typeof SeriesDetailSchema>;

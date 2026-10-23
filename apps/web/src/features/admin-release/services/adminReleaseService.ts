@@ -6,7 +6,7 @@ import {
   ReleaseSchedulePageSchema,
   ReleaseScheduleRecordSchema,
   SystemHealthSchema,
-  EpisodeWorkspaceSchema,
+  ReviewContentSchema,
   EpisodeReviewRecordSchema,
   type ReviewEpisodeInput,
   type ReleaseScheduleStatus,
@@ -54,9 +54,7 @@ export const adminReleaseService = {
     return SystemHealthSchema.parse(await response.json());
   },
   get: (id: string) => parse(admin[":id"].$get({ param: { id } }), ReleaseScheduleRecordSchema),
-  content: (episodeId: string) => parse(
-    client.api.studio.episodes[":id"].$get({ param: { id: episodeId } }), EpisodeWorkspaceSchema,
-  ),
+  reviewContent: (id: string) => parse(admin[":id"]["review-content"].$get({ param: { id } }), ReviewContentSchema),
   review: (id: string, input: ReviewEpisodeInput) => parse(
     admin[":id"].review.$post({ param: { id }, json: input }), EpisodeReviewRecordSchema,
   ),

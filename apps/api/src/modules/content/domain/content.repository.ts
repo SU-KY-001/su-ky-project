@@ -14,16 +14,19 @@ import type {
   SeriesDetailEntity,
   SeriesEntity,
   SeriesListItemEntity,
+  SeriesReviewSourceEntity,
   SeriesSourceEntity,
   SeriesSourceWithSourceEntity,
 } from "./content.entity";
 import type { AudioAnalysis, EditorDocument } from "@repo/shared";
+import type { EpisodePublishGate } from "../application/publication-gate";
 
 export interface CreateSeriesDraftInput {
   ownerId: string;
   title: string;
   slug?: string;
   description?: string | null;
+  language?: string;
   topicId?: string | null;
   historicalPhaseId?: string | null;
   primaryHistoricalEventId?: string | null;
@@ -43,6 +46,7 @@ export interface SeriesPatch {
   title?: string;
   slug?: string;
   description?: string | null;
+  language?: string;
   topicId?: string | null;
   historicalPhaseId?: string | null;
   primaryHistoricalEventId?: string | null;
@@ -150,6 +154,8 @@ export interface SeriesRepository {
   restoreSeries(id: string, restoredStatus: ContentStatus): Promise<void>;
 
   listSeriesSources(seriesId: string): Promise<SeriesSourceWithSourceEntity[]>;
+  /** Read-only view for AI review: one row per source of the series, in sortOrder. */
+  listReviewSources(seriesId: string): Promise<SeriesReviewSourceEntity[]>;
   /** False when the (seriesId, sourceId, locator) duplicate made `skipDuplicates` drop the row. */
   createSeriesSource(
     seriesId: string,
@@ -195,10 +201,12 @@ export interface EpisodeRepository {
   /** Transactional unit: one sortOrder update per episode id + series updatedAt stamp. */
   reorderEpisodes(orderedIds: string[], seriesId: string): Promise<void>;
   updateEpisode(id: string, patch: EpisodePatch): Promise<void>;
+  /** `gate` is evaluated inside the publish transaction together with evidence validity and the timestamp lock. */
   publishEpisodeWithEvidence(
     actorId: string | null,
     id: string,
     baseUpdatedAt: Date,
+    gate: EpisodePublishGate,
   ): Promise<void>;
   publishEpisode(id: string, publishedAt: Date): Promise<void>;
   hideEpisode(id: string): Promise<void>;
@@ -281,6 +289,7 @@ export type {
   SeriesDetailEntity,
   SeriesEntity,
   SeriesListItemEntity,
+  SeriesReviewSourceEntity,
   SeriesSourceEntity,
   SeriesSourceWithSourceEntity,
 };

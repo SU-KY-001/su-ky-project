@@ -22,7 +22,7 @@ const slugParam = z.object({ slug: z.string().min(1) });
 export const gamificationService = new GamificationService();
 
 export const studioQuizRoute = new Hono<AppEnv>()
-  .use("*", requireRole("moderator"))
+  .use("/episodes/:episodeId/quiz", requireRole("moderator"))
   .get(
     "/episodes/:episodeId/quiz",
     zValidator("param", episodeIdParam, throwOnInvalid),

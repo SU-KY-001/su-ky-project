@@ -1,7 +1,7 @@
 import { afterAll, beforeAll, describe, expect, it } from "bun:test";
 import { prisma } from "@repo/db";
 import { seedHistoricalPeriods } from "@repo/db/historical-seed";
-import { HistoricalYearSchema } from "@repo/shared";
+import { HistoricalYearSchema, PublishEpisodeExceptionSchema } from "@repo/shared";
 import { resetSystemConfigCache } from "../src/core/config/system-config";
 import { cleanupDetachedMedia } from "../src/core/jobs/maintenance-jobs";
 import {
@@ -24,11 +24,13 @@ import { MediaService } from "../src/modules/media/application/media.service";
 import { PrismaMediaRepository } from "../src/modules/media/infrastructure/prisma-media.repository";
 import {
   assertTestDatabase,
+  createAdmin,
   createModerator,
   makeSession,
   removeFixtures,
   RUN_INTEGRATION,
   uniqueSuffix,
+  validAssessment,
 } from "./support/integration";
 
 const GRACE_HOURS_MS = 48 * 60 * 60 * 1000;
@@ -61,7 +63,10 @@ describe("series checklist (no database)", () => {
     startYear: 40,
     endYear: 43,
     episodes: [{ status: "PUBLISHED" }],
-    sources: [{}],
+    description: "Mô tả",
+    language: "vi",
+    coverImageAsset: { status: "READY" },
+    coverLandscapeAsset: null,
   };
   const checklist = (override: Record<string, unknown>) =>
     seriesChecklist({ ...seriesBase, ...override } as unknown as Parameters<
@@ -113,6 +118,14 @@ describe.skipIf(!RUN_INTEGRATION)(
     const runId = uniqueSuffix();
     const userId = `it-${runId}`;
     const session = makeSession(userId, "moderator");
+    const adminId = `it-admin-${runId}`;
+    const adminSession = makeSession(adminId, "admin");
+    /** Admin exception for the episode's current timestamp; the short test scripts always raise warnings that need acceptance. */
+    const exception = async (episodeId: string) => ({
+      baseUpdatedAt: (await prisma.episode.findUniqueOrThrow({ where: { id: episodeId } })).updatedAt,
+      exceptionReason: "Phát hành ngoại lệ để kiểm thử quy tắc phát hành.",
+      assessment: validAssessment({ warningAcceptance: "Bản kể thử nghiệm ngắn có chủ đích." }),
+    });
     const actor: CatalogActor = { userId, role: "moderator" };
     const content = new ContentService(
       new PrismaSeriesRepository(),
@@ -171,6 +184,8 @@ describe.skipIf(!RUN_INTEGRATION)(
         phase?: string | null;
         startYear?: number;
         endYear?: number;
+        /** Leave out the description and cover so the series fails the metadata gate. */
+        bare?: boolean;
       } = {},
     ) => {
       const phase =
@@ -237,6 +252,7 @@ describe.skipIf(!RUN_INTEGRATION)(
         });
         primaryHistoricalEventId = event.id;
       }
+      const cover = options.bare ? null : await makeAsset("IMAGE");
       const series = await content.createSeries(
         session,
         {
@@ -246,6 +262,12 @@ describe.skipIf(!RUN_INTEGRATION)(
           startYear: options.startYear ?? 40,
           endYear: options.endYear ?? 43,
           primaryHistoricalEventId,
+          ...(options.bare
+            ? {}
+            : {
+                description: "Mô tả series dùng cho kiểm thử phát hành.",
+                coverImageAssetId: cover!.id,
+              }),
         },
         null,
       );
@@ -267,6 +289,7 @@ describe.skipIf(!RUN_INTEGRATION)(
       assertTestDatabase();
       resetSystemConfigCache();
       await createModerator(userId);
+      await createAdmin(adminId);
       await seedHistoricalPeriods(prisma);
       topicId = (
         await prisma.topic.create({
@@ -283,6 +306,7 @@ describe.skipIf(!RUN_INTEGRATION)(
 
     afterAll(async () => {
       await removeFixtures(userId);
+      await removeFixtures(adminId);
       await prisma.topic.deleteMany({ where: { id: topicId } });
       await prisma.$disconnect();
     });
@@ -313,6 +337,25 @@ describe.skipIf(!RUN_INTEGRATION)(
             .items.filter((item) => !item.ok)
             .map((item) => item.key),
         ).toEqual(["HAS_SOURCE"]);
+      });
+
+      it("blocks series publishing without a description, a READY cover or a language", async () => {
+        const bare = await makeSeries("Bare", { bare: true });
+        await publishedEpisode(bare.id);
+        await content.addSource(session, bare.id, {
+          sourceId: await makeSource("Bare source"),
+          locator: "tr. 1",
+        });
+        await expect(
+          content.publishSeries(session, bare.id),
+        ).rejects.toMatchObject({ code: "SERIES_NOT_PUBLISHABLE" });
+        const detail = await content.getSeriesDetailForRead(session, bare.id);
+        expect(detail.language).toBe("vi");
+        expect(
+          seriesChecklist(detail)
+            .items.filter((item) => !item.ok)
+            .map((item) => item.key),
+        ).toEqual(["DESCRIPTION", "COVER"]);
       });
 
       it("publishes once a phase and a source exist", async () => {
@@ -351,34 +394,50 @@ describe.skipIf(!RUN_INTEGRATION)(
         ).rejects.toMatchObject({ code: "VALIDATION_ERROR" });
       });
 
-      it("publishes an episode with script/audio and inherited series evidence", async () => {
+      it("publishes an episode through the Admin exception with script/audio and inherited series evidence", async () => {
         const series = await makeSeries("Episode rules");
         const workspace = await content.appendEpisode(session, series.id, {
           title: `Tập rules ${runId}`,
         });
         await expect(
-          content.publishEpisode(session, workspace.id),
+          content.publishEpisode(adminSession, workspace.id, await exception(workspace.id)),
         ).rejects.toMatchObject({ code: "EPISODE_NOT_PUBLISHABLE" });
         await content.putNarration(session, workspace.id, "THIRD_PERSON", {
           scriptContent: "Năm 40, Hai Bà Trưng dựng cờ khởi nghĩa.",
         });
         await expect(
-          content.publishEpisode(session, workspace.id),
+          content.publishEpisode(adminSession, workspace.id, await exception(workspace.id)),
         ).rejects.toMatchObject({ code: "EPISODE_NOT_PUBLISHABLE" });
         const audio = await makeAsset("AUDIO");
         await content.attachAudio(session, workspace.id, "THIRD_PERSON", {
           assetId: audio.id,
         });
         await expect(
-          content.publishEpisode(session, workspace.id),
+          content.publishEpisode(adminSession, workspace.id, await exception(workspace.id)),
         ).rejects.toMatchObject({ code: "CONTENT_NOT_READY" });
         await content.addSource(session, series.id, {
           sourceId: await makeSource("Inherited"),
           locator: "tr. 1",
         });
         expect(
-          (await content.publishEpisode(session, workspace.id)).status,
+          (await content.publishEpisode(adminSession, workspace.id, await exception(workspace.id))).status,
         ).toBe("PUBLISHED");
+      });
+
+      it("rejects a non-admin and a short or missing exception reason", async () => {
+        const series = await makeSeries("Exception auth");
+        const workspace = await content.appendEpisode(session, series.id, {
+          title: `Tập auth ${runId}`,
+        });
+        await expect(
+          content.publishEpisode(session, workspace.id, await exception(workspace.id)),
+        ).rejects.toMatchObject({ status: 403 });
+        expect(
+          PublishEpisodeExceptionSchema.safeParse({ ...(await exception(workspace.id)), exceptionReason: "quá ngắn" }).success,
+        ).toBe(false);
+        expect(
+          PublishEpisodeExceptionSchema.safeParse({ baseUpdatedAt: new Date(), assessment: validAssessment() }).success,
+        ).toBe(false);
       });
     });
 

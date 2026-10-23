@@ -120,6 +120,7 @@ export const CatalogSourceSchema = z
     verifiedAt: timestamp.nullable(),
     verificationNote: z.string().nullable(),
     createdById: z.string().nullable(),
+    createdAt: timestamp,
     archivedAt: timestamp.nullable(),
     file: z
       .object({

@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { useState, type FormEvent } from "react";
+import { FilePdf, UploadSimple } from "@phosphor-icons/react";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import {
   CreateSourceSchema,
@@ -154,10 +155,14 @@ export function SourceComposer({
   onSaved,
   source,
   onCancel,
+  onBusyChange,
+  inModal = false,
 }: {
   onSaved: (s: CatalogSourceDto) => void;
   source?: CatalogSourceDto;
   onCancel: () => void;
+  onBusyChange?: (busy: boolean) => void;
+  inModal?: boolean;
 }) {
   const [title, setTitle] = useState(source?.title ?? "");
   const [author, setAuthor] = useState(source?.author ?? "");
@@ -184,6 +189,7 @@ export function SourceComposer({
   const submit = async (e: FormEvent) => {
     e.preventDefault();
     setError("");
+    onBusyChange?.(true);
     try {
       let uploadedId = assetId;
       if (file && !uploadedId) {
@@ -217,91 +223,99 @@ export function SourceComposer({
             ? e.message
             : "Không lưu được nguồn.",
       );
+    } finally {
+      onBusyChange?.(false);
     }
   };
+  const busy = uploading || create.isPending || patch.isPending;
   return (
     <form
-      onSubmit={(e) => {
-        void submit(e);
-      }}
-      className="space-y-3 rounded border border-mod-border p-4"
+      onSubmit={(e) => { void submit(e); }}
+      className={`flex min-h-0 flex-col font-moderator text-mod-text ${inModal ? "overflow-hidden" : "rounded border border-mod-border"}`}
       aria-label={source ? "Sửa nguồn tư liệu" : "Tạo nguồn tư liệu"}
+      aria-busy={busy}
     >
-      <h3 className="font-semibold">
-        {source ? "Sửa nguồn tư liệu" : "Thêm nguồn tư liệu dùng chung"}
-      </h3>
-      <div className="grid gap-3 sm:grid-cols-2">
-        {[
-          {
-            label: "Tên tài liệu",
-            value: title,
-            set: setTitle,
-            required: true,
-          },
-          { label: "Tác giả", value: author, set: setAuthor },
-          {
-            label: "Cơ quan / Nhà xuất bản",
-            value: publisher,
-            set: setPublisher,
-          },
-          { label: "Ấn bản", value: edition, set: setEdition },
-          { label: "Năm xuất bản", value: year, set: setYear, type: "number" },
-          { label: "ISBN", value: isbn, set: setIsbn },
-          { label: "Đường dẫn tài liệu", value: url, set: setUrl, type: "url" },
-        ].map((f) => (
-          <label key={f.label} className="text-sm">
-            {f.label}
-            <Input
-              aria-label={f.label}
-              required={f.required}
-              type={f.type ?? "text"}
-              className={field}
-              value={f.value}
-              onChange={(e) => f.set(e.target.value)}
+      <div className="min-h-0 overflow-y-auto overscroll-contain px-6 py-5 sm:px-8">
+        {!inModal ? <h3 className="mb-5 font-semibold">Thêm nguồn tư liệu</h3> : null}
+        <fieldset disabled={busy} className="space-y-5">
+          <legend className="sr-only">Thông tin tài liệu</legend>
+          <div className="grid grid-cols-1 gap-x-4 gap-y-4 sm:grid-cols-2">
+            {[
+              { label: "Tên tài liệu", value: title, set: setTitle, required: true, wide: true, placeholder: "Ví dụ: Đại Việt sử ký toàn thư" },
+              { label: "Tác giả", value: author, set: setAuthor, placeholder: "Tên tác giả hoặc đơn vị biên soạn" },
+              { label: "Cơ quan / Nhà xuất bản", value: publisher, set: setPublisher, placeholder: "Tên cơ quan hoặc nhà xuất bản" },
+            ].map((f) => (
+              <label key={f.label} className={`grid gap-1.5 text-sm ${f.wide ? "sm:col-span-2" : ""}`}>
+                <span>{f.label}{f.required ? <span className="ml-1 text-mod-danger" aria-hidden="true">*</span> : null}</span>
+                <Input aria-label={f.label} required={f.required} className={field} value={f.value} placeholder={f.placeholder} onChange={(e) => f.set(e.target.value)} />
+              </label>
+            ))}
+          </div>
+          <div className="grid grid-cols-2 gap-4 sm:grid-cols-3">
+            {[
+              { label: "Ấn bản", value: edition, set: setEdition, placeholder: "Ví dụ: Tái bản lần 2" },
+              { label: "Năm xuất bản", value: year, set: setYear, type: "number", placeholder: "Ví dụ: 1993" },
+              { label: "ISBN", value: isbn, set: setIsbn, placeholder: "Mã ISBN (nếu có)", wide: true },
+            ].map((f) => (
+              <label key={f.label} className={`grid gap-1.5 text-sm ${f.wide ? "col-span-2 sm:col-span-1" : ""}`}>
+                {f.label}
+                <Input aria-label={f.label} type={f.type ?? "text"} className={field} value={f.value} placeholder={f.placeholder} onChange={(e) => f.set(e.target.value)} />
+              </label>
+            ))}
+          </div>
+          <div className="grid gap-1.5">
+            <span className="text-sm">Loại tư liệu</span>
+            <ModeratorSelect
+              label="Loại tư liệu"
+              value={tier}
+              onValueChange={(value) => setTier(SourceTierSchema.parse(value))}
+              options={Object.entries(tiers).map(([value, label]) => ({ value, label }))}
+              placeholder="Chọn loại tư liệu"
+              disabled={busy}
             />
-          </label>
-        ))}
-        <label className="text-sm">
-          Loại tư liệu
-          <ModeratorSelect
-            label="Loại tư liệu"
-            value={tier}
-            onValueChange={(value) => setTier(SourceTierSchema.parse(value))}
-            options={Object.entries(tiers).map(([value, label]) => ({ value, label }))}
-            placeholder="Chọn loại tư liệu"
-          />
-        </label>
-        <label className="text-sm">
-          Tài liệu PDF
-          <Input
-            type="file"
-            accept="application/pdf"
-            className={field}
-            onChange={(e) => {
-              setFile(e.target.files?.[0]);
-              setAssetId(undefined);
-            }}
-          />
-        </label>
+            <p className="text-xs leading-5 text-mod-text-secondary">Phân loại để tra cứu; nguồn vẫn cần được xác minh riêng.</p>
+          </div>
+          <section aria-label="Đường dẫn và PDF" className="space-y-4 border-t border-mod-border pt-5">
+            <div>
+              <h3 className="text-sm font-semibold">Tài liệu gốc</h3>
+              <p className="mt-1 text-xs leading-5 text-mod-text-secondary">Cung cấp đường dẫn hoặc PDF. Bạn có thể thêm cả hai.</p>
+            </div>
+            <label className="grid gap-1.5 text-sm">
+              Đường dẫn tài liệu
+              <Input aria-label="Đường dẫn tài liệu" type="url" className={field} value={url} placeholder="https://…" onChange={(e) => setUrl(e.target.value)} />
+            </label>
+            <label className={`relative flex cursor-pointer items-center gap-3 rounded-lg border border-dashed border-mod-border bg-mod-canvas-accent px-4 py-4 transition-colors hover:border-mod-text-secondary focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-mod-text-secondary ${busy ? "pointer-events-none opacity-60" : ""}`}>
+              <Input
+                type="file"
+                accept="application/pdf"
+                aria-label="Tài liệu PDF"
+                className="sr-only"
+                onChange={(e) => {
+                  setFile(e.target.files?.[0]);
+                  setAssetId(undefined);
+                }}
+              />
+              <FilePdf size={28} weight="duotone" className="shrink-0 text-mod-text-secondary" aria-hidden="true" />
+              <span className="min-w-0 flex-1">
+                <span className="block break-words text-sm font-medium">{file?.name ?? (assetId ? "Đã đính kèm PDF" : "Chọn tài liệu PDF")}</span>
+                <span className="mt-0.5 block text-xs leading-5 text-mod-text-secondary">{file || assetId ? "Chọn lại để thay file. PDF được xử lý khi lưu." : "Hệ thống tự tách nội dung theo trang khi lưu."}</span>
+              </span>
+              <UploadSimple size={20} className="shrink-0 text-mod-text-secondary" aria-hidden="true" />
+            </label>
+          </section>
+        </fieldset>
       </div>
-      <p className="text-xs text-mod-text-secondary">
-        Loại tư liệu không thay thế việc xác minh. Cần đường dẫn hoặc PDF.
-      </p>
-      {error ? (
-        <p role="alert" className="text-sm text-mod-danger">
-          {error}
-        </p>
-      ) : null}
-      <div className="flex gap-2">
-        <Button
-          type="submit"
-          disabled={uploading || create.isPending || patch.isPending}
-        >
-          {uploading ? "Đang tải PDF…" : "Lưu nguồn"}
-        </Button>
-        <Button type="button" variant="ghost" onClick={onCancel}>
-          Hủy
-        </Button>
+      <div className="shrink-0 border-t border-mod-border bg-mod-surface px-6 py-4 sm:px-8">
+        {error ? <p role="alert" className="mb-3 text-sm leading-5 text-mod-danger">{error}</p> : null}
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <p role="status" className="text-xs leading-5 text-mod-text-secondary">{busy ? "Vui lòng giữ cửa sổ mở đến khi hoàn tất." : "Thông tin ấn bản có thể bổ sung sau."}</p>
+          <div className="ml-auto flex shrink-0 gap-2">
+            <Button type="button" variant="ghost" disabled={busy} onClick={onCancel}>Hủy</Button>
+            <Button type="submit" disabled={busy}>
+              {uploading ? "Đang tải PDF…" : create.isPending || patch.isPending ? "Đang xử lý…" : source ? "Lưu thay đổi" : "Thêm nguồn"}
+            </Button>
+          </div>
+        </div>
       </div>
     </form>
   );
