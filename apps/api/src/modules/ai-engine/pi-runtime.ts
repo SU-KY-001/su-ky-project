@@ -41,7 +41,7 @@ export class PiRuntime {
       const hasStoredCredential = (await this.modelRuntime.listCredentials()).some((c) => c.providerId === env.PI_PROVIDER && c.type === "oauth");
       const resolvedApiKey = hasStoredCredential
         ? undefined
-        : env.PI_API_KEY || (env.PI_PROVIDER === "google" ? env.GEMINI_API_KEY : env.OPENCODE_API_KEY);
+        : env.PI_API_KEY || (env.PI_PROVIDER === "google" ? env.GEMINI_API_KEY?.split(",").map((key) => key.trim()).find(Boolean) : env.OPENCODE_API_KEY);
 
       if (resolvedApiKey) {
         this.modelRuntime.setRuntimeApiKey(env.PI_PROVIDER, resolvedApiKey);

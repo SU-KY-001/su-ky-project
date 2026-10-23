@@ -5,6 +5,10 @@ Nhãn: `BREAKING` (code cũ gọi sẽ lỗi hoặc sai), `ADDITIVE` (mới, kh�
 
 ## [Unreleased]
 
+### FIX — TTS chuyển key khi bị giới hạn (2026-10-23)
+- `GEMINI_API_KEY` hỗ trợ danh sách phân cách bằng dấu phẩy. TTS chỉ fallback khi provider trả 429; thử mỗi key khác nhau tối đa một lần/chunk, dùng chung deadline và cancellation. Không đổi API/DTO; hết tất cả key vẫn trả lỗi `RATE_LIMITED` trong job. Review/compose lấy key đầu tiên khi không có `PI_API_KEY`.
+- Logic chọn key, chuyển khi 429 và ghi nhớ key đã tách vào `createApiKeyRotation()` (`modules/ai-engine/api-key-rotation.ts`) để tái dùng; mỗi consumer tạo instance riêng. Caller giữ deadline, cancellation và mapping lỗi; hành vi TTS/API không đổi.
+
 ### BREAKING — Cổng duyệt và phát hành có kết luận trách nhiệm (2026-10-23)
 - `POST /api/admin/releases/:id/review` và `/api/studio/releases/:id/review` với `decision: "APPROVE"` bắt buộc `assessment` (`editorialNote`, `rightsNote`, `audioNote` 10..5000 ký tự; `credits`, `rightsExpiresAt` ISO, `aiDisclosure`, `warningAcceptance` tùy chọn). Server từ chối khi quyền đã hết hạn (`RIGHTS_EXPIRED`), âm thanh giọng AI thiếu công khai (`AI_DISCLOSURE_REQUIRED`) hoặc còn cảnh báo mà thiếu lý do (`WARNING_ACCEPTANCE_REQUIRED`). `REQUEST_CHANGES` giữ nguyên.
 - Gửi duyệt và quyết định chạy trong transaction khóa tập: revision cũ trả `STALE_WRITE`, quyết định thứ hai trên cùng phiên bản trả `INVALID_REVIEW_STATE`. `EpisodeReviewRecord.readinessSnapshot` lưu readiness + assessment tại lúc quyết định (`null` với bản duyệt cũ).

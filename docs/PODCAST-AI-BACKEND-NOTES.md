@@ -12,6 +12,7 @@ Soạn dàn ý/viết phần/viết lại chạy qua ai-engine và model-gate; k
 
 - `POST /api/studio/episodes/:id/ai/voice`: trả job 202; GET theo job để poll; DELETE hủy; GET `/audio` tải MP3.
 - Model mặc định `gemini-3.8-flash-lite-tts`; cấu hình TTS trong `.env.example`, ffmpeg qua `FFMPEG_PATH`. Không gọi provider trực tiếp từ web.
+- `GEMINI_API_KEY` nhận một key hoặc danh sách cách nhau bằng dấu phẩy; bỏ khoảng trắng, mục rỗng và key trùng. TTS gặp 429 sẽ thử key kế tiếp, mỗi key tối đa một lần/chunk, giữ key kế tiếp cho các chunk sau. Hết danh sách vẫn trả `RATE_LIMITED`; không retry lỗi khác. Toàn bộ các lượt dùng chung `TTS_REQUEST_TIMEOUT_MS` và tín hiệu hủy. Không log key. AI review/compose dùng key đầu tiên (hoặc `PI_API_KEY`), không áp vòng xoay TTS. Key cùng project có thể chia sẻ quota nên không bảo đảm tăng hạn mức.
 - Đọc kịch bản đã lưu, bỏ heading, chia theo đoạn/câu, gọi Gemini rồi ghép MP3. Job chạy nền, có progress/cancel và giới hạn thời gian.
 - Job ghi `scriptHash` SHA-256 của các đoạn sẽ đọc và `contentRevision`. Gắn audio qua pipeline upload hiện có, server tính lại hash trong transaction; hash khác trả `HASH_MISMATCH`.
 - Thay heading không đổi lời đọc không đổi hash. Đổi nội dung lời đọc phải tạo lại audio hoặc dùng bản thu phù hợp.
