@@ -6,6 +6,7 @@ export * from "./input";
 export * from "./label";
 export * from "./light-rays";
 export * from "./magic-card";
+export * from "./interactive-hover-button";
 export * from "./separator";
 export * from "./sheet";
 export * from "./tooltip";
