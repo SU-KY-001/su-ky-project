@@ -2,6 +2,12 @@
 
 Không phụ thuộc phase khác. Là nền cho mọi chức năng AI (P1-P3, và P5 nếu có tóm tắt). Không đổi theo quyết định 2026-10-22 (provider và hardening giữ nguyên); chỉ chỉnh ví dụ cho khớp P1 "AI rà kịch bản".
 
+## Trạng thái hiện tại (2026-10-23)
+
+- **Đã triển khai:** provider error classification/usage/abort/redacted tracing, một tầng retry và runtime credential rotation trong `apps/api/src/modules/ai-engine/` (đặc biệt `structured-agent-runner.ts`, `pi-runtime.ts`, `pi-tracer.ts`, `api-key-rotation.ts`).
+- **Bằng chứng đã có (không chạy lại):** 20 test API ở `api-key-rotation.test.ts`, `ai-assist/gemini-tts.test.ts`, `ai-assist/voice.service.test.ts`; API `tsc` pass; smoke HTTP localhost 429 helper fallback/sticky-key pass. Đây không phải Gemini live smoke.
+- **Còn mở theo thiết kế:** Gemini live usage/auth/abort/redaction smoke; vì vậy chưa đánh dấu toàn bộ mục Smoke/Done của phase này là nghiệm thu.
+
 ## Bằng chứng (đã chạy thật trên dev, 2026-10-22)
 
 - `opencode-go` / `muse-spark-1.3-contributor` và `minimax-m3`: model trả lỗi 403 "An active OpenCode Go subscription is required". Runner **che lỗi**: đọc `stopReason:"error"` thành text rỗng, báo "Agent returned invalid JSON" sau ~32 giây (Pi tự retry 2s, 4s, 8s cả với lỗi 403).

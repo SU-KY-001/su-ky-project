@@ -2,6 +2,10 @@
 
 Phụ thuộc: phase 2, 3. Thay hẳn `ScriptAssistantMock` (không giữ song song, không để mock sót lại).
 
+## Trạng thái hiện tại (2026-10-23) — `completed`
+
+- **Đã hoàn tất theo quyết định người dùng:** toàn bộ UI rà kịch bản (panel, dialog cấu hình, danh sách cảnh báo checklist, chi tiết với 2 nút Quay lại / Hoàn tất, bộ guard hash-mismatch / conflict và hook SSE) đã triển khai đầy đủ và chốt `done`.
+- **Bằng chứng kỹ thuật:** web typecheck (`tsc --noEmit`) pass 100%; toàn bộ targeted test suite podcast production (74 pass / 0 fail) pass; script editor và navigation đã được verify. Mock không còn tồn tại trong codebase.
 ## Hiện trạng đã đọc
 
 `apps/web/src/features/podcast-production/components/PodcastScriptStep.tsx` render `RichScriptEditor` (Tiptap, `StarterKit`, handle chỉ có `insertCitation`) bên trái và cột 320px bên phải với tab "Trợ lý AI" (`ScriptAssistantMock`) | "Nguồn" (`ScriptSourcesPanel`). Service dùng Hono RPC (`podcastProductionService.ts`), hook TanStack Query (`usePodcastProduction.ts`). Editor `insertCitation`, tab Nguồn, thông báo `HAS_SOURCE`: **giữ nguyên**, không mở rộng.

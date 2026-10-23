@@ -2,6 +2,13 @@
 
 Phụ thuộc: phase 1-4. Chỉ test logic phức tạp và ranh giới; không test wiring/mock echo.
 
+## Trạng thái hiện tại (2026-10-23) — `completed`
+
+- **Đã hoàn tất theo quyết định người dùng:** toàn bộ phạm vi test, tài liệu vận hành và smoke validation cho P1 rà kịch bản được nghiệm thu `done`.
+- **Bằng chứng kỹ thuật:**
+  - API test suite: 124 passed, 51 skipped (DB opt-in), 0 failed (299 assertions, 19 test files); API typecheck pass (`tsc --noEmit`).
+  - Web test suite: 74 passed, 0 failed (204 assertions, 18 test files); Web typecheck pass (`tsc --noEmit`).
+  - Tài liệu kỹ thuật: `PODCAST-AI-BACKEND-NOTES.md` và `README.md` đã cập nhật đầy đủ thông số cấu hình, model, giới hạn heuristic và cơ chế xoay key / PDF extraction.
 ## Test (bun test, theo quy ước repo)
 
 API:

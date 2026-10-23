@@ -2,6 +2,12 @@
 
 Phụ thuộc: phase 2 (writer phát sự kiện sau khi insert). Cơ chế SSE không đổi theo quyết định 2026-10-22; chỉ đổi payload (bỏ độ phủ/evidence).
 
+## Trạng thái hiện tại (2026-10-23)
+
+- **Đã triển khai:** `check-hub.ts`, `check-stream.ts`, Last-Event-ID replay, heartbeat/unsubscribe và route `events/stream`; test logic SSE đã có trong test suite phase review.
+- **Bằng chứng đã có:** API typecheck pass và các test API đã ghi nhận trong session; không có bằng chứng mới để gọi `curl -N` live/Postgres stream là nghiệm thu.
+- **Còn mở:** smoke stream khi runner thật đang phát, ngắt/nối lại và kiểm tra proxy/compress theo các mục Việc kiểm.
+
 ## Files
 
 - `application/check-hub.ts` đã có từ phase 2 (không tạo `check-event-hub.ts`). Hub chỉ **đánh thức** vòng lặp; sự thật luôn đọc lại từ DB.

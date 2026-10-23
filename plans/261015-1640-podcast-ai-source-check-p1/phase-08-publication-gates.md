@@ -26,15 +26,13 @@ Admin thiếu/lý do ngắn bị từ chối; non-admin bị 403; hợp lệ ghi
 
 ## Trạng thái và kiểm tra cuối (2026-10-23)
 
-- Implementation: hoàn tất phạm vi phase 8; không commit/push.
+- Implementation: phạm vi phase 8 đã được commit/push qua `e44bb4c` (không còn đúng khi ghi “không commit/push”).
+- Evidence handoff: Gemini voice/helper/voice-select/editor work is present in `apps/api/src/modules/ai-assist/voice/`, `apps/web/src/features/podcast-production/components/AiVoicePanel.tsx`; PDF extraction is automatic for READY PDF assets with per-page text rows, timeout/size guards, not OCR (`apps/api/src/modules/catalog/infrastructure/pdf-pages.ts`, `source-pdf-pages.ts`).
 - Prisma generate + migration additive `20261023120000_publication_gates`: áp DB development và DB test riêng, không reset dữ liệu.
-- Typecheck API/web: pass sau tích hợp cuối.
-- API focused regression: 45 pass (publication gate, audio origin, speech text/voice, release HTTP/service).
-- PostgreSQL test riêng: 16 pass cho submit/decision/approval/expiry/exception; thêm 1 publication round-trip pass (38 assertions) kiểm evidence, snapshot, public privacy và exception audit.
-- Studio middleware: 2 pass; Admin tới được content publish, quiz vẫn chỉ cho Mod.
-- Web targeted: assessment, exception dialog, public notice và Admin review tests pass sau sửa đồng bộ query. Không full-suite theo yêu cầu.
+- API tsc: pass. Fresh targeted API suite: **124 pass, 51 skip, 0 fail, 299 assertions, 19 files** (includes publication/release/audio-origin/studio-route/AI-assist coverage). DB integration opt-in cases were skipped, not run.
+- Web targeted suite: **74 pass, 0 fail, 204 assertions, 18 files** (podcast-production + ModeratorWorkspacePage). React `act` warning remains in `PodcastReviewStep`; assertions pass. Web tsc was still running at handoff.
 - Browser thật: Admin hàng chờ → Xem chi tiết → form duyệt; mở ngoại lệ có cảnh báo, lý do và kết luận bắt buộc, nút submit khóa khi thiếu. Đã chụp ảnh.
 - HTTP thật: Admin gọi ngoại lệ thiếu hồ sơ/lý do ngắn trả 400 VALIDATION_ERROR. Không publish dữ liệu thật của người dùng; publish thành công được kiểm trong DB test riêng.
+- Giới hạn: không full E2E Mod/worker, không Gemini thật, không full-suite; DB integration opt-in skipped; UI còn cảnh báo act nhưng assertions pass. TTS RAM/temp vẫn mất job chưa gắn qua restart.
 - Sửa từ smoke: nối ngoại lệ vào dialog Admin thay vì chỉ workspace Mod; thu hẹp quiz middleware wildcard vốn chặn Admin trên toàn `/api/studio`, có regression.
-- Giới hạn: không full E2E Mod/worker, không Gemini thật, không full-suite; hạ tầng test UI còn cảnh báo act nhưng assertions pass. TTS RAM/temp vẫn mất job chưa gắn qua restart.
 - Đồng bộ README, PODCAST-AI-BACKEND-NOTES, spec readiness và plan. Không đánh dấu các kiểm tra phase 4–5 cũ thành hoàn tất.

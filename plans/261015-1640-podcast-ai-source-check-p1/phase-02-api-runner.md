@@ -2,6 +2,12 @@
 
 Phụ thuộc: phase 0 (engine) và phase 1 (DB, hợp đồng). SSE ở phase 3, nhưng runner phát sự kiện qua hub ngay từ đây (hub tối giản, phase 3 hoàn thiện). **Hướng chạy: phiên agent có công cụ tra kho trang nguồn, đặc tả ở `spec-source-agent.md` (đọc trước khi code phase này; file đó thắng khi khác `spec-prompts-review.md`).**
 
+## Trạng thái hiện tại (2026-10-23)
+
+- **Đã triển khai:** REST/service/runner, Postgres page store + PDF loader, source tools/quote checks, writer/reaper và PATCH trong `apps/api/src/modules/ai-assist/review/`; API typecheck đã pass theo evidence của phiên.
+- **Bằng chứng hiện có:** implementation hiện dùng `review/` (không còn layout module phẳng cũ); `apps/api/src/modules/ai-assist/review/sources/postgres-source-page-store.ts` và `apps/api/src/scripts/load-source-pages.ts` là đường chạy hiện tại.
+- **Chưa nghiệm thu:** smoke check thật với Postgres/PDF và URL cùng phiên, provider live; không coi code tồn tại là bằng chứng cho các mục thủ công ở phần Việc kiểm.
+
 ## Năm phần của một lệnh gọi agent (áp dụng cho mọi chức năng AI; P1 là chức năng đầu)
 
 | # | Phần | File (chức năng `script-review`) | Vai trò |

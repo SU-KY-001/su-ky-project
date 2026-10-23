@@ -2,6 +2,12 @@
 
 Mục tiêu: nền dữ liệu và hợp đồng, chưa có logic AI. Không phụ thuộc phase khác.
 
+## Trạng thái hiện tại (2026-10-23)
+
+- **Đã triển khai:** schema/migration `ai_checks`, `ai_check_items`, `source_pages`, shared contracts và `ai_check` rate-limit; các phần hiện nằm ở `packages/db/prisma/schema.prisma`, `packages/shared/src/`, `apps/api/src/core/` và review module.
+- **Bằng chứng:** phase 1 được dùng bởi runner/routes/SSE hiện tại; không có bằng chứng mới trong phiên này để nâng các mục migrate-on-Postgres/EXPLAIN lên “đã nghiệm thu”.
+- **Lưu ý:** thiết kế `SourcePage` PDF hiện đã có loader thật (`apps/api/src/scripts/load-source-pages.ts`); các ghi chú cũ nói kho SQLite/path local chỉ còn là lịch sử spike.
+
 ## Files
 
 - Sửa `packages/db/prisma/schema.prisma`

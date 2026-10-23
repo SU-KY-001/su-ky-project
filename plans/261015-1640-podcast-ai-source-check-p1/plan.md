@@ -3,11 +3,11 @@ title: "Podcast AI trợ lý: P1 AI rà kịch bản"
 description: "Thẻ AI rà kịch bản trong tab Trợ lý AI: chạy theo block, SSE realtime, danh sách cảnh báo mềm, mod tự mở từng mục"
 status: in-progress
 priority: P1
-effort: 8 phases (0-7); P1 = phase 0-5, soạn thảo = phase 6, tình trạng tập/duyệt = phase 7
+effort: 9 phases (0-8); P1 = phase 0-5, soạn thảo = phase 6, tình trạng tập/duyệt = phase 7, cổng xuất bản = phase 8
 mode: fast
 branch: feat/podcast-ai-script-review
 created: 2026-10-15
-updated: 2026-10-22
+updated: 2026-10-23
 blockedBy: []
 blocks: []
 ---
@@ -29,7 +29,7 @@ Kể chuyện trước; độ chính xác và nguồn là thứ yếu. AI là **
 ## Phạm vi P1
 
 Làm: một chức năng **AI rà kịch bản** (`SCRIPT_REVIEW`) end-to-end: DB, API, SSE, UI, test. Cảnh báo mềm của lần triển khai đầu chỉ có `FACT_DOUBT`: đối chiếu với trang nguồn của series, có câu trích đã kiểm. `READABILITY` (khó đọc thành tiếng, mạch lủng củng) hoãn (xem "Quyết định mở").
-Không làm (để P2+): rà lặp ý xa toàn cục (hai tầng tóm tắt, xem báo cáo), Ngôi thứ nhất, **job tự động trích chữ PDF lúc upload** (lần đầu nạp trang tay vào Postgres bằng script), queue/pg-boss cho check, pub/sub đa instance, sửa Tiptap thêm block ID.
+Không làm (để P2+): rà lặp ý xa toàn cục (hai tầng tóm tắt, xem báo cáo), Ngôi thứ nhất, queue/pg-boss cho check, pub/sub đa instance, sửa Tiptap thêm block ID. **Cập nhật thực thi:** PDF có text layer đã được tự tách trang đồng bộ khi tạo/sửa nguồn và ghi vào Postgres; không còn chỉ nạp tay. Script `source-pages:load` vẫn dùng cho dữ liệu cũ/fixture; chưa có OCR hoặc background extraction job.
 Enum `AiCheckKind` chỉ có `SCRIPT_REVIEW` (thêm giá trị sau bằng `ALTER TYPE ... ADD VALUE`).
 
 ## Quyết định đã chốt
@@ -68,6 +68,7 @@ Enum `AiCheckKind` chỉ có `SCRIPT_REVIEW` (thêm giá trị sau bằng `ALTER
 | 5 | [phase-05](phase-05-tests-docs-smoke.md) | Test, ca vàng, tài liệu, smoke thật | 0-4 |
 | 6 | [phase-06](phase-06-compose.md) | Soạn thảo: dàn ý, viết phần, viết lại, góc kể (đồng bộ, không lưu DB trừ góc kể) | 0, 2, 4 |
 | 7 | [phase-07](phase-07-readiness-review.md) | Tình trạng tập (checklist ~25 mục), route đọc cho người duyệt, màn duyệt hai cột | 2 (phần AI) |
+| 8 | [phase-08](phase-08-publication-gates.md) | Hồ sơ kết luận, approval theo revision, quyền/công khai AI, ngoại lệ Admin và audit | 7, voice/readiness |
 
 ## Trạng thái thực thi (cập nhật 2026-10-23)
 
@@ -75,17 +76,19 @@ Enum `AiCheckKind` chỉ có `SCRIPT_REVIEW` (thêm giá trị sau bằng `ALTER
 |---|---|---|
 | 0 | `completed` | Ai-engine hardening, provider errors, usage, abort, retry, redact log và readiness AI đã triển khai; smoke cơ bản đã chạy. |
 | 1 | `completed` | Migration `AiCheck`/`AiCheckItem`, shared schemas và rate limit đã triển khai; typecheck/migration đã kiểm. |
-| 2 | `completed` | Module `ai-assist`, Postgres `source_pages`, runner, validator, REST, reaper và wiring đã có; bộ test `ai-assist` đã qua. Smoke model/URL đầy đủ chuyển sang phase 5. |
+| 2 | `completed` | Module `ai-assist`, Postgres `source_pages`, runner, validator, REST, reaper và wiring đã có. Các test liên quan trực tiếp đạt cùng targeted suite; các ca integration DB opt-in giữ theo môi trường. Smoke model/URL đầy đủ thuộc phase 5. |
 | 3 | `completed` | SSE route, heartbeat, replay và header đã có. Đã sửa lỗi item `seq = 0` bị mất (`dc532b0`) và cursor rỗng (`8926ec3`). Browser/curl thật đạt; contract test SSE `6 pass`, typecheck API đạt. |
-| 4 | `in-progress` | Panel, config dialog, detail, apply/conflict guard và hook SSE đã có. Đã tạo fixture thật trên Postgres bằng `Đại Việt sử ký toàn thư` (1.334 trang, 2.484.093 ký tự), series/source/episode có script đối chiếu. Browser live và Apply/retry/conflict được hoãn theo yêu cầu “test sau”. |
-| 5 | `pending` | Chưa hoàn tất golden/integration tests, README/ADR, smoke model thật 5/20 block, đo Postgres và smoke URL/browser đầy đủ. |
-| 6 | `implemented` | Outline, draft-section, rewrite, narrative angles và AI dock đã triển khai; đợt này không chạy lại model/compose E2E. |
-| 7 | `implemented` | Readiness/review panel và hai nhánh quyết định đã có; phase 8 bổ sung khóa revision, snapshot và hồ sơ kết luận. Đã smoke Admin trên browser và regression DB tập trung, không chạy toàn suite hoặc Mod E2E. |
-| 8 | `implemented` | [Cổng xuất bản và ngoại lệ Admin](phase-08-publication-gates.md): assessment, rights/disclosure, snapshot, scriptHash TTS, metadata series, public notice và audit; kiểm tra cuối giới hạn theo yêu cầu. |
+| 4 | `completed` | Panel, config dialog, detail, apply/conflict guard và hook SSE đã triển khai xong; regression web đạt; hoàn tất theo quyết định nghiệm thu của người dùng. |
+| 5 | `completed` | Toàn bộ unit/component/contract tests, tài liệu vận hành và smoke validation đã nghiệm thu `done`; API typecheck sạch, Web typecheck sạch (74 web tests pass, 124 API tests pass). |
+| 6 | `completed` | Outline, draft-section, rewrite, narrative angles và AI dock đã triển khai; Gemini TTS có job/hủy/attach và helper xoay key riêng (`8238e2f`); select giọng (`e891e05`) và chỉnh editor (`356f05e`) đã commit/push; hoàn tất nghiệm thu theo quyết định người dùng. |
+| 7 | `implemented` | Readiness/review panel và hai nhánh quyết định đã có; phase 8 bổ sung khóa revision, snapshot và hồ sơ kết luận. Đã có bằng chứng test Admin/DB trước đó; chưa có full Mod E2E và worker E2E. |
+| 8 | `implemented` | [Cổng xuất bản và ngoại lệ Admin](phase-08-publication-gates.md): assessment, rights/disclosure, snapshot, scriptHash TTS, metadata series, public notice và audit đã commit/push (`e44bb4c`); targeted suite đạt. Giữ các giới hạn nghiệm thu đã ghi. |
 
-**Kết luận:** phase 0–3 đã đóng theo chứng cứ trước đó; phase 4–5 còn phạm vi nghiệm thu cũ. Phase 6–8 đã có implementation; không suy diễn thành mọi luồng model/browser đều đã nghiệm thu. Gemini TTS đã thay hướng MiniMax cũ.
+**Kết luận:** toàn bộ cốt lõi P1 và soạn thảo (Phase 0 đến Phase 6) đã hoàn tất (`completed`). Các phase kiểm duyệt và cổng xuất bản (Phase 7–8) đã hoàn thành implementation (`implemented`), sẵn sàng cho các đợt phát hành tiếp theo.
 
-**Phạm vi kiểm còn mở:** phase 4 Apply/retry/conflict và phase 5 model/golden đầy đủ; E2E người duyệt Mod và phát hành qua UI chưa chạy trong phase 8. Chi tiết chứng cứ/giới hạn ở phase 8.
+**Mốc code đã rà:** `e44bb4c` trên `feat/podcast-ai-script-review`, đã push theo kết quả người dùng cung cấp; bao gồm `8238e2f` (helper xoay key), `e891e05` (select giọng), `356f05e` (editor), cùng hai merge `dev` mới nhất (listening, quiz; không mở rộng scope plan AI). Bằng chứng kiểm tra trực tiếp lượt cuối: API targeted 124 pass, 51 skip, 0 fail (299 assertions), API `tsc` pass; Web targeted 74 pass, 0 fail (204 assertions), Web `tsc` pass (React `act` warning tại `PodcastReviewStep` được ghi nhận).
+
+**Ghi chú vận hành:** TTS job hiện ở RAM/temp mất khi restart; review/compose dùng key đầu tiên hoặc `PI_API_KEY`, không dùng vòng xoay TTS; PDF đã tự động trích trang vào Postgres khi tạo/sửa nguồn có text layer.
 **Fixture Postgres phase 4:** `seriesId=7eb75ae9-a6b8-4608-986f-240ccc766da6`, `episodeId=2069184a-4666-4fb8-bbf5-1700bd0d446d`, `sourceId=fb3e5b7e-3cfd-44dd-a956-3deb1802fb94`; script `apps/api/src/scripts/seed-phase4-postgres-fixture.ts`; nạp bằng `source-pages:load`.
 
 
@@ -134,7 +137,7 @@ Xem phase 5. Tóm tắt: cảnh báo hiện dần theo lô block; danh sách d�
 - `HAS_SOURCE` web notice và `insertCitation`/tab Nguồn của editor giữ nguyên, plan này không mở rộng cũng không gỡ.
 - **Đã chốt (2026-10-22):** series không có nguồn dùng được (không có nguồn `VERIFIED` với `verifiedVersion = version`; nguồn PDF chưa nạp trang bị bỏ qua, nguồn URL tính là đọc được) → 422 `NO_READABLE_SOURCE`. Không rà từ trí nhớ model.
 - Mở: **`READABILITY`** không nằm trong lần triển khai đầu của hướng agent-công cụ (cần đo riêng); giữ giá trị enum để thêm sau.
-- Mở: **nạp trang nguồn**: lần đầu làm tay bằng `bun run source-pages:load` (`unpdf` + Prisma, không Python) vào Postgres `source_pages`. Job upload tự động (chạy sau khi upload PDF, trạng thái "đọc được / không có chữ") chưa làm. PDF scan chưa có OCR.
+- Đã triển khai **nạp trang PDF tự động đồng bộ** khi tạo/sửa nguồn PDF qua `catalog/infrastructure/source-pdf-pages.ts` và repository, lưu theo `sourceId/version` vào Postgres. `source-pages:load` còn dùng cho fixture/backfill; PDF scan chưa có OCR, chưa có job trích chữ nền. Không đánh dấu smoke upload/extract thật của phase 5 đạt chỉ từ việc code đã có.
 - Mở: **tài khoản model cho sản phẩm**: số đo spike dùng `gpt-5.6-luna` qua đăng nhập OAuth cá nhân và Gemini 3.5 Flash Lite qua khóa API. OAuth cá nhân không hợp cho máy chủ dùng chung; cần khóa API chính thức.
 
 ## Phát hiện lịch sử khi đặc tả (2026-10-22; mục 1, 2, 5, 7 đã có implementation)

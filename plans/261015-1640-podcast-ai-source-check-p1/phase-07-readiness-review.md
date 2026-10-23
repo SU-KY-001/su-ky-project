@@ -1,6 +1,12 @@
 # Phase 7: Tình trạng tập và màn kiểm duyệt hai cột
 
 Phụ thuộc: phase 2 (đọc `AiCheck` cho phần AI; có thể làm trước với `aiSummary = null`). Mockup 05. **Danh mục mục kiểm, quy tắc, hợp đồng, test: `spec-episode-readiness.md` (đọc trước).**
+## Trạng thái hiện tại (2026-10-23)
+
+- Readiness hiện có single-source `computeEpisodeReadiness`, legacy checklist compatibility, configurable `readiness.min_script_words`, AI summary input và review-content routes cho Admin/Moderator. Evidence: `apps/api/src/modules/content/application/episode-readiness.ts`, `content.mappers.ts`, `apps/api/src/modules/releases/application/release.service.ts`, `releases/presentation/release.routes.ts`.
+- APPROVE hiện kiểm readiness/assessment và ghi `readinessSnapshot`; publication gate kiểm AI disclosure, warning acceptance, rights expiry. Đây là implementation evidence, chưa phải full acceptance.
+- Chưa claim nghiệm thu live mod reviewer flow, concurrent reviewer behavior, worker durability/Gemini live; cần browser/E2E và DB-backed checks cuối. Assigned-producer self-review restriction vẫn là acceptance cần chứng minh bằng test/smoke, không suy ra từ route code.
+
 
 ## Việc cần làm
 

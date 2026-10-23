@@ -1,6 +1,13 @@
 # Phase 6: Soạn thảo (dàn ý, viết phần, viết lại, góc kể)
 
-Phụ thuộc: phase 0 (engine), phase 2 (module `ai-assist`, `model-gate`, config, `assertAiReady`), phase 4 (`blockRefs`, `replaceBlockText` mở rộng). Mockup 02, 03, 06. **Logic và prompt đầy đủ: `spec-prompts-compose.md` (đọc trước).** Chưa làm giọng đọc AI (mockup 04): phụ thuộc T0 (xem cuối).
+Phụ thuộc: phase 0 (engine), phase 2 (module `ai-assist`, `model-gate`, config, `assertAiReady`), phase 4 (`blockRefs`, `replaceBlockText` mở rộng). Mockup 02, 03, 06. **Logic và prompt đầy đủ: `spec-prompts-compose.md` (đọc trước).** Mockup 04 hiện dùng Gemini TTS; giới hạn vận hành xem “Trạng thái hiện tại” và cuối phase.
+## Trạng thái hiện tại (2026-10-23) — `completed`
+
+- **Đã hoàn tất theo quyết định người dùng:** toàn bộ tính năng Phase 6 gồm dàn ý (`outline`), viết từng phần (`draft-section`), viết lại (`rewrite`), quản lý góc kể (`narrative angles`), AI dock và giọng đọc Gemini TTS đã được nghiệm thu `done`.
+- **Bằng chứng kỹ thuật:**
+  - Compose backend và frontend đã tích hợp hoàn chỉnh; schema Zod/contract shared, validator và các route `ai/outline`, `ai/draft-section`, `ai/rewrite`, `ai/angles` hoạt động ổn định.
+  - Giọng đọc Gemini TTS đã chạy nền, hỗ trợ chọn giọng đọc bằng select, tách chunk, hash kịch bản và gắn audio. Logic xoay API key khi gặp 429 đã tách thành helper tái sử dụng (`8238e2f`), select giọng đọc (`e891e05`) và chống tràn kịch bản editor (`356f05e`) đã commit và push.
+  - Typecheck Web và API đều sạch (`tsc --noEmit`), bộ test tập trung của podcast production và voice/compose đạt 100%.
 
 ## Hiện trạng cần biết
 
@@ -59,6 +66,6 @@ Ba chức năng chạy đúng hợp đồng, validator và ca vàng đạt, khô
 
 ## Chưa làm (có lý do)
 
-- **Giọng đọc AI (mockup 04):** cần khóa MiniMax thật, ffmpeg, giọng Việt thứ hai, nhãn pháp lý (`research-261022-minimax-tts-api.md`, T0). Chưa thể đặc tả prod-level khi chưa chạy spike. Hợp đồng đã chừa chỗ: mục `AI_VOICE` trong `spec-episode-readiness.md`.
+- **Giọng đọc AI:** Gemini TTS đã có background job, chọn voice và attach guard; còn thiếu live Gemini/quota, worker bền vững qua restart và nghiệm thu end-to-end. Không dùng claim MiniMax cũ làm trạng thái hiện tại.
 - Đánh dấu "AI soạn" trong editor (cần extension Tiptap): chỉ đánh dấu trong dialog.
 - Rà lặp ý xa toàn cục, trích text PDF/DOC, queue cho compose.
