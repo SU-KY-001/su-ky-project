@@ -16,6 +16,8 @@ Từ trái sang phải: `H1 H2 B I U` · gạch · `• 1. ❝` · (đệm giãn
 
 Nút "Viết lại" nổi lên khi bôi đen: giữ nguyên như `ux/03`. Hướng dẫn về nó không còn nằm trong panel, chỉ còn ở placeholder editor.
 
+Khung nội dung editor cuộn dọc riêng ở cả chế độ xem và chỉnh sửa; thanh công cụ nằm ngoài vùng cuộn. Nội dung bên trong phải cao tự nhiên, không khóa `h-full overflow-hidden` làm cắt kịch bản dài. Đã kiểm wheel trên tập thật ngày 2026-10-23.
+
 ## 3. Dock: 3 trạng thái
 
 Dock nằm sát phải, cao bằng khung editor, đổi độ rộng bằng animation ~0,28 giây.

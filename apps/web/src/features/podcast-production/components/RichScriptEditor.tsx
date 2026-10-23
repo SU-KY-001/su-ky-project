@@ -319,7 +319,7 @@ export const RichScriptEditor = forwardRef<
       >
         <EditorContent
           editor={editor}
-          className="h-full min-w-0 max-w-full overflow-hidden"
+          className="min-w-0 max-w-full"
         />
       </div>
       {anchor ? <RewriteFloatingButton top={anchor.top} left={anchor.left} onClick={() => onRewriteRequest?.(anchor.range)} /> : null}
