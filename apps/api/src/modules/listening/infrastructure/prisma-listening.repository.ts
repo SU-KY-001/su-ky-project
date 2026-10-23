@@ -456,7 +456,7 @@ export class PrismaListeningRepository implements ListeningRepository {
         skipDuplicates: true,
       });
       // Serialized update: lock the row so concurrent progress syncs merge, not clobber.
-      await tx.$queryRaw`SELECT id FROM listening_progress WHERE user_id = ${userId} AND narration_id = ${narrationId} FOR UPDATE`;
+      await tx.$queryRaw`SELECT id FROM listening_progress WHERE user_id = ${userId} AND narration_id = ${narrationId}::uuid FOR UPDATE`;
       const current = await tx.listeningProgress.findUniqueOrThrow({
         where: { userId_narrationId: { userId, narrationId } },
       });

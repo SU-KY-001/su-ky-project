@@ -12,6 +12,7 @@ import { audioTime } from "./playlistFormat";
 import { Slider } from "@/shared/components/ui/slider";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/shared/components/ui/select";
 import { Label } from "@/shared/components/ui/label";
+import { mergePlayedRanges } from "./listeningBitmap";
 
 interface AudioPlaybackProps {
   narrationId: string;
@@ -48,6 +49,7 @@ export function AudioPlayback({ narrationId, userId, playlist = false, controlsH
     if (playRequest && audio.current && audio.current.readyState >= 1) toggle();
   }, [playRequest]);
   const progress = useRef({ bits: new Uint8Array(), previous: -1, positionMs: 0, dirty: false, saving: false, failed: false });
+  const flushProgress = useRef<() => Promise<void>>(async () => {});
 
   useEffect(() => {
     const value = playback.data;
@@ -58,15 +60,26 @@ export function AudioPlayback({ narrationId, userId, playlist = false, controlsH
       bits.set(stored.subarray(0, bits.length));
     }
     progress.current = { bits, previous: -1, positionMs: value.progress?.positionMs ?? 0, dirty: false, saving: false, failed: false };
+    // Capture this narration's state: an old request must never save the next track's state.
+    const state = progress.current;
+    let pending: Promise<void> | null = null;
     async function save(): Promise<void> {
-      const state = progress.current;
-      if (!state.dirty || state.saving) return;
+      if (pending) { await pending; if (state.dirty) await save(); return; }
+      const element = audio.current;
+      if (element && progress.current === state) {
+        const positionMs = Math.min(Math.round(element.currentTime * 1000), value!.audio.durationMs);
+        if (positionMs !== state.positionMs || element.ended) state.dirty = true;
+        mergePlayedRanges(state.bits, element.played, value!.audio.durationMs);
+        state.positionMs = positionMs;
+      }
+      if (!state.dirty) return;
       state.saving = true;
       state.dirty = false;
       const bitmap = btoa(Array.from(state.bits, (byte) => String.fromCharCode(byte)).join(""));
-      try {
+      pending = (async () => { try {
         const result = await libraryService.saveProgress(narrationId, { assetId: value!.audio.assetId, positionMs: state.positionMs, playedBitmap: bitmap });
         state.failed = false;
+        void queryClient.invalidateQueries({ queryKey: ["listening-history"] });
         if (result.completedAt) {
           void queryClient.invalidateQueries({ queryKey: ["library-missions"] });
           void queryClient.invalidateQueries({ queryKey: ["library-honors"] });
@@ -75,33 +88,42 @@ export function AudioPlayback({ narrationId, userId, playlist = false, controlsH
         state.dirty = true;
         if (!state.failed) notify.warning({ title: "Chưa lưu được tiến độ nghe", description: "Bạn vẫn có thể nghe. Hệ thống sẽ thử lưu lại." });
         state.failed = true;
-      } finally { state.saving = false; }
+      } finally { state.saving = false; } })();
+      await pending;
+      pending = null;
     }
+    flushProgress.current = save;
     const interval = window.setInterval(() => { void save(); }, Math.max(5000, value.sync.intervalMs));
     const element = audio.current;
     const flush = (): void => { void save(); };
+    const flushWhenHidden = (): void => { if (document.visibilityState === "hidden") flush(); };
     element?.addEventListener("pause", flush);
     element?.addEventListener("ended", flush);
-    return () => { window.clearInterval(interval); element?.removeEventListener("pause", flush); element?.removeEventListener("ended", flush); element?.pause(); void save(); };
+    document.addEventListener("visibilitychange", flushWhenHidden);
+    window.addEventListener("pagehide", flush);
+    return () => { window.clearInterval(interval); element?.removeEventListener("pause", flush); element?.removeEventListener("ended", flush); document.removeEventListener("visibilitychange", flushWhenHidden); window.removeEventListener("pagehide", flush); element?.pause(); void save(); };
   }, [playback.data, narrationId, queryClient]);
 
   if (playback.isPending) return playlist ? <p role="status" className="py-3 text-xs text-ink-soft">Đang mở bản thu…</p> : <LibraryState loading />;
   if (playback.isError) return playlist ? <div role="alert" className="flex flex-wrap items-center gap-3 text-xs"><p>Chưa mở được bản thu. Vui lòng thử lại.</p><Button size="sm" variant="outline" onClick={() => { void playback.refetch(); }}>Thử lại</Button></div> : <LibraryState error title="Chưa mở được bản thu" description="Kiểm tra kết nối hoặc đăng nhập lại để tiếp tục nghe." retry={() => { void playback.refetch(); }} />;
   return <div className={playlist ? "playlist-audio-engine" : "space-y-4"}>
-    <audio ref={audio} controls={!playlist} preload="metadata" className={playlist ? "hidden" : "w-full"} src={playback.data.audio.url} onPlay={() => { setPlaying(true); onPlayingChange?.(true); }} onPause={() => { setPlaying(false); onPlayingChange?.(false); }} onEnded={event => { setPlaying(false); onPlayingChange?.(false); if (repeat === "one") { event.currentTarget.currentTime = 0; progress.current.previous = -1; void event.currentTarget.play().catch(() => {}); } else onFinished?.(); }} onLoadedMetadata={(event) => { event.currentTarget.currentTime = (playback.data.progress?.positionMs ?? 0) / 1000; setPosition(event.currentTarget.currentTime); event.currentTarget.playbackRate = Number(speed); if (playlist) void event.currentTarget.play().catch(() => { setPlaying(false); onPlayingChange?.(false); }); }} onSeeking={() => { progress.current.previous = -1; }} onSeeked={(event) => { progress.current.previous = event.currentTarget.currentTime; }} onError={() => setAudioError(true)} onTimeUpdate={(event) => {
+    <audio ref={audio} controls={!playlist} preload="metadata" className={playlist ? "hidden" : "w-full"} src={playback.data.audio.url} onPlay={event => { progress.current.previous = event.currentTarget.currentTime; setPlaying(true); onPlayingChange?.(true); }} onPause={() => { setPlaying(false); onPlayingChange?.(false); }} onEnded={async event => { const element = event.currentTarget; setPlaying(false); onPlayingChange?.(false); await flushProgress.current(); if (repeat === "one") { element.currentTime = 0; progress.current.previous = -1; void element.play().catch(() => {}); } else onFinished?.(); }} onLoadedMetadata={(event) => { event.currentTarget.currentTime = (playback.data.progress?.positionMs ?? 0) / 1000; setPosition(event.currentTarget.currentTime); event.currentTarget.playbackRate = Number(speed); if (playlist) void event.currentTarget.play().catch(() => { setPlaying(false); onPlayingChange?.(false); }); }} onSeeking={() => { progress.current.previous = -1; }} onSeeked={(event) => { progress.current.previous = event.currentTarget.currentTime; progress.current.positionMs = Math.min(Math.round(event.currentTarget.currentTime * 1000), playback.data.audio.durationMs); progress.current.dirty = true; }} onError={() => setAudioError(true)} onTimeUpdate={(event) => {
       const element = event.currentTarget;
       const state = progress.current;
       const now = element.currentTime;
       if (playlist) setPosition(now);
       const delta = now - state.previous;
-      if (state.previous >= 0 && delta > 0 && delta <= 5 && !element.seeking) {
-        for (let second = Math.floor(state.previous); second < Math.floor(now); second++) {
-          if (second >= 0 && second < Math.ceil(playback.data.audio.durationMs / 1000)) state.bits[Math.floor(second / 8)] |= 1 << (second % 8);
-        }
+      if (delta > 0 && !element.seeking) {
+        mergePlayedRanges(state.bits, element.played, playback.data.audio.durationMs);
         state.dirty = true;
       }
       state.positionMs = Math.min(Math.round(now * 1000), playback.data.audio.durationMs);
       state.previous = now;
+      if (Math.floor(now) !== Math.floor(now - Math.max(0, delta))) {
+        const playedSeconds = mergePlayedRanges(state.bits, element.played, playback.data.audio.durationMs);
+        const percent = Math.min(100, playedSeconds / Math.ceil(playback.data.audio.durationMs / 1000) * 100);
+        queryClient.setQueriesData<Awaited<ReturnType<typeof libraryService.history>>>({ queryKey: ["listening-history", userId] }, old => old ? { ...old, items: old.items.map(item => item.lastNarrationId === narrationId ? { ...item, percent: Math.max(item.percent, percent), lastPositionMs: state.positionMs } : item) } : old);
+      }
     }} />
     {controlsHidden ? null : playlist ? <div className="playlist-transport">
       <div className="playlist-transport-buttons">
