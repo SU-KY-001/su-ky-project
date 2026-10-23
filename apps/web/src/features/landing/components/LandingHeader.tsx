@@ -9,13 +9,7 @@ import { useNavbarScrollAnimation } from "../hooks/useNavbarScrollAnimation";
 import { useReducedMotion } from "../hooks/useReducedMotion";
 import { useCurrentUser } from "@/shared/hooks/useCurrentUser";
 import { AccountProfile } from "@/features/auth";
-
-const links = [
-  { label: "Khám phá lịch sử", target: "library-history" },
-  { label: "Series & podcast", target: "library-podcasts" },
-  { label: "Quiz", target: "library-quiz" },
-  { label: "Lịch phát sóng", target: "upcoming" },
-];
+import { landingLinks } from "../navigation";
 
 export function LandingHeader({ surface = false }: { surface?: boolean }) {
   const navigate = useNavigate();
@@ -27,7 +21,7 @@ export function LandingHeader({ surface = false }: { surface?: boolean }) {
   const [menuOpen, setMenuOpen] = useState(false);
   const { navbarRef, isScrolled } = useNavbarScrollAnimation(reducedMotion, surface);
   const session = useCurrentUser();
-  const navigationLinks = session.data ? [...links, { label: "Lịch sử nghe", target: "library-listening-history" }] : links;
+  const navigationLinks = session.data ? [...landingLinks, { label: "Lịch sử nghe", target: "library-listening-history" }] : landingLinks;
   const accountControl = session.data ? <AccountProfile /> : session.isPending ? (
     <span className="h-9 w-28 rounded-lg bg-paper-deep/15" role="status" aria-label="Đang kiểm tra tài khoản" />
   ) : session.isError ? (
