@@ -1,6 +1,7 @@
 import { z } from "zod";
 import {
   AudioAnalysisSchema,
+  DialogueSchema,
   EditorDocumentSchema,
   SourceTierSchema,
 } from "@repo/shared";
@@ -119,6 +120,7 @@ export async function mapNarration(
     narration.scriptDocument,
   );
   const audioAnalysis = AudioAnalysisSchema.safeParse(narration.audioAnalysis);
+  const dialogue = DialogueSchema.safeParse(narration.dialogue);
   if (
     narration.scriptUpdatedAt &&
     narration.audioAttachedAt &&
@@ -140,6 +142,7 @@ export async function mapNarration(
     narrator: narration.narratorEntity ?? null,
     scriptContent: narration.scriptContent,
     scriptDocument: scriptDocument.success ? scriptDocument.data : null,
+    dialogue: dialogue.success ? dialogue.data : null,
     audioAnalysis: audioAnalysis.success ? audioAnalysis.data : null,
     wordCount,
     estimatedDurationMs,

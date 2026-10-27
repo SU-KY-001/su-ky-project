@@ -2,6 +2,7 @@ import { z } from "zod";
 import { ContentStatusSchema } from "../common";
 import { SeriesSourceSchema, HistoricalEntityTypeSchema } from "./catalog";
 import { AudioAnalysisSchema, EditorDocumentSchema } from "./editor-document";
+import { DialogueSchema } from "./dialogue";
 import { EpisodePosterSchema } from "./episode";
 import { EpisodeReadinessSchema } from "./readiness";
 import { PublicationApprovalSchema } from "./publication-review";
@@ -111,6 +112,7 @@ export const NarrationSchema = z.object({
   narrator: z.object({ id: uuid, name: z.string() }).nullable(),
   scriptContent: z.string().nullable(),
   scriptDocument: EditorDocumentSchema.nullable(),
+  dialogue: DialogueSchema.nullable(),
   audioAnalysis: AudioAnalysisSchema.nullable(),
   wordCount: z.number().int(),
   estimatedDurationMs: z.number().int(),

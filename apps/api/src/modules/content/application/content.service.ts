@@ -1,8 +1,11 @@
 import type { Session } from "../../auth";
 import {
   AttachAudioAnalysisSchema,
+  DialogueSchema,
+  dialogueScriptContent,
   EditorDocumentSchema,
   type AudioAnalysis,
+  type Dialogue,
   type EditorDocument,
   type PublishEpisodeExceptionInput,
 } from "@repo/shared";
@@ -795,6 +798,7 @@ export class ContentService {
       baseUpdatedAt?: Date;
       scriptContent?: string | null;
       scriptDocument?: EditorDocument | null;
+      dialogue?: Dialogue | null;
       narratorEntityId?: string | null;
     },
   ): Promise<EpisodeNarrationDetailEntity> {
@@ -809,10 +813,32 @@ export class ContentService {
       );
     let scriptDocument = input.scriptDocument;
     let scriptContent = input.scriptContent;
+    let dialogue: Dialogue | null | undefined;
+    if (input.dialogue != null) {
+      if (type !== "THIRD_PERSON" || input.scriptDocument != null)
+        throw new DomainError(
+          422,
+          "VALIDATION_ERROR",
+          "Dialogue is only for third-person scripts and excludes scriptDocument",
+        );
+      const parsed = DialogueSchema.safeParse(input.dialogue);
+      if (!parsed.success)
+        throw new DomainError(422, "VALIDATION_ERROR", "Dialogue is invalid");
+      dialogue = parsed.data;
+      scriptDocument = null;
+      scriptContent = dialogueScriptContent(parsed.data);
+    } else if (
+      input.dialogue === null ||
+      input.scriptDocument !== undefined ||
+      input.scriptContent !== undefined
+    ) {
+      // Saving any other script form switches the episode back to a single narrator.
+      dialogue = null;
+    }
     if (input.scriptDocument === undefined && input.scriptContent !== undefined) {
       scriptDocument = null;
     }
-    if (input.scriptDocument !== undefined) {
+    if (input.dialogue == null && input.scriptDocument !== undefined) {
       if (input.scriptDocument === null) {
         scriptContent = null;
       } else {
@@ -873,6 +899,7 @@ export class ContentService {
       narrationType: type,
       scriptContent,
       scriptDocument,
+      dialogue,
       narratorEntityId:
         type === "FIRST_PERSON" ? input.narratorEntityId! : null,
     });

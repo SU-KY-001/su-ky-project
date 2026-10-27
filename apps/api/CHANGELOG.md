@@ -5,6 +5,11 @@ Nhãn: `BREAKING` (code cũ gọi sẽ lỗi hoặc sai), `ADDITIVE` (mới, kh�
 
 ## [Unreleased]
 
+### ADDITIVE — Kịch bản hội thoại hai người (2026-10-27)
+- `PUT /api/studio/episodes/:id/narrations/THIRD_PERSON` nhận `dialogue` (`speakers` A/B + `turns`); narration của workspace trả thêm `dialogue` (null với tập một người kể). Migration `20261027120000_episode_dialogue` (additive, nullable `episode_narrations.dialogue`).
+- `POST /api/studio/episodes/:id/ai/voice`: `voice` nay tùy chọn. Tập hội thoại phải **bỏ** `voice`; tập một người kể vẫn phải gửi. `VoiceJob` thêm `mode` và `voice` nullable. FE đã cập nhật; client khác đọc `voice` cần chấp nhận null.
+- Env mới `TTS_DIALOGUE_MODEL` (mặc định `gemini-3.8-flash-tts`).
+
 ### FIX — TTS chuyển key khi bị giới hạn (2026-10-23)
 - `GEMINI_API_KEY` hỗ trợ danh sách phân cách bằng dấu phẩy. TTS chỉ fallback khi provider trả 429; thử mỗi key khác nhau tối đa một lần/chunk, dùng chung deadline và cancellation. Không đổi API/DTO; hết tất cả key vẫn trả lỗi `RATE_LIMITED` trong job. Review/compose lấy key đầu tiên khi không có `PI_API_KEY`.
 - Logic chọn key, chuyển khi 429 và ghi nhớ key đã tách vào `createApiKeyRotation()` (`modules/ai-engine/api-key-rotation.ts`) để tái dùng; mỗi consumer tạo instance riêng. Caller giữ deadline, cancellation và mapping lỗi; hành vi TTS/API không đổi.

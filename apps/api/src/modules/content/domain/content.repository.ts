@@ -18,7 +18,7 @@ import type {
   SeriesSourceEntity,
   SeriesSourceWithSourceEntity,
 } from "./content.entity";
-import type { AudioAnalysis, EditorDocument } from "@repo/shared";
+import type { AudioAnalysis, Dialogue, EditorDocument } from "@repo/shared";
 import type { EpisodePublishGate } from "../application/publication-gate";
 
 export interface CreateSeriesDraftInput {
@@ -100,6 +100,8 @@ export interface UpsertNarrationInput {
   /** Passed through verbatim: `undefined` keeps the stored content (Prisma semantics). */
   scriptContent?: string | null;
   scriptDocument?: EditorDocument | null;
+  /** Two-person script; when set, `scriptDocument` is null and `scriptContent` is its spoken text. */
+  dialogue?: Dialogue | null;
   narratorEntityId: string | null;
 }
 

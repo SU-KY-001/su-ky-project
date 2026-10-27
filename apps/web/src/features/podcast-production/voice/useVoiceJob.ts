@@ -13,7 +13,7 @@ export interface VoiceJobState {
   file: File | null;
   error: string;
   starting: boolean;
-  start: (voice: AiVoice) => Promise<void>;
+  start: (voice?: AiVoice) => Promise<void>;
   cancel: () => Promise<void>;
 }
 
@@ -66,13 +66,13 @@ export function useVoiceJob(episodeId: string | null): VoiceJobState {
     return () => controller.abort();
   }, [episodeId, status, job]);
 
-  const start = useCallback(async (voice: AiVoice): Promise<void> => {
+  const start = useCallback(async (voice?: AiVoice): Promise<void> => {
     if (!episodeId) return;
     setStarting(true);
     setError("");
     setFile(null);
     try {
-      const created = await voiceService.start(episodeId, { voice });
+      const created = await voiceService.start(episodeId, voice ? { voice } : {});
       sessionStorage.setItem(storageKey(episodeId), created.id);
       setJob(created);
     } catch (caught) {

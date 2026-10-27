@@ -1,4 +1,4 @@
-import type { AudioAnalysis, EditorDocument, EpisodeWorkspaceDto, EpisodePoster } from "@repo/shared";
+import { dialogueScriptContent, type AudioAnalysis, type Dialogue, type EditorDocument, type EpisodeWorkspaceDto, type EpisodePoster } from "@repo/shared";
 import { legacyScriptToDocument, scriptDocumentText } from "./scriptEditor";
 
 export type PodcastWizardStep = "information" | "script" | "voice" | "review";
@@ -18,6 +18,8 @@ export interface PodcastWizardState {
   description: string;
   historicalEventId: string;
   scriptDocument: EditorDocument | null;
+  /** Two-person script; when set the episode is a dialogue and `scriptDocument` is unused. */
+  dialogue: Dialogue | null;
   scriptText: string;
   scriptDirty: boolean;
   voiceMode: PodcastVoiceMode;
@@ -45,6 +47,7 @@ export type PodcastWizardAction =
       document: EditorDocument | null;
       text: string;
     }
+  | { type: "setDialogue"; value: Dialogue | null }
   | { type: "setScriptText"; value: string }
   | { type: "scriptSaved" }
   | { type: "setVoiceMode"; value: PodcastVoiceMode }
@@ -59,6 +62,7 @@ export function initialPodcastWizardState(): PodcastWizardState {
     description: "",
     historicalEventId: "",
     scriptDocument: null,
+    dialogue: null,
     scriptText: "",
     scriptDirty: false,
     voiceMode: "upload",
@@ -69,7 +73,7 @@ export function initialPodcastWizardState(): PodcastWizardState {
 }
 
 type ExistingEpisode = Pick<EpisodeWorkspaceDto, "id" | "seriesId" | "title" | "description" | "poster"> & {
-  narrations: Array<Pick<EpisodeWorkspaceDto["narrations"][number], "type" | "scriptContent" | "scriptDocument" | "audioAnalysis"> & {
+  narrations: Array<Pick<EpisodeWorkspaceDto["narrations"][number], "type" | "scriptContent" | "scriptDocument" | "dialogue" | "audioAnalysis"> & {
     audio: Pick<NonNullable<EpisodeWorkspaceDto["narrations"][number]["audio"]>, "assetId" | "previewUrl"> | null;
   }>;
 };
@@ -90,7 +94,8 @@ export function podcastWizardStateFromEpisode(
     poster: episode.poster ?? null,
     historicalEventId,
     scriptDocument,
-    scriptText: scriptDocument ? scriptDocumentText(scriptDocument) : "",
+    dialogue: narration?.dialogue ?? null,
+    scriptText: narration?.dialogue ? dialogueScriptContent(narration.dialogue) : scriptDocument ? scriptDocumentText(scriptDocument) : "",
     uploadedAudio: narration?.audio ? {
       assetId: narration.audio.assetId,
       previewUrl: narration.audio.previewUrl,
@@ -123,6 +128,13 @@ export function podcastWizardReducer(
       };
     case "scriptSaved":
       return { ...state, scriptDirty: false };
+    case "setDialogue":
+      return {
+        ...state,
+        dialogue: action.value,
+        scriptText: action.value ? dialogueScriptContent(action.value) : state.scriptDocument ? scriptDocumentText(state.scriptDocument) : "",
+        scriptDirty: true,
+      };
     case "setScriptText":
       return { ...state, scriptText: action.value };
     case "setVoiceMode":

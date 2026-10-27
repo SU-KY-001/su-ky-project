@@ -63,6 +63,8 @@ const envSchema = z
     AI_ANGLE_MAX_PER_USER: z.preprocess(emptyAsUndefined, z.coerce.number().int().positive().default(50)),
     // Gemini TTS voice generation (background job per episode). The free tier is ~10 requests a day: one request per chunk.
     TTS_MODEL: z.string().min(1).default("gemini-3.8-flash-lite-tts"),
+    // Two-speaker requests use the model Google recommends for dialogue; chunking reuses TTS_CHUNK_CHARS.
+    TTS_DIALOGUE_MODEL: z.string().min(1).default("gemini-3.8-flash-tts"),
     TTS_CHUNK_CHARS: z.preprocess(emptyAsUndefined, z.coerce.number().int().min(500).default(3000)),
     TTS_CONCURRENCY: z.preprocess(emptyAsUndefined, z.coerce.number().int().positive().default(3)),
     TTS_REQUEST_TIMEOUT_MS: z.preprocess(emptyAsUndefined, z.coerce.number().int().positive().default(180000)),

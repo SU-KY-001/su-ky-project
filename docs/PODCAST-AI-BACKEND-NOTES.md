@@ -20,6 +20,14 @@ Soạn dàn ý/viết phần/viết lại chạy qua ai-engine và model-gate; k
 - Job trong RAM, file ở temp; restart làm mất job chưa gắn. Sau khi người dùng upload/gắn, audio nằm trong media lifecycle hiện có. Chưa có segment editor, voice clone, speed control hoặc hàng đợi TTS bền vững.
 - MP3 có bước resample; không kết luận 24 kHz là nguyên nhân lỗi playback. Không cần gọi Gemini thật cho regression thông thường.
 
+### Kịch bản hội thoại hai người
+
+- `EpisodeNarration.dialogue` (JSON, nullable, chỉ `THIRD_PERSON`): `{ speakers: [A, B], turns[] }`, mỗi lượt có `id`, `speaker`, `text`, `style?`, `note?`. Lưu qua `PUT /api/studio/episodes/:id/narrations/THIRD_PERSON` với `dialogue`; server đặt `scriptDocument = null` và `scriptContent` = lời đã bỏ tag/`|` (đếm từ, thời lượng, kiểm duyệt dùng được). Gửi `scriptDocument`/`scriptContent` sau đó chuyển tập về một người kể (`dialogue = null`). `dialogue` cùng `scriptDocument` hoặc trên `FIRST_PERSON` trả 422.
+- Tag trong lời chỉ nhận danh sách `DIALOGUE_TAGS` (`@repo/shared`); `|…|` là người kia chen vào, phải cân bằng. Hai người nói khác tên và khác giọng; giọng chỉ là giọng dựng sẵn (không `en-us-riko`).
+- Voice job: tập hội thoại **không** gửi `voice` (giọng lấy từ `dialogue.speakers`); tập một người kể bắt buộc `voice`. Sai dạng trả 422. `VoiceJob` có `mode: "SINGLE" | "DIALOGUE"`, `voice` null với `DIALOGUE`. Một request Gemini = nhiều lượt nguyên vẹn (`speech_config.speakers` + `mode: "conversational"`), chia chunk theo `TTS_CHUNK_CHARS`, không cắt giữa lượt; model `TTS_DIALOGUE_MODEL` (mặc định `gemini-3.8-flash-tts`).
+- `scriptHash` của tập hội thoại = sha256 của `{speakers[key,voice], turns[speaker,text,style]}`; đổi `note` hoặc tên người nói không làm âm thanh cũ mất hiệu lực, đổi lời, giọng điệu, giọng hoặc thứ tự thì `HASH_MISMATCH`.
+- Chưa có: AI rà/soạn cho hội thoại, tạo lại riêng một lượt, lịch thu âm, giọng tự thiết kế/nhân bản. Giới hạn độ dài một request hai giọng của Gemini chưa đo; Gemini từ chối thì job `ERROR` kèm mã lỗi thật. Thu âm thủ công là thu ngoài hệ thống rồi upload một file; hệ thống không trộn track.
+
 ## Hồ sơ và quyết định kiểm duyệt
 
 APPROVE yêu cầu `PublicationAssessmentSchema`:

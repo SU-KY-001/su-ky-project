@@ -558,6 +558,7 @@ model EpisodeNarration {
   narratorEntityId  String?             @map("narrator_entity_id") @db.Uuid
   scriptContent     String?             @map("script_content") @db.Text
   scriptDocument    Json?               @map("script_document")
+  dialogue          Json?               @map("dialogue")
   audioAnalysis     Json?               @map("audio_analysis")
   audioAssetId      String?             @unique(map: "episode_narrations_audio_asset_id_key") @map("audio_asset_id") @db.Uuid
   scriptUpdatedAt   DateTime?           @map("script_updated_at") @db.Timestamptz(3)

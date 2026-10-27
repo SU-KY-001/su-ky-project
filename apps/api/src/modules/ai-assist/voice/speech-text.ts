@@ -1,5 +1,5 @@
 import { createHash } from "node:crypto";
-import type { EditorDocument } from "@repo/shared";
+import { DialogueSchema, dialogueSpeechKey, type Dialogue, type DialogueTurn, type EditorDocument } from "@repo/shared";
 import { extractScriptText } from "../../content/application/script-document";
 
 const SENTENCE_END = /(?<=[.!?…])\s+/;
@@ -16,6 +16,8 @@ export function speechParagraphs(document: EditorDocument | null, fallbackText: 
 export interface SpeechNarration {
   narrationType: string;
   scriptDocument: unknown;
+  /** Two-person script; when valid it replaces the paragraphs as the spoken source. */
+  dialogue?: unknown;
   scriptContent: string | null;
 }
 
@@ -29,8 +31,32 @@ export const speechNarration = <T extends SpeechNarration>(narrations: readonly 
  */
 export function scriptSpeechHash(narrations: readonly SpeechNarration[]): string {
   const narration = speechNarration(narrations);
+  const dialogue = speechDialogue(narration);
+  if (dialogue) return createHash("sha256").update(dialogueSpeechKey(dialogue)).digest("hex");
   const paragraphs = speechParagraphs((narration?.scriptDocument ?? null) as EditorDocument | null, narration?.scriptContent ?? null);
   return createHash("sha256").update(paragraphs.join("\n\n")).digest("hex");
+}
+
+/** The narration's two-person script, or null for a single-narrator episode (or a stored value that no longer validates). */
+export function speechDialogue(narration: Pick<SpeechNarration, "dialogue"> | undefined): Dialogue | null {
+  const parsed = DialogueSchema.safeParse(narration?.dialogue);
+  return parsed.success ? parsed.data : null;
+}
+
+/** Whole turns packed into requests of at most `maxChars` spoken characters; a turn is never split, so one longer than the limit gets its own request. */
+export function chunkDialogue(turns: readonly DialogueTurn[], maxChars: number): DialogueTurn[][] {
+  const chunks: DialogueTurn[][] = [];
+  let size = 0;
+  for (const turn of turns) {
+    if (chunks.length && size + turn.text.length <= maxChars) {
+      chunks[chunks.length - 1]!.push(turn);
+      size += turn.text.length;
+    } else {
+      chunks.push([turn]);
+      size = turn.text.length;
+    }
+  }
+  return chunks;
 }
 
 /** Greedy packing of paragraphs into requests of at most `maxChars`; an over-long paragraph is split at sentence ends. */

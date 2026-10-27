@@ -10,8 +10,8 @@ import { env } from "../../../core/env";
 import { logger } from "../../../core/logger";
 import type { Session } from "../../auth";
 import type { ContentService } from "../../content/application/content.service";
-import { synthesizeWav } from "./gemini-tts";
-import { chunkSpeech, scriptSpeechHash, speechNarration, speechParagraphs } from "./speech-text";
+import { synthesizeDialogueWav, synthesizeWav } from "./gemini-tts";
+import { chunkDialogue, chunkSpeech, scriptSpeechHash, speechDialogue, speechNarration, speechParagraphs } from "./speech-text";
 
 const execFileAsync = promisify(execFile);
 const LOG_SCOPE = "ai-voice";
@@ -23,6 +23,12 @@ const MP3_SAMPLE_RATE = 44_100;
 const SWEEP_INTERVAL_MS = 60_000;
 const JOB_DIR = join(tmpdir(), "suky-voice");
 
+/** One request to the TTS service: its size in spoken characters and how to run it. */
+interface Unit {
+  chars: number;
+  run: (signal: AbortSignal) => Promise<Buffer>;
+}
+
 interface Job {
   id: string;
   userId: string;
@@ -30,7 +36,9 @@ interface Job {
   /** Identity of the script the job reads (see scriptSpeechHash) and the episode revision it was read at. */
   scriptHash: string;
   contentRevision: number;
-  voice: AiVoice;
+  mode: VoiceJob["mode"];
+  /** Null for DIALOGUE jobs: their voices come from the script's speakers. */
+  voice: AiVoice | null;
   status: VoiceJob["status"];
   total: number;
   done: number;
@@ -43,13 +51,14 @@ interface Job {
 }
 
 const toDto = (job: Job): VoiceJob => ({
-  id: job.id, status: job.status, voice: job.voice, total: job.total, done: job.done, chars: job.chars, error: job.error, durationMs: job.durationMs,
+  id: job.id, status: job.status, mode: job.mode, voice: job.voice, total: job.total, done: job.done, chars: job.chars, error: job.error, durationMs: job.durationMs,
   scriptHash: job.scriptHash, contentRevision: job.contentRevision,
-  model: env.TTS_MODEL, style: env.TTS_STYLE,
+  model: job.mode === "DIALOGUE" ? env.TTS_DIALOGUE_MODEL : env.TTS_MODEL, style: job.mode === "DIALOGUE" ? "" : env.TTS_STYLE,
 });
 
 export interface VoiceDeps {
   synthesize?: typeof synthesizeWav;
+  synthesizeDialogue?: typeof synthesizeDialogueWav;
   /** Joins the WAV files listed in `listFile` (ffmpeg concat format) into the mp3 at `outFile`. */
   encode?: (listFile: string, outFile: string) => Promise<void>;
 }
@@ -68,24 +77,32 @@ export class VoiceService {
   private readonly jobs = new Map<string, Job>();
 
   private readonly synthesize: typeof synthesizeWav;
+  private readonly synthesizeDialogue: typeof synthesizeDialogueWav;
   private readonly encode: (listFile: string, outFile: string) => Promise<void>;
 
   constructor(private readonly content: Pick<ContentService, "getEpisodeForRead">, deps: VoiceDeps = {}) {
     this.synthesize = deps.synthesize ?? synthesizeWav;
+    this.synthesizeDialogue = deps.synthesizeDialogue ?? synthesizeDialogueWav;
     this.encode = deps.encode ?? encodeWithFfmpeg;
     setInterval(() => void this.sweep(), SWEEP_INTERVAL_MS).unref();
   }
 
-  async start(session: Session, episodeId: string, voice: AiVoice): Promise<VoiceJob> {
+  async start(session: Session, episodeId: string, voice?: AiVoice): Promise<VoiceJob> {
     const episode = await this.content.getEpisodeForRead(session, episodeId);
     const narration = speechNarration(episode.narrations);
-    const chunks = chunkSpeech(speechParagraphs((narration?.scriptDocument ?? null) as EditorDocument | null, narration?.scriptContent ?? null), env.TTS_CHUNK_CHARS);
-    if (!chunks.length) throw new DomainError(422, "VALIDATION_ERROR", "Tập chưa có kịch bản đã lưu để đọc");
+    const dialogue = speechDialogue(narration);
+    // Dialogue voices come from the script; a single narrator needs the voice chosen in the request.
+    if (dialogue && voice) throw new DomainError(422, "VALIDATION_ERROR", "Tập hội thoại lấy giọng từ người nói, không gửi voice");
+    if (!dialogue && !voice) throw new DomainError(422, "VALIDATION_ERROR", "Cần chọn giọng đọc");
+    const units: Unit[] = dialogue
+      ? chunkDialogue(dialogue.turns, env.TTS_CHUNK_CHARS).map((turns) => ({ chars: turns.reduce((sum, turn) => sum + turn.text.length, 0), run: (signal) => this.synthesizeDialogue(turns, dialogue.speakers, signal) }))
+      : chunkSpeech(speechParagraphs((narration?.scriptDocument ?? null) as EditorDocument | null, narration?.scriptContent ?? null), env.TTS_CHUNK_CHARS).map((text) => ({ chars: text.length, run: (signal) => this.synthesize(text, voice!, signal) }));
+    if (!units.length) throw new DomainError(422, "VALIDATION_ERROR", "Tập chưa có kịch bản đã lưu để đọc");
 
     const scriptHash = scriptSpeechHash(episode.narrations);
     // From here to jobs.set() there is no await: two concurrent starts cannot both pass this check.
     const running = [...this.jobs.values()].find((job) => job.episodeId === episodeId && job.userId === session.user.id && job.status === "RUNNING");
-    if (running?.scriptHash === scriptHash && running.voice === voice) return toDto(running);
+    if (running?.scriptHash === scriptHash && running.voice === (voice ?? null)) return toDto(running);
     // The script or voice changed since that job started: its audio would be stale, so replace it rather than hand it back.
     if (running) {
       running.abort.abort();
@@ -93,11 +110,11 @@ export class VoiceService {
     }
     const job: Job = {
       id: randomUUID(), userId: session.user.id, episodeId, scriptHash, contentRevision: episode.contentRevision,
-      voice, status: "RUNNING", total: chunks.length, done: 0,
-      chars: chunks.reduce((sum, chunk) => sum + chunk.length, 0), error: null, durationMs: null, mp3Path: null, finishedAt: null, abort: new AbortController(),
+      mode: dialogue ? "DIALOGUE" : "SINGLE", voice: voice ?? null, status: "RUNNING", total: units.length, done: 0,
+      chars: units.reduce((sum, unit) => sum + unit.chars, 0), error: null, durationMs: null, mp3Path: null, finishedAt: null, abort: new AbortController(),
     };
     this.jobs.set(job.id, job);
-    void this.run(job, chunks);
+    void this.run(job, units);
     return toDto(job);
   }
 
@@ -131,23 +148,23 @@ export class VoiceService {
     job.finishedAt = Date.now();
   }
 
-  private async run(job: Job, chunks: string[]): Promise<void> {
+  private async run(job: Job, units: Unit[]): Promise<void> {
     const dir = join(JOB_DIR, job.id);
     const started = Date.now();
     try {
       await mkdir(dir, { recursive: true });
-      const wavs = new Array<Buffer>(chunks.length);
+      const wavs = new Array<Buffer>(units.length);
       let next = 0;
       const worker = async (): Promise<void> => {
         while (job.status === "RUNNING") {
           const index = next++;
-          if (index >= chunks.length) return;
-          wavs[index] = await this.synthesize(chunks[index]!, job.voice, job.abort.signal);
+          if (index >= units.length) return;
+          wavs[index] = await units[index]!.run(job.abort.signal);
           job.done += 1;
         }
       };
       try {
-        await Promise.all(Array.from({ length: Math.min(env.TTS_CONCURRENCY, chunks.length) }, worker));
+        await Promise.all(Array.from({ length: Math.min(env.TTS_CONCURRENCY, units.length) }, worker));
       } catch (error) {
         job.abort.abort(); // stop the sibling workers: their quota would be wasted
         throw error;
@@ -169,7 +186,7 @@ export class VoiceService {
       job.durationMs = Math.round((wavs.reduce((sum, wav) => sum + wav.length - WAV_HEADER_BYTES, 0) / PCM_BYTES_PER_SECOND) * 1000);
       job.mp3Path = mp3;
       this.finish(job, "DONE", null);
-      logger.info({ scope: LOG_SCOPE, jobId: job.id, episodeId: job.episodeId, chunks: chunks.length, chars: job.chars, elapsedMs: Date.now() - started }, "voice job done");
+      logger.info({ scope: LOG_SCOPE, jobId: job.id, episodeId: job.episodeId, mode: job.mode, chunks: units.length, chars: job.chars, elapsedMs: Date.now() - started }, "voice job done");
     } catch (error) {
       if (job.status !== "RUNNING") return;
       const message = error instanceof DomainError ? error.message : "Không tạo được giọng đọc. Thử lại sau.";

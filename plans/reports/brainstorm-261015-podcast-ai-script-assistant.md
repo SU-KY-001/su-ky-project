@@ -1,5 +1,7 @@
 # Brainstorm: AI trong quy trình sản xuất podcast (Studio): trợ lý soạn/review, quản lý-kiểm duyệt, TTS MiniMax, 2 người kể
 
+> **2026-10-27:** phần "2 người kể" (T2, `NarrationSegment`, `narrationMode`) và TTS MiniMax trong báo cáo này đã được thay: TTS dùng Gemini (đã triển khai), hai người nói theo `plans/261027-two-person-podcast/`.
+
 **Ngày:** 2026-10-15, viết lại 2026-10-22 (mở rộng phạm vi theo yêu cầu mới)
 **Trạng thái:** P1 đã chốt và có plan `plans/261015-1640-podcast-ai-source-check-p1/` (6 phase, phase 0 sửa ai-engine). **2026-10-22: P1 đổi thành "AI rà kịch bản" (mindset kể chuyện trước, nguồn thứ yếu), xem mục ngay dưới.** Hợp đồng P1 ở mục 6 đã cập nhật theo. Các nhóm mới (soạn thảo, quản lý, TTS, 2 người kể) có hướng đề xuất, **chưa lập plan**; việc cần bạn quyết ở "Chưa chốt".
 

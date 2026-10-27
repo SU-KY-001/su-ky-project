@@ -59,8 +59,10 @@ export function usePodcastCreationWizard(initialState?: () => PodcastWizardState
   const saveScript = useCallback(
     async (document: EditorDocument | null) => {
       const id = await ensureDraft();
-      const narration = await api.script(id, { scriptDocument: document });
-      if (stateRef.current.scriptDocument === document) dispatch({ type: "scriptSaved" });
+      const { dialogue } = stateRef.current;
+      const narration = await api.script(id, dialogue ? { dialogue } : { scriptDocument: document });
+      const unchanged = dialogue ? stateRef.current.dialogue === dialogue : stateRef.current.scriptDocument === document;
+      if (unchanged) dispatch({ type: "scriptSaved" });
       await invalidate();
       return narration;
     },

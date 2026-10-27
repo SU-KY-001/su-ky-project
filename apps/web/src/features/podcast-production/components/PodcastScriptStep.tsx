@@ -35,6 +35,8 @@ import {
 } from "../scriptEditor";
 import { podcastProductionService as api } from "../services/podcastProductionService";
 import { RichScriptEditor, type RichScriptEditorHandle } from "./RichScriptEditor";
+import { DialogueScriptStep } from "./DialogueScriptStep";
+import { newDialogue } from "../dialogueState";
 import { AiDock, type AiTab } from "./AiDock";
 import type { DockState } from "./AiAssistantPanel";
 import type { SelectionRange } from "../aiCheck/editorBlocks";
@@ -167,6 +169,8 @@ export function PodcastScriptStep({
     }
   };
 
+  if (wizard.state.dialogue) return <DialogueScriptStep wizard={wizard} readOnly={readOnly} />;
+
   if (readOnly) return (
     <section aria-labelledby="podcast-script-title" className="space-y-4">
       <div>
@@ -196,6 +200,11 @@ export function PodcastScriptStep({
         <div>
           <h2 id="podcast-script-title" className="text-lg font-bold text-mod-text">Kịch bản</h2>
           <p className="mt-1 text-sm text-mod-text-secondary">Soạn nội dung, gắn nguồn và tải tài liệu bổ sung.</p>
+          {characterCount === 0 ? (
+            <Button type="button" variant="outline" size="sm" className="mt-2" onClick={() => wizard.dispatch({ type: "setDialogue", value: newDialogue() })}>
+              Chuyển sang hội thoại hai người
+            </Button>
+          ) : null}
         </div>
         <div className="text-right text-xs text-mod-text-secondary">
           <p>

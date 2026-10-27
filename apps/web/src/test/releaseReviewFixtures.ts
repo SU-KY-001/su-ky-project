@@ -16,7 +16,7 @@ export function releaseReviewFixture(): { schedule: ReleaseScheduleRecord; episo
     seriesStatus: "DRAFT", title: "Chiến dịch Điện Biên Phủ", slug: "dien-bien-phu", description: "Tư liệu chiến dịch năm 1954", sortOrder: 1,
     status: "DRAFT", isDeleted: false, lock: null, publishedAt: null, updatedAt: timestamp,
     narrations: [{ id: "00000000-0000-4000-8000-000000000005", type: "THIRD_PERSON", narrator: null,
-      scriptContent: "Nội dung kịch bản cần kiểm duyệt. <script>không thực thi</script>", scriptDocument: null, audioAnalysis: null,
+      scriptContent: "Nội dung kịch bản cần kiểm duyệt. <script>không thực thi</script>", scriptDocument: null, dialogue: null, audioAnalysis: null,
       wordCount: 9, estimatedDurationMs: 4000, updatedAt: timestamp, warnings: [],
       audio: { assetId: "00000000-0000-4000-8000-000000000006", durationMs: 4000, sizeBytes: 1024, format: "mp3", previewUrl: "https://example.org/recording.mp3", attachedAt: timestamp },
     }],

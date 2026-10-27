@@ -76,6 +76,7 @@ function createHarness(maxChars = 60_000, allowedSourceIds: string[] = []) {
     narratorEntityId: null,
     scriptContent: null,
     scriptDocument: null,
+    dialogue: null,
     audioAnalysis: null,
     audioAssetId: null,
     scriptUpdatedAt: null,
@@ -110,6 +111,7 @@ function createHarness(maxChars = 60_000, allowedSourceIds: string[] = []) {
         ...baseNarration,
         scriptContent: input.scriptContent ?? null,
         scriptDocument: input.scriptDocument ?? null,
+        dialogue: input.dialogue ?? null,
       };
     },
     attachAudio: async (_id: string, input: AttachAudioInput) => {
@@ -198,6 +200,40 @@ describe("rich narration persistence", () => {
       scriptContent: "Kịch bản văn bản thuần mới",
       scriptDocument: null,
     });
+  });
+
+  it("stores a dialogue with its spoken text and clears the rich document; plain saves switch it back off", async () => {
+    const harness = createHarness();
+    const dialogue = {
+      speakers: [
+        { key: "A", name: "Veda", voice: "Kore" },
+        { key: "B", name: "Rami", voice: "Charon" },
+      ],
+      turns: [
+        { id: "7a1a0d9e-5b5f-4d6c-8f0e-0a1b2c3d4e5f", speaker: "A", text: "<chuckle> Chào |ừ| bạn." },
+        { id: "8b2b1e0f-6c60-4e7d-9a1f-1b2c3d4e5f60", speaker: "B", text: "Chào lại." },
+      ],
+    } as const;
+
+    await harness.service.putNarration(session, episodeId, "THIRD_PERSON", { dialogue: dialogue as never });
+    expect(harness.upsertInput()).toMatchObject({ scriptContent: "Chào ừ bạn.\nChào lại.", scriptDocument: null, dialogue });
+
+    await harness.service.putNarration(session, episodeId, "THIRD_PERSON", { scriptContent: "Văn bản thuần" });
+    expect(harness.upsertInput()?.dialogue).toBeNull();
+  });
+
+  it("rejects a dialogue next to a document, on first person, or with a bad tag", async () => {
+    const turn = { id: "7a1a0d9e-5b5f-4d6c-8f0e-0a1b2c3d4e5f", speaker: "A", text: "Xin chào." };
+    const speakers = [
+      { key: "A", name: "Veda", voice: "Kore" },
+      { key: "B", name: "Rami", voice: "Charon" },
+    ];
+    const put = (type: "THIRD_PERSON" | "FIRST_PERSON", input: object) =>
+      createHarness().service.putNarration(session, episodeId, type, input as never);
+    await expect(put("THIRD_PERSON", { dialogue: { speakers, turns: [turn] }, scriptDocument: document })).rejects.toMatchObject({ code: "VALIDATION_ERROR" });
+    await expect(put("FIRST_PERSON", { dialogue: { speakers, turns: [turn] } })).rejects.toMatchObject({ code: "VALIDATION_ERROR" });
+    await expect(put("THIRD_PERSON", { dialogue: { speakers, turns: [{ ...turn, text: "<shout> Xin chào." }] } })).rejects.toMatchObject({ code: "VALIDATION_ERROR" });
+    await expect(put("THIRD_PERSON", { dialogue: { speakers: [speakers[0], { ...speakers[1], voice: "Kore" }], turns: [turn] } })).rejects.toMatchObject({ code: "VALIDATION_ERROR" });
   });
 
   it("rejects a citation that is not attached to the selected series", async () => {
