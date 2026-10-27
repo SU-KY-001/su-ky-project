@@ -10,7 +10,8 @@ import {
   type StudioSeriesDetailDto,
 } from "@repo/shared";
 import { Button } from "@/shared/components/ui/button";
-import { Eye, PencilSimple } from "@phosphor-icons/react";
+import { Eye } from "@phosphor-icons/react/dist/icons/Eye";
+import { PencilSimple } from "@phosphor-icons/react/dist/icons/PencilSimple";
 import { DashboardRowActions } from "@/shared/components/dashboard/DashboardRowActions";
 import {
   Dialog,

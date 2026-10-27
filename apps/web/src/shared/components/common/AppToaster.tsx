@@ -1,4 +1,9 @@
-import { CheckCircle, CircleNotch, Info, Warning, WarningCircle, X } from "@phosphor-icons/react";
+import { CheckCircle } from "@phosphor-icons/react/dist/icons/CheckCircle";
+import { CircleNotch } from "@phosphor-icons/react/dist/icons/CircleNotch";
+import { Info } from "@phosphor-icons/react/dist/icons/Info";
+import { Warning } from "@phosphor-icons/react/dist/icons/Warning";
+import { WarningCircle } from "@phosphor-icons/react/dist/icons/WarningCircle";
+import { X } from "@phosphor-icons/react/dist/icons/X";
 import { useEffect, useRef, useState, type CSSProperties, type ReactElement } from "react";
 import { Button } from "../ui/button";
 import { Toast, ToastClose, ToastDescription, ToastProvider, ToastTitle, ToastViewport } from "../ui/toast";

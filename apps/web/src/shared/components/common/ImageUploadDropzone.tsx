@@ -1,6 +1,12 @@
 import { useEffect, useId, useRef, useState, type ReactElement } from "react";
 import type { EpisodePoster as UploadedImage, ImageUploadPolicy } from "@repo/shared";
-import { ArrowClockwise, CheckCircle, Image as ImageIcon, SpinnerGap, UploadSimple, WarningCircle, X } from "@phosphor-icons/react";
+import { ArrowClockwise } from "@phosphor-icons/react/dist/icons/ArrowClockwise";
+import { CheckCircle } from "@phosphor-icons/react/dist/icons/CheckCircle";
+import { Image as ImageIcon } from "@phosphor-icons/react/dist/icons/Image";
+import { SpinnerGap } from "@phosphor-icons/react/dist/icons/SpinnerGap";
+import { UploadSimple } from "@phosphor-icons/react/dist/icons/UploadSimple";
+import { WarningCircle } from "@phosphor-icons/react/dist/icons/WarningCircle";
+import { X } from "@phosphor-icons/react/dist/icons/X";
 import { ApiError } from "@/lib/apiError";
 import { cn } from "@/lib/utils";
 import { Button } from "../ui/button";

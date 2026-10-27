@@ -1,5 +1,10 @@
 import { Component, lazy, Suspense, useCallback, useEffect, useRef, useState, type ReactElement, type ReactNode } from "react";
-import { ArrowDown, ArrowLeft, ArrowRight, ArrowUp, Compass, MouseSimple } from "@phosphor-icons/react";
+import { ArrowDown } from "@phosphor-icons/react/dist/icons/ArrowDown";
+import { ArrowLeft } from "@phosphor-icons/react/dist/icons/ArrowLeft";
+import { ArrowRight } from "@phosphor-icons/react/dist/icons/ArrowRight";
+import { ArrowUp } from "@phosphor-icons/react/dist/icons/ArrowUp";
+import { Compass } from "@phosphor-icons/react/dist/icons/Compass";
+import { MouseSimple } from "@phosphor-icons/react/dist/icons/MouseSimple";
 import { Button } from "@/shared/components/ui/button";
 import { artworks, chapters } from "./data";
 import { ArtworkDetail, ExhibitionMenu } from "./components/ExhibitionDialogs";

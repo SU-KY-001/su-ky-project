@@ -19,6 +19,9 @@ import { createComposeRoute } from "./compose/presentation/compose.routes";
 import { createVoiceRoute } from "./voice/voice.routes";
 import { VoiceService } from "./voice/voice.service";
 import { createPostgresSourcePageStore } from "./review/sources/postgres-source-page-store";
+import { quizAuthoringService } from "../gamification/quiz-authoring.service";
+import { QuizGenerationService } from "./quiz/quiz-generation.service";
+import { createQuizGenerationRoute } from "./quiz/quiz-generation.routes";
 
 const config = readAiAssistConfig();
 const repo = new PrismaAiCheckRepository();
@@ -58,7 +61,12 @@ export function createStudioAiAssistRoute() {
   return createAiCheckRoute(service, { repo, hub, heartbeatMs: config.heartbeatMs })
     .route("/", createAngleRoute(angleService))
     .route("/", createComposeRoute(composeService))
-    .route("/", createVoiceRoute(new VoiceService(contentService)));
+    .route("/", createVoiceRoute(new VoiceService(contentService)))
+    .route("/", createQuizGenerationRoute(new QuizGenerationService({
+      loadScript: (episodeId, userId) => quizAuthoringService.script(episodeId, userId),
+      runAgent: runStructuredAgent, assertReady: assertAiReady, gate,
+      timeoutMs: env.AI_ASSIST_CALL_TIMEOUT_MS, maxConcurrentPerUser: config.maxConcurrentPerUser,
+    })));
 }
 
 /** Closes RUNNING checks whose heartbeat is stale (crash, restart); called by the maintenance job. */

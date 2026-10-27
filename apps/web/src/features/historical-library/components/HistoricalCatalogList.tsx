@@ -8,7 +8,10 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/shared/components/ui/dialog";
-import { CaretDown, CaretUp, CaretUpDown, PencilSimple } from "@phosphor-icons/react";
+import { CaretDown } from "@phosphor-icons/react/dist/icons/CaretDown";
+import { CaretUp } from "@phosphor-icons/react/dist/icons/CaretUp";
+import { CaretUpDown } from "@phosphor-icons/react/dist/icons/CaretUpDown";
+import { PencilSimple } from "@phosphor-icons/react/dist/icons/PencilSimple";
 import { DashboardRowActions } from "@/shared/components/dashboard/DashboardRowActions";
 import { TableCell, TableHead, TableRow } from "@/shared/components/ui/table";
 import { useCurrentUser } from "@/shared/hooks/useCurrentUser";

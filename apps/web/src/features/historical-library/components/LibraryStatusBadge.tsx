@@ -1,9 +1,7 @@
-import {
-  CheckCircle,
-  ClockCounterClockwise,
-  FileDashed,
-  WarningCircle,
-} from "@phosphor-icons/react";
+import { CheckCircle } from "@phosphor-icons/react/dist/icons/CheckCircle";
+import { ClockCounterClockwise } from "@phosphor-icons/react/dist/icons/ClockCounterClockwise";
+import { FileDashed } from "@phosphor-icons/react/dist/icons/FileDashed";
+import { WarningCircle } from "@phosphor-icons/react/dist/icons/WarningCircle";
 import { cn } from "@/lib/utils";
 import { Badge } from "@/shared/components/ui/badge";
 import type { LibraryStatus } from "../types";

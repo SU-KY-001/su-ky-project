@@ -1,4 +1,5 @@
-import { Headphones, ListBullets } from "@phosphor-icons/react";
+import { Headphones } from "@phosphor-icons/react/dist/icons/Headphones";
+import { ListBullets } from "@phosphor-icons/react/dist/icons/ListBullets";
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { Link } from "react-router";

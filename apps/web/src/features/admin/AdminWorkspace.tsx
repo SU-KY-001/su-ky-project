@@ -1,14 +1,12 @@
 import { useState } from "react";
-import {
-  Article,
-  Books,
-  ChartBar,
-  Gear,
-  List,
-  ListChecks,
-  Scroll,
-  Users,
-} from "@phosphor-icons/react";
+import { Article } from "@phosphor-icons/react/dist/icons/Article";
+import { Books } from "@phosphor-icons/react/dist/icons/Books";
+import { ChartBar } from "@phosphor-icons/react/dist/icons/ChartBar";
+import { Gear } from "@phosphor-icons/react/dist/icons/Gear";
+import { List } from "@phosphor-icons/react/dist/icons/List";
+import { ListChecks } from "@phosphor-icons/react/dist/icons/ListChecks";
+import { Scroll } from "@phosphor-icons/react/dist/icons/Scroll";
+import { Users } from "@phosphor-icons/react/dist/icons/Users";
 import { Button } from "@/shared/components/ui/button";
 import { Separator } from "@/shared/components/ui/separator";
 import {

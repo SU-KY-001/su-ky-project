@@ -1,4 +1,6 @@
-import { ArrowCounterClockwise, LockKey, SealCheck } from "@phosphor-icons/react";
+import { ArrowCounterClockwise } from "@phosphor-icons/react/dist/icons/ArrowCounterClockwise";
+import { LockKey } from "@phosphor-icons/react/dist/icons/LockKey";
+import { SealCheck } from "@phosphor-icons/react/dist/icons/SealCheck";
 import { useState } from "react";
 import { Button } from "@/shared/components/ui/button";
 import { SectionFrame, SectionHeading } from "./SectionFrame";

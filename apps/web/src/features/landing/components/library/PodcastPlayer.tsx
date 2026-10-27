@@ -1,7 +1,14 @@
 import { useEffect, useId, useRef, useState, type ReactElement } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import type { LibraryChapter } from "@repo/shared";
-import { Headphones, Play, Pause, Shuffle, SkipBack, SkipForward, Repeat, SpeakerHigh } from "@phosphor-icons/react";
+import { Headphones } from "@phosphor-icons/react/dist/icons/Headphones";
+import { Play } from "@phosphor-icons/react/dist/icons/Play";
+import { Pause } from "@phosphor-icons/react/dist/icons/Pause";
+import { Shuffle } from "@phosphor-icons/react/dist/icons/Shuffle";
+import { SkipBack } from "@phosphor-icons/react/dist/icons/SkipBack";
+import { SkipForward } from "@phosphor-icons/react/dist/icons/SkipForward";
+import { Repeat } from "@phosphor-icons/react/dist/icons/Repeat";
+import { SpeakerHigh } from "@phosphor-icons/react/dist/icons/SpeakerHigh";
 import { Button } from "@/shared/components/ui/button";
 import { useCurrentUser } from "@/shared/hooks/useCurrentUser";
 import { notify } from "@/shared/lib/notifications";

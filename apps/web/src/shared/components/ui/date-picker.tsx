@@ -1,5 +1,7 @@
 import { useEffect, useState, type KeyboardEvent } from "react";
-import { CalendarBlank, Clock, X } from "@phosphor-icons/react";
+import { CalendarBlank } from "@phosphor-icons/react/dist/icons/CalendarBlank";
+import { Clock } from "@phosphor-icons/react/dist/icons/Clock";
+import { X } from "@phosphor-icons/react/dist/icons/X";
 import { cn } from "@/lib/utils";
 import { Button } from "./button";
 import { Calendar } from "./calendar";

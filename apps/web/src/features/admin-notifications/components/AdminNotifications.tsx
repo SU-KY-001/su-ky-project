@@ -1,6 +1,10 @@
 import { useState, type FormEvent } from "react";
 import type { ReleaseReassignmentTicket, ReleaseReassignmentTicketStatus } from "@repo/shared";
-import { ArrowRight, CheckCircle, Eye, Ticket, XCircle } from "@phosphor-icons/react";
+import { ArrowRight } from "@phosphor-icons/react/dist/icons/ArrowRight";
+import { CheckCircle } from "@phosphor-icons/react/dist/icons/CheckCircle";
+import { Eye } from "@phosphor-icons/react/dist/icons/Eye";
+import { Ticket } from "@phosphor-icons/react/dist/icons/Ticket";
+import { XCircle } from "@phosphor-icons/react/dist/icons/XCircle";
 import { errorMessage } from "@/lib/apiError";
 import { CardBadge, cardBadgeToneForStatus } from "@/shared/components/dashboard/CardBadge";
 import { DashboardHeader } from "@/shared/components/dashboard/DashboardOverview";

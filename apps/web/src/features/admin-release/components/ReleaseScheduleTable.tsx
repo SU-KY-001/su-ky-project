@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 import type { ReleaseScheduleRecord, ReleaseScheduleStatus } from "@repo/shared";
-import { Eye } from "@phosphor-icons/react";
+import { Eye } from "@phosphor-icons/react/dist/icons/Eye";
 import { DashboardRowActions } from "@/shared/components/dashboard/DashboardRowActions";
 import {
   CardBadge,

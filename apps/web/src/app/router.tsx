@@ -4,7 +4,6 @@ import { AppLoadingFallback } from "./AppLoadingFallback";
 import { APP_PATHS } from "@/shared/constants/routes";
 import { MODERATOR_SECTION_SEGMENTS } from "@/features/moderator/paths";
 import { AppFrame } from "@/shared/layouts/AppFrame";
-import { LoginPage } from "@/pages/auth/LoginPage";
 import { apiUrl } from "@/lib/client";
 import { PublicRoute } from "@/shared/components/common/PublicRoute";
 import { LandingLoadingPage } from "@/pages/landing/LandingLoadingPage";
@@ -83,7 +82,14 @@ export const appRoutes: RouteObject[] = [
               {
                 id: "guest-routes",
                 element: <GuestRoute />,
-                children: [{ id: "login", path: APP_PATHS.login.slice(1), Component: LoginPage }],
+                children: [{
+                  id: "login",
+                  path: APP_PATHS.login.slice(1),
+                  lazy: async () => {
+                    const { LoginPage } = await import("@/pages/auth/LoginPage");
+                    return { Component: LoginPage };
+                  },
+                }],
               },
             ],
           },

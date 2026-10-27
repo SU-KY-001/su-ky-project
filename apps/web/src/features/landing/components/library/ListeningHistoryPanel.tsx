@@ -1,5 +1,7 @@
 import { useState, type ReactElement } from "react";
-import { Clock, Play, CheckCircle } from "@phosphor-icons/react";
+import { Clock } from "@phosphor-icons/react/dist/icons/Clock";
+import { Play } from "@phosphor-icons/react/dist/icons/Play";
+import { CheckCircle } from "@phosphor-icons/react/dist/icons/CheckCircle";
 import { useQuery } from "@tanstack/react-query";
 import { Button } from "@/shared/components/ui/button";
 import { cn } from "@/lib/utils";

@@ -1,4 +1,5 @@
-import { LockKey, Play } from "@phosphor-icons/react";
+import { LockKey } from "@phosphor-icons/react/dist/icons/LockKey";
+import { Play } from "@phosphor-icons/react/dist/icons/Play";
 import { useState } from "react";
 import { Button } from "@/shared/components/ui/button";
 import { Card } from "@/shared/components/ui/card";

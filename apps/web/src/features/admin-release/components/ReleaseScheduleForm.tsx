@@ -1,5 +1,6 @@
 import { useEffect, useState, type FormEvent } from "react";
-import { CalendarPlus, FloppyDisk } from "@phosphor-icons/react";
+import { CalendarPlus } from "@phosphor-icons/react/dist/icons/CalendarPlus";
+import { FloppyDisk } from "@phosphor-icons/react/dist/icons/FloppyDisk";
 import { Button } from "@/shared/components/ui/button";
 import { DateTimePicker } from "@/shared/components/ui/date-picker";
 import { Input } from "@/shared/components/ui/input";

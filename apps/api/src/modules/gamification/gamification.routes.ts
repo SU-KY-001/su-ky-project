@@ -14,6 +14,7 @@ import { idempotency, rateLimit, throwOnInvalid } from "../../core/middleware";
 import type { AppEnv } from "../../types";
 import { attachSession, requireAuth, requireRole } from "../auth";
 import { GamificationService } from "./gamification.service";
+import { quizAuthoringRoute } from "./quiz-authoring.routes";
 
 const episodeIdParam = z.object({ episodeId: z.string().uuid() });
 const quizIdParam = z.object({ quizId: z.string().uuid() });
@@ -22,6 +23,7 @@ const slugParam = z.object({ slug: z.string().min(1) });
 export const gamificationService = new GamificationService();
 
 export const studioQuizRoute = new Hono<AppEnv>()
+  .route("/", quizAuthoringRoute)
   .use("/episodes/:episodeId/quiz", requireRole("moderator"))
   .get(
     "/episodes/:episodeId/quiz",

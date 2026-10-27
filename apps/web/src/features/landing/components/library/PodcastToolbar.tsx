@@ -1,7 +1,7 @@
 import { useEffect, useLayoutEffect, type ReactElement } from "react";
 import { createPortal } from "react-dom";
 import { Link } from "react-router";
-import { X } from "@phosphor-icons/react";
+import { X } from "@phosphor-icons/react/dist/icons/X";
 import { Button } from "@/shared/components/ui/button";
 import { useCurrentUser } from "@/shared/hooks/useCurrentUser";
 import { usePodcastPlaybackStore } from "../../store/podcastPlaybackStore";
