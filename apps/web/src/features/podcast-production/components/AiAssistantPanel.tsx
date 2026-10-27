@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type ReactElement, type RefObject } from "react";
-import { LoaderCircle, Maximize2, Minimize2, PanelRightClose, Search, Sparkles } from "lucide-react";
+import { Maximize2, Minimize2, Search } from "lucide-react";
 import type { StudioSeriesDetailDto } from "@repo/shared";
 import { Button } from "@/shared/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -8,13 +8,14 @@ import { locateBlock } from "../aiCheck/blockRefs";
 import { describeCheckProblem, describeStartError } from "../aiCheck/messages";
 import { blockHighlights, blockNumber, CONFLICT_TEXT, conflictNoticeText, IDLE_DESCRIPTION } from "../aiCheck/presentation";
 import { useAiCheck } from "../aiCheck/useAiCheck";
+import { useAiCheckLog, useRunStart } from "../ai/aiRunLog";
 import { AiCheckProgress } from "./AiCheckProgress";
 import { AiIssueDetail, type ApplyNotice } from "./AiIssueDetail";
 import { AiIssueList, IssueRows } from "./AiIssueList";
 import type { RichScriptEditorHandle } from "./RichScriptEditor";
 import { ScriptReviewConfigDialog, type ReviewScope } from "./ScriptReviewConfigDialog";
 
-export type DockState = "rail" | "panel" | "wide";
+export type DockState = "closed" | "panel" | "wide";
 
 interface Props {
   editorRef: RefObject<RichScriptEditorHandle | null>;
@@ -25,13 +26,11 @@ interface Props {
   hasScript: boolean;
   dock: DockState;
   onDockChange: (dock: DockState) => void;
-  /** Bumped by the toolbar's "Rà kịch bản" button; each change opens the review dialog. */
-  runRequest: number;
   /** Paragraph the moderator clicked in the editor; a new `seq` opens the matching warning. */
   clickedBlock?: { ref: string; seq: number } | null;
   onOpenSource?: () => void;
-  /** Lets the toolbar show "Rà lại" once a check exists. */
-  onHasCheckChange?: (hasCheck: boolean) => void;
+  /** Open warnings of the newest finished check (null while none or running); the toolbar shows it as a badge. */
+  onOpenCountChange?: (count: number | null) => void;
 }
 
 interface DialogState {
@@ -48,7 +47,7 @@ function lastRunLabel(at: Date | null): string {
   return `Lần rà gần nhất: ${time}, ${at.toLocaleDateString("vi-VN", { day: "2-digit", month: "2-digit" })}.`;
 }
 
-export function AiAssistantPanel({ editorRef, episodeId, ensureEpisode, sources, hasScript, dock, onDockChange, runRequest, clickedBlock, onOpenSource, onHasCheckChange }: Props): ReactElement {
+export function AiAssistantPanel({ editorRef, episodeId, ensureEpisode, sources, hasScript, dock, onDockChange, clickedBlock, onOpenSource, onOpenCountChange }: Props): ReactElement {
   const closeItem = (): void => {
     setOpenId(null);
     if (dock === "wide") onDockChange("panel");
@@ -96,17 +95,12 @@ export function AiAssistantPanel({ editorRef, episodeId, ensureEpisode, sources,
     setDialog({ blockCount: blocks.length, selectionLabel, scope });
   };
 
-  const seenRunRequest = useRef(runRequest);
+  const openCount = check && !running ? items.filter((entry) => entry.status !== "REVIEWED" && !entry.appliedAt).length : null;
   useEffect(() => {
-    if (runRequest === seenRunRequest.current) return;
-    seenRunRequest.current = runRequest;
-    openDialog();
-  });
-
-  const hasCheck = check !== null && check !== undefined;
-  useEffect(() => {
-    onHasCheckChange?.(hasCheck);
-  }, [hasCheck, onHasCheckChange]);
+    onOpenCountChange?.(openCount);
+  }, [openCount, onOpenCountChange]);
+  const log = useAiCheckLog(check, items);
+  const startedAt = useRunStart(running);
 
   const seenClick = useRef(clickedBlock?.seq ?? 0);
   useEffect(() => {
@@ -210,41 +204,23 @@ export function AiAssistantPanel({ editorRef, episodeId, ensureEpisode, sources,
     />
   );
 
-  if (dock === "rail") {
-    const openCount = check && !running ? items.filter((entry) => entry.status !== "REVIEWED" && !entry.appliedAt).length : null;
-    return (
-      <div className="flex h-full w-12 flex-col items-center gap-2 py-3">
-        <button type="button" className="relative grid size-9 place-items-center rounded-lg text-mod-text-secondary hover:bg-mod-canvas-accent hover:text-mod-text" aria-label="Mở trợ lý AI" title="Mở trợ lý AI" onClick={() => onDockChange("panel")}>
-          {running ? <LoaderCircle size={18} className="animate-spin" aria-hidden="true" /> : <Sparkles size={18} aria-hidden="true" />}
-          {openCount !== null ? (
-            <span className={cn("absolute -right-1 -top-0.5 grid h-4 min-w-4 place-items-center rounded-full px-1 text-[10px] font-bold text-white", openCount ? "bg-mod-attention" : "bg-mod-success")}>{openCount || "✓"}</span>
-          ) : null}
-        </button>
-        <span className="text-xs text-mod-text-secondary [writing-mode:vertical-rl]">{running ? "Đang rà…" : check ? "AI rà kịch bản" : "Trợ lý AI"}</span>
-        {dialogEl}
-      </div>
-    );
-  }
-
   const wideDetail = dock === "wide" && item && check;
   return (
     <section className="flex h-full min-w-[340px] flex-col" aria-label="AI rà kịch bản" aria-busy={running}>
-      <header className="flex items-center justify-between border-b border-mod-border px-3.5 py-3">
-        <h3 className="flex items-center gap-2 text-sm font-bold text-mod-text"><Sparkles size={16} className="text-mod-primary" aria-hidden="true" /> AI rà kịch bản</h3>
-        <div className="flex gap-1">
+      {item ? (
+        <header className="flex items-center justify-end border-b border-mod-border px-3.5 py-1.5">
           {wideDetail ? (
             <Button type="button" variant="ghost" size="icon-sm" title="Thu về dạng danh sách (Esc)" aria-label="Thu về dạng danh sách" onClick={closeItem}><Minimize2 size={15} aria-hidden="true" /></Button>
-          ) : item ? (
+          ) : (
             <Button type="button" variant="ghost" size="icon-sm" title="Mở rộng" aria-label="Mở rộng" onClick={() => onDockChange("wide")}><Maximize2 size={15} aria-hidden="true" /></Button>
-          ) : null}
-          <Button type="button" variant="ghost" size="icon-sm" title="Thu gọn" aria-label="Thu gọn trợ lý AI" onClick={() => { setOpenId(null); onDockChange("rail"); }}><PanelRightClose size={15} aria-hidden="true" /></Button>
-        </div>
-      </header>
+          )}
+        </header>
+      ) : null}
       <div className="flex min-h-0 flex-1">
         <div className={cn("min-w-0 overflow-y-auto p-4", wideDetail ? "w-[270px] shrink-0 border-r border-mod-border" : "flex-1")}>
           {running ? (
             <div className="space-y-4">
-              <AiCheckProgress check={check ?? NO_PROGRESS} found={items.length} onCancel={check ? () => void discard() : undefined} />
+              <AiCheckProgress check={check ?? NO_PROGRESS} found={items.length} log={log} startedAt={check?.startedAt.getTime() ?? startedAt} onCancel={check ? () => void discard() : undefined} />
               <IssueRows items={items} activeId={openId} onOpen={openItem} />
             </div>
           ) : check && !failedEmpty ? (

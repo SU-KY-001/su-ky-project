@@ -6,6 +6,9 @@ import { Textarea } from "@/shared/components/ui/textarea";
 import { cn } from "@/lib/utils";
 import type { DraftInsertItem, EditResult } from "../../aiCheck/editorBlocks";
 import { draftParagraphs, useDraftSections, type SectionDraft } from "../../compose/useDraftSections";
+import { AiRunStatus } from "../../ai/AiRunStatus";
+import { useRunStart } from "../../ai/aiRunLog";
+import { AI_RUN_TEXT } from "../../ai/aiRunMessages";
 
 type Params = Parameters<typeof useDraftSections>[0];
 type InsertAt = "end" | "cursor";
@@ -45,6 +48,8 @@ export function DraftResultStep({ params, sections, onBack, onInsert, onInserted
 
   const doneCount = drafts.filter((draft) => draft.status === "done").length;
   const allDone = doneCount === sections.length;
+  const startedAt = useRunStart(running);
+  const writingIndex = drafts.findIndex((draft) => draft.status === "writing");
   const kept = drafts.map((draft, index) => ({ draft, index })).filter(({ draft }) => draft.status === "done" && !draft.dropped);
   const blocked = kept.some(({ draft }) => draft.exceedsLimit);
 
@@ -57,19 +62,23 @@ export function DraftResultStep({ params, sections, onBack, onInsert, onInserted
 
   return (
     <>
-      <div className="max-h-[62vh] space-y-4 overflow-y-auto px-5 py-4" aria-busy={running}>
-        <div className="space-y-2">
-          <div className="flex items-center justify-between">
-            <p className="text-sm font-bold text-mod-text">
-              {allDone ? `Đã viết xong ${sections.length} phần` : running ? `AI đang viết từng phần (${doneCount}/${sections.length})` : `Chưa viết xong (${doneCount}/${sections.length})`}
-            </p>
-            {running ? <span className="rounded-full bg-mod-primary/10 px-2 py-0.5 text-xs font-bold text-mod-primary">Đang chạy</span> : null}
+      <div className="space-y-4 px-5 py-4" aria-busy={running}>
+        {running ? (
+          <AiRunStatus
+            title={AI_RUN_TEXT.draftTitle}
+            step={writingIndex >= 0 ? AI_RUN_TEXT.draftStep(sections[writingIndex]!.title) : undefined}
+            done={doneCount}
+            total={sections.length}
+            startedAt={startedAt}
+            hint={AI_RUN_TEXT.draftHint}
+            onCancel={abort}
+          />
+        ) : (
+          <div className="space-y-1">
+            <p className="text-sm font-bold text-mod-text">{allDone ? `Đã viết xong ${sections.length} phần` : `Chưa viết xong (${doneCount}/${sections.length})`}</p>
+            <p className="text-xs text-mod-text-secondary">{AI_RUN_TEXT.draftHint}</p>
           </div>
-          <div className="h-1.5 overflow-hidden rounded-full bg-mod-canvas-accent" role="progressbar" aria-valuemin={0} aria-valuemax={sections.length} aria-valuenow={doneCount}>
-            <div className="h-full bg-mod-primary transition-[width]" style={{ width: `${(doneCount / sections.length) * 100}%` }} />
-          </div>
-          <p className="text-xs text-mod-text-secondary">Mỗi phần là một lần gọi riêng. Chưa có gì vào kịch bản cho tới khi bạn bấm Chèn.</p>
-        </div>
+        )}
 
         <ol className="space-y-3">
           {sections.map((section, index) => {

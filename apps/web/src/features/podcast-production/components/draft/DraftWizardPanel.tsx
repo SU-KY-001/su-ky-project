@@ -2,7 +2,8 @@ import { useEffect, useMemo, useRef, useState, type ReactElement, type RefObject
 import { ArrowRight, Pencil, RefreshCw } from "lucide-react";
 import { SCRIPT_MAX_CHARACTERS, type OutlineSection } from "@repo/shared";
 import { Button } from "@/shared/components/ui/button";
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/shared/components/ui/dialog";
+import { useAiRunLog } from "../../ai/aiRunLog";
+import { AI_RUN_TEXT } from "../../ai/aiRunMessages";
 import { cn } from "@/lib/utils";
 import { useAngles } from "../../angles/useAngles";
 import { composeService } from "../../compose/composeService";
@@ -21,8 +22,7 @@ const STEP_TITLES = ["Đề bài", "Dàn ý", "Giọng văn", "Bản nháp"] as 
 type Step = 0 | 1 | 2 | 3;
 
 interface Props {
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
+  onClose: () => void;
   editorRef: RefObject<RichScriptEditorHandle | null>;
   episodeId: string | null;
   ensureEpisode: () => Promise<string>;
@@ -39,7 +39,7 @@ function Dots({ step }: { step: Step }): ReactElement {
   );
 }
 
-function Wizard({ onClose, editorRef, episodeId, ensureEpisode, wordsPerMinute, scriptChars }: Omit<Props, "open" | "onOpenChange"> & { onClose: () => void }): ReactElement {
+export function DraftWizardPanel({ onClose, editorRef, episodeId, ensureEpisode, wordsPerMinute, scriptChars }: Props): ReactElement {
   const angles = useAngles();
   const saved = useMemo(() => (episodeId ? loadOutline(episodeId) : null), [episodeId]);
   const [step, setStep] = useState<Step>(0);
@@ -58,6 +58,7 @@ function Wizard({ onClose, editorRef, episodeId, ensureEpisode, wordsPerMinute, 
   const [tone, setTone] = useState<ToneChoice>(DEFAULT_TONE_PRESET);
   const [custom, setCustom] = useState("");
   const controller = useRef<AbortController | null>(null);
+  const runLog = useAiRunLog();
   const [draftEpisodeId, setDraftEpisodeId] = useState(episodeId ?? "");
 
   useEffect(() => () => controller.current?.abort(), []);
@@ -80,6 +81,7 @@ function Wizard({ onClose, editorRef, episodeId, ensureEpisode, wordsPerMinute, 
     setOutlineLoading(true);
     setOutlineError("");
     setConfirmRegenerate(false);
+    runLog.begin(AI_RUN_TEXT.outlineStart);
     setStep(1);
     try {
       const id = await ensureEpisode();
@@ -87,9 +89,12 @@ function Wizard({ onClose, editorRef, episodeId, ensureEpisode, wordsPerMinute, 
       const response = await composeService.outline(id, { topic: form.topic.trim(), angleId: form.angleId, targetWords: form.words, narration }, current.signal);
       fetched.current = response.sections;
       setSections(response.sections);
+      runLog.push("done", AI_RUN_TEXT.outlineDone(response.sections.length));
     } catch (error) {
       if (isAbort(error)) return;
-      setOutlineError(describeComposeError(error, "Không tạo được dàn ý."));
+      const message = describeComposeError(error, "Không tạo được dàn ý.");
+      setOutlineError(message);
+      runLog.push("error", message);
       if (!sections) setStep(0);
     } finally {
       if (controller.current === current) setOutlineLoading(false);
@@ -101,17 +106,23 @@ function Wizard({ onClose, editorRef, episodeId, ensureEpisode, wordsPerMinute, 
     void createOutline();
   };
 
+  const cancelOutline = (): void => {
+    controller.current?.abort();
+    setOutlineLoading(false);
+    setStep(sections ? 1 : 0);
+  };
+
   const cleaned = sections ? cleanedSections(sections) : [];
 
   return (
     <>
-      <DialogHeader className="flex-row items-start justify-between border-b border-mod-border px-5 py-4 pr-14">
+      <header className="flex items-start justify-between border-b border-mod-border px-5 py-3">
         <div>
-          <DialogDescription className="text-xs text-mod-text-secondary">Soạn bản nháp</DialogDescription>
-          <DialogTitle>{STEP_TITLES[step]}</DialogTitle>
+          <p className="text-xs text-mod-text-secondary">Soạn bản nháp</p>
+          <h3 className="font-bold text-mod-text">{STEP_TITLES[step]}</h3>
         </div>
         <Dots step={step} />
-      </DialogHeader>
+      </header>
 
       {step === 0 ? (
         <>
@@ -127,7 +138,7 @@ function Wizard({ onClose, editorRef, episodeId, ensureEpisode, wordsPerMinute, 
 
       {step === 1 ? (
         <>
-          <DraftOutlineStep sections={sections} loading={outlineLoading} error={outlineError} totalWords={form.words} onChange={setSections} />
+          <DraftOutlineStep sections={sections} loading={outlineLoading} error={outlineError} totalWords={form.words} onChange={setSections} run={{ log: runLog.entries, startedAt: runLog.startedAt, onCancel: cancelOutline }} />
           <div className="flex justify-end gap-2 border-t border-mod-border px-5 py-3">
             <Button type="button" variant="outline" disabled={outlineLoading} onClick={() => setStep(0)}>Quay lại</Button>
             <Button type="button" variant="outline" disabled={outlineLoading} onClick={regenerate}><RefreshCw size={15} aria-hidden="true" /> {confirmRegenerate ? "Bấm lần nữa để thay dàn ý đã sửa" : "Tạo lại dàn ý"}</Button>
@@ -163,12 +174,3 @@ function Wizard({ onClose, editorRef, episodeId, ensureEpisode, wordsPerMinute, 
   );
 }
 
-export function DraftWizardDialog({ open, onOpenChange, ...props }: Props): ReactElement {
-  return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl gap-0 border-mod-border bg-mod-surface p-0 font-moderator text-mod-text sm:p-0">
-        {open ? <Wizard {...props} onClose={() => onOpenChange(false)} /> : null}
-      </DialogContent>
-    </Dialog>
-  );
-}
