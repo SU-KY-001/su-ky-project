@@ -6,14 +6,14 @@ import { moderatorPodcastPath, moderatorSectionFromPath, moderatorSectionPath } 
 import type { ModeratorQuickAction, ModeratorSection } from "@/features/moderator/types";
 
 import { ModeratorDashboardPage } from "./ModeratorDashboardPage";
-import { ModeratorAssignments } from "@/features/moderator/components/ModeratorAssignments";
-import { ModeratorReleaseSchedule } from "@/features/moderator/components/ModeratorReleaseSchedule";
-import { ModeratorReviewQueue } from "@/features/moderator/components/ModeratorReviewQueue";
-import { ModeratorTickets } from "@/features/moderator/components/ModeratorTickets";
 
 const Timeline = lazy(() => import("./ModeratorTimelinePage").then((module) => ({ default: module.ModeratorTimelinePage })));
 const Podcast = lazy(() => import("./PodcastProductionPage").then((module) => ({ default: module.PodcastProductionPage })));
 const Library = lazy(() => import("./ModeratorLibraryFeaturePage").then((module) => ({ default: module.ModeratorLibraryFeaturePage })));
+const Assignments = lazy(() => import("@/features/moderator/components/ModeratorAssignments").then((module) => ({ default: module.ModeratorAssignments })));
+const ReleaseSchedule = lazy(() => import("@/features/moderator/components/ModeratorReleaseSchedule").then((module) => ({ default: module.ModeratorReleaseSchedule })));
+const ReviewQueue = lazy(() => import("@/features/moderator/components/ModeratorReviewQueue").then((module) => ({ default: module.ModeratorReviewQueue })));
+const Tickets = lazy(() => import("@/features/moderator/components/ModeratorTickets").then((module) => ({ default: module.ModeratorTickets })));
 const Angles = lazy(() => import("@/features/podcast-production/angles/AngleManagePage").then((module) => ({ default: module.AngleManagePage })));
 const Quizzes = lazy(() => import("@/features/moderator/components/ModeratorQuizzes").then((module) => ({ default: module.ModeratorQuizzes })));
 
@@ -37,11 +37,11 @@ function WorkspaceContent({ section, creatingMilestone, onAction }: WorkspaceCon
     case "overview": return <ModeratorDashboardPage onAction={onAction} />;
     case "timeline": return <Timeline initialCreating={creatingMilestone} />;
     case "podcast": return <Podcast />;
-    case "assignments": return <ModeratorAssignments />;
-    case "tickets": return <ModeratorTickets />;
+    case "assignments": return <Assignments />;
+    case "tickets": return <Tickets />;
     case "quizzes": return <Quizzes />;
-    case "schedule": return <ModeratorReleaseSchedule />;
-    case "pending": return <ModeratorReviewQueue />;
+    case "schedule": return <ReleaseSchedule />;
+    case "pending": return <ReviewQueue />;
     case "angles": return <Angles />;
     default: return <Library key={section} section={section} />;
   }

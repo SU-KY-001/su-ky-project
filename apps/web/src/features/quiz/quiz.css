@@ -1,0 +1,45 @@
+.quiz-editor {
+  width: 100%; min-width: 0; overflow: hidden;
+  border: 1px solid var(--modBorder); border-radius: 12px;
+  color: var(--modText); background: var(--modSurface);
+}
+.quiz-editor-toolbar { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; padding: 12px; border-bottom: 1px solid var(--modBorder); }
+.quiz-editor-body { display: grid; min-width: 0; margin: 0; padding: 0; border: 0; }
+.quiz-question-sidebar { background: var(--modCanvasAccent); border-bottom: 1px solid var(--modBorder); min-width: 0; }
+.quiz-question-list { display: flex; gap: 12px; overflow-x: auto; padding: 0 12px; scrollbar-width: none; }
+.quiz-question-list > li { flex: 0 0 160px; }
+.quiz-question-thumb { display: block; width: 100%; padding: 10px; border: 2px solid var(--modBorder); border-radius: 8px; background: var(--modSurface); text-align: left; }
+.quiz-question-thumb.is-selected { border-color: var(--modPrimary); background: color-mix(in srgb, var(--modPrimary) 3%, var(--modSurface)); }
+.quiz-question-canvas { min-width: 0; padding: 20px; background: color-mix(in srgb, var(--modPrimary) 4%, var(--modCanvasAccent)); }
+.quiz-question-title { min-height: 90px; resize: vertical; text-align: center; font-size: clamp(18px, 1.6vw, 25px); line-height: 1.4; font-weight: 600; background: var(--modSurface); border-color: var(--modBorder); padding: 20px; box-shadow: 0 4px 0 color-mix(in srgb, var(--modText) 8%, transparent); }
+.quiz-source-stage { display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 230px; padding: 28px 12px; text-align: center; }
+.quiz-answer-grid { display: grid; grid-template-columns: 1fr; gap: 10px; }
+.quiz-answer { display: flex; min-width: 0; align-items: stretch; gap: 10px; padding: 6px; min-height: 108px; background: var(--modSurface); border: 2px solid var(--modBorder); border-radius: 8px; }
+.quiz-answer.is-correct { border-color: var(--modSuccess); }
+.quiz-answer-symbol { display: flex; flex: 0 0 34px; align-items: center; justify-content: center; border-radius: 4px; color: var(--modSurface); font-size: 22px; }
+.quiz-answer-symbol-0 { background: var(--modPrimary); }
+.quiz-answer-symbol-1 { background: var(--modKindStage); }
+.quiz-answer-symbol-2 { background: var(--modAttention); }
+.quiz-answer-symbol-3 { background: var(--modSuccess); }
+.quiz-answer-input { align-self: center; min-height: 70px; min-width: 0; resize: vertical; border: 0; box-shadow: none; padding: 12px 0; background: transparent; font-size: 14px; }
+.quiz-correct-toggle { position: relative; align-self: center; display: grid; place-items: center; flex: 0 0 24px; height: 24px; border: 2px solid var(--modBorder); border-radius: 50%; color: var(--modSurface); }
+.quiz-correct-toggle:has(input:checked) { background: var(--modSuccess); border-color: var(--modSuccess); }
+.quiz-correct-toggle:has(input:focus-visible) { outline: 2px solid var(--modPrimary); outline-offset: 3px; }
+.quiz-properties { display: flex; flex-direction: column; min-width: 0; gap: 22px; padding: 20px; border-top: 1px solid var(--modBorder); background: var(--modSurface); }
+.quiz-property { display: flex; flex-direction: column; gap: 10px; }
+.quiz-property h3 { font-size: 14px; font-weight: 600; }
+@media (min-width: 640px) { .quiz-answer-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (min-width: 1024px) {
+  .quiz-editor-body { grid-template-columns: 170px minmax(0, 1fr); }
+  .quiz-question-sidebar { grid-row: span 2; border-right: 1px solid var(--modBorder); border-bottom: 0; }
+  .quiz-question-list { display: flex; flex-direction: column; max-height: 620px; overflow-y: auto; }
+  .quiz-question-list > li { flex-basis: auto; }
+  .quiz-properties { grid-column: 2; }
+}
+@media (min-width: 1280px) {
+  .quiz-editor-body { grid-template-columns: 164px minmax(0, 1fr) 260px; }
+  .quiz-question-sidebar { grid-row: auto; }
+  .quiz-properties { grid-column: 3; border-top: 0; border-left: 1px solid var(--modBorder); }
+  .quiz-question-canvas { padding: 24px 18px; }
+  .quiz-source-stage { min-height: 280px; }
+}

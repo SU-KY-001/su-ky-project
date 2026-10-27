@@ -31,6 +31,7 @@ async function renderAt(entry: string): Promise<HTMLDivElement> {
   client.setQueryData(["moderator-release-reminders"], { items: [] });
   client.setQueryData(["moderator-release-tickets", "list"], { items: [], total: 0, page: 1, limit: 20 });
   client.setQueryData(["moderator-release-tickets", "assignments"], { items: [] });
+  client.setQueryData(["quiz", "list"], { items: [] });
   client.setQueryData(["podcast-production", "series", ""], { pages: [{ items: [], page: 1, limit: 20, total: 0 }], pageParams: [1] });
   const host = document.createElement("div");
   document.body.append(host);
@@ -54,19 +55,31 @@ it("gives assignments, tickets and release schedule their own URLs", async () =>
   const host = await renderAt("/moderator");
 
   await act(async () => host.querySelector<HTMLAnchorElement>('a[href="/moderator/schedule"]')!.click());
+  for (let attempt = 0; attempt < LAZY_LOAD_ATTEMPTS && !host.textContent?.includes("Thời khóa biểu"); attempt++) {
+    await act(async () => { await Bun.sleep(LAZY_LOAD_POLL_MS); });
+  }
   expect(location(host)).toBe("/moderator/schedule");
   expect(host.textContent).toContain("Thời khóa biểu");
 
   await act(async () => host.querySelector<HTMLAnchorElement>('a[href="/moderator/assignments"]')!.click());
+  for (let attempt = 0; attempt < LAZY_LOAD_ATTEMPTS && location(host) !== "/moderator/assignments"; attempt++) {
+    await act(async () => { await Bun.sleep(LAZY_LOAD_POLL_MS); });
+  }
   expect(location(host)).toBe("/moderator/assignments");
   expect(host.textContent).toContain("Nhiệm vụ của tôi");
 
   await act(async () => host.querySelector<HTMLAnchorElement>('a[href="/moderator/tickets"]')!.click());
+  for (let attempt = 0; attempt < LAZY_LOAD_ATTEMPTS && location(host) !== "/moderator/tickets"; attempt++) {
+    await act(async () => { await Bun.sleep(LAZY_LOAD_POLL_MS); });
+  }
   expect(host.textContent).toContain("Bạn chưa gửi ticket nào");
 });
 
 it("opens the screen named by a deep link and marks its nav item current", async () => {
   const host = await renderAt("/moderator/tickets");
+  for (let attempt = 0; attempt < LAZY_LOAD_ATTEMPTS && !host.textContent?.includes("Bạn chưa gửi ticket nào"); attempt++) {
+    await act(async () => { await Bun.sleep(LAZY_LOAD_POLL_MS); });
+  }
   expect(host.textContent).toContain("Bạn chưa gửi ticket nào");
   expect(host.querySelector('a[href="/moderator/tickets"]')?.getAttribute("aria-current")).toBe("page");
   expect(host.querySelector('a[href="/moderator"]')?.hasAttribute("aria-current")).toBe(false);
@@ -77,7 +90,9 @@ it("opens quizzes from a deep link and preserves navigation to angles", async ()
   for (let attempt = 0; attempt < LAZY_LOAD_ATTEMPTS && !host.querySelector('[role="searchbox"]'); attempt++) {
     await act(async () => { await Bun.sleep(LAZY_LOAD_POLL_MS); });
   }
-  expect(host.textContent).toContain("Bộ quiz đã tạo");
+  expect(host.textContent).toContain("Bộ quiz của bạn");
+  expect(host.textContent).toContain("Tự tạo bằng tay");
+  expect(host.textContent).toContain("Tạo từ kịch bản podcast");
   expect(host.querySelector('a[href="/moderator/quizzes"]')?.getAttribute("aria-current")).toBe("page");
   await act(async () => host.querySelector<HTMLAnchorElement>('a[href="/moderator/angles"]')!.click());
   for (let attempt = 0; attempt < LAZY_LOAD_ATTEMPTS && location(host) !== "/moderator/angles"; attempt++) {

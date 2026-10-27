@@ -7,6 +7,7 @@ import {
   SubmitQuizAttemptSchema,
   UpsertQuizSchema,
   WeeklyMissionQuerySchema,
+  QuizWorkspaceSchema, QuizWorkspaceListSchema, SaveQuizDraftSchema, ActivateQuizDraftSchema, GenerateQuizSchema, GeneratedQuizSchema,
 } from "@repo/shared";
 import { operation, type Paths } from "../operation";
 
@@ -37,6 +38,34 @@ const studioQuiz = PublicQuizSchema.extend({
 });
 
 export const gamificationPaths: Paths = {
+  "/api/studio/quiz-workspaces": {
+    get: operation({ id: "listQuizWorkspaces", tag: QUIZ_TAG, summary: "Danh sách quiz thật thuộc Moderator", access: "moderator",
+      ok: { status: 200, description: "Bản nháp và quiz đang dùng", schema: { name: "QuizWorkspaceList", schema: QuizWorkspaceListSchema } } }),
+  },
+  "/api/studio/episodes/{episodeId}/quiz-workspace": {
+    get: operation({ id: "getQuizWorkspace", tag: QUIZ_TAG, summary: "Đọc bản nháp, phiên bản và trạng thái kịch bản", access: "moderator", pathParams: EpisodeIdParam,
+      ok: { status: 200, description: "Bản nháp riêng tư; kịch bản nháp được sử dụng", schema: { name: "QuizWorkspace", schema: QuizWorkspaceSchema } },
+      errors: { 403: LOCKED, 404: "`NOT_FOUND`: tập không thuộc Moderator", 409: IN_TRASH } }),
+    put: operation({ id: "saveQuizWorkspace", tag: QUIZ_TAG, summary: "Lưu bản nháp quiz, cho phép câu chưa hoàn chỉnh", access: "moderator", pathParams: EpisodeIdParam,
+      body: { name: "SaveQuizDraft", schema: SaveQuizDraftSchema }, rate: "write",
+      ok: { status: 200, description: "Bản nháp đã lưu với revision mới", schema: { name: "QuizWorkspace", schema: QuizWorkspaceSchema } },
+      errors: { 403: LOCKED, 404: "`NOT_FOUND`: tập không thuộc Moderator", 409: `${IN_TRASH}; \`CONFLICT\`: revision đã thay đổi` } }),
+  },
+  "/api/studio/episodes/{episodeId}/quiz-workspace/activate": {
+    post: operation({ id: "activateQuizWorkspace", tag: QUIZ_TAG, summary: "Đưa bản nháp đã rà soát vào sử dụng", access: "moderator", pathParams: EpisodeIdParam,
+      body: { name: "ActivateQuizDraft", schema: ActivateQuizDraftSchema }, rate: "write",
+      ok: { status: 200, description: "Quiz sẵn sàng cho tập công khai", schema: { name: "QuizWorkspace", schema: QuizWorkspaceSchema } },
+      errors: { 403: LOCKED, 404: "`NOT_FOUND`: tập không thuộc Moderator", 409: `${IN_TRASH}; \`CONFLICT\`: đã có lượt làm, kịch bản hoặc revision thay đổi`, 422: "`VALIDATION_ERROR`: câu hỏi chưa hoàn chỉnh" } }),
+  },
+  "/api/studio/episodes/{episodeId}/ai/quiz": {
+    post: operation({ id: "generateQuizFromScript", tag: QUIZ_TAG, summary: "Tạo 5–10 câu hoặc tạo lại một câu từ kịch bản đã lưu", access: "moderator", pathParams: EpisodeIdParam,
+      description: "Cho phép kịch bản nháp. Không lưu hay phát hành tự động. Kiểm tra hash kịch bản và đoạn căn cứ nguyên văn.",
+      body: { name: "GenerateQuiz", schema: GenerateQuizSchema }, rate: "ai_generate",
+      ok: { status: 200, description: "Câu hỏi kèm giải thích và căn cứ", schema: { name: "GeneratedQuiz", schema: GeneratedQuizSchema } },
+      errors: { 403: LOCKED, 404: "`NOT_FOUND`: tập không thuộc Moderator", 409: `${IN_TRASH}; \`CONFLICT\`: kịch bản đã thay đổi`,
+        422: "`VALIDATION_ERROR`: thiếu kịch bản, nội dung ngắn hoặc câu hỏi không hợp lệ; `SCRIPT_TOO_LONG`: kịch bản quá dài",
+        429: "`AI_CONCURRENCY_LIMIT`: quá nhiều yêu cầu", 502: "`AI_BAD_OUTPUT`: đầu ra không hợp lệ", 503: "`AI_DISABLED`, `AI_UNAVAILABLE`, `AI_PROVIDER_AUTH`, `AI_PROVIDER_QUOTA`: AI chưa sẵn sàng", 504: "`AI_TIMEOUT`: quá thời gian" } }),
+  },
   "/api/studio/episodes/{episodeId}/quiz": {
     get: operation({
       id: "getStudioQuiz",

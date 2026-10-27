@@ -1,5 +1,5 @@
 import type { ComponentProps, ReactElement } from "react";
-import { ArrowRight } from "@phosphor-icons/react";
+import { ArrowRight } from "@phosphor-icons/react/dist/icons/ArrowRight";
 import { cn } from "@/lib/utils";
 
 // Adapted from Magic UI's Interactive Hover Button with a borderless text treatment.

@@ -2,7 +2,7 @@ import { useState, type ReactElement } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link } from "react-router";
 import type { PublicHistoricalEventDto } from "@repo/shared";
-import { ArrowRight } from "@phosphor-icons/react";
+import { ArrowRight } from "@phosphor-icons/react/dist/icons/ArrowRight";
 import { Button } from "@/shared/components/ui/button";
 import { notify } from "@/shared/lib/notifications";
 import { cn } from "@/lib/utils";

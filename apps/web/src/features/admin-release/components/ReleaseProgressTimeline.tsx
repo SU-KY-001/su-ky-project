@@ -1,4 +1,6 @@
-import { CheckCircle, Clock, WarningCircle } from "@phosphor-icons/react";
+import { CheckCircle } from "@phosphor-icons/react/dist/icons/CheckCircle";
+import { Clock } from "@phosphor-icons/react/dist/icons/Clock";
+import { WarningCircle } from "@phosphor-icons/react/dist/icons/WarningCircle";
 
 export interface ReleaseProgressItem {
   id: string;

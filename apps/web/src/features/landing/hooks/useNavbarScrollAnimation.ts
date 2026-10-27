@@ -54,8 +54,9 @@ export function useNavbarScrollAnimation(reducedMotion: boolean, surface = false
       if (secondaryTone.length) timeline.fromTo(secondaryTone, { color: "#e9dcc2" }, { color: "#5b4e44", duration: 1, ease: "none" }, 0);
     }, navbar);
     const update = (): void => {
-      const scrolled = surface || page.scrollTop >= REDUCED_MOTION_THRESHOLD;
-      const progress = surface ? 1 : reducedMotion ? Number(scrolled) : Math.min(1, Math.max(0, page.scrollTop / NAVBAR_SCROLL_DISTANCE));
+      const scrollY = window.scrollY;
+      const scrolled = surface || scrollY >= REDUCED_MOTION_THRESHOLD;
+      const progress = surface ? 1 : reducedMotion ? Number(scrolled) : Math.min(1, Math.max(0, scrollY / NAVBAR_SCROLL_DISTANCE));
       timeline.progress(progress);
       setIsScrolled(scrolled);
     };
@@ -63,11 +64,11 @@ export function useNavbarScrollAnimation(reducedMotion: boolean, surface = false
       cancelAnimationFrame(frame);
       frame = requestAnimationFrame(update);
     };
-    // Initialize from this page's own scroll position before the first paint.
+    // Initialize from the document scroll position before the first paint.
     update();
-    if (!surface) page.addEventListener("scroll", onScroll, { passive: true });
+    if (!surface) window.addEventListener("scroll", onScroll, { passive: true });
     return () => {
-      page.removeEventListener("scroll", onScroll);
+      window.removeEventListener("scroll", onScroll);
       cancelAnimationFrame(frame);
       context.revert();
     };

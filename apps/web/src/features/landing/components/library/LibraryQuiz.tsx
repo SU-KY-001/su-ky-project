@@ -1,19 +1,17 @@
 import { useMemo, useState, type ReactElement } from "react";
-import {
-  ArrowCounterClockwise,
-  ArrowRight,
-  Brain,
-  Cards,
-  CheckCircle,
-  Clock,
-  DotsThree,
-  FunnelSimple,
-  Headphones,
-  SquaresFour,
-  Trophy,
-  UsersThree,
-  XCircle,
-} from "@phosphor-icons/react";
+import { ArrowCounterClockwise } from "@phosphor-icons/react/dist/icons/ArrowCounterClockwise";
+import { ArrowRight } from "@phosphor-icons/react/dist/icons/ArrowRight";
+import { Brain } from "@phosphor-icons/react/dist/icons/Brain";
+import { Cards } from "@phosphor-icons/react/dist/icons/Cards";
+import { CheckCircle } from "@phosphor-icons/react/dist/icons/CheckCircle";
+import { Clock } from "@phosphor-icons/react/dist/icons/Clock";
+import { DotsThree } from "@phosphor-icons/react/dist/icons/DotsThree";
+import { FunnelSimple } from "@phosphor-icons/react/dist/icons/FunnelSimple";
+import { Headphones } from "@phosphor-icons/react/dist/icons/Headphones";
+import { SquaresFour } from "@phosphor-icons/react/dist/icons/SquaresFour";
+import { Trophy } from "@phosphor-icons/react/dist/icons/Trophy";
+import { UsersThree } from "@phosphor-icons/react/dist/icons/UsersThree";
+import { XCircle } from "@phosphor-icons/react/dist/icons/XCircle";
 import { Badge } from "@/shared/components/ui/badge";
 import { Button } from "@/shared/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/shared/components/ui/dialog";

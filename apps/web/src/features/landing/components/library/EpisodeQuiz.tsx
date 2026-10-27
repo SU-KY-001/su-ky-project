@@ -1,6 +1,13 @@
 import { useRef, useState, type FormEvent, type ReactElement } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { ArrowLeft, ArrowRight, Brain, Check, CheckCircle, LockKey, Trophy, XCircle } from "@phosphor-icons/react";
+import { ArrowLeft } from "@phosphor-icons/react/dist/icons/ArrowLeft";
+import { ArrowRight } from "@phosphor-icons/react/dist/icons/ArrowRight";
+import { Brain } from "@phosphor-icons/react/dist/icons/Brain";
+import { Check } from "@phosphor-icons/react/dist/icons/Check";
+import { CheckCircle } from "@phosphor-icons/react/dist/icons/CheckCircle";
+import { LockKey } from "@phosphor-icons/react/dist/icons/LockKey";
+import { Trophy } from "@phosphor-icons/react/dist/icons/Trophy";
+import { XCircle } from "@phosphor-icons/react/dist/icons/XCircle";
 import { Link } from "react-router";
 import { Badge } from "@/shared/components/ui/badge";
 import { Button } from "@/shared/components/ui/button";

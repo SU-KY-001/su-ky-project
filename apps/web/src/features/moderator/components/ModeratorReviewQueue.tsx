@@ -1,5 +1,7 @@
 import { useState } from "react";
-import { ClockCountdown, Eye, NotePencil } from "@phosphor-icons/react";
+import { ClockCountdown } from "@phosphor-icons/react/dist/icons/ClockCountdown";
+import { Eye } from "@phosphor-icons/react/dist/icons/Eye";
+import { NotePencil } from "@phosphor-icons/react/dist/icons/NotePencil";
 import { useQuery } from "@tanstack/react-query";
 import { DashboardHeader } from "@/shared/components/dashboard/DashboardOverview";
 import { Button } from "@/shared/components/ui/button";

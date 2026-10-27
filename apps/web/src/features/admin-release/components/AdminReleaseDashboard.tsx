@@ -1,9 +1,7 @@
-import {
-  CalendarBlank,
-  CheckCircle,
-  ClockCountdown,
-  WarningCircle,
-} from "@phosphor-icons/react";
+import { CalendarBlank } from "@phosphor-icons/react/dist/icons/CalendarBlank";
+import { CheckCircle } from "@phosphor-icons/react/dist/icons/CheckCircle";
+import { ClockCountdown } from "@phosphor-icons/react/dist/icons/ClockCountdown";
+import { WarningCircle } from "@phosphor-icons/react/dist/icons/WarningCircle";
 import {
   DashboardHeader,
   DashboardMetricGrid,
@@ -11,7 +9,7 @@ import {
 } from "@/shared/components/dashboard/DashboardOverview";
 import { useAdminReleaseDashboard, useAdminReleaseSchedules } from "../hooks/useAdminReleases";
 import { Button } from "@/shared/components/ui/button";
-import { Plus } from "@phosphor-icons/react";
+import { Plus } from "@phosphor-icons/react/dist/icons/Plus";
 import { CardBadge, cardBadgeToneForStatus } from "@/shared/components/dashboard/CardBadge";
 import { DashboardTableCard } from "@/shared/components/dashboard/DashboardTableCard";
 import {

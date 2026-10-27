@@ -1,4 +1,5 @@
-import { ArrowRight, ArrowUp } from "@phosphor-icons/react";
+import { ArrowRight } from "@phosphor-icons/react/dist/icons/ArrowRight";
+import { ArrowUp } from "@phosphor-icons/react/dist/icons/ArrowUp";
 import type { ReactElement } from "react";
 import { Link, useNavigate } from "react-router";
 import brandLogo from "@/public/brand-su-ky-viet-nam.png";

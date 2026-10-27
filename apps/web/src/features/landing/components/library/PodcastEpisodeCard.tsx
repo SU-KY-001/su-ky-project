@@ -1,7 +1,9 @@
 import { useEffect, useId, useRef, useState, type ReactElement } from "react";
 import { createPortal } from "react-dom";
 import type { LibraryChapter } from "@repo/shared";
-import { Clock, Image as ImageIcon, Play } from "@phosphor-icons/react";
+import { Clock } from "@phosphor-icons/react/dist/icons/Clock";
+import { Image as ImageIcon } from "@phosphor-icons/react/dist/icons/Image";
+import { Play } from "@phosphor-icons/react/dist/icons/Play";
 import { Button } from "@/shared/components/ui/button";
 import { PodcastEpisodeHoverPreview } from "../PodcastHoverCard";
 

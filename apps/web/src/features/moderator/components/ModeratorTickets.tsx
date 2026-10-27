@@ -1,6 +1,9 @@
 import { useState, type FormEvent } from "react";
 import type { ReleaseReassignmentTicket, ReleaseScheduleRecord } from "@repo/shared";
-import { ArrowCounterClockwise, PencilSimple, Plus, Ticket } from "@phosphor-icons/react";
+import { ArrowCounterClockwise } from "@phosphor-icons/react/dist/icons/ArrowCounterClockwise";
+import { PencilSimple } from "@phosphor-icons/react/dist/icons/PencilSimple";
+import { Plus } from "@phosphor-icons/react/dist/icons/Plus";
+import { Ticket } from "@phosphor-icons/react/dist/icons/Ticket";
 import { errorMessage } from "@/lib/apiError";
 import { CardBadge } from "@/shared/components/dashboard/CardBadge";
 import { DashboardHeader } from "@/shared/components/dashboard/DashboardOverview";
@@ -31,11 +34,15 @@ import { ConfirmationDialog } from "@/shared/components/common/ConfirmationDialo
 import { notify } from "@/shared/lib/notifications";
 
 const statusPresentation: Record<ReleaseReassignmentTicket["status"], { label: string; tone: "warning" | "success" | "danger" | "neutral" }> = {
-  PENDING: { label: "Chờ Admin duyệt", tone: "warning" },
-  APPROVED: { label: "Đã chuyển giao", tone: "success" },
-  REJECTED: { label: "Đã từ chối", tone: "danger" },
-  CANCELLED: { label: "Đã tự hủy", tone: "neutral" },
+  PENDING: { label: "Chờ duyệt", tone: "warning" },
+  APPROVED: { label: "Đã duyệt", tone: "success" },
+  REJECTED: { label: "Từ chối", tone: "danger" },
+  CANCELLED: { label: "Đã hủy", tone: "neutral" },
 };
+
+const deadlineDate = new Intl.DateTimeFormat("vi-VN", { dateStyle: "short", timeZone: "Asia/Ho_Chi_Minh" });
+const deadlineTime = new Intl.DateTimeFormat("vi-VN", { timeStyle: "short", timeZone: "Asia/Ho_Chi_Minh" });
+const ticketCell = cn(dashboardTableCell, "whitespace-normal [overflow-wrap:anywhere]");
 
 function formatDateTime(value: Date): string {
   return new Intl.DateTimeFormat("vi-VN", {
@@ -120,27 +127,29 @@ export function ModeratorTicketsView({
       >
         <DashboardDataTable
           embedded
+          responsive
           caption="Danh sách ticket"
-          columns={["Nhiệm vụ", "Podcast nháp", "Mốc thời gian", "Lý do", "Trạng thái", "Thao tác"]}
-          columnWidths={["18%", "16%", "18%", "24%", "14%", "10%"]}
-          minWidth={1120}
+          columns={["Nhiệm vụ", "Podcast", "Thời hạn", "Lý do", "Trạng thái", "Thao tác"]}
+          minWidth={0}
         >
           {tickets.length ? tickets.map((ticketItem) => {
             const presentation = statusPresentation[ticketItem.status];
             return (
               <TableRow key={ticketItem.id} className="border-mod-border hover:bg-mod-canvas-accent/40">
-                <TableCell className={cn(dashboardTableCell, "font-semibold")}>{ticketItem.schedule.title}</TableCell>
-                <TableCell className={dashboardTableCell}>{ticketItem.schedule.episode?.title ?? "Chưa liên kết"}</TableCell>
-                <TableCell className={cn(dashboardTableCell, "text-xs leading-5 text-mod-text-secondary")}>
-                  <span className="block">Hạn: {formatDateTime(ticketItem.schedule.productionDeadline)}</span>
-                  <span className="block">Phát hành: {formatDateTime(ticketItem.schedule.scheduledAt)}</span>
+                <TableCell data-label="Nhiệm vụ" className={cn(ticketCell, "font-semibold")}>{ticketItem.schedule.title}</TableCell>
+                <TableCell data-label="Podcast" className={ticketCell}>{ticketItem.schedule.episode?.title ?? "Chưa liên kết"}</TableCell>
+                <TableCell data-label="Thời hạn" className={cn(ticketCell, "text-xs leading-5 text-mod-text-secondary")}>
+                  <time dateTime={ticketItem.schedule.productionDeadline.toISOString()} title={`Hạn sản xuất: ${formatDateTime(ticketItem.schedule.productionDeadline)} · Phát hành: ${formatDateTime(ticketItem.schedule.scheduledAt)}`}>
+                    <span className="block whitespace-nowrap font-medium text-mod-text">{deadlineDate.format(ticketItem.schedule.productionDeadline)}</span>
+                    <span className="block whitespace-nowrap tabular-nums">{deadlineTime.format(ticketItem.schedule.productionDeadline)}</span>
+                  </time>
                 </TableCell>
-                <TableCell className={cn(dashboardTableCell, "max-w-[280px]")}>
-                  <p className="line-clamp-3 text-sm leading-5">{ticketItem.reason}</p>
+                <TableCell data-label="Lý do" className={ticketCell}>
+                  <p className="text-sm leading-5">{ticketItem.reason}</p>
                   {ticketItem.decisionReason ? <p className="mt-2 text-xs font-medium text-mod-danger">Admin: {ticketItem.decisionReason}</p> : null}
                 </TableCell>
-                <TableCell className={dashboardTableCell}><CardBadge type="status" tone={presentation.tone}>{presentation.label}</CardBadge></TableCell>
-                <TableCell className={dashboardTableCell}>
+                <TableCell data-label="Trạng thái" className={ticketCell}><CardBadge type="status" tone={presentation.tone}>{presentation.label}</CardBadge></TableCell>
+                <TableCell data-label="Thao tác" className={ticketCell}>
                   <DashboardRowActions
                     label={ticketItem.schedule.title}
                     disabled={busy}

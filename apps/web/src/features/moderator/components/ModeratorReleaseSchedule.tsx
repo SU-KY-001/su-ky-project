@@ -1,19 +1,17 @@
 import { Fragment, useState, type ReactElement } from "react";
-import {
-  Broadcast,
-  CalendarBlank,
-  CaretLeft,
-  CaretRight,
-  CheckCircle,
-  ClockCountdown,
-  GridFour,
-  ListBullets,
-  Prohibit,
-  Ticket,
-  WarningCircle,
-  XCircle,
-  type Icon,
-} from "@phosphor-icons/react";
+import { Broadcast } from "@phosphor-icons/react/dist/icons/Broadcast";
+import { CalendarBlank } from "@phosphor-icons/react/dist/icons/CalendarBlank";
+import { CaretLeft } from "@phosphor-icons/react/dist/icons/CaretLeft";
+import { CaretRight } from "@phosphor-icons/react/dist/icons/CaretRight";
+import { CheckCircle } from "@phosphor-icons/react/dist/icons/CheckCircle";
+import { ClockCountdown } from "@phosphor-icons/react/dist/icons/ClockCountdown";
+import { GridFour } from "@phosphor-icons/react/dist/icons/GridFour";
+import { ListBullets } from "@phosphor-icons/react/dist/icons/ListBullets";
+import { Prohibit } from "@phosphor-icons/react/dist/icons/Prohibit";
+import { Ticket } from "@phosphor-icons/react/dist/icons/Ticket";
+import { WarningCircle } from "@phosphor-icons/react/dist/icons/WarningCircle";
+import { XCircle } from "@phosphor-icons/react/dist/icons/XCircle";
+import type { Icon } from "@phosphor-icons/react";
 import { useQuery } from "@tanstack/react-query";
 import type { DayButtonProps } from "react-day-picker";
 import { Badge } from "@/shared/components/ui/badge";

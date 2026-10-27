@@ -1,4 +1,10 @@
-import { CaretDown, CaretRight, Flag, Headphones, MapTrifold, Stack, VinylRecord } from "@phosphor-icons/react";
+import { CaretDown } from "@phosphor-icons/react/dist/icons/CaretDown";
+import { CaretRight } from "@phosphor-icons/react/dist/icons/CaretRight";
+import { Flag } from "@phosphor-icons/react/dist/icons/Flag";
+import { Headphones } from "@phosphor-icons/react/dist/icons/Headphones";
+import { MapTrifold } from "@phosphor-icons/react/dist/icons/MapTrifold";
+import { Stack } from "@phosphor-icons/react/dist/icons/Stack";
+import { VinylRecord } from "@phosphor-icons/react/dist/icons/VinylRecord";
 import type { ReactElement } from "react";
 import { Button } from "@/shared/components/ui/button";
 import { cn } from "@/lib/utils";

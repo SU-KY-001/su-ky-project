@@ -1,11 +1,9 @@
-import {
-  ArrowRight,
-  BookOpenText,
-  CalendarBlank,
-  Headphones,
-  Plus,
-  TreeStructure,
-} from "@phosphor-icons/react";
+import { ArrowRight } from "@phosphor-icons/react/dist/icons/ArrowRight";
+import { BookOpenText } from "@phosphor-icons/react/dist/icons/BookOpenText";
+import { CalendarBlank } from "@phosphor-icons/react/dist/icons/CalendarBlank";
+import { Headphones } from "@phosphor-icons/react/dist/icons/Headphones";
+import { Plus } from "@phosphor-icons/react/dist/icons/Plus";
+import { TreeStructure } from "@phosphor-icons/react/dist/icons/TreeStructure";
 import { Link } from "react-router";
 import { Button } from "@/shared/components/ui/button";
 import { moderatorPodcastPath } from "@/features/moderator/paths";

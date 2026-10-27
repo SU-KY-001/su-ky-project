@@ -32,7 +32,7 @@ export function revealLandingSections(root: Element): () => void {
         opacity: 1,
         duration: 0.8,
         ease: "power3.out",
-        scrollTrigger: { trigger: element, scroller: root, start: "top 86%", once: true },
+        scrollTrigger: { trigger: element, start: "top 86%", once: true },
       });
     });
   }, root);
@@ -45,14 +45,13 @@ export function useLandingMotion(): void {
 
   useLayoutEffect(() => {
     const page = document.getElementById("landing-page");
-    const content = document.getElementById("landing-content");
-    if (!page || !content) return undefined;
+    if (!page) return undefined;
 
     if (reducedMotion) return undefined;
 
     const lenis = new Lenis({
-      wrapper: page,
-      content,
+      wrapper: window,
+      content: document.documentElement,
       duration: 1.45,
       smoothWheel: true,
       syncTouch: false,

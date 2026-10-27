@@ -422,6 +422,7 @@ model Episode {
   attachments        EpisodeAttachment[]
   entityTags         EpisodeEntityTag[]
   quiz               Quiz?
+  quizDraft          QuizWorkspaceDraft?
   listeningProgress  ListeningProgress[]
   releaseSchedules   ReleaseSchedule[]
   reviews            EpisodeReview[]
@@ -654,6 +655,17 @@ model EpisodeEntityTag {
   @@unique([episodeId, entityId], map: "episode_entity_tags_episode_id_entity_id_key")
   @@index([entityId, status], map: "episode_entity_tags_entity_id_status_idx")
   @@map("episode_entity_tags")
+}
+
+model QuizWorkspaceDraft {
+  episodeId String @id @map("episode_id") @db.Uuid
+  data Json @db.JsonB
+  revision Int @default(1)
+  activatedRevision Int @default(0) @map("activated_revision")
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+  episode Episode @relation(fields: [episodeId], references: [id], onDelete: Cascade)
+
+  @@map("quiz_workspace_drafts")
 }
 
 model Quiz {

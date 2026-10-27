@@ -1,4 +1,4 @@
-import { ChartBar } from "@phosphor-icons/react";
+import { ChartBar } from "@phosphor-icons/react/dist/icons/ChartBar";
 import { ModeratorText } from "./ModeratorText";
 
 export function EmptyChartState({ title }: { title: string }) {

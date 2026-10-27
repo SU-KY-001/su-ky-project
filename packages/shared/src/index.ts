@@ -17,6 +17,7 @@ export * from "./schemas/content/media";
 export * from "./schemas/listening";
 export * from "./schemas/admin";
 export * from "./schemas/quiz-mission";
+export * from "./schemas/quiz-authoring";
 export * from "./schemas/showcase";
 export * from "./types/index";
 

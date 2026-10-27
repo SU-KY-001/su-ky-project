@@ -1,6 +1,14 @@
 import { useState, type ReactElement } from "react";
 import { Link, useSearchParams } from "react-router";
-import { ArrowLeft, ArrowRight, BookOpen, CalendarBlank, CaretLeft, CaretRight, ClockCounterClockwise, Headphones, Medal } from "@phosphor-icons/react";
+import { ArrowLeft } from "@phosphor-icons/react/dist/icons/ArrowLeft";
+import { ArrowRight } from "@phosphor-icons/react/dist/icons/ArrowRight";
+import { BookOpen } from "@phosphor-icons/react/dist/icons/BookOpen";
+import { CalendarBlank } from "@phosphor-icons/react/dist/icons/CalendarBlank";
+import { CaretLeft } from "@phosphor-icons/react/dist/icons/CaretLeft";
+import { CaretRight } from "@phosphor-icons/react/dist/icons/CaretRight";
+import { ClockCounterClockwise } from "@phosphor-icons/react/dist/icons/ClockCounterClockwise";
+import { Headphones } from "@phosphor-icons/react/dist/icons/Headphones";
+import { Medal } from "@phosphor-icons/react/dist/icons/Medal";
 import { Button } from "@/shared/components/ui/button";
 import { Badge } from "@/shared/components/ui/badge";
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/shared/components/ui/dialog";

@@ -1,7 +1,9 @@
 import { useState, type ReactElement } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "react-router";
-import { CheckCircle, Medal, Trophy } from "@phosphor-icons/react";
+import { CheckCircle } from "@phosphor-icons/react/dist/icons/CheckCircle";
+import { Medal } from "@phosphor-icons/react/dist/icons/Medal";
+import { Trophy } from "@phosphor-icons/react/dist/icons/Trophy";
 import { Button } from "@/shared/components/ui/button";
 import { Badge } from "@/shared/components/ui/badge";
 import { useCurrentUser } from "@/shared/hooks/useCurrentUser";

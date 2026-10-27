@@ -1,5 +1,9 @@
 import type { ReleaseScheduleRecord } from "@repo/shared";
-import { ArrowClockwise, PencilSimple, ShieldCheck, Warning, X } from "@phosphor-icons/react";
+import { ArrowClockwise } from "@phosphor-icons/react/dist/icons/ArrowClockwise";
+import { PencilSimple } from "@phosphor-icons/react/dist/icons/PencilSimple";
+import { ShieldCheck } from "@phosphor-icons/react/dist/icons/ShieldCheck";
+import { Warning } from "@phosphor-icons/react/dist/icons/Warning";
+import { X } from "@phosphor-icons/react/dist/icons/X";
 import { Button } from "@/shared/components/ui/button";
 import { CardBadge, cardBadgeToneForStatus } from "@/shared/components/dashboard/CardBadge";
 

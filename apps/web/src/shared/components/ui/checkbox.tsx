@@ -1,6 +1,6 @@
 import type { ComponentProps, ReactElement } from "react";
 import { Checkbox as CheckboxPrimitive } from "radix-ui";
-import { Check } from "@phosphor-icons/react";
+import { Check } from "@phosphor-icons/react/dist/icons/Check";
 import { cn } from "@/lib/utils";
 
 export function Checkbox({ className, ...props }: ComponentProps<typeof CheckboxPrimitive.Root>): ReactElement {

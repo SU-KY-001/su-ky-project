@@ -1,4 +1,6 @@
-import { List, MagnifyingGlass, X } from "@phosphor-icons/react";
+import { List } from "@phosphor-icons/react/dist/icons/List";
+import { MagnifyingGlass } from "@phosphor-icons/react/dist/icons/MagnifyingGlass";
+import { X } from "@phosphor-icons/react/dist/icons/X";
 import { useState } from "react";
 import { Link, useNavigate } from "react-router";
 import { Button } from "@/shared/components/ui/button";

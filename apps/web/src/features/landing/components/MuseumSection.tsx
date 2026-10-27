@@ -1,6 +1,6 @@
 import type { ReactElement } from "react";
 import { Link } from "react-router";
-import { ArrowRight } from "@phosphor-icons/react";
+import { ArrowRight } from "@phosphor-icons/react/dist/icons/ArrowRight";
 import { Button } from "@/shared/components/ui/button";
 import museumPhoto from "@/public/30-4-1975/vna-potal-48-nam-ngay-giai-phong-hoan-toan-mien-nam-thong-nhat-dat-nuoc-3041975-3042023-trang-su-hao-hung-tren-con-duong-dung-nuoc-va-giu-nuoc-669855518-9-57-50.jpg";
 import { LibrarySection } from "./library/LibraryPrimitives";

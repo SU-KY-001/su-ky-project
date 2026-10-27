@@ -1,4 +1,5 @@
-import { CaretDown, type Icon } from "@phosphor-icons/react";
+import { CaretDown } from "@phosphor-icons/react/dist/icons/CaretDown";
+import type { Icon } from "@phosphor-icons/react";
 import { DropdownMenu } from "radix-ui";
 import { cn } from "@/lib/utils";
 import { Button } from "@/shared/components/ui/button";

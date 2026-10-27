@@ -1,4 +1,6 @@
-import { ArrowRight, ArrowSquareOut, MapTrifold } from "@phosphor-icons/react";
+import { ArrowRight } from "@phosphor-icons/react/dist/icons/ArrowRight";
+import { ArrowSquareOut } from "@phosphor-icons/react/dist/icons/ArrowSquareOut";
+import { MapTrifold } from "@phosphor-icons/react/dist/icons/MapTrifold";
 import { useState, type ReactElement } from "react";
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/shared/components/ui/dialog";
 import { Button } from "@/shared/components/ui/button";

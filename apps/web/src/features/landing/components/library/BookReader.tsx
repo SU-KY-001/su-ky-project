@@ -1,7 +1,11 @@
 import { useState, type ReactElement } from "react";
 import { useQuery } from "@tanstack/react-query";
 import type { LibrarySeries } from "@repo/shared";
-import { BookOpen, CaretLeft, CaretRight, Headphones, X } from "@phosphor-icons/react";
+import { BookOpen } from "@phosphor-icons/react/dist/icons/BookOpen";
+import { CaretLeft } from "@phosphor-icons/react/dist/icons/CaretLeft";
+import { CaretRight } from "@phosphor-icons/react/dist/icons/CaretRight";
+import { Headphones } from "@phosphor-icons/react/dist/icons/Headphones";
+import { X } from "@phosphor-icons/react/dist/icons/X";
 import { Button } from "@/shared/components/ui/button";
 import { Dialog, DialogClose, DialogContent, DialogDescription, DialogTitle } from "@/shared/components/ui/dialog";
 import { libraryService } from "../../services/libraryService";

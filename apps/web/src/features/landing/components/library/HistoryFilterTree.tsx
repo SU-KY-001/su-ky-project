@@ -1,6 +1,7 @@
 import type { ReactElement } from "react";
 import type { HistoricalPeriodDto, PublicHistoricalEventDto } from "@repo/shared";
-import { CaretDown, CaretRight } from "@phosphor-icons/react";
+import { CaretDown } from "@phosphor-icons/react/dist/icons/CaretDown";
+import { CaretRight } from "@phosphor-icons/react/dist/icons/CaretRight";
 import { Button } from "@/shared/components/ui/button";
 import { LibraryPages } from "./LibraryPrimitives";
 
