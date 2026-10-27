@@ -1,6 +1,6 @@
 import { useLayoutEffect, useState, type ReactNode } from "react";
 import { Link } from "react-router";
-import { ArrowUpRight, List, type Icon } from "@phosphor-icons/react";
+import { ArrowUpRight, List, SidebarSimple, type Icon } from "@phosphor-icons/react";
 import brandLogo from "@/public/brand-su-ky-viet-nam.png";
 import { Button } from "@/shared/components/ui/button";
 import { Separator } from "@/shared/components/ui/separator";
@@ -11,6 +11,8 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "@/shared/components/ui/sheet";
+
+const COLLAPSED_STORAGE_KEY = "workspace-sidebar-collapsed";
 
 const NAV_LINK_CLASS =
   "relative flex min-h-11 items-center gap-[11px] rounded-[10px] px-3 text-sm no-underline transition-colors hover:bg-mod-canvas-accent focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-mod-primary";
@@ -107,12 +109,15 @@ function WorkspaceSidebar({
   profile,
   externalHomeLabel,
   onNavigated,
+  onCollapse,
 }: Omit<WorkspaceShellProps, "children" | "mobileNavigationTitle"> & {
   onNavigated: () => void;
+  /** Only the desktop sidebar passes this; the mobile drawer closes by itself. */
+  onCollapse?: () => void;
 }) {
   return (
     <>
-      <div className="flex items-center gap-[11px] px-2 py-1">
+      <div className="flex items-start justify-between gap-2 px-2 py-1">
         <span className="flex min-w-0 flex-col gap-1">
           <img
             src={brandLogo}
@@ -123,6 +128,19 @@ function WorkspaceSidebar({
             {brandCaption}
           </span>
         </span>
+        {onCollapse ? (
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon-sm"
+            className="shrink-0 text-mod-text-secondary"
+            aria-label="Thu gọn menu"
+            title="Thu gọn menu"
+            onClick={onCollapse}
+          >
+            <SidebarSimple size={18} aria-hidden="true" />
+          </Button>
+        ) : null}
       </div>
       <nav className="mt-6 flex flex-col gap-1" aria-label={navigationLabel}>
         {nav.map((item) => (
@@ -148,6 +166,11 @@ function WorkspaceSidebar({
 
 export function WorkspaceShell(props: WorkspaceShellProps) {
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const [collapsed, setCollapsed] = useState(() => localStorage.getItem(COLLAPSED_STORAGE_KEY) === "1");
+  const setSidebarCollapsed = (next: boolean) => {
+    setCollapsed(next);
+    localStorage.setItem(COLLAPSED_STORAGE_KEY, next ? "1" : "0");
+  };
   const closeDrawer = () => setDrawerOpen(false);
 
   useLayoutEffect(() => {
@@ -172,10 +195,23 @@ export function WorkspaceShell(props: WorkspaceShellProps) {
 
   return (
     <div className="mod-layout-root font-sans text-mod-text">
-      <div className="mod-layout-shell">
+      <div className="mod-layout-shell" data-collapsed={collapsed}>
         <aside className="mod-sidebar" aria-label={props.navigationLabel}>
-          <WorkspaceSidebar {...sidebarProps} />
+          <WorkspaceSidebar {...sidebarProps} onCollapse={() => setSidebarCollapsed(true)} />
         </aside>
+        <div className="mod-sidebar-rail">
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon-sm"
+            className="text-mod-text-secondary"
+            aria-label="Mở rộng menu"
+            title="Mở rộng menu"
+            onClick={() => setSidebarCollapsed(false)}
+          >
+            <SidebarSimple size={18} aria-hidden="true" />
+          </Button>
+        </div>
         <div className="mod-main-column">
           <header className="mod-header mod-mobile-header">
             <Sheet open={drawerOpen} onOpenChange={setDrawerOpen}>

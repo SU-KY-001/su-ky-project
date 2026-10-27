@@ -1037,3 +1037,17 @@ img {
 @media (prefers-reduced-motion: reduce) {
   .ai-think-dot { animation: none; opacity: 0.7; }
 }
+
+/* Collapsible workspace sidebar (desktop only; below 981px the menu is a drawer). */
+.mod-sidebar-rail { display: none; }
+@media (min-width: 981px) {
+  .mod-layout-shell[data-collapsed="true"] .mod-sidebar { display: none; }
+  .mod-layout-shell[data-collapsed="true"] .mod-sidebar-rail {
+    display: flex;
+    flex: 0 0 48px;
+    justify-content: center;
+    padding-top: 18px;
+    border-right: 1px solid var(--modBorder);
+    background: var(--modSurface);
+  }
+}
