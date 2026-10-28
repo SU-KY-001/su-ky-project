@@ -1,4 +1,5 @@
-import { Play, Stop } from "@phosphor-icons/react";
+import { Play } from "@phosphor-icons/react/dist/icons/Play";
+import { Stop } from "@phosphor-icons/react/dist/icons/Stop";
 import { useEffect, useState } from "react";
 import { Button } from "@/shared/components/ui/button";
 import { cn } from "@/lib/utils";

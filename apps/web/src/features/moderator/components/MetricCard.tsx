@@ -1,4 +1,7 @@
-import { BookOpenText, Headphones, MapTrifold, SquaresFour } from "@phosphor-icons/react";
+import { BookOpenText } from "@phosphor-icons/react/dist/icons/BookOpenText";
+import { Headphones } from "@phosphor-icons/react/dist/icons/Headphones";
+import { MapTrifold } from "@phosphor-icons/react/dist/icons/MapTrifold";
+import { SquaresFour } from "@phosphor-icons/react/dist/icons/SquaresFour";
 import type { ModeratorMetric, ModeratorMetricIcon } from "../types";
 import { ModeratorText } from "./ModeratorText";
 

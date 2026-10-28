@@ -1,6 +1,8 @@
 import { useState, type ReactElement } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { CaretLeft, CaretRight, Headphones } from "@phosphor-icons/react";
+import { CaretLeft } from "@phosphor-icons/react/dist/icons/CaretLeft";
+import { CaretRight } from "@phosphor-icons/react/dist/icons/CaretRight";
+import { Headphones } from "@phosphor-icons/react/dist/icons/Headphones";
 import { Button } from "@/shared/components/ui/button";
 import { Badge } from "@/shared/components/ui/badge";
 import { cn } from "@/lib/utils";

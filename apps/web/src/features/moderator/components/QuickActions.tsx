@@ -1,4 +1,8 @@
-import { ArrowUpRight, BookOpenText, Headphones, MapTrifold, SquaresFour } from "@phosphor-icons/react";
+import { ArrowUpRight } from "@phosphor-icons/react/dist/icons/ArrowUpRight";
+import { BookOpenText } from "@phosphor-icons/react/dist/icons/BookOpenText";
+import { Headphones } from "@phosphor-icons/react/dist/icons/Headphones";
+import { MapTrifold } from "@phosphor-icons/react/dist/icons/MapTrifold";
+import { SquaresFour } from "@phosphor-icons/react/dist/icons/SquaresFour";
 import { Button } from "@/shared/components/ui/button";
 import type { ModeratorQuickAction, ModeratorQuickActionIcon } from "../types";
 import { ModeratorText } from "./ModeratorText";

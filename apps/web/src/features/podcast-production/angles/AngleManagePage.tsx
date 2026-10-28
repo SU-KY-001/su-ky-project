@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState } from "react";
 import { useSearchParams } from "react-router";
-import { LockSimple, PencilSimple, Plus } from "@phosphor-icons/react";
+import { LockSimple } from "@phosphor-icons/react/dist/icons/LockSimple";
+import { PencilSimple } from "@phosphor-icons/react/dist/icons/PencilSimple";
+import { Plus } from "@phosphor-icons/react/dist/icons/Plus";
 import type { Angle } from "@repo/shared";
 import { errorMessage, isApiError } from "@/lib/apiError";
 import { cn } from "@/lib/utils";

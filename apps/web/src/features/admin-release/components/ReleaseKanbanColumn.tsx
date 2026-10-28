@@ -1,6 +1,7 @@
 import { useState, type DragEvent } from "react";
 import type { ReleaseScheduleRecord } from "@repo/shared";
-import { CaretDown, CaretUp } from "@phosphor-icons/react";
+import { CaretDown } from "@phosphor-icons/react/dist/icons/CaretDown";
+import { CaretUp } from "@phosphor-icons/react/dist/icons/CaretUp";
 import { Button } from "@/shared/components/ui/button";
 import {
   getReleaseDropCommand,

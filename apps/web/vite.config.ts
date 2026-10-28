@@ -14,6 +14,9 @@ export default defineConfig({
       "@": resolve(appRoot, "src"),
     },
   },
+  optimizeDeps: {
+    exclude: ["@phosphor-icons/react"],
+  },
   server: {
     port: 3000,
   },

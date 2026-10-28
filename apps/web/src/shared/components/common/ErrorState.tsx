@@ -1,4 +1,4 @@
-import { ArrowClockwise } from "@phosphor-icons/react";
+import { ArrowClockwise } from "@phosphor-icons/react/dist/icons/ArrowClockwise";
 import { Button } from "../ui/button";
 
 interface ErrorStateProps {

@@ -1,16 +1,14 @@
 import { useDeferredValue, useEffect, useState } from "react";
-import {
-  CalendarBlank,
-  Bell,
-  ChartBar,
-  CheckSquareOffset,
-  ClockCounterClockwise,
-  Gear,
-  IdentificationBadge,
-  Users,
-  MagnifyingGlass,
-  Eye,
-} from "@phosphor-icons/react";
+import { CalendarBlank } from "@phosphor-icons/react/dist/icons/CalendarBlank";
+import { Bell } from "@phosphor-icons/react/dist/icons/Bell";
+import { ChartBar } from "@phosphor-icons/react/dist/icons/ChartBar";
+import { CheckSquareOffset } from "@phosphor-icons/react/dist/icons/CheckSquareOffset";
+import { ClockCounterClockwise } from "@phosphor-icons/react/dist/icons/ClockCounterClockwise";
+import { Gear } from "@phosphor-icons/react/dist/icons/Gear";
+import { IdentificationBadge } from "@phosphor-icons/react/dist/icons/IdentificationBadge";
+import { Users } from "@phosphor-icons/react/dist/icons/Users";
+import { MagnifyingGlass } from "@phosphor-icons/react/dist/icons/MagnifyingGlass";
+import { Eye } from "@phosphor-icons/react/dist/icons/Eye";
 import { AccountProfile } from "@/features/auth";
 import { WorkspaceShell, type WorkspaceNavItem } from "@/shared/components/dashboard/WorkspaceShell";
 import { DashboardHeader, DashboardPanel } from "@/shared/components/dashboard/DashboardOverview";
@@ -199,7 +197,7 @@ export function AdminDashboardPage() {
   else if (section === "users") content = <AdminUsers />;
   else content = <SystemPlaceholder section={section} />;
   return (
-    <WorkspaceShell navigationLabel="Điều hướng admin" mobileNavigationTitle="Menu điều hướng admin" brandCaption="KHÔNG GIAN QUẢN TRỊ" nav={adminNavigation(section, (next) => { setCreateOnOpen(false); setSection(next); })} profile={<AccountProfile variant="admin" />} externalHomeLabel="Mở trang Sử Ký">
+    <WorkspaceShell navigationLabel="Điều hướng admin" mobileNavigationTitle="Menu điều hướng admin" brandCaption="KHÔNG GIAN QUẢN TRỊ" nav={adminNavigation(section, (next) => { setCreateOnOpen(false); setSection(next); })} profile={<AccountProfile variant="admin" />}>
       <div key={section} className="mod-content-view">{content}</div>
     </WorkspaceShell>
   );

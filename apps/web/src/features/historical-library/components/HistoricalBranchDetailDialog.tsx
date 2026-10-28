@@ -11,7 +11,7 @@ import { HistoricalBranchContent } from "./HistoricalBranchContent";
 import { HistoricalContentForm, type HistoricalEdit } from "./CreateHistoricalContentDialog";
 import { useCurrentUser } from "@/shared/hooks/useCurrentUser";
 import type { HistoricalKind } from "../services/historicalCatalogService";
-import { PencilSimple } from "@phosphor-icons/react";
+import { PencilSimple } from "@phosphor-icons/react/dist/icons/PencilSimple";
 
 interface HistoricalBranchDetailDialogProps {
   period: HistoricalPeriodDetailDto;

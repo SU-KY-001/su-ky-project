@@ -1,4 +1,8 @@
-import { CaretDown, CircleNotch, SignOut, SquaresFour, UserCircle } from "@phosphor-icons/react";
+import { CaretDown } from "@phosphor-icons/react/dist/icons/CaretDown";
+import { CircleNotch } from "@phosphor-icons/react/dist/icons/CircleNotch";
+import { SignOut } from "@phosphor-icons/react/dist/icons/SignOut";
+import { SquaresFour } from "@phosphor-icons/react/dist/icons/SquaresFour";
+import { UserCircle } from "@phosphor-icons/react/dist/icons/UserCircle";
 import { DropdownMenu } from "radix-ui";
 import { Link } from "react-router";
 import type { ReactElement } from "react";
@@ -26,11 +30,11 @@ export function AccountProfile({ variant = "header" }: { variant?: "header" | "m
     const moderator = variant === "moderator";
     return (
       <section aria-label="Hồ sơ tài khoản" className="flex flex-col gap-2">
-        <div className="flex items-center gap-3 px-1">
-          <span className={`grid size-10 shrink-0 place-items-center rounded-full border ${moderator ? "border-mod-border bg-mod-canvas-accent text-mod-text-secondary" : "border-line bg-paper-deep text-ink-soft"}`}>
+        <div data-account-profile-row className="flex items-center gap-3 px-1">
+          <span title={`${user.name} · ${roleLabel}`} className={`grid size-10 shrink-0 place-items-center rounded-full border ${moderator ? "border-mod-border bg-mod-canvas-accent text-mod-text-secondary" : "border-line bg-paper-deep text-ink-soft"}`}>
             <UserCircle size={22} aria-hidden="true" />
           </span>
-          <div className="min-w-0 flex-1">
+          <div data-account-profile-details className="min-w-0 flex-1">
             <ModeratorText as="p" className={`truncate text-sm font-bold ${moderator ? "text-mod-text" : "text-ink"}`}>{user.name}</ModeratorText>
             <ModeratorText as="p" className={`text-xs ${moderator ? "text-mod-text-secondary" : "text-ink-soft"}`}>{roleLabel}</ModeratorText>
           </div>

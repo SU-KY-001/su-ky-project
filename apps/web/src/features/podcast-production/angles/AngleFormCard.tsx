@@ -1,5 +1,8 @@
 import type { RefObject } from "react";
-import { Copy, Lock, Trash, WarningCircle } from "@phosphor-icons/react";
+import { Copy } from "@phosphor-icons/react/dist/icons/Copy";
+import { Lock } from "@phosphor-icons/react/dist/icons/Lock";
+import { Trash } from "@phosphor-icons/react/dist/icons/Trash";
+import { WarningCircle } from "@phosphor-icons/react/dist/icons/WarningCircle";
 import { Button } from "@/shared/components/ui/button";
 import { Input } from "@/shared/components/ui/input";
 import { Label } from "@/shared/components/ui/label";

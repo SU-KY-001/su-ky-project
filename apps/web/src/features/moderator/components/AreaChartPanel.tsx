@@ -1,5 +1,5 @@
 import { useId } from "react";
-import { ChartLineUp } from "@phosphor-icons/react";
+import { ChartLineUp } from "@phosphor-icons/react/dist/icons/ChartLineUp";
 import { Card } from "@/shared/components/ui/card";
 import { moderatorChartColors } from "../theme";
 import type { ModeratorChart, ModeratorChartSeries } from "../types";

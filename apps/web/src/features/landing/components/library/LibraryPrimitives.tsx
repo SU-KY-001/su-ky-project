@@ -1,5 +1,8 @@
 import type { ReactElement, ReactNode } from "react";
-import { ArrowClockwise, BookOpen, CaretLeft, CaretRight } from "@phosphor-icons/react";
+import { ArrowClockwise } from "@phosphor-icons/react/dist/icons/ArrowClockwise";
+import { BookOpen } from "@phosphor-icons/react/dist/icons/BookOpen";
+import { CaretLeft } from "@phosphor-icons/react/dist/icons/CaretLeft";
+import { CaretRight } from "@phosphor-icons/react/dist/icons/CaretRight";
 import { Button } from "@/shared/components/ui/button";
 import { Label } from "@/shared/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/shared/components/ui/select";

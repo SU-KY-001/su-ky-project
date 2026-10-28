@@ -1,4 +1,5 @@
-import { LockKey, MicrophoneStage } from "@phosphor-icons/react";
+import { LockKey } from "@phosphor-icons/react/dist/icons/LockKey";
+import { MicrophoneStage } from "@phosphor-icons/react/dist/icons/MicrophoneStage";
 import { Button } from "@/shared/components/ui/button";
 import { Link } from "react-router";
 import type { TimelineEvent } from "../types";

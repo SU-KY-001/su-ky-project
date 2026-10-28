@@ -1,16 +1,14 @@
-import {
-  Article,
-  BookOpenText,
-  CalendarBlank,
-  ChartBar,
-  CheckSquareOffset,
-  ClipboardText,
-  Headphones,
-  MapTrifold,
-  PencilSimpleLine,
-  Ticket,
-  Exam,
-} from "@phosphor-icons/react";
+import { Article } from "@phosphor-icons/react/dist/icons/Article";
+import { BookOpenText } from "@phosphor-icons/react/dist/icons/BookOpenText";
+import { CalendarBlank } from "@phosphor-icons/react/dist/icons/CalendarBlank";
+import { ChartBar } from "@phosphor-icons/react/dist/icons/ChartBar";
+import { CheckSquareOffset } from "@phosphor-icons/react/dist/icons/CheckSquareOffset";
+import { ClipboardText } from "@phosphor-icons/react/dist/icons/ClipboardText";
+import { Headphones } from "@phosphor-icons/react/dist/icons/Headphones";
+import { MapTrifold } from "@phosphor-icons/react/dist/icons/MapTrifold";
+import { PencilSimpleLine } from "@phosphor-icons/react/dist/icons/PencilSimpleLine";
+import { Ticket } from "@phosphor-icons/react/dist/icons/Ticket";
+import { Exam } from "@phosphor-icons/react/dist/icons/Exam";
 import type { ShellNavItem } from "./components/ModeratorShell";
 import { moderatorSectionPath } from "./paths";
 import type { ModeratorSection } from "./types";

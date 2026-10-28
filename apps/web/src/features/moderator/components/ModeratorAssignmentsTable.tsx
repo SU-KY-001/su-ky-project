@@ -1,5 +1,8 @@
 import { useState } from "react";
-import { Eye, LinkSimple, MagnifyingGlass, PaperPlaneTilt } from "@phosphor-icons/react";
+import { Eye } from "@phosphor-icons/react/dist/icons/Eye";
+import { LinkSimple } from "@phosphor-icons/react/dist/icons/LinkSimple";
+import { MagnifyingGlass } from "@phosphor-icons/react/dist/icons/MagnifyingGlass";
+import { PaperPlaneTilt } from "@phosphor-icons/react/dist/icons/PaperPlaneTilt";
 import { cn } from "@/lib/utils";
 import { CardBadge, cardBadgeToneForStatus } from "@/shared/components/dashboard/CardBadge";
 import { DashboardHeader } from "@/shared/components/dashboard/DashboardOverview";

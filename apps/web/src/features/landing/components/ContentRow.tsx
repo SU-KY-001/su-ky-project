@@ -1,4 +1,5 @@
-import { CaretLeft, CaretRight } from "@phosphor-icons/react";
+import { CaretLeft } from "@phosphor-icons/react/dist/icons/CaretLeft";
+import { CaretRight } from "@phosphor-icons/react/dist/icons/CaretRight";
 import { useCallback, useEffect, useRef, useState, type PropsWithChildren } from "react";
 import { cn } from "@/lib/utils";
 import { useReducedMotion } from "../hooks/useReducedMotion";

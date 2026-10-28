@@ -1,6 +1,13 @@
 import { useRef, useState, type FormEvent, type ReactElement } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { ArrowLeft, ArrowRight, Brain, Check, CheckCircle, LockKey, Trophy, XCircle } from "@phosphor-icons/react";
+import { ArrowLeft } from "@phosphor-icons/react/dist/icons/ArrowLeft";
+import { ArrowRight } from "@phosphor-icons/react/dist/icons/ArrowRight";
+import { Brain } from "@phosphor-icons/react/dist/icons/Brain";
+import { Check } from "@phosphor-icons/react/dist/icons/Check";
+import { CheckCircle } from "@phosphor-icons/react/dist/icons/CheckCircle";
+import { LockKey } from "@phosphor-icons/react/dist/icons/LockKey";
+import { Trophy } from "@phosphor-icons/react/dist/icons/Trophy";
+import { XCircle } from "@phosphor-icons/react/dist/icons/XCircle";
 import { Link } from "react-router";
 import { Badge } from "@/shared/components/ui/badge";
 import { Button } from "@/shared/components/ui/button";
@@ -8,6 +15,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { notify } from "@/shared/lib/notifications";
 import { libraryService } from "../../services/libraryService";
 import { LibraryState } from "./LibraryPrimitives";
+import { QuizExplanation } from "./QuizExplanation";
 
 type PublicQuiz = Awaited<ReturnType<typeof libraryService.quiz>>;
 type QuizAttemptResult = Awaited<ReturnType<typeof libraryService.attempt>>;
@@ -145,7 +153,7 @@ function QuizResult({ quiz, result, onRetry }: QuizResultProps): ReactElement {
                     <h4 className="text-sm font-semibold leading-6 text-ink">{index + 1}. {question?.text}</h4>
                     <p className="mt-2 text-sm leading-6 text-ink-soft">Bạn chọn: <span className={answer.isCorrect ? "font-medium text-bronze-dark" : "font-medium text-vermilion"}>{selectedOption?.label}. {selectedOption?.text}</span></p>
                     {!answer.isCorrect && <p className="mt-1 text-sm leading-6 text-ink-soft">Đáp án đúng: <span className="font-medium text-ink">{correctOption?.label}. {correctOption?.text}</span></p>}
-                    {answer.explanation && <p className="mt-3 border-l-2 border-bronze pl-3 text-sm leading-6 text-ink-soft">{answer.explanation}</p>}
+                    {answer.explanation && <QuizExplanation text={answer.explanation} />}
                   </div>
                 </div>
               </article>

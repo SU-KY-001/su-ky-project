@@ -20,6 +20,7 @@ export interface DashboardDataTableProps {
   columnWidths?: string[];
   minWidth?: number;
   embedded?: boolean;
+  responsive?: boolean;
 }
 
 export function DashboardDataTable({
@@ -30,9 +31,10 @@ export function DashboardDataTable({
   columnWidths,
   minWidth = 720,
   embedded = false,
+  responsive = false,
 }: DashboardDataTableProps) {
   return (
-    <div className={cn("mod-data-table font-moderator", embedded ? "w-full overflow-visible rounded-none border-0 bg-transparent shadow-none" : "overflow-hidden rounded-lg border border-mod-text-low/40 bg-mod-surface shadow-sm")}>
+    <div data-responsive={responsive || undefined} className={cn("mod-data-table font-moderator", embedded ? "w-full overflow-visible rounded-none border-0 bg-transparent shadow-none" : "overflow-hidden rounded-lg border border-mod-text-low/40 bg-mod-surface shadow-sm")}>
       <Table className={cn("border-collapse text-left", columnWidths && "table-fixed")} style={{ minWidth }}>
         <TableCaption className="sr-only">{caption}</TableCaption>
         {columnWidths ? <colgroup>{columnWidths.map((width, index) => <col key={index} style={{ width }} />)}</colgroup> : null}

@@ -35,7 +35,7 @@ export async function cleanupDetachedMedia(storage: MediaStorageGateway): Promis
 export function detachedMediaWhere(cutoff: Date): Prisma.MediaAssetWhereInput {
   return {
     status: { not: "DELETED" }, narrationAudio: null, seriesCover: { none: {} }, seriesCoverLandscape: { none: {} }, sourceFile: null, sourceRevisions: {none:{}},
-    episodeAttachment: null,
+    episodeAttachment: null, quizPosters: { none: {} }, quizDraftPosters: { none: {} },
     OR: [{ detachedAt: { lt: cutoff } }, { detachedAt: null, createdAt: { lt: cutoff } }],
   };
 }

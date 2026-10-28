@@ -1,5 +1,10 @@
 import { useState, type ReactElement } from "react";
-import { ArrowSquareOut, CheckCircle, FileText, Info, Warning, XCircle } from "@phosphor-icons/react";
+import { ArrowSquareOut } from "@phosphor-icons/react/dist/icons/ArrowSquareOut";
+import { CheckCircle } from "@phosphor-icons/react/dist/icons/CheckCircle";
+import { FileText } from "@phosphor-icons/react/dist/icons/FileText";
+import { Info } from "@phosphor-icons/react/dist/icons/Info";
+import { Warning } from "@phosphor-icons/react/dist/icons/Warning";
+import { XCircle } from "@phosphor-icons/react/dist/icons/XCircle";
 import type { AudioOrigin, EpisodeReadiness, EpisodeWorkspaceDto, ReadinessItem, ReviewContent, ReviewEpisodeInput } from "@repo/shared";
 import { Button } from "@/shared/components/ui/button";
 import { Textarea } from "@/shared/components/ui/textarea";
