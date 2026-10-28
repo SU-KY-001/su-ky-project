@@ -36,3 +36,4 @@ docker ps --format '{{.Names}} {{.Image}} {{.Status}}'
 | Thời gian | Commit | Branch | Message | Image |
 | --------- | ------ | ------ | ------- | ----- |
 | 2026-10-28 16:13 | d1d7699+dirty | staging | deploy prep: Dockerfile, compose.prod, Makefile.prod, docs, cookie SameSite=None | 🔵 api |
+| 2026-10-28 17:09 | ee12409+dirty | staging | staging + dev merge (quiz authoring, 3 migrations); Makefile.prod uncommitted | 🔵 api |

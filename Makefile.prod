@@ -16,10 +16,11 @@ help: ## Show this help
 setup: ## First time: create the proxy-net network Traefik uses
 	@docker network inspect proxy-net >/dev/null 2>&1 || docker network create proxy-net
 
-deploy: ## Pull latest image, start everything, apply migrations
+deploy: ## Pull latest image, start db, migrate, then start api + worker
 	@$(DOCKER_COMPOSE) pull
-	@$(DOCKER_COMPOSE) up -d
+	@$(DOCKER_COMPOSE) up -d --wait db
 	@$(MAKE) -f $(firstword $(MAKEFILE_LIST)) migrate
+	@$(DOCKER_COMPOSE) up -d
 
 deploy-api: ## Pull latest image, restart api only
 	@$(DOCKER_COMPOSE) pull api
@@ -53,15 +54,15 @@ worker-logs: ## Tail worker logs
 db-logs: ## Tail db logs
 	@$(DOCKER_COMPOSE) logs -f --tail=100 db
 
-# Prisma CLI ships inside the api image; DATABASE_URL comes from the container env.
+# `run --rm` uses a fresh container, so it works while api is down or crash-looping (fresh DB has no tables yet).
 migrate: ## Apply pending Prisma migrations
-	@$(DOCKER_COMPOSE) exec -T -w $(PRISMA_DIR) api ./node_modules/.bin/prisma migrate deploy
+	@$(DOCKER_COMPOSE) run --rm -T -w $(PRISMA_DIR) api ./node_modules/.bin/prisma migrate deploy
 
 migrate-status: ## Show migration status
-	@$(DOCKER_COMPOSE) exec -T -w $(PRISMA_DIR) api ./node_modules/.bin/prisma migrate status
+	@$(DOCKER_COMPOSE) run --rm -T -w $(PRISMA_DIR) api ./node_modules/.bin/prisma migrate status
 
 seed: ## Load the base historical seed (run once on an empty DB)
-	@$(DOCKER_COMPOSE) exec -T -w $(PRISMA_DIR) api bun src/seed.ts
+	@$(DOCKER_COMPOSE) run --rm -T -w $(PRISMA_DIR) api bun src/seed.ts
 
 prune: ## Remove unused Docker images/containers
 	@docker system prune -f
