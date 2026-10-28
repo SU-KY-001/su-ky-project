@@ -91,8 +91,7 @@ it("opens quizzes from a deep link and preserves navigation to angles", async ()
     await act(async () => { await Bun.sleep(LAZY_LOAD_POLL_MS); });
   }
   expect(host.textContent).toContain("Bộ quiz của bạn");
-  expect(host.textContent).toContain("Tự tạo bằng tay");
-  expect(host.textContent).toContain("Tạo từ kịch bản podcast");
+  expect(host.textContent).toContain("Tạo quiz");
   expect(host.querySelector('a[href="/moderator/quizzes"]')?.getAttribute("aria-current")).toBe("page");
   await act(async () => host.querySelector<HTMLAnchorElement>('a[href="/moderator/angles"]')!.click());
   for (let attempt = 0; attempt < LAZY_LOAD_ATTEMPTS && location(host) !== "/moderator/angles"; attempt++) {

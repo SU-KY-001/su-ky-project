@@ -10,9 +10,6 @@ export function moveQuestion(questions: QuizDraftQuestion[], id: string, offset:
   if (from < 0 || to < 0 || to >= questions.length) return questions;
   const next = [...questions]; const [q] = next.splice(from, 1); next.splice(to, 0, q); return next;
 }
-export function replaceQuestion(questions: QuizDraftQuestion[], id: string, generated: QuizDraftQuestion): QuizDraftQuestion[] {
-  return questions.map(q => q.id === id ? { ...generated, id } : q);
-}
 export function isComplete(question: QuizDraftQuestion): boolean {
   return Boolean(question.text.trim()) && question.correctIndex !== null && question.options.every(o => o.trim()) && new Set(question.options.map(o => o.trim().toLocaleLowerCase("vi"))).size === 4;
 }

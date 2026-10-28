@@ -13,6 +13,7 @@ export const QuizDraftQuestionSchema = z.object({
 });
 export const QuizDraftDataSchema = z.object({
   title: z.string().max(200), description: z.string().max(2000),
+  referenceText: z.string().max(100_000).optional(),
   passScorePercent: z.number().int().min(1).max(100).default(80),
   questions: z.array(QuizDraftQuestionSchema).min(1).max(100),
 }).superRefine((value, ctx) => {
@@ -33,20 +34,10 @@ export const QuizWorkspaceListSchema = z.object({ items: z.array(z.object({
   episodeId: z.string().uuid(), episodeTitle: z.string(), seriesTitle: z.string(), title: z.string(),
   questions: z.number().int(), updatedAt: z.coerce.date(), active: z.boolean(), method: z.enum(["manual", "script", "mixed"]),
 })) });
-export const GenerateQuizSchema = z.object({
-  count: z.number().int().refine(n => n === 1 || n >= 5 && n <= 10, "Chọn 5–10 câu"),
-  scriptHash: z.string().min(1).max(128),
-  exclude: z.array(z.string().max(2000)).max(100).default([]),
-});
-export const GeneratedQuizSchema = z.object({
-  scriptHash: z.string(), questions: z.array(QuizDraftQuestionSchema).min(1).max(10),
-});
 export const ActivateQuizDraftSchema = z.object({ revision: z.number().int().positive() });
 export type QuizDraftData = z.infer<typeof QuizDraftDataSchema>;
 export type QuizDraftQuestion = z.infer<typeof QuizDraftQuestionSchema>;
 export type QuizWorkspace = z.infer<typeof QuizWorkspaceSchema>;
-export type GenerateQuizInput = z.infer<typeof GenerateQuizSchema>;
-export type GeneratedQuiz = z.infer<typeof GeneratedQuizSchema>;
 
 export function validateReadyQuiz(input: QuizDraftData): z.infer<typeof UpsertQuizSchema> {
   const draft = QuizDraftDataSchema.parse(input);

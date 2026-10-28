@@ -1,25 +1,17 @@
-import { createHash, randomUUID } from "node:crypto";
+import { randomUUID } from "node:crypto";
 import { prisma, type Prisma } from "@repo/db";
 import { QuizDraftDataSchema, validateReadyQuiz, type QuizWorkspace, type QuizDraftData, type QuizWorkspaceListSchema } from "@repo/shared";
 import type { z } from "zod";
 import { DomainError } from "../../core/errors/domain-error";
 
-export const hashQuizScript = (text: string): string => createHash("sha256").update(text.normalize("NFC")).digest("hex");
 export class QuizAuthoringService {
   async episode(episodeId: string, userId: string) {
     const row = await prisma.episode.findFirst({ where: { id: episodeId, series: { ownerId: userId } },
-      include: { series: true, narrations: { where: { narrationType: "THIRD_PERSON" } } } });
+      include: { series: true } });
     if (!row) throw new DomainError(404, "NOT_FOUND", "Không tìm thấy tập thuộc quyền quản lý.");
     if (row.deletedAt || row.series.deletedAt) throw new DomainError(409, "CONTENT_IN_TRASH", "Tập hoặc series đang ở thùng rác.");
     if (row.adminLockedAt || row.series.adminLockedAt) throw new DomainError(403, "CONTENT_LOCKED", "Tập hoặc series đã bị khóa.");
     return row;
-  }
-
-  async script(episodeId: string, userId: string): Promise<{ text: string; hash: string; updatedAt: Date } | null> {
-    const episode = await this.episode(episodeId, userId);
-    const narration = episode.narrations[0];
-    const text = narration?.scriptContent?.trim();
-    return text ? { text, hash: hashQuizScript(text), updatedAt: narration.scriptUpdatedAt ?? narration.updatedAt } : null;
   }
 
   async list(userId: string): Promise<z.infer<typeof QuizWorkspaceListSchema>> {
@@ -43,15 +35,14 @@ export class QuizAuthoringService {
 
   async read(episodeId: string, userId: string): Promise<QuizWorkspace> {
     const episode = await this.episode(episodeId, userId);
-    const [draft, active, script] = await Promise.all([
+    const [draft, active] = await Promise.all([
       prisma.quizWorkspaceDraft.findUnique({ where: { episodeId } }),
       prisma.quiz.findUnique({ where: { episodeId }, include: { questions: { orderBy: { sortOrder: "asc" }, include: { options: { orderBy: { optionLabel: "asc" } } } }, _count: { select: { attempts: true } } } }),
-      this.script(episodeId, userId),
     ]);
     if (!draft && active?.questions.some(q => q.options.length > 4))
       throw new DomainError(409, "CONFLICT", "Quiz cũ có câu vượt quá bốn đáp án. Không thể mở trong trình soạn bốn đáp án; nội dung cũ được giữ nguyên.");
     const data: QuizDraftData = draft ? QuizDraftDataSchema.parse(draft.data) : {
-      title: active ? `Quiz · ${episode.title}` : "", description: "", passScorePercent: active?.passScorePercent ?? 80,
+      title: active ? `Quiz · ${episode.title}` : "", description: "", referenceText: "", passScorePercent: active?.passScorePercent ?? 80,
       questions: active?.questions.map(q => ({ id: q.id, text: q.questionText, explanation: q.explanation ?? "", timeLimit: 20,
         options: Array.from({ length: 4 }, (_, i) => q.options[i]?.optionText ?? ""),
         correctIndex: q.options.findIndex(o => o.isCorrect), evidence: null })) ?? [{ id: randomUUID(), text: "", options: ["", "", "", ""], correctIndex: null, explanation: "", evidence: null, timeLimit: 20 }],
@@ -59,8 +50,7 @@ export class QuizAuthoringService {
     return { episodeId, episodeTitle: episode.title, seriesId: episode.seriesId, seriesTitle: episode.series.title,
       revision: draft?.revision ?? 0, updatedAt: draft?.updatedAt ?? null, data,
       active: Boolean(active) && (!draft || draft.activatedRevision === draft.revision), attemptCount: active?._count.attempts ?? 0,
-      script: script ? { hash: script.hash, updatedAt: script.updatedAt, characters: script.text.length } : null,
-      scriptChanged: data.questions.some(q => q.evidence && q.evidence.scriptHash !== script?.hash) };
+      script: null, scriptChanged: false };
   }
 
   async save(episodeId: string, userId: string, revision: number, data: QuizDraftData): Promise<QuizWorkspace> {
@@ -86,10 +76,6 @@ export class QuizAuthoringService {
       let input;
       try { input = validateReadyQuiz(data); }
       catch (error) { throw new DomainError(422, "VALIDATION_ERROR", error instanceof Error ? error.message : "Quiz chưa hoàn chỉnh."); }
-      const narration = await db.episodeNarration.findFirst({ where: { episodeId, narrationType: "THIRD_PERSON" } });
-      const text = narration?.scriptContent?.trim() ?? "";
-      if (data.questions.some(q => q.evidence && (q.evidence.scriptHash !== hashQuizScript(text) || !text.normalize("NFC").replace(/\s+/g, " ").includes(q.evidence.quote.normalize("NFC").replace(/\s+/g, " ")))))
-        throw new DomainError(409, "CONFLICT", "Kịch bản hoặc căn cứ đã thay đổi. Hãy rà soát và tạo lại câu liên quan.");
       const existing = await db.quiz.findUnique({ where: { episodeId } });
       if (existing) {
         await db.$queryRaw`SELECT id FROM quizzes WHERE id = ${existing.id}::uuid FOR UPDATE`;
