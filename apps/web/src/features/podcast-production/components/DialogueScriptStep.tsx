@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, type ReactElement } from "react";
 import { DIALOGUE_NOTE_MAX_CHARS, DIALOGUE_STYLE_MAX_CHARS, DIALOGUE_TAGS, DIALOGUE_TURN_MAX_CHARS, DIALOGUE_VOICES, type Dialogue, type DialogueSpeakerKey } from "@repo/shared";
-import { ArrowDown, ArrowUp, LoaderCircle, Plus, Save, Trash2 } from "lucide-react";
+import { ArrowDown, ArrowUp, LoaderCircle, Plus, Save, X } from "lucide-react";
 import { FormField } from "@/features/moderator/components/CreationPage";
 import { ModeratorSelect } from "@/features/moderator/components/ModeratorSelect";
 import { cn } from "@/lib/utils";
@@ -53,7 +53,10 @@ export function DialogueScriptStep({ wizard, readOnly }: { wizard: PodcastCreati
     return () => window.clearTimeout(timer);
   }, [readOnly, dialogue, wizard.state.scriptDirty]);
 
-  const addTurn = (speaker: DialogueSpeakerKey): void => edit({ ...dialogue, turns: [...dialogue.turns, newTurn(speaker)] });
+  const addTurn = (): void => {
+    const last = dialogue.turns[dialogue.turns.length - 1];
+    edit({ ...dialogue, turns: [...dialogue.turns, newTurn(last?.speaker === "A" ? "B" : "A")] });
+  };
 
   const addTag = (id: string, tag: (typeof DIALOGUE_TAGS)[number]): void => {
     const turn = dialogue.turns.find((item) => item.id === id);
@@ -82,8 +85,8 @@ export function DialogueScriptStep({ wizard, readOnly }: { wizard: PodcastCreati
       <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_320px]">
         <div className="space-y-3">
           {dialogue.turns.map((turn, index) => (
-            <article key={turn.id} className="overflow-hidden rounded-xl border border-mod-border bg-mod-surface" aria-label={`Lượt ${index + 1}`}>
-              <div className="flex flex-wrap items-center gap-2 bg-mod-canvas-accent px-3 py-2">
+            <article key={turn.id} className="group rounded-xl border border-mod-border bg-mod-surface transition-colors focus-within:border-mod-primary hover:border-mod-text-secondary" aria-label={`Lượt ${index + 1}`}>
+              <div className="flex flex-wrap items-center gap-2 px-3 pt-2">
                 <span className={cn("size-2.5 rounded-sm", speakerDot[turn.speaker])} aria-hidden="true" />
                 <div className="w-44">
                   <ModeratorSelect
@@ -95,22 +98,27 @@ export function DialogueScriptStep({ wizard, readOnly }: { wizard: PodcastCreati
                     disabled={readOnly}
                   />
                 </div>
-                <Input
-                  className="min-w-40 flex-1"
-                  aria-label={`Giọng điệu của lượt ${index + 1}`}
-                  placeholder="Giọng điệu cả lượt (ví dụ: thì thầm, nói chậm)"
-                  maxLength={DIALOGUE_STYLE_MAX_CHARS}
-                  value={turn.style ?? ""}
-                  disabled={readOnly}
-                  onChange={(event) => edit(updateTurn(dialogue, turn.id, { style: event.target.value }))}
-                />
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button type="button" size="sm" variant="ghost" className="max-w-48 truncate" disabled={readOnly} aria-label={`Giọng điệu của lượt ${index + 1}`}>{turn.style?.trim() || "Giọng điệu"}</Button>
+                  </PopoverTrigger>
+                  <PopoverContent align="start" className="w-72 p-3">
+                    <Input
+                      aria-label={`Giọng điệu của lượt ${index + 1}`}
+                      placeholder="Mô tả giọng điệu cả lượt (ví dụ: thì thầm, nói chậm)"
+                      maxLength={DIALOGUE_STYLE_MAX_CHARS}
+                      value={turn.style ?? ""}
+                      onChange={(event) => edit(updateTurn(dialogue, turn.id, { style: event.target.value }))}
+                    />
+                  </PopoverContent>
+                </Popover>
                 {readOnly ? null : (
                   <>
                     <Popover>
                       <PopoverTrigger asChild>
-                        <Button type="button" size="sm" variant="outline"><Plus aria-hidden="true" /> Expression</Button>
+                        <Button type="button" size="sm" variant="ghost"><Plus aria-hidden="true" /> Expression</Button>
                       </PopoverTrigger>
-                      <PopoverContent align="end" className="w-72 p-3">
+                      <PopoverContent align="start" className="w-72 p-3">
                         <p className="text-xs font-semibold text-mod-text">Chèn tại con trỏ</p>
                         <div className="mt-2 flex flex-wrap gap-1.5">
                           {DIALOGUE_TAGS.map((tag) => (
@@ -120,16 +128,18 @@ export function DialogueScriptStep({ wizard, readOnly }: { wizard: PodcastCreati
                         <p className="mt-2 text-xs text-mod-text-secondary">Tag viết tiếng Anh dù lời là tiếng Việt. Dùng <span className="font-mono">|ừ|</span> để người kia chen vào mà không tách lượt.</p>
                       </PopoverContent>
                     </Popover>
-                    <Button type="button" size="icon-sm" variant="ghost" aria-label="Chuyển lượt lên" disabled={index === 0} onClick={() => edit(moveTurn(dialogue, turn.id, -1))}><ArrowUp size={15} /></Button>
-                    <Button type="button" size="icon-sm" variant="ghost" aria-label="Chuyển lượt xuống" disabled={index === dialogue.turns.length - 1} onClick={() => edit(moveTurn(dialogue, turn.id, 1))}><ArrowDown size={15} /></Button>
-                    <Button type="button" size="icon-sm" variant="ghost" aria-label="Xóa lượt" disabled={dialogue.turns.length <= 1} onClick={() => edit(removeTurn(dialogue, turn.id))}><Trash2 size={15} /></Button>
+                    <div className="ml-auto flex items-center gap-1 opacity-0 transition-opacity focus-within:opacity-100 group-focus-within:opacity-100 group-hover:opacity-100">
+                      <Button type="button" size="icon-sm" variant="ghost" aria-label="Chuyển lượt lên" disabled={index === 0} onClick={() => edit(moveTurn(dialogue, turn.id, -1))}><ArrowUp size={15} /></Button>
+                      <Button type="button" size="icon-sm" variant="ghost" aria-label="Chuyển lượt xuống" disabled={index === dialogue.turns.length - 1} onClick={() => edit(moveTurn(dialogue, turn.id, 1))}><ArrowDown size={15} /></Button>
+                      <Button type="button" size="icon-sm" variant="ghost" aria-label="Xóa lượt" disabled={dialogue.turns.length <= 1} onClick={() => edit(removeTurn(dialogue, turn.id))}><X size={15} /></Button>
+                    </div>
                   </>
                 )}
               </div>
               <Textarea
                 ref={(node) => { if (node) textareas.current.set(turn.id, node); else textareas.current.delete(turn.id); }}
                 aria-label={`Lời của lượt ${index + 1}`}
-                className="min-h-20 rounded-none border-0 px-4 py-3 text-sm leading-7 focus-visible:ring-0"
+                className="min-h-20 rounded-none border-0 bg-transparent px-4 py-3 text-sm leading-7 focus-visible:ring-0"
                 placeholder="Lời nói của lượt này"
                 maxLength={DIALOGUE_TURN_MAX_CHARS}
                 value={turn.text}
@@ -137,7 +147,7 @@ export function DialogueScriptStep({ wizard, readOnly }: { wizard: PodcastCreati
                 onChange={(event) => edit(updateTurn(dialogue, turn.id, { text: event.target.value }))}
               />
               <Input
-                className="rounded-none border-0 border-t border-mod-border text-xs"
+                className={cn("rounded-none border-0 bg-transparent px-4 text-xs", !turn.note && "hidden group-focus-within:block")}
                 aria-label={`Ghi chú của lượt ${index + 1}`}
                 placeholder="Ghi chú cho người thu (không gửi cho AI)"
                 maxLength={DIALOGUE_NOTE_MAX_CHARS}
@@ -148,13 +158,12 @@ export function DialogueScriptStep({ wizard, readOnly }: { wizard: PodcastCreati
             </article>
           ))}
           {readOnly ? null : (
-            <div className="flex flex-wrap items-center gap-2">
-              {dialogue.speakers.map((speaker) => (
-                <Button key={speaker.key} type="button" variant="outline" onClick={() => addTurn(speaker.key)}>
-                  <span className={cn("size-2.5 rounded-sm", speakerDot[speaker.key])} aria-hidden="true" /> Thêm lượt {speaker.name}
-                </Button>
-              ))}
-              <Button type="button" variant="outline" className="ml-auto" disabled={saving || issues.length > 0} onClick={() => void persist()}>
+            <div className="grid grid-cols-[1fr_auto_1fr] items-center gap-2">
+              <span aria-hidden="true" />
+              <Button type="button" variant="outline" onClick={addTurn}>
+                <Plus aria-hidden="true" /> Thêm khối hội thoại
+              </Button>
+              <Button type="button" variant="outline" className="justify-self-end" disabled={saving || issues.length > 0} onClick={() => void persist()}>
                 {saving ? <LoaderCircle className="animate-spin" aria-hidden="true" /> : <Save aria-hidden="true" />} Lưu kịch bản
               </Button>
             </div>
