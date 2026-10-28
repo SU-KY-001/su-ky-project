@@ -13,6 +13,7 @@ export const QuizDraftQuestionSchema = z.object({
 });
 export const QuizDraftDataSchema = z.object({
   title: z.string().max(200), description: z.string().max(2000),
+  posterAssetId: z.string().uuid().nullable().optional(),
   referenceText: z.string().max(100_000).optional(),
   passScorePercent: z.number().int().min(1).max(100).default(80),
   questions: z.array(QuizDraftQuestionSchema).min(1).max(100),
@@ -50,7 +51,7 @@ export function validateReadyQuiz(input: QuizDraftData): z.infer<typeof UpsertQu
   }
   return UpsertQuizSchema.parse({
     passScorePercent: draft.passScorePercent,
-    questions: draft.questions.map(q => ({ text: q.text, explanation: q.explanation || null,
+    questions: draft.questions.map(q => ({ text: q.text, explanation: q.explanation || null, timeLimit: q.timeLimit,
       options: q.options.map((text, i) => ({ label: "ABCD"[i], text, isCorrect: i === q.correctIndex })) })),
   });
 }

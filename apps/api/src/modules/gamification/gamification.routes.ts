@@ -4,6 +4,8 @@ import { zValidator } from "@hono/zod-validator";
 import {
   MyWeeklyMissionsSchema,
   PublicQuizSchema,
+  PublicQuizCatalogQuerySchema,
+  PublicQuizCatalogSchema,
   QuizAttemptResultSchema,
   StudioQuizSchema,
   SubmitQuizAttemptSchema,
@@ -69,8 +71,13 @@ export const studioQuizRoute = new Hono<AppEnv>()
 
 export const publicQuizRoute = new Hono<AppEnv>()
   .use("*", attachSession)
+  .get("/quizzes", zValidator("query", PublicQuizCatalogQuerySchema, throwOnInvalid), async (c) => {
+    c.header("Cache-Control", "private, no-store");
+    return c.json(PublicQuizCatalogSchema.parse(await gamificationService.listPublishedQuizzes(c.req.valid("query"), c.get("session")?.user.id)));
+  })
   .get(
     "/episodes/:slug/quiz",
+    requireAuth,
     zValidator("param", slugParam, throwOnInvalid),
     async (c) =>
       c.json(

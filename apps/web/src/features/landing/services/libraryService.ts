@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { client } from "@/lib/client";
 import { ApiError } from "@/lib/apiError";
-import { HistoricalPeriodSchema, PublicHistoricalEventSchema, LibrarySeriesSchema, LibrarySeriesDetailSchema, LibraryEpisodeSchema, MyWeeklyMissionsSchema, PublicHonorsSchema, PublicReleasesSchema, PlaybackSchema, ListeningProgressSchema, ListeningProgressUpdateResultSchema, ListeningHistoryResponseSchema, PublicQuizSchema, QuizAttemptResultSchema, paginatedSchema } from "@repo/shared";
+import { HistoricalPeriodSchema, PublicHistoricalEventSchema, LibrarySeriesSchema, LibrarySeriesDetailSchema, LibraryEpisodeSchema, MyWeeklyMissionsSchema, PublicHonorsSchema, PublicReleasesSchema, PlaybackSchema, ListeningProgressSchema, ListeningProgressUpdateResultSchema, ListeningHistoryResponseSchema, PublicQuizSchema, PublicQuizCatalogSchema, QuizAttemptResultSchema, paginatedSchema } from "@repo/shared";
 
 async function read<S extends z.ZodTypeAny>(request: Promise<Pick<Response, "ok" | "json" | "status" | "headers">>, schema: S): Promise<z.infer<S>> {
   const response = await request;
@@ -26,5 +26,7 @@ export const libraryService = {
   saveProgress: (narrationId: string, json: { assetId: string; positionMs: number; playedBitmap: string }) => read(client.api.me["listening-progress"][":narrationId"].$put({ param: { narrationId }, json }, options()), ListeningProgressUpdateResultSchema),
   history: (query: { page?: number; limit?: number; status?: "all" | "in_progress" | "completed" }, signal?: AbortSignal) => read(client.api.me["listening-history"].$get({ query: { page: String(query.page ?? 1), limit: String(query.limit ?? 10), status: query.status ?? "all" } }, options(signal)), ListeningHistoryResponseSchema),
   quiz: (slug: string, signal?: AbortSignal) => read(client.api.episodes[":slug"].quiz.$get({ param: { slug } }, options(signal)), PublicQuizSchema),
-  attempt: (quizId: string, answers: { questionId: string; optionId: string }[], key: string) => read(client.api.quizzes[":quizId"].attempts.$post({ param: { quizId }, json: { answers } }, { ...options(), headers: { "Idempotency-Key": key } }), QuizAttemptResultSchema),
+  quizzes: (query: { page?: number; topicId?: string; episodeSlug?: string }, signal?: AbortSignal) => read(client.api.quizzes.$get({ query: { page: String(query.page ?? 1), limit: "12", topicId: query.topicId, episodeSlug: query.episodeSlug } }, options(signal)), PublicQuizCatalogSchema),
+  topics: (signal?: AbortSignal) => read(client.api.topics.$get({}, options(signal)), z.object({ items: z.array(z.object({ id: z.string().uuid(), name: z.string() })) })),
+  attempt: (quizId: string, answers: { questionId: string; optionId: string | null }[], key: string) => read(client.api.quizzes[":quizId"].attempts.$post({ param: { quizId }, json: { answers } }, { ...options(), headers: { "Idempotency-Key": key } }), QuizAttemptResultSchema),
 };

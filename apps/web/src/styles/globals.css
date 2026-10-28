@@ -1137,3 +1137,195 @@ img {
   .auth-dialog-logo { width: 96px; }
 }
 
+/* The library surface and reader use masks, 3D page motion and native progress parts. */
+.library-surface {
+  --library-surface-light: color-mix(in srgb, var(--color-paper-soft) 45%, var(--color-white, white));
+}
+
+.library-surface::before,
+.library-surface::after {
+  content: "";
+  position: absolute;
+  border-radius: 48px;
+  pointer-events: none;
+}
+
+.library-surface::before {
+  z-index: -1;
+  inset: -12px -6px -48px;
+  background: var(--library-surface-light);
+  mask-image: linear-gradient(to bottom, transparent, black 100px, black calc(100% - 170px), transparent), linear-gradient(to right, transparent, black 48px, black calc(100% - 48px), transparent);
+  mask-composite: intersect;
+}
+
+.library-surface::after {
+  z-index: -2;
+  inset: -56px -8px -80px;
+  background: radial-gradient(ellipse 65% 35% at 0% 25%, color-mix(in srgb, var(--color-bronze) 15%, transparent), transparent 80%), radial-gradient(ellipse 50% 30% at 100% 65%, color-mix(in srgb, var(--color-vermilion) 7%, transparent), transparent 80%), radial-gradient(ellipse 95% 70% at 50% 40%, var(--library-surface-light), transparent 90%);
+  filter: blur(40px);
+}
+
+.library-page-turn { animation: library-page-turn 600ms ease; }
+@keyframes library-page-turn {
+  from { transform: perspective(1200px) rotateY(-45deg); opacity: .4; }
+  to { transform: perspective(1200px) rotateY(0); opacity: 1; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .library-page-turn { animation: none; }
+}
+
+.library-progress { appearance: none; border: 0; border-radius: 8px; background: var(--color-paper-deep); }
+.library-progress::-webkit-progress-bar { border-radius: 8px; background: var(--color-paper-deep); }
+.library-progress::-webkit-progress-value { border-radius: 8px; background: var(--color-bronze); }
+.library-progress::-moz-progress-bar { border-radius: 8px; background: var(--color-bronze); }
+
+.quiz-preview-progress { appearance: none; width: 100%; height: 6px; overflow: hidden; border: 0; border-radius: 8px; background: var(--color-mod-border); color: var(--color-mod-primary); }
+.quiz-preview-progress::-webkit-progress-bar { border-radius: 8px; background: var(--color-mod-border); }
+.quiz-preview-progress::-webkit-progress-value { border-radius: 8px; background: var(--color-mod-primary); }
+.quiz-preview-progress::-moz-progress-bar { border-radius: 8px; background: var(--color-mod-primary); }
+
+/* The editor responds to its available panel width rather than the viewport. */
+.quiz-editor { container: quiz-editor / inline-size; }
+.quiz-question-link.is-selected { border-color: var(--modPrimary); background: color-mix(in srgb, var(--modPrimary) 5%, var(--modSurface)); }
+.quiz-answer-row.is-correct .quiz-answer-letter { background: color-mix(in srgb, var(--modSuccess) 10%, var(--modSurface)); }
+.quiz-answer-row.is-correct > textarea { border-color: color-mix(in srgb, var(--modSuccess) 50%, var(--modBorder)); background: color-mix(in srgb, var(--modSuccess) 5%, var(--modSurface)); }
+@container quiz-editor (min-width: 620px) {
+  .quiz-save-status { display: inline-flex; }
+}
+@container quiz-editor (min-width: 760px) {
+  .quiz-editor-body { grid-template-columns: 200px minmax(0, 1fr); }
+  .quiz-question-sidebar { grid-row: span 2; }
+  .quiz-question-list { flex-direction: column; max-height: 580px; overflow-y: auto; overflow-x: hidden; }
+  .quiz-question-list > li { flex-basis: auto; }
+  .quiz-properties { grid-column: 2; }
+}
+@container quiz-editor (min-width: 980px) {
+  .quiz-editor-body { grid-template-columns: 190px minmax(0, 1fr) 280px; }
+  .quiz-question-sidebar { grid-row: auto; }
+  .quiz-properties { grid-column: 3; }
+}
+@container quiz-editor (min-width: 1360px) {
+  .quiz-editor-body { grid-template-columns: 240px minmax(0, 1fr) 340px; }
+  .quiz-question-canvas { padding: 24px; }
+  .quiz-properties { padding: 20px; }
+}
+
+html[data-audio-toolbar="true"] #landing-content { padding-bottom: 100px; }
+@media (max-width: 760px) {
+  html[data-audio-toolbar="true"] #landing-content { padding-bottom: 140px; }
+}
+
+
+/* Exhibition: theme, interaction states and 3D-specific responsive controls. */
+/* Layer order: scene 0, entrance/HUD 1, pause 2; shared Radix dialogs use the app's modal layer. */
+@font-face {
+  font-family: "Cormorant Garamond";
+  src: url("../features/exhibition/fonts/cormorant-garamond-regular.ttf") format("truetype");
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+}
+.exhibition, .exhibition-dialog {
+  --exhibit-paper: #e6e8ed;
+  --exhibit-soft: #d6d9df;
+  --exhibit-ink: #30343b;
+  --exhibit-muted: #50555e;
+  --exhibit-line: #a8adb5;
+  --exhibit-white: #f1f2f5;
+  font-family: var(--font-sans);
+  color: var(--exhibit-ink);
+  color-scheme: light;
+}
+.exhibition { position: fixed; inset: 0; height: 100dvh; overflow: hidden; background: var(--exhibit-soft); isolation: isolate; }
+.exhibition-stage canvas { display: block; outline: none; }
+.exhibition button, .exhibition-dialog button { cursor: pointer; }
+.exhibition button:focus-visible, .exhibition-dialog button:focus-visible, .exhibition-dialog a:focus-visible, .exhibition-dialog summary:focus-visible { outline: 2px solid var(--exhibit-ink); outline-offset: 5px; }
+.exhibition-entrance { position: absolute; inset: 0; z-index: 1; padding: 38px 5vw 30px; display: flex; flex-direction: column; background: linear-gradient(90deg, var(--exhibit-paper) 0%, rgb(230 232 237 / 98%) 22%, rgb(230 232 237 / 90%) 34%, rgb(230 232 237 / 22%) 60%, transparent 75%); }
+.exhibition-brand > span:first-child { font-weight: 700; font-size: 23px; letter-spacing: -0.04em; }
+.exhibition-brand > span:last-child { border-left: 1px solid var(--exhibit-line); padding-left: 24px; font-size: 9px; letter-spacing: 0.19em; color: var(--exhibit-muted); }
+.exhibition-intro-copy h1 { font-size: clamp(44px, 5.6vw, 86px); line-height: 1.16; font-weight: 500; letter-spacing: -0.065em; margin: 0 0 24px; }
+.exhibition-intro-copy h1 > span { color: var(--exhibit-muted); }
+.exhibition .exhibition-enter { height: 52px; min-width: 154px; margin-top: 34px; padding: 0 23px; display: inline-flex; justify-content: space-between; gap: 38px; background: var(--exhibit-ink); color: var(--exhibit-white); border: 1px solid var(--exhibit-ink); border-radius: 0; font-size: 13px; font-weight: 500; box-shadow: none; }
+.exhibition .exhibition-enter:hover { background: var(--exhibit-muted); border-color: var(--exhibit-muted); }
+.exhibition-entry-footer > span:first-child { font-size: 16px; font-weight: 500; letter-spacing: 0.04em; color: var(--exhibit-ink); }
+.exhibition-entry-footer > span:nth-child(2) { display: flex; gap: 12px; }
+.exhibition-room-label > span { color: var(--exhibit-ink); font-family: "Cormorant Garamond", serif; font-size: 58px; font-weight: 400; line-height: 1; }
+.exhibition-room-label > div { border-left: 1px solid rgb(48 52 59 / 30%); padding-left: 19px; font-family: "Cormorant Garamond", serif; font-size: 25px; font-weight: 400; }
+.exhibition-room-label small { display: block; font-family: var(--font-sans); font-size: 10px; margin-top: 6px; color: var(--exhibit-muted); font-weight: 400; }
+.exhibition .exhibition-navigation { position: absolute; right: 28px; top: 50%; transform: translateY(-50%); width: 48px; height: 64px; display: flex; flex-direction: column; gap: 6px; background: rgb(230 232 237 / 92%); border: 1px solid var(--exhibit-line); color: var(--exhibit-ink); border-radius: 0; box-shadow: none; }
+.exhibition-navigation kbd { font-size: 9px; line-height: 1; color: var(--exhibit-muted); }
+.exhibition-focused > span { font-weight: 600; }
+.exhibition-focused button { white-space: nowrap; font-size: 11px; color: var(--exhibit-muted); }
+.exhibition-focused kbd, .exhibition-walking-hint kbd, .exhibition-instructions kbd { border: 1px solid var(--exhibit-line); padding: 3px 6px; font-size: 10px; margin-inline: 3px 7px; font-family: inherit; }
+.exhibition-walking-hint > span { margin-right: 20px; }
+.exhibition-pause > div { width: min(520px, 100%); }
+.exhibition-pause h2 { font-family: "Cormorant Garamond", serif; font-size: clamp(40px, 4.8vw, 62px); letter-spacing: -0.025em; color: var(--exhibit-ink); font-weight: 400; margin-bottom: 20px; line-height: 1.15; }
+.exhibition-pause p:not(.exhibition-eyebrow) { font-size: 13px; color: var(--exhibit-muted); line-height: 1.9; }
+.exhibition .exhibition-pause-menu { display: flex; margin-top: 18px; padding: 0; color: var(--exhibit-ink); background: transparent; font-size: 12px; }
+.exhibition-dialog { background: var(--exhibit-paper); border: 1px solid var(--exhibit-line); border-radius: 0; max-height: calc(100dvh - 40px); overflow-y: auto; padding: 36px; gap: 16px; box-shadow: 0 20px 100px rgb(30 35 30 / 15%); }
+.exhibition-dialog [data-slot="dialog-close"] { color: var(--exhibit-ink); border-radius: 0; background: var(--exhibit-paper); z-index: 1; }
+.exhibition-chapter-link:hover strong { text-decoration: underline; text-underline-offset: 4px; }
+.exhibition-chapter-link:disabled { cursor: default; opacity: 0.55; }
+.exhibition-chapter-link strong { font-size: 13px; font-weight: 500; }
+.exhibition-chapter-link small { display: block; margin-top: 7px; font-size: 10px; color: var(--exhibit-muted); }
+.exhibition-chapter-link > svg { margin-left: auto; flex-shrink: 0; }
+.exhibition-instructions p > span { margin-left: 18px; }
+.exhibition-catalog summary, .exhibition-rights summary { cursor: pointer; padding-block: 8px; }
+.exhibition-catalog > div { display: grid; grid-template-columns: 1fr 1fr; gap: 0 24px; padding-top: 12px; }
+.exhibition-catalog button { padding-block: 11px; display: flex; text-align: left; align-items: baseline; gap: 12px; }
+.exhibition-catalog button > span { font-size: 10px; color: var(--exhibit-muted); }
+.exhibition-catalog button > strong { font-weight: 400; font-size: 11px; }
+.exhibition-catalog button > svg { margin-left: auto; flex-shrink: 0; align-self: center; }
+.exhibition-detail-image img { max-height: calc(100dvh - 125px); width: 100%; object-fit: contain; }
+.exhibition-detail-image p { padding: 24px; font-size: 14px; }
+.exhibition-detail-copy .exhibition-dialog-description { margin-top: 20px; }
+.exhibition-credit strong { font-weight: 500; }
+.exhibition-credit a { display: inline-flex; gap: 8px; align-items: center; text-decoration: underline; text-underline-offset: 4px; }
+.exhibition-rights p { margin-top: 8px; }
+.exhibition-dialog .exhibition-secondary { background: transparent; border-color: var(--exhibit-line); color: var(--exhibit-ink); border-radius: 0; box-shadow: none; margin-top: 24px; height: 43px; padding-inline: 16px; font-size: 11px; }
+.exhibition-canvas-fallback { padding: 30px; font-size: 14px; }
+@media (max-width: 760px) {
+  .exhibition-entrance { padding: 25px 7vw; background: linear-gradient(90deg, rgb(230 232 237 / 98%), rgb(230 232 237 / 85%) 52%, rgb(230 232 237 / 30%)); }
+  .exhibition-brand { gap: 18px; }
+  .exhibition-brand > span:last-child { padding-left: 18px; font-size: 8px; }
+  .exhibition-intro-copy { width: 100%; padding-block: 24px; }
+  .exhibition-intro-copy h1 { font-size: clamp(42px, 9.5vw, 66px); }
+  .exhibition-entry-footer { gap: 20px; flex-wrap: wrap; }
+  .exhibition-entry-controls { display: none; }
+  .exhibition-room-label { left: 16px; top: 16px; padding: 10px 12px; }
+  .exhibition .exhibition-navigation { right: 16px; width: 44px; }
+  .exhibition-focused { bottom: 145px; max-width: calc(100vw - 32px); width: max-content; flex-direction: column; gap: 8px; text-align: center; }
+  .exhibition-dialog { padding: 25px; }
+  .exhibition-menu-grid { grid-template-columns: 75px 1fr; gap: 20px; }
+  .exhibition-dialog-title { font-size: 24px; }
+  .exhibition-chapter-link { gap: 10px; }
+  .exhibition-chapter-link strong { font-size: 12px; }
+  .exhibition-instructions p > span { display: block; margin-left: 0; }
+  .exhibition-catalog > div { grid-template-columns: 1fr; }
+  .exhibition-artwork-dialog { grid-template-columns: 1fr; gap: 16px; }
+  .exhibition-detail-image { min-height: 160px; }
+  .exhibition-detail-image img { max-height: 45dvh; }
+  .exhibition-detail-copy { padding: 0; }
+}
+@media (max-height: 650px) {
+  .exhibition-entrance { padding-block: 22px; }
+  .exhibition-intro-copy { padding-block: 16px; }
+  .exhibition-intro-copy h1 { font-size: clamp(36px, 5vw, 58px); margin-bottom: 16px; }
+  .exhibition-eyebrow { margin-bottom: 16px; }
+  .exhibition-invitation { margin-top: 16px; }
+  .exhibition .exhibition-enter { margin-top: 20px; height: 46px; }
+  .exhibition-entry-footer { font-size: 9px; }
+}
+@media (pointer: coarse) {
+  .exhibition-touch-instruction { display: block; }
+  .exhibition-touch-controls { position: absolute; left: 22px; bottom: 32px; display: grid; grid-template-columns: repeat(3, 42px); grid-template-rows: repeat(2, 42px); gap: 4px; touch-action: none; }
+  .exhibition-touch-controls button { display: grid; place-items: center; color: var(--exhibit-ink); background: rgb(230 232 237 / 90%); border: 1px solid var(--exhibit-line); user-select: none; touch-action: none; }
+  .exhibition-touch-KeyW { grid-column: 2; }
+  .exhibition-touch-KeyA { grid-column: 1; grid-row: 2; }
+  .exhibition-touch-KeyS { grid-column: 2; grid-row: 2; }
+  .exhibition-touch-KeyD { grid-column: 3; grid-row: 2; }
+  .exhibition-walking-hint { display: none; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .exhibition *, .exhibition-dialog { animation: none !important; transition: none !important; }
+}

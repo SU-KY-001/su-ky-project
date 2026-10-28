@@ -2,6 +2,8 @@ import { z } from "zod";
 import {
   MyWeeklyMissionsSchema,
   PublicQuizSchema,
+  PublicQuizCatalogQuerySchema,
+  PublicQuizCatalogSchema,
   QuizAttemptResultSchema,
   StudioQuizSchema,
   SubmitQuizAttemptSchema,
@@ -25,6 +27,7 @@ const studioQuiz = PublicQuizSchema.extend({
       text: z.string(),
       explanation: z.string().nullable(),
       sortOrder: z.number().int(),
+      timeLimit: z.number().int().positive().nullable(),
       options: z.array(
         z.object({
           id: z.string().uuid(),
@@ -38,6 +41,10 @@ const studioQuiz = PublicQuizSchema.extend({
 });
 
 export const gamificationPaths: Paths = {
+  "/api/quizzes": {
+    get: operation({ id: "listPublishedQuizzes", tag: QUIZ_TAG, summary: "Danh sách quiz của các tập công khai", access: "optional", query: PublicQuizCatalogQuerySchema,
+      ok: { status: 200, description: "Danh sách quiz phân trang", schema: { name: "PublicQuizCatalog", schema: PublicQuizCatalogSchema } } }),
+  },
   "/api/studio/quiz-workspaces": {
     get: operation({ id: "listQuizWorkspaces", tag: QUIZ_TAG, summary: "Danh sách quiz thật thuộc Moderator", access: "moderator",
       ok: { status: 200, description: "Bản nháp và quiz đang dùng", schema: { name: "QuizWorkspaceList", schema: QuizWorkspaceListSchema } } }),
@@ -49,7 +56,7 @@ export const gamificationPaths: Paths = {
     put: operation({ id: "saveQuizWorkspace", tag: QUIZ_TAG, summary: "Lưu câu hỏi và kịch bản quiz referenceText cùng bản nháp", access: "moderator", pathParams: EpisodeIdParam,
       body: { name: "SaveQuizDraft", schema: SaveQuizDraftSchema }, rate: "write",
       ok: { status: 200, description: "Bản nháp đã lưu với revision mới", schema: { name: "QuizWorkspace", schema: QuizWorkspaceSchema } },
-      errors: { 403: LOCKED, 404: "`NOT_FOUND`: tập không thuộc Moderator", 409: `${IN_TRASH}; \`CONFLICT\`: revision đã thay đổi` } }),
+      errors: { 403: LOCKED, 404: "`NOT_FOUND`: tập không thuộc Moderator", 409: `${IN_TRASH}; \`CONFLICT\`: revision đã thay đổi`, 422: "`VALIDATION_ERROR`: ảnh quiz không hợp lệ" } }),
   },
   "/api/studio/episodes/{episodeId}/quiz-workspace/activate": {
     post: operation({ id: "activateQuizWorkspace", tag: QUIZ_TAG, summary: "Đưa bản nháp đã rà soát vào sử dụng", access: "moderator", pathParams: EpisodeIdParam,
@@ -120,7 +127,7 @@ export const gamificationPaths: Paths = {
       tag: QUIZ_TAG,
       summary: "Lấy quiz của tập công khai",
       description: "Không trả đáp án đúng hay giải thích trước khi nộp bài.",
-      access: "optional",
+      access: "user",
       pathParams: SlugParam,
       pathParamDocs: { slug: "Slug tập công khai" },
       ok: {

@@ -4,7 +4,7 @@ import { useConfirmationDialog } from "@/shared/hooks/useConfirmationDialog";
 import { ConfirmationDialog } from "@/shared/components/common/ConfirmationDialog";
 import { notify } from "@/shared/lib/notifications";
 
-export function usePodcastAccess() {
+export function usePodcastAccess(purpose: "podcast" | "quiz" = "podcast") {
   const session = useCurrentUser();
   const navigate = useNavigate();
   const { requestConfirmation, confirmation } = useConfirmationDialog();
@@ -15,7 +15,7 @@ export function usePodcastAccess() {
       return false;
     }
     if (result.data) return true;
-    const confirmed = await requestConfirmation({ title: "Đăng nhập để tiếp tục", description: "Bạn cần đăng nhập để nghe podcast và lưu tiến độ học lịch sử.", confirmLabel: "Đăng nhập", cancelLabel: "Để sau" });
+    const confirmed = await requestConfirmation({ title: "Đăng nhập để tiếp tục", description: purpose === "quiz" ? "Bạn cần đăng nhập để làm quiz và lưu kết quả học tập." : "Bạn cần đăng nhập để nghe podcast và lưu tiến độ học lịch sử.", confirmLabel: "Đăng nhập", cancelLabel: "Để sau" });
     if (confirmed) navigate("/login");
     return false;
   }
