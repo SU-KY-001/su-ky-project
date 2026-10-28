@@ -9,7 +9,6 @@ import { Button } from "@/shared/components/ui/button";
 import { artworks, chapters } from "./data";
 import { ArtworkDetail, ExhibitionMenu } from "./components/ExhibitionDialogs";
 import { initialView, type GalleryInput, type GalleryView } from "./components/GalleryControls";
-import "./exhibition.css";
 import exhibitionSoundtrack from "../../public/audio-trienlam-3d/Toàn Cảnh Giải Phóng Miền Nam 1975 ĐỈNH CAO CỦA CHIẾN THUẬT  Lịch Sử Quân Sự - Lịch Sử Quân Sự (1).mp3?url";
 
 const GalleryScene = lazy(() => import("./components/GalleryScene").then(module => ({ default: module.GalleryScene })));
@@ -143,41 +142,41 @@ export function ExhibitionExperience(): ReactElement {
 
   return <main ref={container} className="exhibition" aria-label="Triển lãm ảnh tư liệu: Khoảnh khắc toàn thắng và Giải phóng miền Nam 1975">
     <audio ref={soundtrack} src={exhibitionSoundtrack} preload="none" />
-    <div className="exhibition-stage" aria-hidden={phase === "intro" || phase === "menu" || phase === "artwork"}>
+    <div className="exhibition-stage absolute inset-0 touch-none [&_canvas]:block [&_canvas]:outline-none" aria-hidden={phase === "intro" || phase === "menu" || phase === "artwork"}>
       {ready && available && <SceneBoundary onUnavailable={unavailable}><Suspense fallback={null}>
         <GalleryScene active={phase === "walking"} input={input} view={view} onPause={pause} onNavigate={navigate} onInspect={inspect} onTarget={setTarget} onChapter={setChapter} onUnavailable={unavailable} />
       </Suspense></SceneBoundary>}
     </div>
 
     {phase === "intro" && <section className="exhibition-entrance">
-      <header className="exhibition-brand"><span>SỬ KÝ</span><span>KHÔNG GIAN TƯ LIỆU</span></header>
-      <div className="exhibition-intro-copy">
-        <p className="exhibition-eyebrow">TRIỂN LÃM ẢNH TƯ LIỆU</p>
+      <header className="exhibition-brand flex items-center gap-6"><span>SỬ KÝ</span><span>KHÔNG GIAN TƯ LIỆU</span></header>
+      <div className="exhibition-intro-copy my-auto w-[min(610px,54vw)] py-8">
+        <p className="exhibition-eyebrow mb-[27px] text-[10px] font-medium tracking-[.2em] text-[var(--exhibit-muted)]">TRIỂN LÃM ẢNH TƯ LIỆU</p>
         <h1>Khoảnh khắc<br />toàn thắng<span>.</span></h1>
-        <p className="exhibition-subtitle">Giải phóng miền Nam, 1975</p>
-        <p className="exhibition-invitation">Bước vào ký ức.<br />Lắng lại trước những khoảnh khắc lịch sử.</p>
+        <p className="exhibition-subtitle text-[clamp(14px,1.35vw,19px)] font-medium tracking-[-.02em]">Giải phóng miền Nam, 1975</p>
+        <p className="exhibition-invitation mt-7 text-[13px] leading-[1.9] text-[var(--exhibit-muted)]">Bước vào ký ức.<br />Lắng lại trước những khoảnh khắc lịch sử.</p>
         <Button onClick={enter} disabled={!ready} className="exhibition-enter">Enter <ArrowRight size={22} weight="light" /></Button>
-        {!ready && <p role="status" className="exhibition-loading">Đang chuẩn bị không gian…</p>}
-        {!available && <p className="exhibition-loading">Thiết bị không hỗ trợ 3D. Enter để xem ảnh và đọc câu chuyện.</p>}
+        {!ready && <p role="status" className="exhibition-loading mt-3 max-w-[340px] text-xs text-[var(--exhibit-muted)]">Đang chuẩn bị không gian…</p>}
+        {!available && <p className="exhibition-loading mt-3 max-w-[340px] text-xs text-[var(--exhibit-muted)]">Thiết bị không hỗ trợ 3D. Enter để xem ảnh và đọc câu chuyện.</p>}
       </div>
-      <footer className="exhibition-entry-footer"><span>30.04.1975</span><span>12 ảnh tư liệu <span aria-hidden="true">/</span> 3 chương</span><span className="exhibition-entry-controls"><MouseSimple size={18} /> Chuột để nhìn <span aria-hidden="true">/</span> WASD để bước đi</span></footer>
+      <footer className="exhibition-entry-footer flex items-center gap-10 text-[10px] text-[var(--exhibit-muted)]"><span>30.04.1975</span><span>12 ảnh tư liệu <span aria-hidden="true">/</span> 3 chương</span><span className="exhibition-entry-controls ml-auto flex items-center gap-3 bg-[color:var(--exhibit-paper)]/85 px-4 py-3"><MouseSimple size={18} /> Chuột để nhìn <span aria-hidden="true">/</span> WASD để bước đi</span></footer>
     </section>}
 
     {phase === "walking" && <>
-      <div className="exhibition-room-label"><span>0{chapter + 1}</span><div>{chapters[chapter]?.title}<small>{chapters[chapter]?.period}</small></div></div>
+      <div className="exhibition-room-label pointer-events-none absolute left-9 top-[30px] flex items-center gap-[19px] bg-[color:var(--exhibit-paper)]/10 px-2.5 py-1 backdrop-blur-[6px]"><span>0{chapter + 1}</span><div>{chapters[chapter]?.title}<small>{chapters[chapter]?.period}</small></div></div>
       <Button variant="outline" size="icon" className="exhibition-navigation" onClick={navigate} aria-label="Mở mục lục triển lãm (M)" title="Mục lục (M)"><Compass size={24} weight="light" /><kbd>M</kbd></Button>
-      {focusedArtwork && <div className="exhibition-focused" role="status"><span>{focusedArtwork.title}</span><button type="button" onClick={() => inspect(focusedArtwork.id)}><kbd>E</kbd> Xem chi tiết</button></div>}
-      {hintVisible && <div className="exhibition-walking-hint">{locked ? <><kbd>Esc</kbd> để tạm dừng</> : <><span>Kéo chuột để nhìn</span><kbd>Esc</kbd> để tạm dừng</>}</div>}
-      <div className="exhibition-touch-controls" aria-label="Điều khiển di chuyển cảm ứng">
+      {focusedArtwork && <div className="exhibition-focused absolute bottom-[90px] left-1/2 flex max-w-[calc(100vw-160px)] -translate-x-1/2 items-center gap-6 bg-[color:var(--exhibit-paper)]/95 px-[19px] py-3 text-xs" role="status"><span>{focusedArtwork.title}</span><button type="button" onClick={() => inspect(focusedArtwork.id)}><kbd>E</kbd> Xem chi tiết</button></div>}
+      {hintVisible && <div className="exhibition-walking-hint pointer-events-none absolute bottom-[26px] left-1/2 -translate-x-1/2 whitespace-nowrap bg-transparent px-3 py-2 text-[10px] text-[var(--exhibit-muted)] opacity-[.58]">{locked ? <><kbd>Esc</kbd> để tạm dừng</> : <><span>Kéo chuột để nhìn</span><kbd>Esc</kbd> để tạm dừng</>}</div>}
+      <div className="exhibition-touch-controls hidden" aria-label="Điều khiển di chuyển cảm ứng">
         {([{ key: "KeyW", label: "Đi tới", Icon: ArrowUp }, { key: "KeyA", label: "Sang trái", Icon: ArrowLeft }, { key: "KeyS", label: "Lùi lại", Icon: ArrowDown }, { key: "KeyD", label: "Sang phải", Icon: ArrowRight }]).map(({ key, label, Icon }) => <button key={key} className={`exhibition-touch-${key}`} type="button" aria-label={label} onPointerDown={event => { event.preventDefault(); event.currentTarget.setPointerCapture(event.pointerId); input.current.keys.add(key); }} onPointerUp={() => input.current.keys.delete(key)} onPointerCancel={() => input.current.keys.delete(key)} onLostPointerCapture={() => input.current.keys.delete(key)}><Icon size={22} /></button>)}
       </div>
     </>}
 
-    {phase === "paused" && <section className="exhibition-pause" aria-label="Đã tạm dừng tham quan">
-      <div><p className="exhibition-eyebrow">SỬ KÝ / TRIỂN LÃM 1975</p><h2>{available ? "Một khoảng lặng." : "Tiếp tục qua những bức ảnh."}</h2><p>{available ? "Không gian vẫn ở đây. Tiếp tục khi bạn sẵn sàng." : "Không gian 3D hiện không khả dụng. Toàn bộ ảnh, câu chuyện và nguồn tư liệu vẫn có trong mục lục."}</p>
+    {phase === "paused" && <section className="exhibition-pause absolute inset-0 z-[2] grid place-items-center bg-[color:var(--exhibit-paper)]/85 p-7 backdrop-blur-[5px]" aria-label="Đã tạm dừng tham quan">
+      <div><p className="exhibition-eyebrow mb-[27px] text-[10px] font-medium tracking-[.2em] text-[var(--exhibit-muted)]">SỬ KÝ / TRIỂN LÃM 1975</p><h2>{available ? "Một khoảng lặng." : "Tiếp tục qua những bức ảnh."}</h2><p>{available ? "Không gian vẫn ở đây. Tiếp tục khi bạn sẵn sàng." : "Không gian 3D hiện không khả dụng. Toàn bộ ảnh, câu chuyện và nguồn tư liệu vẫn có trong mục lục."}</p>
         <Button ref={resumeButton} className="exhibition-enter" onClick={enter}>{available ? "Tiếp tục tham quan" : "Xem ảnh tư liệu"}<ArrowRight size={20} /></Button>
         {available && <Button variant="ghost" onClick={navigate} className="exhibition-pause-menu">Mục lục triển lãm <Compass size={18} /></Button>}
-        {available && <p className="exhibition-pause-help">WASD / mũi tên để đi · Chuột để nhìn<br />E xem ảnh · M mở mục lục · Esc tạm dừng</p>}
+        {available && <p className="exhibition-pause-help mt-8 !text-[11px]">WASD / mũi tên để đi · Chuột để nhìn<br />E xem ảnh · M mở mục lục · Esc tạm dừng</p>}
       </div>
     </section>}
 

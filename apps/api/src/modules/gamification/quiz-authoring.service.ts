@@ -42,8 +42,8 @@ export class QuizAuthoringService {
     if (!draft && active?.questions.some(q => q.options.length > 4))
       throw new DomainError(409, "CONFLICT", "Quiz cũ có câu vượt quá bốn đáp án. Không thể mở trong trình soạn bốn đáp án; nội dung cũ được giữ nguyên.");
     const data: QuizDraftData = draft ? QuizDraftDataSchema.parse(draft.data) : {
-      title: active ? `Quiz · ${episode.title}` : "", description: "", referenceText: "", passScorePercent: active?.passScorePercent ?? 80,
-      questions: active?.questions.map(q => ({ id: q.id, text: q.questionText, explanation: q.explanation ?? "", timeLimit: 20,
+      title: active?.title ?? (active ? `Quiz · ${episode.title}` : ""), description: active?.description ?? "", posterAssetId: active?.posterAssetId ?? null, referenceText: "", passScorePercent: active?.passScorePercent ?? 80,
+      questions: active?.questions.map(q => ({ id: q.id, text: q.questionText, explanation: q.explanation ?? "", timeLimit: q.timeLimit ?? 20,
         options: Array.from({ length: 4 }, (_, i) => q.options[i]?.optionText ?? ""),
         correctIndex: q.options.findIndex(o => o.isCorrect), evidence: null })) ?? [{ id: randomUUID(), text: "", options: ["", "", "", ""], correctIndex: null, explanation: "", evidence: null, timeLimit: 20 }],
     };
@@ -60,8 +60,12 @@ export class QuizAuthoringService {
       const current = await db.quizWorkspaceDraft.findUnique({ where: { episodeId } });
       if ((current?.revision ?? 0) !== revision) throw new DomainError(409, "CONFLICT", "Bản nháp đã được cập nhật ở nơi khác. Hãy tải lại trước khi lưu.");
       const json = QuizDraftDataSchema.parse(data);
+      if (json.posterAssetId) {
+        const poster = await db.mediaAsset.findFirst({ where: { id: json.posterAssetId, kind: "IMAGE", status: "READY", deletedAt: null, uploadedById: userId } });
+        if (!poster) throw new DomainError(422, "VALIDATION_ERROR", "Ảnh quiz chưa hợp lệ hoặc không thuộc tài khoản của bạn.");
+      }
       await db.quizWorkspaceDraft.upsert({ where: { episodeId },
-        create: { episodeId, data: json, revision: 1 }, update: { data: json, revision: { increment: 1 } } });
+        create: { episodeId, data: json, posterAssetId: json.posterAssetId ?? null, revision: 1 }, update: { data: json, posterAssetId: json.posterAssetId ?? null, revision: { increment: 1 } } });
     });
     return this.read(episodeId, userId);
   }
@@ -82,9 +86,10 @@ export class QuizAuthoringService {
         if (await db.quizAttempt.count({ where: { quizId: existing.id } })) throw new DomainError(409, "CONFLICT", "Quiz đã có lượt làm. Bản nháp được giữ lại; không thể thay bộ câu hỏi đang sử dụng.");
         await db.quizQuestion.deleteMany({ where: { quizId: existing.id } });
       }
-      const quiz = await db.quiz.upsert({ where: { episodeId }, create: { episodeId, passScorePercent: input.passScorePercent }, update: { passScorePercent: input.passScorePercent } });
+      const presentation = { title: data.title.trim(), description: data.description.trim() || null, posterAssetId: data.posterAssetId ?? null };
+      const quiz = await db.quiz.upsert({ where: { episodeId }, create: { episodeId, passScorePercent: input.passScorePercent, ...presentation }, update: { passScorePercent: input.passScorePercent, ...presentation } });
       for (const [sortOrder, q] of input.questions.entries()) {
-        await db.quizQuestion.create({ data: { quizId: quiz.id, questionText: q.text, explanation: q.explanation, sortOrder,
+        await db.quizQuestion.create({ data: { quizId: quiz.id, questionText: q.text, explanation: q.explanation, timeLimit: q.timeLimit, sortOrder,
           options: { create: q.options.map(o => ({ optionLabel: o.label, optionText: o.text, isCorrect: o.isCorrect })) } } });
       }
       await db.quizWorkspaceDraft.update({ where: { episodeId }, data: { activatedRevision: revision } });

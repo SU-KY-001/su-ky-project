@@ -1,204 +1,43 @@
-import { useMemo, useState, type ReactElement } from "react";
-import { ArrowCounterClockwise } from "@phosphor-icons/react/dist/icons/ArrowCounterClockwise";
-import { ArrowRight } from "@phosphor-icons/react/dist/icons/ArrowRight";
-import { Brain } from "@phosphor-icons/react/dist/icons/Brain";
-import { Cards } from "@phosphor-icons/react/dist/icons/Cards";
-import { CheckCircle } from "@phosphor-icons/react/dist/icons/CheckCircle";
-import { Clock } from "@phosphor-icons/react/dist/icons/Clock";
-import { DotsThree } from "@phosphor-icons/react/dist/icons/DotsThree";
-import { FunnelSimple } from "@phosphor-icons/react/dist/icons/FunnelSimple";
+import { useState, type ReactElement } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { useNavigate } from "react-router";
+import type { z } from "zod";
+import { PublicQuizCardSchema } from "@repo/shared";
 import { Headphones } from "@phosphor-icons/react/dist/icons/Headphones";
-import { SquaresFour } from "@phosphor-icons/react/dist/icons/SquaresFour";
-import { Trophy } from "@phosphor-icons/react/dist/icons/Trophy";
-import { UsersThree } from "@phosphor-icons/react/dist/icons/UsersThree";
-import { XCircle } from "@phosphor-icons/react/dist/icons/XCircle";
-import { Badge } from "@/shared/components/ui/badge";
+import { Image } from "@phosphor-icons/react/dist/icons/Image";
 import { Button } from "@/shared/components/ui/button";
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/shared/components/ui/dialog";
+import { useCurrentUser } from "@/shared/hooks/useCurrentUser";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/shared/components/ui/select";
-import { mockQuizSets, quizTopics, type MockQuizSet, type QuizTopic } from "@/features/quiz/mockData";
-import "./quiz-library.css";
+import { usePodcastAccess } from "../../hooks/usePodcastAccess";
+import { libraryService } from "../../services/libraryService";
+import { LibraryState } from "./LibraryPrimitives";
+import { QuizCompletionBadge } from "./QuizCompletionBadge";
 
-const answerLetters = ["A", "B", "C", "D"];
-
-function QuizCover({ quiz }: { quiz: MockQuizSet }): ReactElement {
-  return (
-    <div className="quiz-set-cover" style={{ "--quiz-accent": quiz.accent } as React.CSSProperties}>
-      <div className="quiz-cover-orbit quiz-cover-orbit-one" />
-      <div className="quiz-cover-orbit quiz-cover-orbit-two" />
-      <Brain size={39} weight="duotone" aria-hidden="true" />
-      <span>{quiz.topic}</span>
-      <strong>{quiz.questions.length}</strong>
-      <small>câu hỏi</small>
-    </div>
-  );
-}
-
-function QuizSetCard({ quiz, onPlay }: { quiz: MockQuizSet; onPlay: () => void }): ReactElement {
-  return (
-    <article className="quiz-set-card">
-      <button type="button" className="quiz-set-card-button" onClick={onPlay} aria-label={`Chơi bộ quiz ${quiz.title}`}>
-        <div className="quiz-set-copy">
-          <div className="quiz-set-topline">
-            <span className="quiz-set-icon"><Cards size={22} weight="duotone" aria-hidden="true" /></span>
-            <span className="quiz-set-activity"><UsersThree aria-hidden="true" /> {quiz.plays} lượt chơi</span>
-          </div>
-          <h3>{quiz.title}</h3>
-          <div className="quiz-series-line"><Headphones aria-hidden="true" /><span>{quiz.seriesTitle}</span></div>
-          <div className="quiz-card-footer"><span>{quiz.questions.length} câu hỏi · {quiz.author}</span><DotsThree size={18} weight="bold" aria-hidden="true" /></div>
-        </div>
-      </button>
-    </article>
-  );
-}
-
-function QuizResult({ quiz, score, onRetry, onClose }: { quiz: MockQuizSet; score: number; onRetry: () => void; onClose: () => void }): ReactElement {
-  const percent = Math.round((score / quiz.questions.length) * 100);
-  return (
-    <div className="quiz-result-view">
-      <div className="quiz-result-medal"><Trophy size={52} weight="fill" aria-hidden="true" /></div>
-      <p className="quiz-kicker">Hoàn thành thử thách</p>
-      <h3>{percent >= 80 ? "Xuất sắc!" : percent >= 50 ? "Bạn làm khá tốt!" : "Thử lại để nhớ lâu hơn nhé!"}</h3>
-      <p className="quiz-result-score">{score}<span>/{quiz.questions.length}</span></p>
-      <p className="quiz-result-note">Bạn trả lời đúng {percent}% số câu hỏi trong bộ “{quiz.title}”.</p>
-      <div className="quiz-result-actions">
-        <Button variant="outline" onClick={onClose}>Về danh sách</Button>
-        <Button onClick={onRetry}><ArrowCounterClockwise aria-hidden="true" /> Chơi lại</Button>
-      </div>
-    </div>
-  );
-}
-
-function QuizPlayer({ quiz, onClose }: { quiz: MockQuizSet; onClose: () => void }): ReactElement {
-  const [started, setStarted] = useState(false);
-  const [index, setIndex] = useState(0);
-  const [selected, setSelected] = useState<string | null>(null);
-  const [score, setScore] = useState(0);
-  const [finished, setFinished] = useState(false);
-  const current = quiz.questions[index];
-  const progress = ((index + 1) / quiz.questions.length) * 100;
-
-  const retry = (): void => {
-    setStarted(true);
-    setIndex(0);
-    setSelected(null);
-    setScore(0);
-    setFinished(false);
-  };
-
-  const choose = (optionId: string): void => {
-    if (selected) return;
-    setSelected(optionId);
-    if (optionId === current.correctOptionId) setScore((value) => value + 1);
-  };
-
-  const next = (): void => {
-    if (index === quiz.questions.length - 1) {
-      setFinished(true);
-      return;
-    }
-    setIndex((value) => value + 1);
-    setSelected(null);
-  };
-
-  if (!started) {
-    return (
-      <div className="quiz-intro">
-        <QuizCover quiz={quiz} />
-        <Badge variant="outline" className="border-line bg-paper-soft text-ink-soft">{quiz.topic}</Badge>
-        <h3>{quiz.title}</h3>
-        <p>{quiz.description}</p>
-        <div className="quiz-intro-facts">
-          <span><SquaresFour aria-hidden="true" /> {quiz.questions.length} câu hỏi</span>
-          <span><Clock aria-hidden="true" /> Khoảng {Math.ceil(quiz.questions.length * 0.5)} phút</span>
-          <span><Headphones aria-hidden="true" /> {quiz.episodeTitle}</span>
-        </div>
-        <Button size="lg" onClick={() => setStarted(true)}>Bắt đầu chơi <ArrowRight aria-hidden="true" /></Button>
-      </div>
-    );
-  }
-
-  if (finished) return <QuizResult quiz={quiz} score={score} onRetry={retry} onClose={onClose} />;
-
-  const isCorrect = selected === current.correctOptionId;
-  return (
-    <div className="quiz-play-view">
-      <div className="quiz-play-header">
-        <div>
-          <span className="quiz-play-kicker">Phiếu ôn tập · {quiz.topic}</span>
-          <strong>Câu hỏi {index + 1} <small>trên {quiz.questions.length}</small></strong>
-        </div>
-        <span className="quiz-time-chip"><Clock aria-hidden="true" /> {current.timeLimit} giây</span>
-      </div>
-      <div className="quiz-progress"><span style={{ width: `${progress}%` }} /></div>
-      <div className="quiz-question-panel">
-        <span className="quiz-question-number">{String(index + 1).padStart(2, "0")}</span>
-        <p>{current.text}</p>
-      </div>
-      <div className="quiz-answer-grid">
-        {current.options.map((option, optionIndex) => {
-          const correct = option.id === current.correctOptionId;
-          const picked = option.id === selected;
-          const state = selected ? correct ? "correct" : picked ? "wrong" : "muted" : "idle";
-          return (
-            <button key={option.id} type="button" className="quiz-answer" data-state={state} onClick={() => choose(option.id)} disabled={Boolean(selected)}>
-              <span className="quiz-answer-letter">{answerLetters[optionIndex]}</span>
-              <span className="quiz-answer-text">{option.text}</span>
-              {state === "correct" && <CheckCircle weight="fill" aria-label="Đáp án đúng" />}
-              {state === "wrong" && <XCircle weight="fill" aria-label="Đáp án đã chọn chưa đúng" />}
-            </button>
-          );
-        })}
-      </div>
-      {selected && (
-        <div className="quiz-feedback" data-correct={isCorrect}>
-          <div><strong>{isCorrect ? "Chính xác!" : "Chưa đúng rồi"}</strong><p>{current.explanation}</p></div>
-          <Button onClick={next}>{index === quiz.questions.length - 1 ? "Xem kết quả" : "Câu tiếp theo"} <ArrowRight aria-hidden="true" /></Button>
-        </div>
-      )}
-    </div>
-  );
+function QuizCard({ quiz, onStart }: { quiz: z.infer<typeof PublicQuizCardSchema>; onStart: () => void }): ReactElement {
+  const [failedImage, setFailedImage] = useState(false);
+  return <article className="flex min-w-0 flex-col overflow-hidden rounded-xl border border-line bg-paper-soft">
+    <div className="relative aspect-video shrink-0 overflow-hidden bg-paper-deep">{quiz.posterUrl && !failedImage ? <img src={quiz.posterUrl} alt="" loading="lazy" className="absolute inset-0 size-full object-cover" onError={() => setFailedImage(true)} /> : <div className="absolute inset-0 grid place-items-center text-bronze-dark"><Image size={40} aria-hidden="true" /></div>}<span className="absolute right-3 top-3 rounded-full bg-paper-soft px-3 py-1.5 text-xs text-ink">{quiz.plays} lượt chơi</span></div>
+    <div className="flex flex-1 flex-col p-4"><h4 className="text-base font-semibold leading-6">{quiz.title}</h4><p className="mt-2 flex items-center gap-2 text-xs text-ink-soft"><Headphones aria-hidden="true" /> {quiz.seriesTitle}</p><p className="mt-3 line-clamp-3 text-sm leading-6 text-ink-soft">{quiz.description || quiz.episodeTitle}</p><p className="mt-auto pt-5 text-xs text-ink-soft">{quiz.questionCount} câu hỏi · {quiz.episodeTitle}</p>{quiz.hasCompleted !== null && <div className="mt-3"><QuizCompletionBadge completed={quiz.hasCompleted} /></div>}<Button className="mt-4 w-full" onClick={onStart}>{quiz.hasCompleted ? "Làm lại" : "Bắt đầu"}</Button></div>
+  </article>;
 }
 
 export function LibraryQuiz(): ReactElement {
-  const [topic, setTopic] = useState<QuizTopic>("Tất cả");
-  const [activeQuiz, setActiveQuiz] = useState<MockQuizSet | null>(null);
-  const filtered = useMemo(() => topic === "Tất cả" ? mockQuizSets : mockQuizSets.filter((quiz) => quiz.topic === topic), [topic]);
+  const [topic, setTopic] = useState("all");
+  const [page, setPage] = useState(1);
+  const navigate = useNavigate();
+  const user = useCurrentUser();
+  const { requestAccess, accessDialog } = usePodcastAccess("quiz");
+  const topics = useQuery({ queryKey: ["quiz-topics"], queryFn: ({ signal }) => libraryService.topics(signal) });
+  const quizzes = useQuery({ queryKey: ["quiz-catalog", user.data?.id ?? "guest", topic, page], queryFn: ({ signal }) => libraryService.quizzes({ page, topicId: topic === "all" ? undefined : topic }, signal), enabled: !user.isPending });
 
-  return (
-    <div className="quiz-library">
-      <div className="quiz-library-toolbar">
-        <div>
-          <p className="quiz-library-eyebrow">Học bằng thử thách</p>
-          <h3>Chọn một bộ quiz để bắt đầu</h3>
-          <p>Mỗi bộ câu hỏi được biên soạn theo nội dung của một series podcast.</p>
-        </div>
-        <div className="quiz-topic-filter">
-          <label htmlFor="quiz-topic-select"><FunnelSimple weight="bold" aria-hidden="true" /> Lọc theo chủ đề</label>
-          <Select value={topic} onValueChange={(value) => setTopic(value as QuizTopic)}>
-            <SelectTrigger id="quiz-topic-select" aria-label="Lọc quiz theo chủ đề" className="quiz-topic-select">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent className="quiz-topic-menu border-[#dedbd6] bg-white font-body text-[#2d2926]">
-              {quizTopics.map((item) => <SelectItem key={item} value={item} className="quiz-topic-option focus:bg-[#f3f1ee] focus:text-[#211e1b] data-[state=checked]:bg-[#f7f5f2] data-[state=checked]:text-[#211e1b]">{item === "Tất cả" ? "Tất cả chủ đề" : item}</SelectItem>)}
-            </SelectContent>
-          </Select>
-        </div>
-      </div>
-
-      <div className="quiz-card-grid">
-        {filtered.map((quiz) => <QuizSetCard key={quiz.id} quiz={quiz} onPlay={() => setActiveQuiz(quiz)} />)}
-      </div>
-
-      <Dialog open={Boolean(activeQuiz)} onOpenChange={(open) => { if (!open) setActiveQuiz(null); }}>
-        <DialogContent showCloseButton className="quiz-player-dialog max-h-[92dvh] max-w-4xl gap-0 overflow-y-auto border-line bg-paper p-0 sm:p-0">
-          <DialogHeader className="sr-only">
-            <DialogTitle>{activeQuiz?.title ?? "Bộ quiz"}</DialogTitle>
-            <DialogDescription>Chơi quiz ôn tập kiến thức lịch sử.</DialogDescription>
-          </DialogHeader>
-          {activeQuiz && <QuizPlayer key={activeQuiz.id} quiz={activeQuiz} onClose={() => setActiveQuiz(null)} />}
-        </DialogContent>
-      </Dialog>
+  return <div className="min-w-0">{accessDialog}
+    <div className="mb-7 flex flex-col items-start justify-between gap-7 md:flex-row md:items-end">
+      <div><p className="mb-2 text-xs font-semibold uppercase tracking-widest text-vermilion">Học bằng thử thách</p><h3 className="text-2xl font-bold tracking-tight sm:text-3xl">Chọn một bộ quiz để bắt đầu</h3><p className="mt-2 text-sm leading-7 text-ink-soft">Ôn tập kiến thức qua những câu chuyện trong podcast.</p></div>
+      <div className="w-full max-w-60"><label htmlFor="quiz-topic-select" className="mb-2 block text-xs font-semibold text-ink-soft">Lọc theo chủ đề</label><Select value={topic} onValueChange={value => { setTopic(value); setPage(1); }}><SelectTrigger id="quiz-topic-select" className="w-full border-line bg-paper-soft"><SelectValue /></SelectTrigger><SelectContent className="border-line bg-paper-soft text-ink"><SelectItem value="all">Tất cả chủ đề</SelectItem>{topics.data?.items.map(item => <SelectItem key={item.id} value={item.id}>{item.name}</SelectItem>)}</SelectContent></Select>{topics.isError && <p className="mt-2 text-xs text-ink-soft">Chưa tải được chủ đề.</p>}</div>
     </div>
-  );
+    {quizzes.isPending ? <LibraryState loading /> : quizzes.isError ? <LibraryState error title="Chưa tải được danh sách quiz" retry={() => { void quizzes.refetch(); }} /> : quizzes.data.items.length === 0 ? <LibraryState title="Chưa có quiz phù hợp" description="Hãy quay lại sau hoặc chọn chủ đề khác." /> : <>
+      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">{quizzes.data.items.map(quiz => <QuizCard key={`${quiz.id}-${quiz.posterUrl}`} quiz={quiz} onStart={() => { void (async () => { if (await requestAccess()) navigate(`/quiz/${encodeURIComponent(quiz.episodeSlug)}`); })(); }} />)}</div>
+      {quizzes.data.total > quizzes.data.limit && <div className="mt-6 flex items-center justify-center gap-4"><Button variant="outline" disabled={page === 1} onClick={() => setPage(value => value - 1)}>Trang trước</Button><span className="text-sm text-ink-soft">Trang {page}</span><Button variant="outline" disabled={page * quizzes.data.limit >= quizzes.data.total} onClick={() => setPage(value => value + 1)}>Trang sau</Button></div>}
+    </>}
+  </div>;
 }

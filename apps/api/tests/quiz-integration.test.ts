@@ -194,6 +194,8 @@ describe.skipIf(!RUN_INTEGRATION)("quiz + admin mutations (database)", () => {
       passed: false,
       xp: 0,
     });
+    const unanswered = await service.submitAttempt(quiz.id, learnerId, { answers: [{ questionId: question.id, optionId: null }] });
+    expect(unanswered.answers[0]).toMatchObject({ selectedOptionId: null, isCorrect: false });
 
     const first = await attempt(right);
     const second = await attempt(right);

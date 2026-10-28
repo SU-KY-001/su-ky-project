@@ -15,7 +15,6 @@ import { ModeratorSelect } from "@/features/moderator/components/ModeratorSelect
 import { ModeratorListToolbar } from "@/features/moderator/components/ModeratorListToolbar";
 import { useQuizList, useQuizSeries, useQuizSeriesDetail, useQuizWorkspace } from "./useQuiz";
 import { QuizEditor } from "./QuizEditor";
-import "./quiz.css";
 
 function ErrorState({ message, retry }: { message: string; retry: () => void }): ReactElement {
   return <div className="rounded-lg border border-mod-border bg-mod-surface p-6 text-sm"><p role="alert" className="text-mod-danger">{message}</p><Button className="mt-3" variant="outline" onClick={retry}>Thử lại</Button></div>;

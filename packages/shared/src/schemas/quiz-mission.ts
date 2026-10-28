@@ -14,6 +14,7 @@ export const QuizQuestionInputSchema = z
   .object({
     text: z.string().trim().min(1).max(2000),
     explanation: z.string().trim().max(4000).nullable().optional(),
+    timeLimit: z.number().int().min(10).max(120).nullable().optional(),
     options: z.array(QuizOptionInputSchema).min(2).max(6),
   })
   .superRefine((question, context) => {
@@ -43,7 +44,7 @@ export const SubmitQuizAttemptSchema = z
       .array(
         z.object({
           questionId: z.string().uuid(),
-          optionId: z.string().uuid(),
+          optionId: z.string().uuid().nullable(),
         }),
       )
       .min(1)
@@ -69,6 +70,7 @@ export const QuizQuestionSchema = z.object({
   id: z.string().uuid(),
   text: z.string(),
   sortOrder: z.number().int(),
+  timeLimit: z.number().int().positive().nullable(),
   options: z.array(QuizOptionSchema),
 });
 
@@ -78,6 +80,23 @@ export const PublicQuizSchema = z.object({
   passScorePercent: z.number().int(),
   questions: z.array(QuizQuestionSchema),
 });
+
+export const PublicQuizCatalogQuerySchema = z.object({
+  page: z.coerce.number().int().min(1).default(1),
+  limit: z.coerce.number().int().min(1).max(50).default(12),
+  topicId: z.string().uuid().optional(),
+  episodeSlug: z.string().min(1).max(280).optional(),
+});
+
+export const PublicQuizCardSchema = z.object({
+  id: z.string().uuid(), title: z.string(), description: z.string().nullable(),
+  episodeSlug: z.string(), episodeTitle: z.string(), seriesSlug: z.string(), seriesTitle: z.string(),
+  topicId: z.string().uuid().nullable(), topicName: z.string().nullable(),
+  posterUrl: z.string().nullable(), questionCount: z.number().int().nonnegative(), plays: z.number().int().nonnegative(),
+  hasCompleted: z.boolean().nullable(),
+});
+
+export const PublicQuizCatalogSchema = z.object({ items: z.array(PublicQuizCardSchema), page: z.number().int(), limit: z.number().int(), total: z.number().int() });
 
 export const QuizAttemptResultSchema = z.object({
   id: z.string().uuid(),
@@ -90,7 +109,7 @@ export const QuizAttemptResultSchema = z.object({
   answers: z.array(
     z.object({
       questionId: z.string().uuid(),
-      selectedOptionId: z.string().uuid(),
+      selectedOptionId: z.string().uuid().nullable(),
       correctOptionId: z.string().uuid(),
       isCorrect: z.boolean(),
       explanation: z.string().nullable(),
@@ -132,6 +151,7 @@ export const StudioQuizSchema = PublicQuizSchema.extend({
       text: z.string(),
       explanation: z.string().nullable(),
       sortOrder: z.number().int(),
+      timeLimit: z.number().int().positive().nullable(),
       options: z.array(
         z.object({
           id: z.string().uuid(),
