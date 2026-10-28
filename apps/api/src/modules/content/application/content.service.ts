@@ -239,6 +239,7 @@ export class ContentService {
       status?: string | null;
       q?: string | null;
       ownerId?: string | null;
+      owned?: "true";
     },
   ): Promise<{
     items: SeriesListItemEntity[];
@@ -248,10 +249,12 @@ export class ContentService {
   }> {
     const items = await this.series.listSeries({
       ownerId:
-        session.user.role === "admin"
-          ? (filter.ownerId ?? null)
-          : null,
-      viewerId: session.user.role === "admin" ? null : session.user.id,
+        filter.owned === "true"
+          ? session.user.id
+          : session.user.role === "admin"
+            ? (filter.ownerId ?? null)
+            : null,
+      viewerId: session.user.role === "admin" || filter.owned === "true" ? null : session.user.id,
       status:
         (filter.status as ContentStatus | "TRASH" | null | undefined) ?? null,
       q: filter.q ?? null,
@@ -576,6 +579,10 @@ export class ContentService {
     input: AppendEpisodeInput,
   ): Promise<EpisodeWorkspaceEntity> {
     const series = await this.loadSeriesForRead(session, seriesId);
+    // A release collaborator may read the series but only the owner (or an admin) can add episodes: the new episode would be unreadable to the collaborator.
+    if (session.user.role !== "admin" && series.ownerId !== session.user.id) {
+      throw new DomainError(403, "FORBIDDEN", "Only the series owner can add episodes");
+    }
     assertWritable(session, series);
     const [created] = await this.episodes.appendEpisodes(seriesId, [input]);
     return this.getEpisodeWorkspace(created!.episodeId);

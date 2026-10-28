@@ -41,9 +41,9 @@ export const podcastProductionService = {
     return EpisodePosterSchema.parse({ assetId, url: asset.previewUrl, fileName: file.name, sizeBytes: file.size });
   },
   poster: (id: string, poster: z.infer<typeof EpisodePosterSchema> | null) => parse(studio.episodes[":id"].poster.$put({ param: { id }, json: { assetId: poster?.assetId ?? null, fileName: poster?.fileName } }), EpisodeWorkspaceSchema),
-  series: (q = "", page = 1) =>
+  series: (q = "", page = 1, owned = false) =>
     parse(
-      studio.series.$get({ query: { q, page: String(page), limit: "20" } }),
+      studio.series.$get({ query: { q, page: String(page), limit: "20", ...(owned ? { owned: "true" as const } : {}) } }),
       paginatedSchema(SeriesListItemSchema),
     ),
   detail: (id: string) =>

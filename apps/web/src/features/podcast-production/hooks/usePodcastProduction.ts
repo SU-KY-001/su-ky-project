@@ -5,10 +5,10 @@ import {
   useQueryClient,
 } from "@tanstack/react-query";
 import { podcastProductionService as api } from "../services/podcastProductionService";
-export function usePodcastSeries(q = "") {
+export function usePodcastSeries(q = "", owned = false) {
   return useInfiniteQuery({
-    queryKey: ["podcast-production", "series", q],
-    queryFn: ({ pageParam }) => api.series(q, pageParam),
+    queryKey: owned ? ["podcast-production", "series", q, "owned"] : ["podcast-production", "series", q],
+    queryFn: ({ pageParam }) => api.series(q, pageParam, owned),
     initialPageParam: 1,
     getNextPageParam: (p) =>
       p.page * p.limit < p.total ? p.page + 1 : undefined,
