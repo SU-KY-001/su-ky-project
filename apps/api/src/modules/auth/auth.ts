@@ -15,6 +15,10 @@ export const auth = betterAuth({
   emailAndPassword: {
     enabled: true,
   },
+  // Web runs on another site than the API in production; Lax cookies are not sent on cross-site fetches.
+  ...(process.env.NODE_ENV === "production" && {
+    advanced: { defaultCookieAttributes: { sameSite: "none", secure: true } },
+  }),
   plugins: [
     admin({
       defaultRole: "user",
