@@ -1,8 +1,9 @@
 import { CardBadge, cardBadgeToneForStatus } from "@/shared/components/dashboard/CardBadge";
 import { useState, type ReactElement } from "react";
-import { useSearchParams } from "react-router";
+import { useNavigate, useSearchParams } from "react-router";
 import type { EpisodeWorkspaceDto } from "@repo/shared";
 import { ArrowLeft, ArrowRight, Pencil, Save } from "lucide-react";
+import { moderatorPodcastPath } from "@/features/moderator/paths";
 import { CreationPage } from "@/features/moderator/components/CreationPage";
 import {
   primaryAction,
@@ -77,10 +78,12 @@ function PodcastWizardPage({
   const wizard = usePodcastCreationWizard(
     existingEpisode ? () => podcastWizardStateFromEpisode(existingEpisode, historicalEventId) : undefined,
   );
-  const series = usePodcastSeries();
+  const series = usePodcastSeries("", true);
   const selected = usePodcastSeriesDetail(wizard.state.seriesId);
   const event = useHistoricalEvent(wizard.state.historicalEventId);
-  const [editing, setEditing] = useState(!existingEpisode);
+  const navigate = useNavigate();
+  // A draft belongs to its moderator and is still being written, so it opens for editing; published/hidden/locked stay view-only.
+  const [editing, setEditing] = useState(!existingEpisode || (existingEpisode.status === "DRAFT" && !existingEpisode.lock));
   const [busy, setBusy] = useState(false);
   const [posterBusy, setPosterBusy] = useState(false);
   const [error, setError] = useState("");
@@ -124,11 +127,12 @@ function PodcastWizardPage({
     setBusy(true);
     setError("");
     try {
-      await wizard.saveInformation();
+      const id = await wizard.saveInformation();
       if (wizard.state.scriptDirty) {
         await wizard.saveScript(wizard.state.scriptDocument);
       }
       notify.success({ title: existingEpisode ? "Đã lưu thay đổi." : "Đã lưu bản nháp." });
+      if (!existingEpisode) openSavedDraft(id, activeStep);
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : "Không lưu được bản nháp.");
     } finally {
@@ -136,9 +140,32 @@ function PodcastWizardPage({
     }
   };
 
+  // A new podcast lives at /episodes/new, which cannot be restored on reload. Once the draft exists, move to its own URL.
+  const openSavedDraft = (id: string, step: PodcastWizardStep): void => {
+    const query = step === DEFAULT_STEP ? "" : `?${STEP_PARAM}=${step}`;
+    navigate(`${moderatorPodcastPath.episode(id)}${query}`, { replace: true });
+  };
+
+  // Later steps save through the episode id, so leaving "Thông tin" on a new podcast must create the draft first.
+  const goToStep = async (step: PodcastWizardStep): Promise<void> => {
+    if (editing && activeStep === "information" && step !== "information" && !existingEpisode) {
+      setBusy(true);
+      setError("");
+      try {
+        openSavedDraft(await wizard.saveInformation(), step);
+      } catch (caught) {
+        setError(caught instanceof Error ? caught.message : "Không lưu được bản nháp.");
+      } finally {
+        setBusy(false);
+      }
+      return;
+    }
+    selectStep(step);
+  };
+
   const move = (offset: number): void => {
     const next = stepOrder[currentIndex + offset];
-    if (next) selectStep(next);
+    if (next) void goToStep(next);
   };
 
   const queryError = series.error ?? selected.error ?? event.error;
@@ -167,7 +194,7 @@ function PodcastWizardPage({
           <PodcastWizardStepper
             activeStep={activeStep}
             completion={wizard.completion}
-            onSelect={(step) => { if (!posterBusy) selectStep(step); }}
+            onSelect={(step) => { if (!posterBusy) void goToStep(step); }}
           />
         </div>
 

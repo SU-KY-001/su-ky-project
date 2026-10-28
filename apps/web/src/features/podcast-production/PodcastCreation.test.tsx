@@ -61,3 +61,10 @@ it("writes the chosen step to the URL, keeps other params, and drops it on the f
   await act(async () => stepButton(host, 1).click());
   expect(urlOf(host)).toBe(`/moderator/podcast/episodes/${EPISODE_ID}?q=abc`);
 });
+
+it("opens a saved draft for editing, with Save available and no view-only banner", async () => {
+  const host = await renderEpisode(`/moderator/podcast/episodes/${EPISODE_ID}`);
+  expect(host.textContent).toContain("Đang chỉnh sửa tập podcast");
+  expect(host.textContent).toContain("Lưu thay đổi");
+  expect(host.textContent).not.toContain("Chế độ xem");
+});
