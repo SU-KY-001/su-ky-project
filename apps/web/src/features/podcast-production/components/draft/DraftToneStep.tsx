@@ -41,12 +41,12 @@ export function DraftToneStep({ narration, firstPersonAvailable, tone, custom, o
         <legend className="text-sm font-bold text-mod-text">Giọng văn</legend>
         {TONE_PRESET_OPTIONS.map((option) => (
           <label key={option.preset} className={cn("flex cursor-pointer items-start gap-3 rounded-lg border p-3 text-sm", tone === option.preset ? "border-mod-primary bg-mod-primary/5" : "border-mod-border")}>
-            <input type="radio" name="tone" className="mt-1" checked={tone === option.preset} onChange={() => onTone(option.preset)} />
+            <input type="radio" name="tone" className="mt-1 accent-mod-primary" checked={tone === option.preset} onChange={() => onTone(option.preset)} />
             <span><b className="block text-mod-text">{option.label}</b><span className="text-xs italic text-mod-text-secondary">“{option.sample}”</span></span>
           </label>
         ))}
         <label className={cn("flex cursor-pointer items-start gap-3 rounded-lg border p-3 text-sm", tone === CUSTOM_TONE ? "border-mod-primary bg-mod-primary/5" : "border-mod-border")}>
-          <input type="radio" name="tone" className="mt-1" checked={tone === CUSTOM_TONE} onChange={() => onTone(CUSTOM_TONE)} />
+          <input type="radio" name="tone" className="mt-1 accent-mod-primary" checked={tone === CUSTOM_TONE} onChange={() => onTone(CUSTOM_TONE)} />
           <span className="min-w-0 flex-1"><b className="block text-mod-text">Tự mô tả…</b></span>
         </label>
         {tone === CUSTOM_TONE ? (

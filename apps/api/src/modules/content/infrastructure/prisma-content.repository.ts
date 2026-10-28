@@ -968,6 +968,10 @@ export class PrismaEpisodeRepository implements EpisodeRepository {
             input.scriptDocument === null
               ? Prisma.DbNull
               : (input.scriptDocument as Prisma.InputJsonValue | undefined),
+          dialogue:
+            input.dialogue === null
+              ? Prisma.DbNull
+              : (input.dialogue as Prisma.InputJsonValue | undefined),
           narratorEntityId: input.narratorEntityId,
           scriptUpdatedAt: new Date(),
         },
@@ -977,6 +981,10 @@ export class PrismaEpisodeRepository implements EpisodeRepository {
             input.scriptDocument === null
               ? Prisma.DbNull
               : (input.scriptDocument as Prisma.InputJsonValue | undefined),
+          dialogue:
+            input.dialogue === null
+              ? Prisma.DbNull
+              : (input.dialogue as Prisma.InputJsonValue | undefined),
           narratorEntityId: input.narratorEntityId,
           scriptUpdatedAt: new Date(),
         },

@@ -1,8 +1,10 @@
 import { useEffect, useRef, useState, type ReactElement, type RefObject } from "react";
-import { ArrowDown, Info, LoaderCircle, Sparkles } from "lucide-react";
+import { ArrowDown, Info, Sparkles } from "lucide-react";
 import { hashBlockText, REWRITE_DEFAULT_VARIANTS, REWRITE_INSTRUCTION_MAX, REWRITE_MAX_BLOCKS, REWRITE_MAX_VARIANTS, type RewriteResponse } from "@repo/shared";
 import { Button } from "@/shared/components/ui/button";
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/shared/components/ui/dialog";
+import { AiRunStatus } from "../ai/AiRunStatus";
+import { useAiRunLog } from "../ai/aiRunLog";
+import { AI_RUN_TEXT } from "../ai/aiRunMessages";
 import { Input } from "@/shared/components/ui/input";
 import { Textarea } from "@/shared/components/ui/textarea";
 import { cn } from "@/lib/utils";
@@ -25,7 +27,7 @@ const PERCENT = 100;
 type Variant = RewriteResponse["variants"][number];
 
 interface Props {
-  range: SelectionRange | null;
+  range: SelectionRange;
   onClose: () => void;
   editorRef: RefObject<RichScriptEditorHandle | null>;
   episodeId: string | null;
@@ -44,7 +46,7 @@ function Diff({ before, after }: { before: string; after: string }): ReactElemen
   );
 }
 
-function Body({ range, onClose, editorRef, episodeId, ensureEpisode }: Props & { range: SelectionRange }): ReactElement {
+export function RewritePanel({ range, onClose, editorRef, episodeId, ensureEpisode }: Props): ReactElement {
   const [step, setStep] = useState<0 | 1>(0);
   const [instruction, setInstruction] = useState("");
   const [count, setCount] = useState(REWRITE_DEFAULT_VARIANTS);
@@ -53,6 +55,7 @@ function Body({ range, onClose, editorRef, episodeId, ensureEpisode }: Props & {
   const [picked, setPicked] = useState<string | null>(null);
   const [error, setError] = useState("");
   const controller = useRef<AbortController | null>(null);
+  const runLog = useAiRunLog();
 
   useEffect(() => () => controller.current?.abort(), []);
 
@@ -71,6 +74,7 @@ function Body({ range, onClose, editorRef, episodeId, ensureEpisode }: Props & {
     setStep(1);
     setLoading(true);
     setError("");
+    runLog.begin(AI_RUN_TEXT.rewriteStart(range.blocks.length));
     setVariants([]);
     setPicked(null);
     try {
@@ -87,9 +91,12 @@ function Body({ range, onClose, editorRef, episodeId, ensureEpisode }: Props & {
         current.signal,
       );
       setVariants(response.variants);
+      runLog.push("done", AI_RUN_TEXT.rewriteDone(response.variants.length));
     } catch (caught) {
       if (isAbort(caught)) return;
-      setError(describeComposeError(caught, "Không viết lại được."));
+      const message = describeComposeError(caught, "Không viết lại được.");
+      setError(message);
+      runLog.push("error", message);
     } finally {
       if (controller.current === current) setLoading(false);
     }
@@ -106,13 +113,13 @@ function Body({ range, onClose, editorRef, episodeId, ensureEpisode }: Props & {
 
   return (
     <>
-      <DialogHeader className="flex-row items-start justify-between border-b border-mod-border px-5 py-4 pr-14">
+      <header className="flex items-start justify-between border-b border-mod-border px-5 py-3">
         <div>
-          <DialogDescription className="text-xs text-mod-text-secondary">Viết lại đoạn đang chọn</DialogDescription>
-          <DialogTitle>{STEP_TITLES[step]}</DialogTitle>
+          <p className="text-xs text-mod-text-secondary">Viết lại đoạn đang chọn</p>
+          <h3 className="font-bold text-mod-text">{STEP_TITLES[step]}</h3>
         </div>
         <div className="flex gap-1.5" aria-hidden="true">{STEP_TITLES.map((title, index) => <span key={title} className={cn("size-2 rounded-full", index === step ? "bg-mod-primary" : "bg-mod-border")} />)}</div>
-      </DialogHeader>
+      </header>
 
       {step === 0 ? (
         <>
@@ -149,7 +156,7 @@ function Body({ range, onClose, editorRef, episodeId, ensureEpisode }: Props & {
       ) : (
         <>
           <div className="space-y-3 px-5 py-4" aria-busy={loading}>
-            {loading ? <p role="status" className="flex items-center gap-2 rounded-lg bg-mod-primary/5 p-3 text-sm text-mod-primary"><LoaderCircle className="animate-spin" size={16} aria-hidden="true" /> AI đang chạy…</p> : null}
+            {loading ? <AiRunStatus title={AI_RUN_TEXT.rewriteTitle} log={runLog.entries} startedAt={runLog.startedAt} onCancel={() => { cancelPending(); setLoading(false); setStep(0); }} /> : null}
             {error ? <p role="alert" className="text-sm text-mod-danger">{error}</p> : null}
             <div role="radiogroup" aria-label="Các bản viết lại" className="max-h-[420px] space-y-2 overflow-y-auto pr-1">
               {variants.map((variant, index) => {
@@ -159,7 +166,7 @@ function Body({ range, onClose, editorRef, episodeId, ensureEpisode }: Props & {
                 return (
                   <label key={variant.id} className={cn("block cursor-pointer space-y-2 rounded-lg border p-3", picked === variant.id ? "border-mod-primary bg-mod-primary/5" : "border-mod-border")}>
                     <span className="flex items-center gap-2 text-sm font-bold text-mod-text">
-                      <input type="radio" name="variant" checked={picked === variant.id} onChange={() => setPicked(variant.id)} />
+                      <input type="radio" name="variant" className="accent-mod-primary" checked={picked === variant.id} onChange={() => setPicked(variant.id)} />
                       Bản {index + 1}
                       <span className="rounded-full bg-mod-canvas-accent px-2 py-0.5 text-xs font-semibold text-mod-text-secondary">{delta === 0 ? "Cùng độ dài" : `${delta < 0 ? "Ngắn hơn" : "Dài hơn"} ${Math.abs(delta)}%`}</span>
                     </span>
@@ -183,13 +190,3 @@ function Body({ range, onClose, editorRef, episodeId, ensureEpisode }: Props & {
   );
 }
 
-export function RewriteDialog(props: Props): ReactElement {
-  const { range, onClose } = props;
-  return (
-    <Dialog open={range !== null} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="max-w-2xl gap-0 border-mod-border bg-mod-surface p-0 font-moderator text-mod-text sm:p-0">
-        {range ? <Body {...props} range={range} /> : null}
-      </DialogContent>
-    </Dialog>
-  );
-}

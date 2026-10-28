@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { AttachAudioAnalysisSchema, EditorDocumentSchema } from "./editor-document";
+import { DialogueSchema } from "./dialogue";
 
 export const NarrationTypeSchema = z.enum(["THIRD_PERSON", "FIRST_PERSON"]);
 export const CreateEpisodeSchema = z.object({
@@ -15,6 +16,7 @@ export const PatchEpisodeSchema = z.object({
 export const PutNarrationSchema = z.object({
   scriptContent: z.string().nullish(),
   scriptDocument: EditorDocumentSchema.nullish(),
+  dialogue: DialogueSchema.nullish(),
   narratorEntityId: z.string().uuid().nullish(),
   baseUpdatedAt: z.coerce.date().optional(),
 });

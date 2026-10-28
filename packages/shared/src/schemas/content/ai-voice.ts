@@ -5,7 +5,12 @@ export const AI_VOICES = ["en-us-riko", "Kore", "Charon", "Puck", "Aoede"] as co
 export const AiVoiceSchema = z.enum(AI_VOICES);
 export type AiVoice = z.infer<typeof AiVoiceSchema>;
 
-export const CreateVoiceJobSchema = z.object({ voice: AiVoiceSchema });
+/** A two-speaker Gemini request only accepts prebuilt voices, not the Extended Library "en-us-riko". */
+export const DIALOGUE_VOICES = AI_VOICES.filter((voice) => voice !== "en-us-riko");
+export const DialogueVoiceSchema = z.enum(["Kore", "Charon", "Puck", "Aoede"]);
+
+/** Single-narrator episodes send `voice`; dialogue episodes omit it (voices come from `dialogue.speakers`). The server enforces which form applies. */
+export const CreateVoiceJobSchema = z.object({ voice: AiVoiceSchema.optional() });
 export type CreateVoiceJobInput = z.infer<typeof CreateVoiceJobSchema>;
 
 export const VOICE_JOB_STATUSES = ["RUNNING", "DONE", "ERROR", "CANCELLED"] as const;
@@ -17,7 +22,9 @@ export const ScriptHashSchema = z.string().regex(/^[a-f0-9]{64}$/);
 export const VoiceJobSchema = z.object({
   id: z.string().uuid(),
   status: z.enum(VOICE_JOB_STATUSES),
-  voice: AiVoiceSchema,
+  mode: z.enum(["SINGLE", "DIALOGUE"]),
+  /** Null for DIALOGUE jobs. */
+  voice: AiVoiceSchema.nullable(),
   total: z.number().int(),
   done: z.number().int(),
   chars: z.number().int(),

@@ -49,6 +49,7 @@ export const SeriesQuerySchema = PaginationQuerySchema.extend({
   status: z.union([ContentStatusSchema, z.literal("TRASH")]).optional(),
   q: z.string().trim().optional(),
   ownerId: z.string().optional(),
+  owned: z.literal("true").optional(),
 });
 export const EpisodeOrderSchema = z.object({
   episodeIds: z.array(z.string().uuid()),

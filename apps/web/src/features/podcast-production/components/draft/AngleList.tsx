@@ -35,7 +35,7 @@ export function AngleList({ angles, loading, error, value, onChange }: Props): R
         {loading && !angles.length ? <p className="p-3 text-sm text-mod-text-secondary">Đang tải góc kể…</p> : null}
         {visible.map((angle) => (
           <label key={angle.id} className={cn("flex cursor-pointer items-start gap-3 rounded-md border p-2.5 text-sm", value === angle.id ? "border-mod-primary bg-mod-primary/5" : "border-transparent hover:bg-mod-canvas-accent")}>
-            <input type="radio" name="angle" className="mt-1" checked={value === angle.id} onChange={() => onChange(angle.id)} />
+            <input type="radio" name="angle" className="mt-1 accent-mod-primary" checked={value === angle.id} onChange={() => onChange(angle.id)} />
             <span className="min-w-0 flex-1">
               <b className="block text-mod-text">{angle.name}{!angle.builtin ? <span className="ml-2 rounded-full bg-mod-primary/10 px-2 py-0.5 text-[11px] font-bold text-mod-primary">Của bạn</span> : null}</b>
               <span className="text-xs text-mod-text-secondary">{angle.description || "Không có mô tả"}</span>

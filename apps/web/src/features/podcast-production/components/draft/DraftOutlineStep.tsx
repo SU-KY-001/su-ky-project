@@ -1,8 +1,11 @@
 import { useEffect, useRef, useState, type KeyboardEvent, type ReactElement } from "react";
-import { ChevronRight, LoaderCircle, Plus, Trash2, X } from "lucide-react";
+import { ChevronRight, Plus, Trash2, X } from "lucide-react";
 import { OUTLINE_POINTS_MAX, OUTLINE_TITLE_MAX, type OutlineSection } from "@repo/shared";
 import { cn } from "@/lib/utils";
 import { addPoint, addSection, canAddSection, patchSection, removePoint, removeSection, setPoint } from "../../compose/outlineState";
+import { AiRunStatus } from "../../ai/AiRunStatus";
+import type { AiLogEntry } from "../../ai/aiRunLog";
+import { AI_RUN_TEXT } from "../../ai/aiRunMessages";
 
 interface Props {
   sections: OutlineSection[] | null;
@@ -10,12 +13,14 @@ interface Props {
   error: string;
   totalWords: number;
   onChange: (sections: OutlineSection[]) => void;
+  /** What the shared run view shows while the outline is requested. */
+  run: { log: AiLogEntry[]; startedAt: number; onCancel: () => void };
 }
 
 /** Borderless inputs: the only chrome is a white wash on hover and a soft ring on focus, so the three levels read by weight, not by boxes. */
 const FIELD = "w-full rounded-md border-0 bg-transparent px-1.5 py-1 outline-none hover:bg-mod-surface focus:bg-mod-surface focus:ring-2 focus:ring-mod-primary/25";
 
-export function DraftOutlineStep({ sections, loading, error, totalWords, onChange }: Props): ReactElement {
+export function DraftOutlineStep({ sections, loading, error, totalWords, onChange, run }: Props): ReactElement {
   const [openId, setOpenId] = useState<string | null>(null);
   const pendingFocus = useRef<string | null>(null);
 
@@ -27,10 +32,8 @@ export function DraftOutlineStep({ sections, loading, error, totalWords, onChang
 
   if (loading || !sections) {
     return (
-      <div className="space-y-3 px-5 py-8 text-center" role="status" aria-busy="true">
-        {error ? <p role="alert" className="text-sm text-mod-danger">{error}</p> : (
-          <p className="flex items-center justify-center gap-2 text-sm text-mod-text-secondary"><LoaderCircle className="animate-spin" size={16} aria-hidden="true" /> AI đang tạo dàn ý…</p>
-        )}
+      <div className="px-5 py-4">
+        {error ? <p role="alert" className="text-sm text-mod-danger">{error}</p> : <AiRunStatus title={AI_RUN_TEXT.outlineTitle} log={run.log} startedAt={run.startedAt} onCancel={run.onCancel} />}
       </div>
     );
   }

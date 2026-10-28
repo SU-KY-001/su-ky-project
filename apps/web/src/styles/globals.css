@@ -1137,6 +1137,18 @@ img {
   .auth-dialog-logo { width: 96px; }
 }
 
+/* Shared "AI is thinking" dots (components/AiRunStatus). Transform/opacity only. */
+@keyframes ai-think {
+  0%, 80%, 100% { opacity: 0.25; transform: translateY(0); }
+  40% { opacity: 1; transform: translateY(-3px); }
+}
+.ai-think-dot { animation: ai-think 1.2s infinite ease-in-out; }
+.ai-think-dot:nth-child(2) { animation-delay: 0.15s; }
+.ai-think-dot:nth-child(3) { animation-delay: 0.3s; }
+@media (prefers-reduced-motion: reduce) {
+  .ai-think-dot { animation: none; opacity: 0.7; }
+}
+
 /* The library surface and reader use masks, 3D page motion and native progress parts. */
 .library-surface {
   --library-surface-light: color-mix(in srgb, var(--color-paper-soft) 45%, var(--color-white, white));

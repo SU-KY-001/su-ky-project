@@ -25,6 +25,7 @@ export * from "./schemas/content/studio";
 export * from "./schemas/content/ai-check";
 export * from "./schemas/content/ai-compose";
 export * from "./schemas/content/ai-voice";
+export * from "./schemas/content/dialogue";
 export * from "./schemas/content/readiness";
 export * from "./schemas/content/review-content";
 export * from "./schemas/content/publication-review";

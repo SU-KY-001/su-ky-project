@@ -8,7 +8,7 @@ import type { RichScriptEditorHandle } from "./RichScriptEditor";
 
 function DockHarness({ editorRef }: { editorRef: RefObject<RichScriptEditorHandle | null> }) {
   const [dock, setDock] = useState<DockState>("panel");
-  return <AiAssistantPanel editorRef={editorRef} episodeId={EPISODE_ID} ensureEpisode={async () => EPISODE_ID} sources={[]} hasScript dock={dock} onDockChange={setDock} runRequest={0} />;
+  return <AiAssistantPanel editorRef={editorRef} episodeId={EPISODE_ID} ensureEpisode={async () => EPISODE_ID} sources={[]} hasScript dock={dock} onDockChange={setDock} />;
 }
 
 let root: Root | undefined;

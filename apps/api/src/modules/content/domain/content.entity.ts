@@ -77,6 +77,7 @@ export interface EpisodeNarrationEntity {
   narratorEntityId: string | null;
   scriptContent: string | null;
   scriptDocument: unknown | null;
+  dialogue: unknown | null;
   audioAnalysis: unknown | null;
   audioAssetId: string | null;
   scriptUpdatedAt: Date | null;
