@@ -55,17 +55,18 @@ describe("dialogue speech hash", () => {
 });
 
 describe("Gemini dialogue request", () => {
-  test("one content item per turn with speaker and style; blank style omitted; two speakers in conversational mode", () => {
+  test("one part per turn with speaker and style; blank style omitted; two prebuilt voices in multiSpeakerVoiceConfig", () => {
     const d = dialogue();
     const body = JSON.parse(buildDialogueBody(d.turns, d.speakers));
-    const items = body.input[0].content;
-    expect(items).toHaveLength(2);
-    expect(items[0]).toEqual({ type: "text", text: "Chào |ừ| bạn.", annotations: [{ type: "speech_metadata", speaker: "A", style: "vui vẻ" }] });
-    expect(items[1].annotations).toEqual([{ type: "speech_metadata", speaker: "B" }]);
-    expect(body.generation_config.speech_config).toEqual({
-      mode: "conversational",
-      speakers: [{ speaker: "A", voice: "Kore" }, { speaker: "B", voice: "Charon" }],
-    });
+    const parts = body.contents[0].parts;
+    expect(parts).toHaveLength(2);
+    expect(parts[0]).toEqual({ text: "Chào |ừ| bạn.", speech_metadata: { speaker: "A", style: "vui vẻ" } });
+    expect(parts[1].speech_metadata).toEqual({ speaker: "B" });
+    expect(body.generationConfig.responseModalities).toEqual(["AUDIO"]);
+    expect(body.generationConfig.speechConfig.multiSpeakerVoiceConfig.speakerVoiceConfigs).toEqual([
+      { speaker: "A", voiceConfig: { prebuiltVoiceConfig: { voiceName: "Kore" } } },
+      { speaker: "B", voiceConfig: { prebuiltVoiceConfig: { voiceName: "Charon" } } },
+    ]);
   });
 });
 
