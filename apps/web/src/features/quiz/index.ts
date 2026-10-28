@@ -1,1 +1,1 @@
-export { QuizAuthoring } from "./QuizAuthoring";
+export { QuizAuthoring } from "./screens/QuizAuthoring";

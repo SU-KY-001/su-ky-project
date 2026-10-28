@@ -13,7 +13,10 @@ import { DashboardPagination } from "@/shared/components/dashboard/DashboardPagi
 import { TableCell, TableRow } from "@/shared/components/ui/table";
 import { ModeratorSelect } from "@/features/moderator/components/ModeratorSelect";
 import { ModeratorListToolbar } from "@/features/moderator/components/ModeratorListToolbar";
-import { useQuizList, useQuizSeries, useQuizSeriesDetail, useQuizWorkspace } from "./useQuiz";
+import { useQuizList } from "../hooks/useQuizList";
+import { useQuizSeries } from "../hooks/useQuizSeries";
+import { useQuizSeriesDetail } from "../hooks/useQuizSeriesDetail";
+import { useQuizWorkspace } from "../hooks/useQuizWorkspace";
 import { QuizEditor } from "./QuizEditor";
 
 function ErrorState({ message, retry }: { message: string; retry: () => void }): ReactElement {

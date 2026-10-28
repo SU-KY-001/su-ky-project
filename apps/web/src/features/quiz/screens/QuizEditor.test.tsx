@@ -5,8 +5,8 @@ import { createMemoryRouter, RouterProvider } from "react-router";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import type { QuizDraftData, QuizWorkspace } from "@repo/shared";
 import { QuizEditor } from "./QuizEditor";
-import { QuizPreview } from "./QuizPreview";
-import { quizService } from "./quizService";
+import { QuizPreview } from "../components/QuizPreview";
+import { quizService } from "../services/quizService";
 
 let root: Root | undefined;
 let client: QueryClient | undefined;

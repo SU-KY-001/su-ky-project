@@ -1,6 +1,5 @@
 import { useEffect, useState, type ReactElement } from "react";
 import { useBlocker } from "react-router";
-import { useQuery } from "@tanstack/react-query";
 import type { QuizDraftData, QuizDraftQuestion, QuizWorkspace } from "@repo/shared";
 import { validateReadyQuiz } from "@repo/shared";
 import { ArrowLeft } from "@phosphor-icons/react/dist/icons/ArrowLeft";
@@ -27,11 +26,12 @@ import { useConfirmationDialog } from "@/shared/hooks/useConfirmationDialog";
 import { notify } from "@/shared/lib/notifications";
 import { ModeratorSelect } from "@/features/moderator/components/ModeratorSelect";
 import { cn } from "@/lib/utils";
-import { newQuestion, cloneQuestion, moveQuestion, isComplete } from "./quizState";
-import { useQuizMutations, useQuizWorkspace } from "./useQuiz";
-import { QuizPreview } from "./QuizPreview";
-import { QuizScriptReference } from "./QuizScriptReference";
-import { quizService } from "./quizService";
+import { newQuestion, cloneQuestion, moveQuestion, isComplete } from "../utils/quizState";
+import { useQuizMutations } from "../hooks/useQuizMutations";
+import { useQuizWorkspace } from "../hooks/useQuizWorkspace";
+import { useQuizPoster } from "../hooks/useQuizPoster";
+import { QuizPreview } from "../components/QuizPreview";
+import { QuizScriptReference } from "../components/QuizScriptReference";
 
 const errorMessage = (error: unknown): string => error instanceof Error ? error.message : "Không thực hiện được. Vui lòng thử lại.";
 const discardRequest = { title: "Rời màn soạn quiz?", description: "Các thay đổi chưa lưu sẽ mất. Bạn có thể quay lại để lưu bản nháp trước.", confirmLabel: "Rời màn hình", destructive: true };
@@ -44,8 +44,7 @@ export function QuizEditor({ initial, onBack }: { initial: QuizWorkspace; onBack
   const [preview, setPreview] = useState(false);
   const [settings, setSettings] = useState(false);
   const [imageUploading, setImageUploading] = useState(false);
-  const imagePolicy = useQuery({ queryKey: ["media", "image-upload-policy"], queryFn: quizService.imagePolicy, enabled: settings });
-  const poster = useQuery({ queryKey: ["quiz", "poster", data.posterAssetId], queryFn: () => quizService.image(data.posterAssetId!), enabled: Boolean(data.posterAssetId) && settings });
+  const { imagePolicy, poster, uploadImage } = useQuizPoster(data.posterAssetId, settings);
   const { requestConfirmation, confirmation } = useConfirmationDialog();
   const { save, activate } = useQuizMutations();
   const latest = useQuizWorkspace(initial.episodeId);
@@ -203,7 +202,7 @@ export function QuizEditor({ initial, onBack }: { initial: QuizWorkspace; onBack
         <p className="text-xs leading-5 text-mod-text-secondary">Bài làm đạt từ {data.passScorePercent}% số điểm trở lên được tính là đạt.</p>
       </div>
       {imagePolicy.isError && <div role="alert" className="text-xs text-mod-danger">Chưa lấy được điều kiện tải ảnh. <Button type="button" size="sm" variant="link" onClick={() => { void imagePolicy.refetch(); }}>Thử lại</Button></div>}
-      <ImageUploadDropzone label="Ảnh đại diện quiz" value={data.posterAssetId ? { assetId: data.posterAssetId, url: poster.data?.previewUrl ?? null, fileName: "Ảnh quiz", sizeBytes: null } : null} policy={imagePolicy.data} disabled={busy || imagePolicy.isPending} onUpload={quizService.uploadImage} onBusyChange={setImageUploading} onChange={image => setData(current => ({ ...current, posterAssetId: image?.assetId ?? null }))} />
+      <ImageUploadDropzone label="Ảnh đại diện quiz" value={data.posterAssetId ? { assetId: data.posterAssetId, url: poster.data?.previewUrl ?? null, fileName: "Ảnh quiz", sizeBytes: null } : null} policy={imagePolicy.data} disabled={busy || imagePolicy.isPending} onUpload={uploadImage} onBusyChange={setImageUploading} onChange={image => setData(current => ({ ...current, posterAssetId: image?.assetId ?? null }))} />
       <p className="text-xs leading-5 text-mod-text-secondary">Nếu không chọn ảnh riêng, quiz dùng poster của tập podcast.</p>
       <div className="border-t border-mod-border pt-4"><p className="mb-4 text-xs leading-5 text-mod-text-secondary">Cài đặt áp dụng cho bản đang soạn. Bấm “Lưu nháp” ở trình soạn để lưu lại các thay đổi.</p><DialogFooter><Button onClick={() => setSettings(false)}>Quay lại soạn câu hỏi</Button></DialogFooter></div>
     </DialogContent></Dialog>
