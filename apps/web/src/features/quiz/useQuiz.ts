@@ -7,6 +7,14 @@ export function useQuizList() {
 export function useQuizWorkspace(episodeId: string) {
   return useQuery({ queryKey: ["quiz", "workspace", episodeId], queryFn: () => quizService.read(episodeId), enabled: Boolean(episodeId), refetchInterval: 30_000 });
 }
+export function useQuizScript(episodeId: string, scriptHash: string | undefined, enabled: boolean) {
+  return useQuery({
+    queryKey: ["quiz", "script", episodeId, scriptHash],
+    queryFn: () => quizService.script(episodeId),
+    enabled: Boolean(scriptHash) && enabled,
+    staleTime: 30_000,
+  });
+}
 export function useQuizSeries() {
   return useInfiniteQuery({ queryKey: ["quiz", "series"], queryFn: ({ pageParam }) => quizService.series(pageParam), initialPageParam: 1,
     getNextPageParam: p => p.page * p.limit < p.total ? p.page + 1 : undefined });
