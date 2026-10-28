@@ -4,7 +4,6 @@ import { AppLoadingFallback } from "./AppLoadingFallback";
 import { APP_PATHS } from "@/shared/constants/routes";
 import { MODERATOR_SECTION_SEGMENTS } from "@/features/moderator/paths";
 import { AppFrame } from "@/shared/layouts/AppFrame";
-import { LoginPage } from "@/pages/auth/LoginPage";
 import { apiUrl } from "@/lib/client";
 import { PublicRoute } from "@/shared/components/common/PublicRoute";
 import { LandingLoadingPage } from "@/pages/landing/LandingLoadingPage";
@@ -28,43 +27,19 @@ export const appRoutes: RouteObject[] = [
     ErrorBoundary: RouteErrorFallback,
     children: [
       {
+        id: "quiz-player-auth",
+        element: <ProtectedRoute allowedRoles={["user", "moderator", "admin"]} />,
+        children: [{ id: "quiz-player", path: "quiz/:slug", lazy: async () => {
+          const { QuizPlayerPage } = await import("../pages/quiz/QuizPlayerPage");
+          return { Component: QuizPlayerPage };
+        } }],
+      },
+      {
         id: "public-series-episodes",
         path: "series/:slug",
         lazy: async () => {
           const { SeriesEpisodesPage } = await import("../pages/series/SeriesEpisodesPage");
           return { Component: SeriesEpisodesPage };
-        },
-      },
-      {
-        id: "history-river-wireframe",
-        path: "wireframes/history-river",
-        lazy: async () => {
-          const { HistoryRiverWireframePage } = await import("../pages/wireframes/HistoryRiverWireframePage");
-          return { Component: HistoryRiverWireframePage };
-        },
-      },
-      {
-        id: "history-library-wireframe",
-        path: "wireframes/history-library",
-        lazy: async () => {
-          const { HistoryLibraryWireframePage } = await import("../pages/wireframes/HistoryLibraryWireframePage");
-          return { Component: HistoryLibraryWireframePage };
-        },
-      },
-      {
-        id: "history-design-wireframe",
-        path: "wireframes/history",
-        lazy: async () => {
-          const { HistoryDesignWireframePage } = await import("../pages/wireframes/HistoryDesignWireframePage");
-          return { Component: HistoryDesignWireframePage };
-        },
-      },
-      {
-        id: "podcast-showcase-wireframe",
-        path: "wireframes/podcast-showcase",
-        lazy: async () => {
-          const { PodcastShowcaseWireframePage } = await import("../pages/wireframes/PodcastShowcaseWireframePage");
-          return { Component: PodcastShowcaseWireframePage };
         },
       },
       {id:"historical-event",path:"history/events/:slug",lazy:async()=>{const {HistoricalEventPage}=await import("../pages/history/HistoricalEventPage");return {Component:HistoricalEventPage};}},
@@ -83,7 +58,14 @@ export const appRoutes: RouteObject[] = [
               {
                 id: "guest-routes",
                 element: <GuestRoute />,
-                children: [{ id: "login", path: APP_PATHS.login.slice(1), Component: LoginPage }],
+                children: [{
+                  id: "login",
+                  path: APP_PATHS.login.slice(1),
+                  lazy: async () => {
+                    const { LoginPage } = await import("@/pages/auth/LoginPage");
+                    return { Component: LoginPage };
+                  },
+                }],
               },
             ],
           },

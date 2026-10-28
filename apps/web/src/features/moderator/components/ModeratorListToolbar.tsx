@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
-import { Funnel, MagnifyingGlass } from "@phosphor-icons/react";
+import { Funnel } from "@phosphor-icons/react/dist/icons/Funnel";
+import { MagnifyingGlass } from "@phosphor-icons/react/dist/icons/MagnifyingGlass";
 import { Input } from "@/shared/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/shared/components/ui/select";
 import { moderatorSelectContentClass, moderatorSelectItemClass } from "./ModeratorSelect";

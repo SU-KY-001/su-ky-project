@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { useState, type FormEvent } from "react";
-import { FilePdf, UploadSimple } from "@phosphor-icons/react";
+import { FilePdf } from "@phosphor-icons/react/dist/icons/FilePdf";
+import { UploadSimple } from "@phosphor-icons/react/dist/icons/UploadSimple";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import {
   CreateSourceSchema,

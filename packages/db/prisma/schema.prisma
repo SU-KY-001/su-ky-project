@@ -422,6 +422,7 @@ model Episode {
   attachments        EpisodeAttachment[]
   entityTags         EpisodeEntityTag[]
   quiz               Quiz?
+  quizDraft          QuizWorkspaceDraft?
   listeningProgress  ListeningProgress[]
   releaseSchedules   ReleaseSchedule[]
   reviews            EpisodeReview[]
@@ -597,6 +598,8 @@ model MediaAsset {
   listeningProgress ListeningProgress[]
   sourceRevisions   SourceRevision[]    @relation("SourceRevisionFile")
   episodeAttachment EpisodeAttachment?  @relation("EpisodeAttachmentMedia")
+  quizPosters       Quiz[]              @relation("QuizPoster")
+  quizDraftPosters  QuizWorkspaceDraft[] @relation("QuizDraftPoster")
 
   @@index([status, createdAt], map: "media_assets_status_created_at_idx")
   @@index([status, detachedAt], map: "media_assets_status_detached_at_idx")
@@ -656,10 +659,27 @@ model EpisodeEntityTag {
   @@map("episode_entity_tags")
 }
 
+model QuizWorkspaceDraft {
+  episodeId String @id @map("episode_id") @db.Uuid
+  data Json @db.JsonB
+  revision Int @default(1)
+  activatedRevision Int @default(0) @map("activated_revision")
+  posterAssetId String? @map("poster_asset_id") @db.Uuid
+  posterAsset MediaAsset? @relation("QuizDraftPoster", fields: [posterAssetId], references: [id], onDelete: Restrict)
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+  episode Episode @relation(fields: [episodeId], references: [id], onDelete: Cascade)
+
+  @@map("quiz_workspace_drafts")
+}
+
 model Quiz {
   id               String         @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   episodeId        String         @unique @map("episode_id") @db.Uuid
   passScorePercent Int            @default(80) @map("pass_score_percent") @db.SmallInt
+  title            String?        @db.VarChar(200)
+  description      String?        @db.Text
+  posterAssetId    String?        @map("poster_asset_id") @db.Uuid
+  posterAsset      MediaAsset?    @relation("QuizPoster", fields: [posterAssetId], references: [id], onDelete: Restrict)
   createdAt        DateTime       @default(now()) @map("created_at") @db.Timestamptz(3)
   updatedAt        DateTime       @updatedAt @map("updated_at") @db.Timestamptz(3)
   episode          Episode        @relation(fields: [episodeId], references: [id], onDelete: Cascade)
@@ -674,6 +694,7 @@ model QuizQuestion {
   quizId       String       @map("quiz_id") @db.Uuid
   questionText String       @map("question_text") @db.Text
   explanation  String?      @db.Text
+  timeLimit    Int?         @map("time_limit") @db.SmallInt
   sortOrder    Int          @map("sort_order") @db.SmallInt
   createdAt    DateTime     @default(now()) @map("created_at") @db.Timestamptz(3)
   updatedAt    DateTime     @updatedAt @map("updated_at") @db.Timestamptz(3)

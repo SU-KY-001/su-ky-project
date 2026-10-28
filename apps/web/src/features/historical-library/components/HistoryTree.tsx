@@ -1,4 +1,6 @@
-import { Article, CaretRight, MapTrifold } from "@phosphor-icons/react";
+import { Article } from "@phosphor-icons/react/dist/icons/Article";
+import { CaretRight } from "@phosphor-icons/react/dist/icons/CaretRight";
+import { MapTrifold } from "@phosphor-icons/react/dist/icons/MapTrifold";
 import { cn } from "@/lib/utils";
 import type { HistoricalPeriod, HistorySelection } from "../types";
 

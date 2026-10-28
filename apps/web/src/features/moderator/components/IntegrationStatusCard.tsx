@@ -1,4 +1,6 @@
-import { CheckCircle, CloudSlash, WarningCircle } from "@phosphor-icons/react";
+import { CheckCircle } from "@phosphor-icons/react/dist/icons/CheckCircle";
+import { CloudSlash } from "@phosphor-icons/react/dist/icons/CloudSlash";
+import { WarningCircle } from "@phosphor-icons/react/dist/icons/WarningCircle";
 import { Badge } from "@/shared/components/ui/badge";
 import { Card } from "@/shared/components/ui/card";
 import { moderatorStatusTokens } from "../theme";

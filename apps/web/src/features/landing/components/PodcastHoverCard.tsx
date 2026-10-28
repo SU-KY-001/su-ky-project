@@ -1,4 +1,6 @@
-import { Heart, Info, Play } from "@phosphor-icons/react";
+import { Heart } from "@phosphor-icons/react/dist/icons/Heart";
+import { Info } from "@phosphor-icons/react/dist/icons/Info";
+import { Play } from "@phosphor-icons/react/dist/icons/Play";
 import { motion } from "motion/react";
 import { Link } from "react-router";
 import { cn } from "@/lib/utils";

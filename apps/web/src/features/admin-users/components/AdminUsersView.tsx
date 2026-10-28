@@ -1,4 +1,9 @@
-import { MagnifyingGlass, PencilSimple, Plus, Trash, Lock, LockOpen } from "@phosphor-icons/react";
+import { MagnifyingGlass } from "@phosphor-icons/react/dist/icons/MagnifyingGlass";
+import { PencilSimple } from "@phosphor-icons/react/dist/icons/PencilSimple";
+import { Plus } from "@phosphor-icons/react/dist/icons/Plus";
+import { Trash } from "@phosphor-icons/react/dist/icons/Trash";
+import { Lock } from "@phosphor-icons/react/dist/icons/Lock";
+import { LockOpen } from "@phosphor-icons/react/dist/icons/LockOpen";
 import { DashboardRowActions } from "@/shared/components/dashboard/DashboardRowActions";
 import type { AdminUserRecord } from "../services/adminUserService";
 import { DashboardHeader } from "@/shared/components/dashboard/DashboardOverview";

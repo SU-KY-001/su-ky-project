@@ -13,6 +13,10 @@ export function AppFrame() {
   const queryClient = useQueryClient();
 
   useLayoutEffect(() => {
+    if (!location.hash) window.scrollTo({ top: 0, left: 0, behavior: "instant" });
+  }, [location.pathname]);
+
+  useLayoutEffect(() => {
     if (location.pathname !== APP_PATHS.home || queryClient.getQueryData(currentUserQueryKey) !== null) return;
     const logout = queryClient.getMutationCache().findAll({ mutationKey: ["auth", "logout"] })
       .some((mutation) => mutation.state.status === "pending" || mutation.state.status === "success");

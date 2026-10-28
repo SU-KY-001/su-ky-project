@@ -1,8 +1,8 @@
 import { useCallback, type ReactNode } from "react";
-import { ArrowLeft } from "@phosphor-icons/react";
+import { ArrowLeft } from "@phosphor-icons/react/dist/icons/ArrowLeft";
 import { Label } from "@/shared/components/ui/label";
 
-export const formField = "mod-field min-h-11 w-full rounded-lg border border-mod-text-low/50 bg-transparent px-3 py-2 text-sm font-medium text-mod-text shadow-xs outline-none transition-[border-color,box-shadow,background-color] placeholder:text-mod-text-secondary/80 hover:border-mod-text-secondary data-[placeholder]:text-mod-text-secondary/80 disabled:cursor-not-allowed disabled:border-mod-border disabled:bg-mod-canvas-accent disabled:text-mod-text-low disabled:shadow-none disabled:hover:border-mod-border read-only:cursor-not-allowed read-only:border-mod-border read-only:bg-mod-canvas-accent read-only:text-mod-text-low read-only:shadow-none read-only:hover:border-mod-border";
+export const formField = "mod-field min-h-11 w-full rounded-lg border border-mod-text-low/50 bg-transparent px-3 py-2 text-sm font-medium text-mod-text shadow-xs outline-none transition-[border-color,box-shadow,background-color] placeholder:text-mod-text-secondary/80 hover:border-mod-text-secondary data-[placeholder]:text-mod-text-secondary/80 disabled:cursor-not-allowed disabled:border-mod-border disabled:bg-mod-canvas-accent disabled:text-mod-text-low disabled:shadow-none disabled:hover:border-mod-border [&[readonly]]:cursor-not-allowed [&[readonly]]:border-mod-border [&[readonly]]:bg-mod-canvas-accent [&[readonly]]:text-mod-text-low [&[readonly]]:shadow-none [&[readonly]]:hover:border-mod-border";
 
 export function CreationPage({ title, onBack, children, description = "Điền thông tin để lưu bản nháp trong phiên làm việc hiện tại." }: { title: string; onBack: () => void; children: ReactNode; description?: string }) {
   const focusTitle = useCallback((node: HTMLHeadingElement | null) => { node?.focus(); }, []);

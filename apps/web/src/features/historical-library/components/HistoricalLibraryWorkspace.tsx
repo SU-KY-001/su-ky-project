@@ -1,5 +1,6 @@
 import { Fragment, useState, type ReactNode } from "react";
-import { Eye, Plus } from "@phosphor-icons/react";
+import { Eye } from "@phosphor-icons/react/dist/icons/Eye";
+import { Plus } from "@phosphor-icons/react/dist/icons/Plus";
 import { DashboardRowActions } from "@/shared/components/dashboard/DashboardRowActions";
 import type {
   HistoricalPeriodDetailDto,

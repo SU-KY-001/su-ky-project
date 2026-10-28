@@ -1,4 +1,15 @@
-import { CaretLeft, CaretRight, ChatCircleDots, FilmSlate, Folder, Heart, Lightning, ThumbsDown, ThumbsUp, TrendDown, TrendUp, Trophy } from "@phosphor-icons/react";
+import { CaretLeft } from "@phosphor-icons/react/dist/icons/CaretLeft";
+import { CaretRight } from "@phosphor-icons/react/dist/icons/CaretRight";
+import { ChatCircleDots } from "@phosphor-icons/react/dist/icons/ChatCircleDots";
+import { FilmSlate } from "@phosphor-icons/react/dist/icons/FilmSlate";
+import { Folder } from "@phosphor-icons/react/dist/icons/Folder";
+import { Heart } from "@phosphor-icons/react/dist/icons/Heart";
+import { Lightning } from "@phosphor-icons/react/dist/icons/Lightning";
+import { ThumbsDown } from "@phosphor-icons/react/dist/icons/ThumbsDown";
+import { ThumbsUp } from "@phosphor-icons/react/dist/icons/ThumbsUp";
+import { TrendDown } from "@phosphor-icons/react/dist/icons/TrendDown";
+import { TrendUp } from "@phosphor-icons/react/dist/icons/TrendUp";
+import { Trophy } from "@phosphor-icons/react/dist/icons/Trophy";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Link } from "react-router";
 import { cn } from "@/lib/utils";

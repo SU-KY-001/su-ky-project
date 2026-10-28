@@ -1,6 +1,6 @@
 import { useDeferredValue, useState } from "react";
 import type { ReleaseScheduleRecord, ReleaseScheduleStatus } from "@repo/shared";
-import { MagnifyingGlass } from "@phosphor-icons/react";
+import { MagnifyingGlass } from "@phosphor-icons/react/dist/icons/MagnifyingGlass";
 import { CardBadge, cardBadgeToneForStatus } from "@/shared/components/dashboard/CardBadge";
 import { DashboardHeader } from "@/shared/components/dashboard/DashboardOverview";
 import { DashboardPagination } from "@/shared/components/dashboard/DashboardPagination";

@@ -66,6 +66,10 @@ it("uses direct detail buttons and keeps pending-only actions inside the dialog"
   expect(host.textContent).toContain("Ký ức đường mòn");
   expect(host.textContent).toContain("Lịch công tác đột xuất");
   expect(host.textContent).toContain("Chưa có nhân sự thay thế phù hợp");
+  expect([...host.querySelectorAll('thead th')].map(cell => cell.textContent)).toContain("Thời hạn");
+  expect(host.querySelector('tbody')?.textContent).toContain("Chờ duyệt");
+  expect(host.querySelector('tbody')?.textContent).not.toContain("Chờ Admin duyệt");
+  expect(host.querySelector('tbody')?.textContent).not.toContain("Phát hành:");
   expect(host.querySelectorAll('[data-slot="dashboard-row-actions"]')).toHaveLength(2);
   expect(
     [...host.querySelectorAll("button")].some(

@@ -1,7 +1,9 @@
 import { useEffect, useId, useRef, useState, type ReactElement } from "react";
 import { createPortal } from "react-dom";
 import type { LibraryChapter } from "@repo/shared";
-import { Clock, Image as ImageIcon, Play } from "@phosphor-icons/react";
+import { Clock } from "@phosphor-icons/react/dist/icons/Clock";
+import { Image as ImageIcon } from "@phosphor-icons/react/dist/icons/Image";
+import { Play } from "@phosphor-icons/react/dist/icons/Play";
 import { Button } from "@/shared/components/ui/button";
 import { PodcastEpisodeHoverPreview } from "../PodcastHoverCard";
 
@@ -47,15 +49,15 @@ export function PodcastEpisodeCard({ episode, selected, onPlay, onView, hoverPre
   const narration = episode.narrations.find(item => item.available && item.type === "THIRD_PERSON") ?? episode.narrations.find(item => item.available);
   const seconds = narration?.durationMs ? Math.ceil(narration.durationMs / 1000) : null;
   const duration = seconds === null ? "Chưa có thời lượng" : `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, "0")}`;
-  return <article ref={card} className="podcast-poster-card" data-selected={selected} data-preview-open={Boolean(anchor)} onPointerEnter={event => { if (event.pointerType !== "touch") open(); }} onPointerLeave={event => leave(event.relatedTarget)}
+  return <article ref={card} className="group min-w-0" data-selected={selected} data-preview-open={Boolean(anchor)} onPointerEnter={event => { if (event.pointerType !== "touch") open(); }} onPointerLeave={event => leave(event.relatedTarget)}
     onFocus={event => { if (hoverPreview && !event.currentTarget.contains(event.relatedTarget) && cover.current?.matches(":focus-visible")) open(true); }}
     onBlur={event => { if (!isInside(event.relatedTarget)) close(); }}>
-    <div className="podcast-poster-media"><Button ref={cover} variant="ghost" className="podcast-poster-button" aria-label={`${onView ? "Xem thông tin" : "Chọn nghe"} ${episode.title}`} aria-controls={anchor ? previewId : undefined} onKeyDown={event => { if (event.key === "Escape") close(); }} onClick={() => { close(); if (onView) onView(episode); else onPlay(episode); }}>
-      {poster && failedSrc !== poster ? <img src={poster} alt={`Poster ${episode.title}`} loading="lazy" decoding="async" onError={() => setFailedSrc(poster)} /> : <span className="podcast-poster-fallback"><ImageIcon size={42} weight="light" aria-hidden="true" /><span>Chưa có poster</span></span>}
-      <span className="podcast-duration-badge" aria-label={`Thời lượng: ${duration}`}><Clock aria-hidden="true" />{duration}</span>
+    <div className="relative"><Button ref={cover} variant="ghost" data-podcast-poster className="relative flex aspect-video h-auto w-full overflow-hidden rounded-2xl bg-paper-deep p-0 text-ink after:pointer-events-none after:absolute after:inset-x-0 after:bottom-0 after:top-[40%] after:bg-gradient-to-t after:from-night/65 after:to-transparent hover:bg-paper-deep group-data-[selected=true]:outline-2 group-data-[selected=true]:outline-offset-2 group-data-[selected=true]:outline-vermilion" aria-label={`${onView ? "Xem thông tin" : "Chọn nghe"} ${episode.title}`} aria-controls={anchor ? previewId : undefined} onKeyDown={event => { if (event.key === "Escape") close(); }} onClick={() => { close(); if (onView) onView(episode); else onPlay(episode); }}>
+      {poster && failedSrc !== poster ? <img className="size-full object-cover transition-transform duration-300 hover:scale-[1.035] motion-reduce:transition-none" src={poster} alt={`Poster ${episode.title}`} loading="lazy" decoding="async" onError={() => setFailedSrc(poster)} /> : <span className="flex size-full flex-col items-center justify-center gap-2.5 bg-paper-deep text-[11px] text-bronze-dark"><ImageIcon size={42} weight="light" aria-hidden="true" /><span>Chưa có poster</span></span>}
+      <span className="absolute bottom-3 left-3 z-10 flex items-center gap-1.5 rounded-md bg-paper-soft px-2.5 py-1.5 text-xs tabular-nums text-ink" aria-label={`Thời lượng: ${duration}`}><Clock aria-hidden="true" />{duration}</span>
     </Button>
-    <Button variant="ghost" size="icon" className="podcast-poster-play" aria-label={`Nghe podcast ${episode.title}`} onClick={() => { close(); onPlay(episode); }}><Play weight="fill" aria-hidden="true" /></Button></div>
-    <div className="podcast-poster-copy"><h4>{episode.title}</h4><p className="podcast-poster-description">{episode.description?.trim() || "Mô tả đang được bổ sung."}</p>{!narration && <p className="mt-3 text-xs text-ink-soft">Bản thu đang chuẩn bị</p>}</div>
+    <Button variant="ghost" size="icon" className="absolute bottom-3 right-3 z-10 grid size-[38px] place-items-center rounded-full bg-paper-soft text-vermilion" aria-label={`Nghe podcast ${episode.title}`} onClick={() => { close(); onPlay(episode); }}><Play weight="fill" aria-hidden="true" /></Button></div>
+    <div className="px-[3px] pt-4"><h4 className="text-base font-semibold leading-[1.65] [overflow-wrap:anywhere]">{episode.title}</h4><p className="mt-[7px] line-clamp-2 min-h-11 text-xs leading-[22px] text-ink-soft">{episode.description?.trim() || "Mô tả đang được bổ sung."}</p>{!narration && <p className="mt-3 text-xs text-ink-soft">Bản thu đang chuẩn bị</p>}</div>
     {anchor && createPortal(<PodcastEpisodeHoverPreview previewId={previewId} title={episode.title} description={episode.description?.trim() || "Mô tả đang được bổ sung."} image={poster && failedSrc !== poster ? poster : undefined} duration={duration} anchor={anchor} onPointerEnter={keepOpen} onPointerLeave={leave} onPlay={() => { close(); onPlay(episode); }} onView={onView ? () => { close(); onView(episode); } : undefined} onClose={() => { cover.current?.focus(); close(); }} />, document.body)}
   </article>;
 }

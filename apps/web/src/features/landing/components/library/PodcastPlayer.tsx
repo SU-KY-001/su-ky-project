@@ -1,7 +1,14 @@
 import { useEffect, useId, useRef, useState, type ReactElement } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import type { LibraryChapter } from "@repo/shared";
-import { Headphones, Play, Pause, Shuffle, SkipBack, SkipForward, Repeat, SpeakerHigh } from "@phosphor-icons/react";
+import { Headphones } from "@phosphor-icons/react/dist/icons/Headphones";
+import { Play } from "@phosphor-icons/react/dist/icons/Play";
+import { Pause } from "@phosphor-icons/react/dist/icons/Pause";
+import { Shuffle } from "@phosphor-icons/react/dist/icons/Shuffle";
+import { SkipBack } from "@phosphor-icons/react/dist/icons/SkipBack";
+import { SkipForward } from "@phosphor-icons/react/dist/icons/SkipForward";
+import { Repeat } from "@phosphor-icons/react/dist/icons/Repeat";
+import { SpeakerHigh } from "@phosphor-icons/react/dist/icons/SpeakerHigh";
 import { Button } from "@/shared/components/ui/button";
 import { useCurrentUser } from "@/shared/hooks/useCurrentUser";
 import { notify } from "@/shared/lib/notifications";
@@ -14,6 +21,8 @@ import { Slider } from "@/shared/components/ui/slider";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/shared/components/ui/select";
 import { Label } from "@/shared/components/ui/label";
 import { mergePlayedRanges } from "./listeningBitmap";
+
+const compactSlider = "h-[18px] min-w-0 [&_[data-slot=slider-track]]:h-[3px] [&_[data-slot=slider-track]]:bg-ink/20 [&_[data-slot=slider-range]]:bg-ink-soft [&_[data-slot=slider-thumb]]:size-[9px] [&_[data-slot=slider-thumb]]:border-0 [&_[data-slot=slider-thumb]]:bg-ink-soft [&_[data-slot=slider-thumb]]:shadow-none hover:[&_[data-slot=slider-range]]:bg-vermilion hover:[&_[data-slot=slider-thumb]]:bg-vermilion focus-within:[&_[data-slot=slider-range]]:bg-vermilion focus-within:[&_[data-slot=slider-thumb]]:bg-vermilion";
 
 interface AudioPlaybackProps {
   narrationId: string;
@@ -107,7 +116,7 @@ export function AudioPlayback({ narrationId, userId, playlist = false, controlsH
 
   if (playback.isPending) return playlist ? <p role="status" className="py-3 text-xs text-ink-soft">Đang mở bản thu…</p> : <LibraryState loading />;
   if (playback.isError) return playlist ? <div role="alert" className="flex flex-wrap items-center gap-3 text-xs"><p>Chưa mở được bản thu. Vui lòng thử lại.</p><Button size="sm" variant="outline" onClick={() => { void playback.refetch(); }}>Thử lại</Button></div> : <LibraryState error title="Chưa mở được bản thu" description="Kiểm tra kết nối hoặc đăng nhập lại để tiếp tục nghe." retry={() => { void playback.refetch(); }} />;
-  return <div className={playlist ? "playlist-audio-engine" : "space-y-4"}>
+  return <div className={playlist ? "contents" : "space-y-4"}>
     <audio ref={audio} controls={!playlist} preload="metadata" className={playlist ? "hidden" : "w-full"} src={playback.data.audio.url} onPlay={event => { progress.current.previous = event.currentTarget.currentTime; setPlaying(true); onPlayingChange?.(true); }} onPause={() => { setPlaying(false); onPlayingChange?.(false); }} onEnded={async event => { const element = event.currentTarget; setPlaying(false); onPlayingChange?.(false); await flushProgress.current(); if (repeat === "one") { element.currentTime = 0; progress.current.previous = -1; void element.play().catch(() => {}); } else onFinished?.(); }} onLoadedMetadata={(event) => { event.currentTarget.currentTime = (playback.data.progress?.positionMs ?? 0) / 1000; setPosition(event.currentTarget.currentTime); event.currentTarget.playbackRate = Number(speed); if (playlist) void event.currentTarget.play().catch(() => { setPlaying(false); onPlayingChange?.(false); }); }} onSeeking={() => { progress.current.previous = -1; }} onSeeked={(event) => { progress.current.previous = event.currentTarget.currentTime; progress.current.positionMs = Math.min(Math.round(event.currentTarget.currentTime * 1000), playback.data.audio.durationMs); progress.current.dirty = true; }} onError={() => setAudioError(true)} onTimeUpdate={(event) => {
       const element = event.currentTarget;
       const state = progress.current;
@@ -126,18 +135,18 @@ export function AudioPlayback({ narrationId, userId, playlist = false, controlsH
         queryClient.setQueriesData<Awaited<ReturnType<typeof libraryService.history>>>({ queryKey: ["listening-history", userId] }, old => old ? { ...old, items: old.items.map(item => item.lastNarrationId === narrationId ? { ...item, percent: Math.max(item.percent, percent), lastPositionMs: state.positionMs } : item) } : old);
       }
     }} />
-    {controlsHidden ? null : playlist ? <div className="playlist-transport">
-      <div className="playlist-transport-buttons">
-        <Button variant="ghost" size="icon-sm" className="playlist-mode-button" aria-label="Phát ngẫu nhiên" aria-pressed={shuffle} onClick={onShuffle}><Shuffle /></Button>
+    {controlsHidden ? null : playlist ? <div className="contents">
+      <div className="col-span-2 row-start-2 flex items-center justify-center gap-3.5 min-[761px]:col-span-1 min-[761px]:col-start-2 min-[761px]:row-start-1 [&>button]:size-7 [&>button]:text-ink-soft">
+        <Button variant="ghost" size="icon-sm" className="aria-pressed:text-mod-success" aria-label="Phát ngẫu nhiên" aria-pressed={shuffle} onClick={onShuffle}><Shuffle /></Button>
         <Button variant="ghost" size="icon-sm" aria-label="Tập trước" disabled={!onPrevious} onClick={onPrevious}><SkipBack weight="fill" /></Button>
-        <Button className="playlist-toolbar-play" size="icon" aria-label={playing ? "Tạm dừng" : "Phát podcast"} onClick={toggle}>{playing ? <Pause weight="fill" /> : <Play weight="fill" />}</Button>
+        <Button className="!size-9 rounded-full border border-line bg-paper-soft text-ink shadow-sm hover:bg-paper" size="icon" aria-label={playing ? "Tạm dừng" : "Phát podcast"} onClick={toggle}>{playing ? <Pause weight="fill" /> : <Play weight="fill" />}</Button>
         <Button variant="ghost" size="icon-sm" aria-label="Tập tiếp theo" disabled={!onNext} onClick={onNext}><SkipForward weight="fill" /></Button>
-        <Button variant="ghost" size="icon-sm" className="playlist-mode-button relative" aria-label={repeat === "one" ? "Lặp một tập" : repeat === "all" ? "Lặp playlist" : "Bật lặp lại"} aria-pressed={repeat !== "off"} onClick={onRepeat}><Repeat />{repeat === "one" && <span className="absolute right-0 top-0 text-[9px]">1</span>}</Button>
+        <Button variant="ghost" size="icon-sm" className="relative aria-pressed:text-mod-success" aria-label={repeat === "one" ? "Lặp một tập" : repeat === "all" ? "Lặp playlist" : "Bật lặp lại"} aria-pressed={repeat !== "off"} onClick={onRepeat}><Repeat />{repeat === "one" && <span className="absolute right-0 top-0 text-[9px]">1</span>}</Button>
       </div>
-      <div className="playlist-seek"><span>{audioTime(position)}</span><Slider className="playlist-compact-slider" aria-label="Vị trí phát podcast" min={0} max={playback.data.audio.durationMs / 1000} step={.1} value={[position]} onValueChange={([value]) => { setPosition(value); if (audio.current) { progress.current.previous = -1; audio.current.currentTime = value; } }} /><span>{audioTime(playback.data.audio.durationMs / 1000)}</span></div>
-      <div className="playlist-audio-options">
-        <div className="playlist-speed-control"><Label htmlFor={speedControlId}>Tốc độ nghe</Label><Select value={speed} onValueChange={value => { setSpeed(value); if (audio.current) audio.current.playbackRate = Number(value); }}><SelectTrigger id={speedControlId} className="playlist-speed-select" aria-describedby={`${speedControlId}-hint`}><SelectValue>{speed}×</SelectValue></SelectTrigger><SelectContent className="border-line bg-paper-soft font-sans text-ink">{["0.75", "1", "1.25", "1.5", "2"].map(value => <SelectItem key={value} value={value}>{value}×</SelectItem>)}</SelectContent></Select><span id={`${speedControlId}-hint`} className="sr-only">1× là tốc độ gốc. Chọn giá trị nhỏ hơn để nghe chậm hoặc lớn hơn để nghe nhanh.</span></div>
-        <div className="playlist-volume"><SpeakerHigh aria-hidden="true" /><Slider className="playlist-compact-slider" aria-label="Âm lượng" min={0} max={1} step={.05} value={[volume]} onValueChange={([value]) => { setVolume(value); if (audio.current) audio.current.volume = value; }} /></div>
+      <div className="col-span-2 row-start-3 flex w-[min(100%,460px)] min-w-0 items-center gap-2.5 justify-self-center text-[10px] tabular-nums text-ink-soft min-[761px]:col-span-1 min-[761px]:col-start-2 min-[761px]:row-start-2 min-[761px]:w-full [&>span]:min-w-7 [&>span:last-child]:text-right"><span>{audioTime(position)}</span><Slider className={compactSlider} aria-label="Vị trí phát podcast" min={0} max={playback.data.audio.durationMs / 1000} step={.1} value={[position]} onValueChange={([value]) => { setPosition(value); if (audio.current) { progress.current.previous = -1; audio.current.currentTime = value; } }} /><span>{audioTime(playback.data.audio.durationMs / 1000)}</span></div>
+      <div className="col-start-2 row-start-1 flex min-w-0 items-center justify-end gap-2.5 min-[761px]:col-start-3 min-[761px]:row-span-2 min-[1051px]:gap-[18px]">
+        <div className="flex min-w-0 items-center gap-2"><Label className="whitespace-nowrap text-[11px] text-ink-soft" htmlFor={speedControlId}>Tốc độ nghe</Label><Select value={speed} onValueChange={value => { setSpeed(value); if (audio.current) audio.current.playbackRate = Number(value); }}><SelectTrigger id={speedControlId} className="h-[30px] w-[58px] rounded-lg border-bronze/55 bg-paper-deep px-[9px] text-[11px] font-semibold text-ink shadow-sm min-[421px]:w-[78px]" aria-describedby={`${speedControlId}-hint`}><SelectValue>{speed}×</SelectValue></SelectTrigger><SelectContent className="border-line bg-paper-soft font-sans text-ink">{["0.75", "1", "1.25", "1.5", "2"].map(value => <SelectItem key={value} value={value}>{value}×</SelectItem>)}</SelectContent></Select><span id={`${speedControlId}-hint`} className="sr-only">1× là tốc độ gốc. Chọn giá trị nhỏ hơn để nghe chậm hoặc lớn hơn để nghe nhanh.</span></div>
+        <div className="flex w-[65px] items-center gap-[5px] min-[421px]:w-[85px] min-[421px]:gap-2 min-[1051px]:w-28 [&>svg]:size-4 [&>svg]:shrink-0 [&>svg]:text-ink-soft"><SpeakerHigh aria-hidden="true" /><Slider className={`${compactSlider} w-11 min-[421px]:w-[60px] min-[1051px]:w-[86px]`} aria-label="Âm lượng" min={0} max={1} step={.05} value={[volume]} onValueChange={([value]) => { setVolume(value); if (audio.current) audio.current.volume = value; }} /></div>
       </div>    </div> : <LibrarySelect id={`speed-${narrationId}`} label="Tốc độ nghe" value={speed} onChange={(value) => { if (!value) return; setSpeed(value); if (audio.current) audio.current.playbackRate = Number(value); }} options={["0.75", "1", "1.25", "1.5", "2"].map((value) => ({ id: value, name: `${value}×` }))} allLabel="Chọn tốc độ" />}
     {audioError && <p role="alert" className="text-sm text-destructive">Không tải được tệp âm thanh. Vui lòng thử mở bản thu lại.</p>}
   </div>;

@@ -1,5 +1,6 @@
 import { lazy, Suspense } from "react";
-import { ArrowClockwise, WifiSlash } from "@phosphor-icons/react";
+import { ArrowClockwise } from "@phosphor-icons/react/dist/icons/ArrowClockwise";
+import { WifiSlash } from "@phosphor-icons/react/dist/icons/WifiSlash";
 import { isRouteErrorResponse, Navigate, useLocation, useRouteError } from "react-router";
 import { APP_PATHS } from "../../constants/routes";
 import { Button } from "../ui/button";

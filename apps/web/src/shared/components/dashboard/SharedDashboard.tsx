@@ -1,12 +1,10 @@
 import { useState } from "react";
 import type { ComponentPropsWithoutRef, ElementType } from "react";
-import {
-  Article,
-  CalendarBlank,
-  ChartBar,
-  List,
-  ListChecks,
-} from "@phosphor-icons/react";
+import { Article } from "@phosphor-icons/react/dist/icons/Article";
+import { CalendarBlank } from "@phosphor-icons/react/dist/icons/CalendarBlank";
+import { ChartBar } from "@phosphor-icons/react/dist/icons/ChartBar";
+import { List } from "@phosphor-icons/react/dist/icons/List";
+import { ListChecks } from "@phosphor-icons/react/dist/icons/ListChecks";
 import brandLogo from "@/public/brand-su-ky-viet-nam.png";
 import { cn } from "@/lib/utils";
 import { Button } from "@/shared/components/ui/button";

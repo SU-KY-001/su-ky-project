@@ -1,5 +1,5 @@
 import { useState, type ReactElement } from "react";
-import { Image as ImageIcon } from "@phosphor-icons/react";
+import { Image as ImageIcon } from "@phosphor-icons/react/dist/icons/Image";
 
 export function ImageThumbnail({ src, alt }: { src?: string | null; alt: string }): ReactElement {
   const [failedSrc, setFailedSrc] = useState<string | null>(null);

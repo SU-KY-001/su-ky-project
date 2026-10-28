@@ -23,7 +23,6 @@ export function ModeratorShell({ nav, children }: ModeratorShellProps) {
       brandCaption="KHÔNG GIAN BIÊN TẬP"
       nav={nav}
       profile={<AccountProfile variant="moderator" />}
-      externalHomeLabel="Mở trang Sử Ký"
     >
       {children}
     </WorkspaceShell>

@@ -51,8 +51,10 @@ export function CardBadge({
       data-card-badge-type={type}
       data-tone={tone}
       className={cn(
-        "min-h-6 min-w-0 max-w-full shrink whitespace-normal break-words rounded-md px-2 py-1 text-left text-xs font-semibold leading-4 [overflow-wrap:anywhere] [&>svg]:shrink-0",
-        type === "name" && "normal-case",
+        "min-h-6 rounded-md px-2 py-1 text-left text-xs font-semibold leading-4 [&>svg]:shrink-0",
+        type === "status"
+          ? "w-max min-w-max max-w-none shrink-0 whitespace-nowrap break-normal [overflow-wrap:normal]"
+          : "min-w-0 max-w-full shrink whitespace-normal break-words normal-case [overflow-wrap:anywhere]",
         toneClasses[tone],
         className,
       )}
