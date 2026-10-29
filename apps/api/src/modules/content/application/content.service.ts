@@ -71,11 +71,9 @@ export class ContentService {
       series.ownerId !== session.user.id &&
       await this.series.isActiveReleaseCollaboratorForSeries?.(id, session.user.id),
     );
-    if (
-      !series ||
-      (session.user.role !== "admin" && series.ownerId !== session.user.id && !isCollaborator)
-    ) {
-      throw new DomainError(404, "NOT_FOUND", "Series not found");
+    if (!series) throw new DomainError(404, "NOT_FOUND", "Series not found");
+    if (session.user.role !== "admin" && series.ownerId !== session.user.id && !isCollaborator) {
+      throw new DomainError(403, "FORBIDDEN", "Bạn không có quyền truy cập series này");
     }
     return series;
   }
@@ -88,13 +86,9 @@ export class ContentService {
       episode.series.ownerId !== session.user.id &&
       await this.series.isActiveReleaseCollaboratorForEpisode?.(id, session.user.id),
     );
-    if (
-      !episode ||
-      (session.user.role !== "admin" &&
-        episode.series.ownerId !== session.user.id &&
-        !isCollaborator)
-    ) {
-      throw new DomainError(404, "NOT_FOUND", "Episode not found");
+    if (!episode) throw new DomainError(404, "NOT_FOUND", "Episode not found");
+    if (session.user.role !== "admin" && episode.series.ownerId !== session.user.id && !isCollaborator) {
+      throw new DomainError(403, "FORBIDDEN", "Bạn không có quyền truy cập tập này");
     }
     return episode;
   }
@@ -309,12 +303,17 @@ export class ContentService {
     return this.getSeriesDetail(created.id);
   }
 
+  /** `visibleEpisodeIds` is null when the viewer may see every episode (owner, admin). */
   async getSeriesDetailForRead(
     session: Session,
     id: string,
-  ): Promise<SeriesDetailEntity> {
-    await this.loadSeriesForRead(session, id);
-    return this.getSeriesDetail(id);
+  ): Promise<{ series: SeriesDetailEntity; visibleEpisodeIds: ReadonlySet<string> | null }> {
+    const series = await this.loadSeriesForRead(session, id);
+    const detail = await this.getSeriesDetail(id);
+    if (session.user.role === "admin" || series.ownerId === session.user.id) return { series: detail, visibleEpisodeIds: null };
+    // A collaborator sees the series through their assigned episodes, not the owner's other drafts.
+    const ids = await this.series.listActiveCollaboratorEpisodeIds(id, session.user.id);
+    return { series: detail, visibleEpisodeIds: new Set(ids) };
   }
 
   async updateSeries(

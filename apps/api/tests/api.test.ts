@@ -40,7 +40,7 @@ describe("Su-Ky API", () => {
     expect(response.headers.get("Access-Control-Allow-Headers")).toContain("Idempotency-Key");
   });
 
-  it("returns the minimal validation error contract", async () => {
+  it("returns the validation error contract with the failing field", async () => {
     const validationApp = new Hono<AppEnv>()
       .use("*", requestId())
       .onError(errorHandler)
@@ -56,6 +56,7 @@ describe("Su-Ky API", () => {
     expect(error).toEqual({
       error_code: "VALIDATION_ERROR",
       message: "Request validation failed",
+      details: [{ path: "limit", code: expect.any(String) }],
     });
   });
 

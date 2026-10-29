@@ -183,7 +183,7 @@ export const releasePaths: Paths = {
       body: { name: "ApproveReleaseReassignmentTicket", schema: ApproveReleaseReassignmentTicketSchema },
       ok: { status: 200, description: "Ticket đã duyệt", schema: ticket },
       rate: "write",
-      errors: { 404: "`NOT_FOUND`: ticket không tồn tại", 409: "`CONFLICT` hoặc `INVALID_STATE_TRANSITION`" },
+      errors: { 404: "`NOT_FOUND`: ticket không tồn tại", 409: "`INVALID_STATE_TRANSITION`: ticket không còn chờ duyệt", 422: "`VALIDATION_ERROR`: người thay thế trùng Moderator hiện tại hoặc không còn hoạt động" },
     }),
   },
   [`${ADMIN}/reassignment-tickets/{id}/reject`]: {
@@ -266,7 +266,8 @@ export const releasePaths: Paths = {
       errors: {
         403: "`FORBIDDEN`: chỉ Admin được điều phối lịch",
         404: "`NOT_FOUND`: lịch không tồn tại",
-        409: "`CONTENT_NOT_READY` hoặc `INVALID_STATE_TRANSITION`",
+        409: "`INVALID_STATE_TRANSITION`",
+        422: "`CONTENT_NOT_READY`: podcast chưa được duyệt ở phiên bản hiện tại hoặc chưa đạt checklist xuất bản",
       },
     }),
   },
@@ -448,8 +449,8 @@ export const releasePaths: Paths = {
       rate: "write",
       errors: {
         403: "`FORBIDDEN`: không được phân công",
-        409: "`STALE_WRITE` hoặc `CONTENT_NOT_READY`",
-        422: "`CHECKLIST_INCOMPLETE`: tập thiếu tên tập, kịch bản hoặc âm thanh ngôi thứ ba",
+        409: "`STALE_WRITE`",
+        422: "`CHECKLIST_INCOMPLETE`: tập thiếu tên tập, kịch bản hoặc âm thanh ngôi thứ ba; `CONTENT_NOT_READY`: lịch chưa liên kết tập podcast",
       },
     }),
   },
@@ -465,7 +466,7 @@ export const releasePaths: Paths = {
       rate: "write",
       errors: {
         403: "`FORBIDDEN`: không được phân công",
-        409: "`CONTENT_NOT_READY`: podcast không thuộc Moderator hoặc không còn là bản nháp",
+        422: "`CONTENT_NOT_READY`: podcast không thuộc Moderator hoặc không còn là bản nháp",
       },
     }),
   },

@@ -26,9 +26,9 @@ export class HistoricalCatalogService {
     const node = await this.getNode(kind, id);
     if (!canEditHistoricalContent(actor, node.createdById, kind))
       throw new DomainError(
-        404,
-        "NOT_FOUND",
-        "Không tìm thấy nội dung thuộc quyền chỉnh sửa",
+        403,
+        "FORBIDDEN",
+        "Bạn không có quyền chỉnh sửa nội dung lịch sử này",
       );
     return node;
   }

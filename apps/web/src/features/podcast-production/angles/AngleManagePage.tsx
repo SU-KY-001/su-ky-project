@@ -26,7 +26,6 @@ import {
 } from "./angleState";
 import { useAngles } from "./useAngles";
 
-const NAME_TAKEN_STATUS = 409;
 const NEW_PARAM = "new";
 
 function AngleRow({ angle, selected, onOpen }: { angle: Angle; selected: boolean; onOpen: () => void }) {
@@ -87,7 +86,7 @@ export function AngleManagePage() {
       open(saved);
       notify.success({ title: ANGLE_MESSAGES.saved });
     } catch (e) {
-      if (isApiError(e, NAME_TAKEN_STATUS)) fail(ANGLE_MESSAGES.nameTaken, true);
+      if (isApiError(e) && e.is("ANGLE_NAME_TAKEN")) fail(ANGLE_MESSAGES.nameTaken, true);
       else fail(errorMessage(e));
     } finally {
       setBusy(false);

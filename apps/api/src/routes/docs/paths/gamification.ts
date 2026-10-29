@@ -56,13 +56,13 @@ export const gamificationPaths: Paths = {
     put: operation({ id: "saveQuizWorkspace", tag: QUIZ_TAG, summary: "Lưu câu hỏi và kịch bản quiz referenceText cùng bản nháp", access: "moderator", pathParams: EpisodeIdParam,
       body: { name: "SaveQuizDraft", schema: SaveQuizDraftSchema }, rate: "write",
       ok: { status: 200, description: "Bản nháp đã lưu với revision mới", schema: { name: "QuizWorkspace", schema: QuizWorkspaceSchema } },
-      errors: { 403: LOCKED, 404: "`NOT_FOUND`: tập không thuộc Moderator", 409: `${IN_TRASH}; \`CONFLICT\`: revision đã thay đổi`, 422: "`VALIDATION_ERROR`: ảnh quiz không hợp lệ" } }),
+      errors: { 403: LOCKED, 404: "`NOT_FOUND`: tập không thuộc Moderator", 409: `${IN_TRASH}; \`STALE_WRITE\`: revision đã thay đổi`, 422: "`VALIDATION_ERROR`: ảnh quiz không hợp lệ" } }),
   },
   "/api/studio/episodes/{episodeId}/quiz-workspace/activate": {
     post: operation({ id: "activateQuizWorkspace", tag: QUIZ_TAG, summary: "Đưa bản nháp đã rà soát vào sử dụng", access: "moderator", pathParams: EpisodeIdParam,
       body: { name: "ActivateQuizDraft", schema: ActivateQuizDraftSchema }, rate: "write",
       ok: { status: 200, description: "Quiz sẵn sàng cho tập công khai", schema: { name: "QuizWorkspace", schema: QuizWorkspaceSchema } },
-      errors: { 403: LOCKED, 404: "`NOT_FOUND`: tập không thuộc Moderator", 409: `${IN_TRASH}; \`CONFLICT\`: đã có lượt làm hoặc revision thay đổi`, 422: "`VALIDATION_ERROR`: câu hỏi chưa hoàn chỉnh" } }),
+      errors: { 403: LOCKED, 404: "`NOT_FOUND`: tập không thuộc Moderator", 409: `${IN_TRASH}; \`STALE_WRITE\`: revision thay đổi; \`CONFLICT\`: đã có lượt làm`, 422: "`VALIDATION_ERROR`: câu hỏi chưa hoàn chỉnh" } }),
   },
   "/api/studio/episodes/{episodeId}/quiz": {
     get: operation({

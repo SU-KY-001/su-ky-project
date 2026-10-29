@@ -519,7 +519,7 @@ describe("release service", () => {
       session("admin-1", "admin"),
       "schedule-1",
       "correlation-stale",
-    )).rejects.toMatchObject({ status: 409, code: "CONTENT_NOT_READY" });
+    )).rejects.toMatchObject({ status: 422, code: "CONTENT_NOT_READY" });
     expect(repository.statusTransitions).toHaveLength(0);
   });
 
@@ -532,7 +532,7 @@ describe("release service", () => {
       session("admin-1", "admin"),
       "schedule-1",
       "correlation-checklist",
-    )).rejects.toMatchObject({ status: 409, code: "CONTENT_NOT_READY" });
+    )).rejects.toMatchObject({ status: 422, code: "CONTENT_NOT_READY" });
     expect(repository.statusTransitions).toHaveLength(0);
   });
 
@@ -652,7 +652,7 @@ describe("release service", () => {
       ticket.id,
       "mod-author",
       "ticket-invalid-replacement",
-    )).rejects.toMatchObject({ status: 409, code: "CONFLICT" });
+    )).rejects.toMatchObject({ status: 422, code: "VALIDATION_ERROR" });
 
     const approved = await releaseService.approveReassignmentTicket(
       session("admin-1", "admin"),

@@ -13,20 +13,21 @@ export function isAbort(error: unknown): boolean {
 
 /** Maps a compose API failure (phase-06 "Lỗi hiển thị") to what the moderator should do next. */
 export function describeComposeError(error: unknown, fallback: string): string {
+  // Decide by code before status: the status of these two is an API detail that may change.
+  if (isApiError(error)) {
+    if (error.is("HASH_MISMATCH")) return "Đoạn đã đổi, chọn lại rồi viết lại.";
+    if (error.is("SCRIPT_TOO_LONG")) return "Độ dài vượt giới hạn kịch bản. Giảm thời lượng hoặc số từ.";
+  }
   if (isApiError(error, HTTP_RATE_LIMITED)) {
     return `Bạn dùng AI soạn thảo quá nhiều.${error.retryAfterSeconds ? ` Thử lại sau ${error.retryAfterSeconds} giây.` : " Thử lại sau ít phút."}`;
   }
   if (isApiError(error, HTTP_BAD_GATEWAY)) return "AI chưa viết được, thử đổi chỉ dẫn hoặc thử lại.";
   if (isApiError(error, HTTP_TIMEOUT)) return "AI phản hồi quá lâu, thử lại.";
   if (isApiError(error, HTTP_UNAVAILABLE)) {
-    return error.errorCode === "AI_DISABLED"
+    return error.is("AI_DISABLED")
       ? "Trợ lý AI đang tắt. Báo quản trị."
       : "Dịch vụ AI tạm không dùng được, báo quản trị.";
   }
-  if (isApiError(error, HTTP_UNPROCESSABLE)) {
-    if (error.errorCode === "HASH_MISMATCH") return "Đoạn đã đổi, chọn lại rồi viết lại.";
-    if (error.errorCode === "SCRIPT_TOO_LONG") return "Độ dài vượt giới hạn kịch bản. Giảm thời lượng hoặc số từ.";
-    return error.message;
-  }
+  if (isApiError(error, HTTP_UNPROCESSABLE)) return error.message;
   return error instanceof Error ? error.message : fallback;
 }

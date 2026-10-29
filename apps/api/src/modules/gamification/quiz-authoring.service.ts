@@ -58,7 +58,7 @@ export class QuizAuthoringService {
     await prisma.$transaction(async db => {
       await db.$queryRaw`SELECT id FROM episodes WHERE id = ${episodeId}::uuid FOR UPDATE`;
       const current = await db.quizWorkspaceDraft.findUnique({ where: { episodeId } });
-      if ((current?.revision ?? 0) !== revision) throw new DomainError(409, "CONFLICT", "Bản nháp đã được cập nhật ở nơi khác. Hãy tải lại trước khi lưu.");
+      if ((current?.revision ?? 0) !== revision) throw new DomainError(409, "STALE_WRITE", "Bản nháp đã được cập nhật ở nơi khác. Hãy tải lại trước khi lưu.");
       const json = QuizDraftDataSchema.parse(data);
       if (json.posterAssetId) {
         const poster = await db.mediaAsset.findFirst({ where: { id: json.posterAssetId, kind: "IMAGE", status: "READY", deletedAt: null, uploadedById: userId } });
@@ -75,7 +75,7 @@ export class QuizAuthoringService {
     await prisma.$transaction(async (db: Prisma.TransactionClient) => {
       await db.$queryRaw`SELECT id FROM episodes WHERE id = ${episodeId}::uuid FOR UPDATE`;
       const draft = await db.quizWorkspaceDraft.findUnique({ where: { episodeId } });
-      if (!draft || draft.revision !== revision) throw new DomainError(409, "CONFLICT", "Bản nháp đã thay đổi. Hãy tải lại.");
+      if (!draft || draft.revision !== revision) throw new DomainError(409, "STALE_WRITE", "Bản nháp đã thay đổi. Hãy tải lại.");
       const data = QuizDraftDataSchema.parse(draft.data);
       let input;
       try { input = validateReadyQuiz(data); }

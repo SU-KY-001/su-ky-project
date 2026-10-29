@@ -41,7 +41,22 @@ Mọi lỗi có cùng một dạng, kèm HTTP status đúng nghĩa (không bao g
 { "error_code": "STALE_WRITE", "message": "Content was updated by another request" }
 \`\`\`
 
-Client xử lý theo \`error_code\`, không dựa vào \`message\`. \`SLUG_CONFLICT\`, \`RATE_LIMITED\` và \`MEDIA_PROVIDER_UNAVAILABLE\` là lỗi **có thể thử lại**; còn lại không nên tự động thử lại.
+Lỗi \`VALIDATION_ERROR\` (400) kèm \`details: [{ path, code }]\` (tối đa 20 mục): \`path\` là trường sai, \`code\` là mã lỗi zod (\`too_small\`, \`invalid_type\`...), không phải câu hiển thị. Không bao giờ chứa giá trị client đã gửi.
+
+Client (web, mobile) xử lý theo \`error_code\`, không dựa vào \`message\` hay chỉ dựa vào status. Mỗi \`error_code\` chỉ có một status. Lỗi **có thể thử lại cùng \`Idempotency-Key\`**: \`SLUG_CONFLICT\`, \`WRITE_CONFLICT\`, \`RATE_LIMITED\`, \`MEDIA_PROVIDER_UNAVAILABLE\`, \`NO_READABLE_SOURCE\`, \`AI_UNAVAILABLE\`, \`AI_DISABLED\`, \`AI_CHECK_ALREADY_RUNNING\`, \`AI_CONCURRENCY_LIMIT\`, \`AI_TIMEOUT\`; mọi lỗi 5xx cũng vậy. Còn lại không nên tự động thử lại.
+
+| Status | Ý nghĩa |
+|---|---|
+| 400 | Sai cú pháp hoặc schema request |
+| 401 | Chưa đăng nhập hoặc phiên hết hạn |
+| 403 | Đã đăng nhập nhưng không có quyền với tài nguyên đó (tài nguyên có tồn tại) |
+| 404 | Tài nguyên không tồn tại |
+| 409 | Xung đột với trạng thái hiện tại: bản ghi đã đổi, trùng, sai bước chuyển trạng thái |
+| 422 | Request đúng cú pháp nhưng chưa đủ điều kiện nghiệp vụ |
+| 429 | Vượt hạn mức (kèm \`Retry-After\`) |
+| 502 / 503 / 504 | Dịch vụ phụ thuộc trả lỗi / chưa sẵn sàng / hết giờ |
+
+Lỗi lưu trong DB của lượt rà AI (\`ai_checks.error_code\`: \`INTERRUPTED\`, \`ALL_BLOCKS_FAILED\`...) là bộ mã riêng, không nằm trong \`error_code\` của response.
 
 ## Quy ước chung
 - **Phân trang**: query \`page\` (từ 1) và \`limit\` (tối đa 50); response \`{ items, page, limit, total }\`.

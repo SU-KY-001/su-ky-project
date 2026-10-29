@@ -64,6 +64,11 @@ export const ERROR_CODES = [
   "HASH_MISMATCH",
   "SCRIPT_TOO_LONG",
   "HTTP_ERROR",
+  "METHOD_NOT_ALLOWED",
+  "UNSUPPORTED_MEDIA_TYPE",
+  "WRITE_CONFLICT",
+  "REQUEST_ABORTED",
+  "EMAIL_TAKEN",
 ] as const;
 
 export type ErrorCode = (typeof ERROR_CODES)[number];
@@ -78,11 +83,23 @@ export const RETRYABLE_ERROR_CODES = [
   "AI_CHECK_ALREADY_RUNNING",
   "AI_CONCURRENCY_LIMIT",
   "AI_TIMEOUT",
+  "WRITE_CONFLICT",
 ] as const satisfies readonly ErrorCode[];
+
+/** Cap so a hostile payload cannot make the error body huge. */
+export const MAX_ERROR_DETAILS = 20;
+
+export const ErrorDetailSchema = z.object({
+  /** Dot-joined path inside the request part that failed, for example `blocks.0.text`. */
+  path: z.string(),
+  /** zod issue code (`too_small`, `invalid_enum_value`...), not a sentence: clients map it to their own text. */
+  code: z.string(),
+});
 
 export const ErrorResponseSchema = z.object({
   error_code: z.enum(ERROR_CODES),
   message: z.string(),
+  details: z.array(ErrorDetailSchema).max(MAX_ERROR_DETAILS).optional(),
 });
 
 export type ErrorResponse = z.infer<typeof ErrorResponseSchema>;

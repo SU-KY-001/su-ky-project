@@ -287,6 +287,21 @@ export class PrismaSeriesRepository implements SeriesRepository {
     return Boolean(assignment);
   }
 
+  async listActiveCollaboratorEpisodeIds(seriesId: string, moderatorId: string): Promise<string[]> {
+    const assignments = await prisma.productionAssignment.findMany({
+      where: {
+        moderatorId,
+        removedAt: null,
+        schedule: {
+          status: { in: ["SCHEDULED", "READY_TO_PUBLISH", "PUBLISHING", "BLOCKED", "FAILED"] },
+          episode: { seriesId },
+        },
+      },
+      select: { schedule: { select: { episodeId: true } } },
+    });
+    return assignments.flatMap((a) => (a.schedule.episodeId ? [a.schedule.episodeId] : []));
+  }
+
   async listSeries(filter: {
     ownerId: string | null;
     viewerId?: string | null;
