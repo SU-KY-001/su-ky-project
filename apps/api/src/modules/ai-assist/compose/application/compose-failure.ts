@@ -1,5 +1,5 @@
 import { DomainError } from "../../../../core/errors/domain-error";
-import { AgentAbortedError, AgentProviderError, AgentTimeoutError, AgentValidationError } from "../../../ai-engine";
+import { AgentAbortedError, AgentProviderError, AgentTimeoutError, AgentValidationError, AiUnavailableError } from "../../../ai-engine";
 import { ComposeBadOutputError } from "../errors";
 
 export interface MappedFailure {
@@ -25,7 +25,9 @@ export function mapComposeFailure(err: unknown, guardSignal: AbortSignal, caller
   if (err instanceof AgentTimeoutError || (guardSignal.aborted && !callerSignal.aborted)) {
     return { error: new DomainError(504, "AI_TIMEOUT", "AI phản hồi quá lâu, thử lại"), outcome: "timeout" };
   }
-  if (err instanceof AgentAbortedError) return { error: new DomainError(408, "HTTP_ERROR", "Yêu cầu đã bị hủy"), outcome: "aborted" };
+  if (err instanceof AiUnavailableError) return { error: new DomainError(503, "AI_UNAVAILABLE", "Trợ lý AI chưa sẵn sàng"), outcome: "unavailable" };
+  // 499 is not a status Hono's type allows; the client has gone, so the status is only for logs.
+  if (err instanceof AgentAbortedError) return { error: new DomainError(400, "REQUEST_ABORTED", "Yêu cầu đã bị hủy"), outcome: "aborted" };
   if (err instanceof AgentProviderError) {
     const outcome = `provider_${err.kind.toLowerCase()}`;
     switch (err.kind) {

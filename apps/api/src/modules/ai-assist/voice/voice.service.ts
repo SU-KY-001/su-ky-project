@@ -132,7 +132,7 @@ export class VoiceService {
 
   async readMp3(session: Session, episodeId: string, jobId: string): Promise<Buffer> {
     const job = this.owned(session, episodeId, jobId);
-    if (job.status !== "DONE" || !job.mp3Path) throw new DomainError(409, "CONFLICT", "Giọng đọc chưa tạo xong");
+    if (job.status !== "DONE" || !job.mp3Path) throw new DomainError(409, "INVALID_STATE_TRANSITION", "Giọng đọc chưa tạo xong");
     return readFile(job.mp3Path);
   }
 

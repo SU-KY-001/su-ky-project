@@ -289,7 +289,7 @@ export function HistoricalContentForm({
           ) : null}
           {edit &&
           patch.error instanceof ApiError &&
-          patch.error.errorCode === "STALE_WRITE" ? (
+          patch.error.is("STALE_WRITE") ? (
             <Button
               type="button"
               variant="outline"

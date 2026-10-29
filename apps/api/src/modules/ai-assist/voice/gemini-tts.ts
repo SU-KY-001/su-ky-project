@@ -84,7 +84,8 @@ async function requestWav(url: string, body: string, pickAudio: (json: unknown) 
       });
     } catch (error) {
       if (signal.aborted) throw error;
-      throw new DomainError(503, "AI_UNAVAILABLE", "Không gọi được dịch vụ giọng đọc (hết thời gian hoặc mất kết nối)");
+      if (requestSignal.aborted) throw new DomainError(504, "AI_TIMEOUT", "Dịch vụ giọng đọc phản hồi quá lâu");
+      throw new DomainError(503, "AI_UNAVAILABLE", "Không gọi được dịch vụ giọng đọc (mất kết nối)");
     }
   });
   if (!response.ok) {
@@ -96,6 +97,6 @@ async function requestWav(url: string, body: string, pickAudio: (json: unknown) 
     throw new DomainError(503, "AI_UNAVAILABLE", `Dịch vụ giọng đọc báo lỗi ${response.status}: ${errorBody.slice(0, ERROR_BODY_LOG_CHARS)}`);
   }
   const audio = pickAudio(await response.json());
-  if (!audio) throw new DomainError(503, "AI_UNAVAILABLE", "Dịch vụ giọng đọc không trả về âm thanh");
+  if (!audio) throw new DomainError(502, "AI_BAD_OUTPUT", "Dịch vụ giọng đọc không trả về âm thanh");
   return Buffer.from(audio, "base64");
 }

@@ -121,6 +121,8 @@ export interface SeriesRepository {
   findSeriesById(id: string): Promise<SeriesEntity | null>;
   isActiveReleaseCollaboratorForSeries?(seriesId: string, moderatorId: string): Promise<boolean>;
   isActiveReleaseCollaboratorForEpisode?(episodeId: string, moderatorId: string): Promise<boolean>;
+  /** Episodes of the series the moderator is actively assigned to release; the only ones a non-owner collaborator may open. */
+  listActiveCollaboratorEpisodeIds(seriesId: string, moderatorId: string): Promise<string[]>;
   getSeriesDetail(id: string): Promise<SeriesDetailEntity | null>;
   findSeriesUpdatedAt(id: string): Promise<Date | null>;
   /** True when another series already holds `slug` (excluding `excludeId`). */

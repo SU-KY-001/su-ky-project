@@ -161,7 +161,7 @@ export class ComposeService {
       throw new DomainError(422, "SCRIPT_TOO_LONG", "Đoạn chọn quá dài để viết lại");
     }
     if (input.blocks.some((b) => hashBlockText(b.text) !== b.hash)) {
-      throw new DomainError(422, "HASH_MISMATCH", "Nội dung đoạn không khớp mã băm");
+      throw new DomainError(409, "HASH_MISMATCH", "Nội dung đoạn không khớp mã băm");
     }
     if (input.count > this.deps.config.maxVariants) {
       throw new DomainError(422, "VALIDATION_ERROR", `Tối đa ${this.deps.config.maxVariants} bản mỗi lần`);

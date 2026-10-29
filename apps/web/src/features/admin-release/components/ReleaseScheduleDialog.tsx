@@ -90,7 +90,7 @@ export function ReleaseScheduleDialog({
       // Mutation state owns the displayed error; retaining this component keeps edits intact.
     }
   };
-  const stale = error instanceof ApiError && error.errorCode === "STALE_WRITE";
+  const stale = error instanceof ApiError && error.is("STALE_WRITE");
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>

@@ -5,9 +5,9 @@ export const AI_DOUBT_LABEL = "AI nghi ngờ, chưa xác minh";
 
 /** Maps an API error of "start a check" to what the moderator should do next. */
 export function describeStartError(error: unknown): string {
-  if (isApiError(error, 409)) return "Tập này đang có một lượt rà chạy. Chờ lượt đó xong hoặc hủy nó.";
+  if (isApiError(error) && error.is("AI_CHECK_ALREADY_RUNNING")) return "Tập này đang có một lượt rà chạy. Chờ lượt đó xong hoặc hủy nó.";
   if (isApiError(error, 422)) {
-    return error.errorCode === "NO_READABLE_SOURCE"
+    return error.is("NO_READABLE_SOURCE")
       ? "Series chưa có nguồn đọc được để AI đối chiếu."
       : "Kịch bản hoặc phạm vi chọn vượt giới hạn. Thu hẹp phạm vi rồi chạy lại.";
   }

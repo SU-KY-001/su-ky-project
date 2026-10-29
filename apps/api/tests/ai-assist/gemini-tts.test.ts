@@ -86,7 +86,7 @@ test("uses one deadline across all fallback attempts", async () => {
       deadline.abort(new DOMException("Deadline elapsed", "TimeoutError"));
       return new Response("quota", { status: 429 });
     });
-    await expect(synthesizeWav("Nội dung.", "Kore", new AbortController().signal)).rejects.toMatchObject({ code: "AI_UNAVAILABLE" });
+    await expect(synthesizeWav("Nội dung.", "Kore", new AbortController().signal)).rejects.toMatchObject({ status: 504, code: "AI_TIMEOUT" });
     expect(requestedKeys).toEqual(["timeout-one"]);
     expect(timeoutSpy).toHaveBeenCalledTimes(1);
   } finally {
@@ -104,4 +104,10 @@ test("parallel chunks each try a key at most once before falling back", async ()
   expect(chunks).toEqual([Buffer.from("RIFF-audio"), Buffer.from("RIFF-audio")]);
   expect(requestedKeys.filter((key) => key === "parallel-one")).toHaveLength(2);
   expect(requestedKeys.filter((key) => key === "parallel-two")).toHaveLength(2);
+});
+
+test("reports a reply without audio as a bad upstream output, not as an outage", async () => {
+  env.GEMINI_API_KEY = "silent-key";
+  respondWith(() => Response.json({ steps: [] }));
+  await expect(synthesizeWav("Nội dung.", "Kore", new AbortController().signal)).rejects.toMatchObject({ status: 502, code: "AI_BAD_OUTPUT" });
 });

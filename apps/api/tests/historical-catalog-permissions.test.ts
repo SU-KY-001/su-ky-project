@@ -39,9 +39,9 @@ for (const kind of ["period", "phase"] satisfies HistoricalNodeKind[]) {
 
 it("preserves ownership on authored records and rejects non-moderator access to system content", async () => {
   const authored = catalog("owner");
-  await expect(authored.patchNode({ userId: "another", role: "moderator" }, "period", "record", { summary: "Không được sửa", baseVersion: 1 })).rejects.toMatchObject({ status: 404 });
+  await expect(authored.patchNode({ userId: "another", role: "moderator" }, "period", "record", { summary: "Không được sửa", baseVersion: 1 })).rejects.toMatchObject({ status: 403, code: "FORBIDDEN" });
   expect((await authored.patchNode({ userId: "owner", role: "moderator" }, "entity", "record", { summary: "Chủ sở hữu sửa", baseVersion: 1 })).summary).toBe("Chủ sở hữu sửa");
   expect((await authored.patchNode({ userId: "admin", role: "admin" }, "period", "record", { summary: "Admin sửa", baseVersion: 2 })).summary).toBe("Admin sửa");
-  await expect(catalog(null).patchNode({ userId: "reader", role: "user" }, "period", "record", { summary: "Không được sửa", baseVersion: 1 })).rejects.toMatchObject({ status: 404 });
-  await expect(catalog(null).patchNode({ userId: "moderator", role: "moderator" }, "entity", "record", { summary: "Sự kiện cần tác giả", baseVersion: 1 })).rejects.toMatchObject({ status: 404 });
+  await expect(catalog(null).patchNode({ userId: "reader", role: "user" }, "period", "record", { summary: "Không được sửa", baseVersion: 1 })).rejects.toMatchObject({ status: 403, code: "FORBIDDEN" });
+  await expect(catalog(null).patchNode({ userId: "moderator", role: "moderator" }, "entity", "record", { summary: "Sự kiện cần tác giả", baseVersion: 1 })).rejects.toMatchObject({ status: 403, code: "FORBIDDEN" });
 });

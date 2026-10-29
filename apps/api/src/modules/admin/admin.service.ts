@@ -163,7 +163,7 @@ export class AdminService {
     audit: AuditContext,
   ) {
     if (await prisma.user.findUnique({ where: { email: input.email } }))
-      throw new DomainError(409, "CONFLICT", "Email đã được sử dụng");
+      throw new DomainError(409, "EMAIL_TAKEN", "Email đã được sử dụng");
     // signUpEmail is Better Auth's own write and cannot join the Prisma transaction; only role + audit are atomic.
     await auth.api.signUpEmail({
       body: { name: input.name, email: input.email, password: input.password },

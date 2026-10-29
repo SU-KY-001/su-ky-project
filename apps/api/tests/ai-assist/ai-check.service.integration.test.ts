@@ -31,10 +31,10 @@ describe.skipIf(!RUN_INTEGRATION)("ai check service rules (database)", () => {
     await removeFixtures(strangerId);
   });
 
-  it("hides the episode from a moderator who does not own it (404)", async () => {
+  it("refuses a moderator who does not own the episode (403)", async () => {
     const fx = await createEpisodeWithSources(ownerId, runId, "perm", [{ kind: "url" }]);
     const { service } = buildService({ agent: NO_ITEMS });
-    await expectDomainError(service.create(stranger, fx.episodeId, createInput([block("b0", TEXT)])), 404, "NOT_FOUND");
+    await expectDomainError(service.create(stranger, fx.episodeId, createInput([block("b0", TEXT)])), 403, "FORBIDDEN");
   });
 
   it("returns 422 NO_READABLE_SOURCE for no source, an unverified source, or a PDF without loaded pages", async () => {

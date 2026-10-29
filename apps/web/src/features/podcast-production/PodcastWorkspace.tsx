@@ -139,7 +139,7 @@ function SeriesEvidence({
     },
     onError: (error, action) => {
       if (action.kind !== "publish") return;
-      if (isApiError(error) && error.errorCode === "SERIES_NOT_PUBLISHABLE") {
+      if (isApiError(error) && error.is("SERIES_NOT_PUBLISHABLE")) {
         notifyNotPublishable();
         return;
       }
