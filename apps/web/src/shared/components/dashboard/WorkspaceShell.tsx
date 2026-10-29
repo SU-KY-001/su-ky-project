@@ -35,6 +35,7 @@ export interface WorkspaceShellProps {
   nav: WorkspaceNavItem[];
   profile: ReactNode;
   children: ReactNode;
+  compact?: boolean;
 }
 
 function WorkspaceNavLink({
@@ -156,6 +157,7 @@ export function WorkspaceShell(props: WorkspaceShellProps) {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const sidebarId = useId();
   const closeDrawer = () => setDrawerOpen(false);
+  const compact = props.compact || sidebarCollapsed;
 
   useLayoutEffect(() => {
     const className = "workspace-scroll-lock";
@@ -178,10 +180,10 @@ export function WorkspaceShell(props: WorkspaceShellProps) {
   };
 
   return (
-    <div className="mod-layout-root font-sans text-mod-text">
-      <div className="mod-layout-shell" data-sidebar-collapsed={sidebarCollapsed}>
+    <div className="mod-layout-root font-sans text-mod-text" data-compact-workspace={props.compact || undefined}>
+      <div className="mod-layout-shell" data-sidebar-collapsed={compact}>
         <aside id={sidebarId} className="mod-sidebar" aria-label={props.navigationLabel}>
-          <WorkspaceSidebar {...sidebarProps} collapsed={sidebarCollapsed} toggle={
+          <WorkspaceSidebar {...sidebarProps} collapsed={compact} toggle={props.compact ? undefined :
             <Button variant="ghost" size="icon" className="mod-sidebar-toggle shrink-0 text-mod-text-secondary"
               aria-label={sidebarCollapsed ? "Mở rộng sidebar" : "Thu gọn sidebar"}
               title={sidebarCollapsed ? "Mở rộng sidebar" : "Thu gọn sidebar"}

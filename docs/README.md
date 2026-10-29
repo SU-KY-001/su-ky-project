@@ -21,8 +21,8 @@ PostgreSQL 17 ──> Prisma ORM ──> Hono v4 (Bun) ──[hc RPC]──> Rea
 | **Frontend Web** | [React](https://react.dev) | `^19.0.0` | Single-page UI with concurrent rendering and modern hooks |
 | **Web Bundler** | [Vite](https://vite.dev) | `^8.3.3` | Fast ESM development server and production bundler with the Tailwind CSS v4 Vite plugin |
 | **Web UI & Styling** | [Tailwind CSS](https://tailwindcss.com), [shadcn/ui](https://ui.shadcn.com), [Magic UI](https://magicui.design) | Tailwind `^4.1.14` | CSS-first web styling with source-owned shadcn/ui components and selected Magic UI registry components |
-| **Mobile UI & Styling** | [Tamagui](https://tamagui.dev) | `^2.7.7` | Native component and styling system for mobile; shared root tokens/themes remain for Expo/Metro |
-| **Mobile Runtime** | [Expo](https://expo.dev) + React Native | `~57.0.0` + `0.86.0` | Native app runtime and Expo Router, styled with Tamagui through Metro |
+| **Mobile UI & Styling** | [NativeWind](https://www.nativewind.dev) + Tailwind CSS | `4.2.7` + `3.4` | Tailwind utility styling for React Native through Expo Metro |
+| **Mobile Runtime** | [Expo](https://expo.dev) + React Native | `~58.0.0` + `0.88.0` | Native app runtime and Expo Router, styled with NativeWind through Metro |
 | **State & Cache** | [TanStack Query](https://tanstack.com/query) | `^5.66.0` | Asynchronous server-state caching, deduping, and refetching |
 | **Database ORM** | [Prisma ORM](https://www.prisma.io) | `^6.4.1` | Schema modeling, PostgreSQL migration management, and type-safe client |
 | **Database** | [PostgreSQL](https://www.postgresql.org) | `17-alpine` | Relational store for periods, series, episodes, citations, and figures |
@@ -40,7 +40,7 @@ su-ky-project/
 │   │   ├── src/index.ts # Bun HTTP server entrypoint
 │   │   └── src/routes/  # Modular route controllers: health, timeline, series, episodes, figures
 │   ├── web/             # React 19 + Vite 8 + Tailwind CSS + shadcn/ui + Magic UI client application
-│   └── mobile/          # Expo 57 + React Native + Tamagui client application
+│   └── mobile/          # Expo 58 + React Native + NativeWind client application
 │       ├── src/lib/api.ts         # Type-safe RPC client (hc<AppType>)
 │       ├── src/lib/queryClient.ts # TanStack Query client instance
 │       └── src/App.tsx            # Interactive starter dashboard & health monitor
@@ -228,3 +228,5 @@ For detailed architectural specifications, standards, and requirements, refer to
 - [Design Guidelines](./design-guidelines.md) — Vietnamese cultural visual language, color tokens, and typography specifications.
 - [Archived Script Workflow](../archive/script-workflow/README.md) — Static snapshot of the retired AI-first script workflow (API/UX docs included).
 - [Interactive Wireframe](./wireframe/index.html) — Standalone prototype showcasing the timeline, audio dock, and chronicle views.
+
+

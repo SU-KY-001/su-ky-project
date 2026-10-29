@@ -17,6 +17,7 @@ import { releasePaths } from "./paths/releases";
 import { adminPaths } from "./paths/admin";
 import { gamificationPaths } from "./paths/gamification";
 import { showcasePaths } from "./paths/showcase";
+import { exhibitionPaths } from "./paths/exhibitions";
 
 const SCALAR_THEME = "saturn";
 
@@ -82,12 +83,13 @@ const TAGS = [
   { name: "Studio Catalog", description: "Kho nguồn tham khảo và thực thể lịch sử dùng chung" },
   { name: "Studio Media", description: "Upload và xác minh audio, ảnh, PDF qua Cloudinary" },
   { name: "Studio AI", description: "Trợ lý AI cho moderator: rà kịch bản đối chiếu nguồn đã xác minh (cảnh báo mềm, không tự sửa)" },
+  { name: "Studio Exhibitions", description: "Moderator quản lý triển lãm 3D" },
 ] as const;
 
 const TAG_GROUPS = [
   { name: "Hệ thống và tài khoản", tags: ["System", "Authentication", "Admin", "Release Coordination"] },
   { name: "Người nghe", tags: ["Catalog", "Listening", "Quiz", "Missions"] },
-  { name: "Studio (Moderator)", tags: ["Studio Series", "Studio Episodes", "Studio Catalog", "Studio Media", "Studio AI"] },
+  { name: "Studio (Moderator)", tags: ["Studio Series", "Studio Episodes", "Studio Catalog", "Studio Media", "Studio AI", "Studio Exhibitions"] },
 ] as const;
 
 // Hand-written auth entries come last so their curated docs override the generated ones.
@@ -97,6 +99,7 @@ const allPaths: Paths = {
   ...adminPaths,
   ...gamificationPaths,
   ...showcasePaths,
+  ...exhibitionPaths,
   ...catalogPaths,
   ...historicalCatalogPaths,
   ...listeningPaths,

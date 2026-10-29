@@ -91,9 +91,5 @@ export const errorHandler: ErrorHandler = (error, c) => {
     },
     "Unhandled request exception"
   );
-  const message =
-    process.env.NODE_ENV === "production"
-      ? "An internal server error occurred"
-      : error.message || "An unexpected error occurred";
-  return renderError(c, 500, "INTERNAL_SERVER_ERROR", message);
+  return renderError(c, 500, "INTERNAL_SERVER_ERROR", "An internal server error occurred");
 };

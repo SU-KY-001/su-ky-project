@@ -15,7 +15,6 @@ import { PodcastSeriesGallery } from "./PodcastSeriesGallery";
 import { HistoryFilterTree } from "./HistoryFilterTree";
 import { LibraryQuiz } from "./LibraryQuiz";
 import { ReleaseCalendar } from "./ReleaseCalendar";
-import { MuseumSection } from "../MuseumSection";
 
 export function PodcastLibrary(): ReactElement {
   const { requestAccess, accessDialog } = usePodcastAccess();
@@ -70,7 +69,6 @@ export function PodcastLibrary(): ReactElement {
             </div>
           </div>
         </LibrarySection>
-        <MuseumSection />
         <LibrarySection id="library-podcasts" title="Series và podcast">
             {(period || phase || event) && <div className="mb-6 flex flex-wrap items-center gap-3"><p className="flex-1 text-sm leading-7 text-muted-foreground">Đang khám phá podcast theo: {event?.name ?? phases.find(item => item.id === phase)?.name ?? activePeriod?.name}</p><Button size="sm" variant="link" onClick={clearHistory}>Xem tất cả series</Button></div>}
             <PodcastSeriesGallery key={`${period}-${phase}-${event?.id ?? "all"}`} filter={{ periodId: period || undefined, phaseId: phase || undefined, eventId: event?.id }} onPlay={async (item, seriesSlug) => { if (!await requestAccess()) return; await startPodcast(seriesSlug, item.id); }} />
