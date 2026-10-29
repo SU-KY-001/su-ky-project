@@ -40,7 +40,7 @@ async function main(): Promise<void> {
   const file = await stat(audioPath).catch(() => null);
   if (!file?.isFile() || file.size === 0 || !audioPath.toLowerCase().endsWith(".mp3")) throw new Error("Không tìm thấy MP3 hợp lệ. Kiểm tra file trong data-seed hoặc đặt SEED_AUDIO_FILE.");
   const ownerEmail = process.env.SEED_OWNER_EMAIL?.trim() || process.env.SEED_MOD_EMAIL?.trim();
-  const moderators = await prisma.user.findMany({ where: { role: "moderator", banned: false, ...(ownerEmail ? { email: ownerEmail } : {}) }, select: { id: true, name: true }, orderBy: { createdAt: "asc" } });
+  const moderators = await prisma.user.findMany({ where: { role: { in: ["admin", "moderator"] }, banned: false, ...(ownerEmail ? { email: ownerEmail } : {}) }, select: { id: true, name: true }, orderBy: { createdAt: "asc" } });
   if (moderators.length !== 1) throw new Error("Cần xác định một moderator đang hoạt động. Đặt SEED_OWNER_EMAIL để chọn chủ sở hữu; seed không tạo hoặc thay đổi tài khoản.");
   const owner = moderators[0]!;
   const topic = await prisma.topic.findFirst({ where: { slug: "lich-su-dan-toc", isActive: true }, select: { id: true } });

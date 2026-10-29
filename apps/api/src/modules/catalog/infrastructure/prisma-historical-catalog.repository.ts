@@ -158,10 +158,10 @@ export class PrismaHistoricalCatalogRepository
     };
   }
   async listPublicEvents(q: HistoricalNodeQuery & { slug?: string }) {
-    const filter = Prisma.sql`${PUBLIC_EVENT_READY} ${q.slug ? Prisma.sql`AND e.slug=${q.slug}` : Prisma.empty} ${q.historicalPhaseId ? Prisma.sql`AND e.historical_phase_id=${q.historicalPhaseId}::uuid` : Prisma.empty} ${q.q ? Prisma.sql`AND e.name ILIKE ${"%" + q.q + "%"}` : Prisma.empty}`;
+    const filter = Prisma.sql`${PUBLIC_EVENT_READY} ${q.slug ? Prisma.sql`AND e.slug=${q.slug}` : Prisma.empty} ${q.periodId ? Prisma.sql`AND hp.id=${q.periodId}::uuid` : Prisma.empty} ${q.historicalPhaseId ? Prisma.sql`AND e.historical_phase_id=${q.historicalPhaseId}::uuid` : Prisma.empty} ${q.q ? Prisma.sql`AND e.name ILIKE ${"%" + q.q + "%"}` : Prisma.empty}`;
     const [rows, count] = await Promise.all([
       prisma.$queryRaw<Array<{ id: string }>>(
-        Prisma.sql`SELECT e.id ${PUBLIC_EVENT_FROM} WHERE ${filter} ORDER BY e.name,e.id LIMIT ${q.limit} OFFSET ${(q.page - 1) * q.limit}`,
+        Prisma.sql`SELECT e.id ${PUBLIC_EVENT_FROM} WHERE ${filter} ORDER BY COALESCE(e.start_year, -999999) ASC, e.name ASC, e.id ASC LIMIT ${q.limit} OFFSET ${(q.page - 1) * q.limit}`,
       ),
       prisma.$queryRaw<Array<{ count: bigint }>>(
         Prisma.sql`SELECT count(*) ${PUBLIC_EVENT_FROM} WHERE ${filter}`,
