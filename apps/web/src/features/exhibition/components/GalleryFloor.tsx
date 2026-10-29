@@ -5,14 +5,11 @@ import { makeConcreteMaps } from "../materials";
 
 export function GalleryFloor(): ReactElement {
   const surface = useMemo(() => {
-    // Same footprint as the three existing rooms; one reflector avoids seams and extra renders.
     const outline = new Shape();
-    outline.moveTo(-6, -12); outline.lineTo(6, -12); outline.lineTo(6, -4);
-    outline.lineTo(22, -4); outline.lineTo(22, 24); outline.lineTo(10, 24);
-    outline.lineTo(10, 8); outline.lineTo(-6, 8); outline.closePath();
+    outline.moveTo(-6, -12); outline.lineTo(6, -12); outline.lineTo(6, 40); outline.lineTo(-6, 40); outline.closePath();
     const geometry = new ShapeGeometry(outline);
     const uv = geometry.getAttribute("uv");
-    for (let i = 0; i < uv.count; i++) uv.setXY(i, (uv.getX(i) + 6) / 28, (uv.getY(i) + 12) / 36);
+    for (let i = 0; i < uv.count; i++) uv.setXY(i, (uv.getX(i) + 6) / 12, (uv.getY(i) + 12) / 52);
     return { geometry, ...makeConcreteMaps() };
   }, []);
   useEffect(() => () => { surface.geometry.dispose(); surface.color.dispose(); surface.roughness.dispose(); }, [surface]);

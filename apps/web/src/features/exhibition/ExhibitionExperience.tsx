@@ -6,10 +6,11 @@ import { ArrowUp } from "@phosphor-icons/react/dist/icons/ArrowUp";
 import { Compass } from "@phosphor-icons/react/dist/icons/Compass";
 import { MouseSimple } from "@phosphor-icons/react/dist/icons/MouseSimple";
 import { Button } from "@/shared/components/ui/button";
-import { artworks, chapters } from "./data";
+import { exhibitionTemplate } from "@repo/shared";
+import { resolvedArtworks } from "./resolvedLayout";
+import type { ResolvedExhibition } from "@repo/shared";
 import { ArtworkDetail, ExhibitionMenu } from "./components/ExhibitionDialogs";
 import { initialView, type GalleryInput, type GalleryView } from "./components/GalleryControls";
-import exhibitionSoundtrack from "../../public/audio-trienlam-3d/Toàn Cảnh Giải Phóng Miền Nam 1975 ĐỈNH CAO CỦA CHIẾN THUẬT  Lịch Sử Quân Sự - Lịch Sử Quân Sự (1).mp3?url";
 
 const GalleryScene = lazy(() => import("./components/GalleryScene").then(module => ({ default: module.GalleryScene })));
 type Phase = "intro" | "walking" | "paused" | "menu" | "artwork";
@@ -21,8 +22,11 @@ class SceneBoundary extends Component<{ children: ReactNode; onUnavailable: () =
   render(): ReactNode { return this.state.failed ? null : this.props.children; }
 }
 
-export function ExhibitionExperience(): ReactElement {
-  const [phase, setPhase] = useState<Phase>("intro");
+export function ExhibitionExperience({ exhibition, startInGallery = false }: { exhibition: ResolvedExhibition; startInGallery?: boolean }): ReactElement {
+  const artworks = resolvedArtworks(exhibition);
+  const chapters = exhibition.chapters.map((chapter) => ({ ...chapter, spawn: exhibitionTemplate.spawns.find(item => item.roomKey === chapter.roomKey)!.position, yaw: exhibitionTemplate.spawns.find(item => item.roomKey === chapter.roomKey)!.yaw }));
+  const title = exhibition.metadata.title;
+  const [phase, setPhase] = useState<Phase>(startInGallery ? "walking" : "intro");
   const [ready, setReady] = useState(false);
   const [available, setAvailable] = useState(true);
   const [locked, setLocked] = useState(false);
@@ -34,7 +38,6 @@ export function ExhibitionExperience(): ReactElement {
   const container = useRef<HTMLElement>(null);
   const resumeButton = useRef<HTMLButtonElement>(null);
   const input = useRef<GalleryInput>({ keys: new Set() });
-  const soundtrack = useRef<HTMLAudioElement>(null);
   const overlayUnlock = useRef(false);
   const artworkReturnPhase = useRef<"walking" | "menu">("walking");
   const menuReturnPhase = useRef<"walking" | "paused">("walking");
@@ -43,15 +46,15 @@ export function ExhibitionExperience(): ReactElement {
 
   useEffect(() => {
     const previousTitle = document.title;
-    document.title = "Khoảnh khắc toàn thắng 1975 | Sử Ký";
+    document.title = `${title} | Sử Ký`;
     let alive = true;
-    void Promise.all([document.fonts.load('400 16px "Be Vietnam Pro"', "Đường đến Sài Gòn"), document.fonts.load('600 16px "Be Vietnam Pro"', "Khoảnh khắc toàn thắng"), document.fonts.load('400 16px "Cormorant Garamond"', "Đất nước liền một dải")]).then(() => { if (alive) setReady(true); }, () => { if (alive) setReady(true); });
+    void Promise.all([document.fonts.load('400 16px "Be Vietnam Pro"', title), document.fonts.load('600 16px "Be Vietnam Pro"', title), document.fonts.load('400 16px "Cormorant Garamond"', title)]).then(() => { if (alive) setReady(true); }, () => { if (alive) setReady(true); });
     const canvas = document.createElement("canvas");
     try {
       const context = canvas.getContext("webgl2");
-      if (!context) setAvailable(false);
+      if (!context) { setAvailable(false); if (startInGallery) setPhase("paused"); }
       context?.getExtension("WEBGL_lose_context")?.loseContext();
-    } catch { setAvailable(false); }
+    } catch { setAvailable(false); if (startInGallery) setPhase("paused"); }
     const lockChanged = (): void => {
       setLocked(Boolean(document.pointerLockElement));
       if (!document.pointerLockElement) {
@@ -66,24 +69,9 @@ export function ExhibitionExperience(): ReactElement {
       document.removeEventListener("pointerlockchange", lockChanged);
       if (document.pointerLockElement) document.exitPointerLock();
     };
-  }, []);
+  }, [title, startInGallery]);
 
   useEffect(() => { if (phase === "paused") resumeButton.current?.focus(); }, [phase]);
-  useEffect(() => {
-    const audio = soundtrack.current;
-    if (!audio) return;
-    if (phase === "intro" || phase === "paused") audio.pause();
-    const visibilityChanged = (): void => {
-      if (document.hidden) audio.pause();
-      else if (phase !== "intro" && phase !== "paused") void audio.play().catch(() => undefined);
-    };
-    document.addEventListener("visibilitychange", visibilityChanged);
-    return () => document.removeEventListener("visibilitychange", visibilityChanged);
-  }, [phase]);
-  useEffect(() => {
-    const audio = soundtrack.current;
-    return () => { audio?.pause(); };
-  }, []);
   useEffect(() => {
     if (phase !== "walking") return;
     setHintVisible(true);
@@ -112,10 +100,6 @@ export function ExhibitionExperience(): ReactElement {
   const unavailable = useCallback((): void => { setAvailable(false); setPhase("paused"); releasePointer(); }, [releasePointer]);
   const enter = (): void => {
     if (!available) { navigate(); return; }
-    if (soundtrack.current) {
-      soundtrack.current.volume = 0.65;
-      void soundtrack.current.play().catch(() => undefined);
-    }
     setPhase("walking");
     const canvas = container.current?.querySelector("canvas");
     if (!canvas) return;
@@ -140,11 +124,10 @@ export function ExhibitionExperience(): ReactElement {
     else setPhase("menu");
   };
 
-  return <main ref={container} className="exhibition" aria-label="Triển lãm ảnh tư liệu: Khoảnh khắc toàn thắng và Giải phóng miền Nam 1975">
-    <audio ref={soundtrack} src={exhibitionSoundtrack} preload="none" />
+  return <main ref={container} className={`exhibition${startInGallery ? " exhibition-preview" : ""}`} aria-label={`Triển lãm ảnh tư liệu: ${title}`}>
     <div className="exhibition-stage absolute inset-0 touch-none [&_canvas]:block [&_canvas]:outline-none" aria-hidden={phase === "intro" || phase === "menu" || phase === "artwork"}>
       {ready && available && <SceneBoundary onUnavailable={unavailable}><Suspense fallback={null}>
-        <GalleryScene active={phase === "walking"} input={input} view={view} onPause={pause} onNavigate={navigate} onInspect={inspect} onTarget={setTarget} onChapter={setChapter} onUnavailable={unavailable} />
+        <GalleryScene active={phase === "walking"} input={input} view={view} onPause={pause} onNavigate={navigate} onInspect={inspect} onTarget={setTarget} onChapter={setChapter} onUnavailable={unavailable} items={artworks} chapterText={chapters} />
       </Suspense></SceneBoundary>}
     </div>
 
@@ -152,14 +135,14 @@ export function ExhibitionExperience(): ReactElement {
       <header className="exhibition-brand flex items-center gap-6"><span>SỬ KÝ</span><span>KHÔNG GIAN TƯ LIỆU</span></header>
       <div className="exhibition-intro-copy my-auto w-[min(610px,54vw)] py-8">
         <p className="exhibition-eyebrow mb-[27px] text-[10px] font-medium tracking-[.2em] text-[var(--exhibit-muted)]">TRIỂN LÃM ẢNH TƯ LIỆU</p>
-        <h1>Khoảnh khắc<br />toàn thắng<span>.</span></h1>
-        <p className="exhibition-subtitle text-[clamp(14px,1.35vw,19px)] font-medium tracking-[-.02em]">Giải phóng miền Nam, 1975</p>
-        <p className="exhibition-invitation mt-7 text-[13px] leading-[1.9] text-[var(--exhibit-muted)]">Bước vào ký ức.<br />Lắng lại trước những khoảnh khắc lịch sử.</p>
+        <h1>{title}<span>.</span></h1>
+        <p className="exhibition-subtitle text-[clamp(14px,1.35vw,19px)] font-medium tracking-[-.02em]">{exhibition.metadata.subtitle}</p>
+        <p className="exhibition-invitation mt-7 text-[13px] leading-[1.9] text-[var(--exhibit-muted)]">{exhibition.metadata.description}</p>
         <Button onClick={enter} disabled={!ready} className="exhibition-enter">Enter <ArrowRight size={22} weight="light" /></Button>
         {!ready && <p role="status" className="exhibition-loading mt-3 max-w-[340px] text-xs text-[var(--exhibit-muted)]">Đang chuẩn bị không gian…</p>}
         {!available && <p className="exhibition-loading mt-3 max-w-[340px] text-xs text-[var(--exhibit-muted)]">Thiết bị không hỗ trợ 3D. Enter để xem ảnh và đọc câu chuyện.</p>}
       </div>
-      <footer className="exhibition-entry-footer flex items-center gap-10 text-[10px] text-[var(--exhibit-muted)]"><span>30.04.1975</span><span>12 ảnh tư liệu <span aria-hidden="true">/</span> 3 chương</span><span className="exhibition-entry-controls ml-auto flex items-center gap-3 bg-[color:var(--exhibit-paper)]/85 px-4 py-3"><MouseSimple size={18} /> Chuột để nhìn <span aria-hidden="true">/</span> WASD để bước đi</span></footer>
+      <footer className="exhibition-entry-footer flex items-center gap-10 text-[10px] text-[var(--exhibit-muted)]"><span>{artworks.length} ảnh tư liệu <span aria-hidden="true">/</span> 3 chương</span><span className="exhibition-entry-controls ml-auto flex items-center gap-3 bg-[color:var(--exhibit-paper)]/85 px-4 py-3"><MouseSimple size={18} /> Chuột để nhìn <span aria-hidden="true">/</span> WASD để bước đi</span></footer>
     </section>}
 
     {phase === "walking" && <>
@@ -173,20 +156,20 @@ export function ExhibitionExperience(): ReactElement {
     </>}
 
     {phase === "paused" && <section className="exhibition-pause absolute inset-0 z-[2] grid place-items-center bg-[color:var(--exhibit-paper)]/85 p-7 backdrop-blur-[5px]" aria-label="Đã tạm dừng tham quan">
-      <div><p className="exhibition-eyebrow mb-[27px] text-[10px] font-medium tracking-[.2em] text-[var(--exhibit-muted)]">SỬ KÝ / TRIỂN LÃM 1975</p><h2>{available ? "Một khoảng lặng." : "Tiếp tục qua những bức ảnh."}</h2><p>{available ? "Không gian vẫn ở đây. Tiếp tục khi bạn sẵn sàng." : "Không gian 3D hiện không khả dụng. Toàn bộ ảnh, câu chuyện và nguồn tư liệu vẫn có trong mục lục."}</p>
+      <div><p className="exhibition-eyebrow mb-[27px] text-[10px] font-medium tracking-[.2em] text-[var(--exhibit-muted)]">SỬ KÝ / TRIỂN LÃM</p><h2>{available ? "Một khoảng lặng." : "Tiếp tục qua những bức ảnh."}</h2><p>{available ? "Không gian vẫn ở đây. Tiếp tục khi bạn sẵn sàng." : "Không gian 3D hiện không khả dụng. Toàn bộ ảnh, câu chuyện và nguồn tư liệu vẫn có trong mục lục."}</p>
         <Button ref={resumeButton} className="exhibition-enter" onClick={enter}>{available ? "Tiếp tục tham quan" : "Xem ảnh tư liệu"}<ArrowRight size={20} /></Button>
         {available && <Button variant="ghost" onClick={navigate} className="exhibition-pause-menu">Mục lục triển lãm <Compass size={18} /></Button>}
         {available && <p className="exhibition-pause-help mt-8 !text-[11px]">WASD / mũi tên để đi · Chuột để nhìn<br />E xem ảnh · M mở mục lục · Esc tạm dừng</p>}
       </div>
     </section>}
 
-    {phase === "menu" && <ExhibitionMenu open chapter={chapter} available={available} onClose={() => {
+    {phase === "menu" && <ExhibitionMenu open chapter={chapter} available={available} items={artworks} chapterList={chapters} onClose={() => {
       if (available && menuReturnPhase.current === "walking") enter();
       else setPhase("paused");
     }} onTravel={travel} onInspect={inspect} onReturnFocus={() => {
       if (available && menuReturnPhase.current === "walking") container.current?.querySelector("canvas")?.focus();
     }} />}
-    {phase === "artwork" && <ArtworkDetail artwork={selectedArtwork} onClose={closeDetails} onReturnFocus={() => {
+    {phase === "artwork" && <ArtworkDetail artwork={selectedArtwork} narration={exhibition.items.find(item => item.id === selected)?.narration} onClose={closeDetails} onReturnFocus={() => {
       if (available && artworkReturnPhase.current === "walking") container.current?.querySelector("canvas")?.focus();
     }} />}
   </main>;

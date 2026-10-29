@@ -3,7 +3,7 @@
 > **Tài liệu đặc tả chuẩn thiết kế UI/UX cho Nền tảng Sử Ký & Dòng thời gian Lịch sử Việt Nam**
 > **Phiên bản:** 1.1.0
 > **Cập nhật:** 2026-10-09 (đồng bộ với `apps/web`)
-> **Công nghệ áp dụng:** React 19 + Vite + Tailwind CSS v4 + shadcn/ui + Magic UI (web), Expo + React Native + Tamagui (mobile), Hono RPC, PostgreSQL (Prisma), Bun
+> **Công nghệ áp dụng:** React 19 + Vite + Tailwind CSS v4 + shadcn/ui + Magic UI (web), Expo + React Native + NativeWind (mobile), Hono RPC, PostgreSQL (Prisma), Bun
 
 ## Nguồn sự thật cho giao diện web
 
@@ -92,8 +92,8 @@ Chưa có token riêng. Khi cần, dùng hex dưới đây và thêm token vào 
 ### 2.4. Hệ thống styling theo nền tảng
 
 - **Web:** Tailwind CSS v4 qua Vite, **một** global stylesheet `apps/web/src/styles/globals.css`, token CSS-first, component shadcn/ui lưu trong source (`components/ui`), component Magic UI chọn từ registry.
-- **Mobile:** Tamagui, Expo, Metro. Không đưa Tailwind, DOM component hay shadcn/ui vào native.
-- Breakpoint web dùng CSS/Tailwind; mobile theo cấu hình Tamagui.
+- **Mobile:** NativeWind 4.2.7, Tailwind CSS 3.4, Expo và Metro. Không đưa DOM component hay shadcn/ui vào native.
+- Breakpoint web dùng CSS/Tailwind; mobile dùng utility class của NativeWind.
 
 ---
 
@@ -193,3 +193,4 @@ Màu và viền trong mục này dùng token ở §2 (ví dụ nền `bg-night`,
 ## 7. Wireframe
 
 Bản wireframe tương tác độc lập: `docs/wireframe/index.html` (chuyển Timeline/Lưới, lọc thời kỳ, tìm kiếm, modal nhân vật, kiểm tra kết nối, trình phát âm thanh). Wireframe chỉ minh hoạ bố cục; màu và font theo §2 và §3, không theo wireframe nếu khác.
+

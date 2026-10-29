@@ -1,5 +1,5 @@
 import { lazy, type ReactElement } from "react";
-import { useLocation, useNavigate, useSearchParams } from "react-router";
+import { useLocation, useMatch, useNavigate, useSearchParams } from "react-router";
 import { ModeratorLayout } from "@/features/moderator/components/ModeratorLayout";
 import { ModeratorContentBoundary } from "@/features/moderator/components/ModeratorContentBoundary";
 import { moderatorPodcastPath, moderatorSectionFromPath, moderatorSectionPath } from "@/features/moderator/paths";
@@ -16,6 +16,7 @@ const ReviewQueue = lazy(() => import("@/features/moderator/components/Moderator
 const Tickets = lazy(() => import("@/features/moderator/components/ModeratorTickets").then((module) => ({ default: module.ModeratorTickets })));
 const Angles = lazy(() => import("@/features/podcast-production/angles/AngleManagePage").then((module) => ({ default: module.AngleManagePage })));
 const Quizzes = lazy(() => import("@/features/moderator/components/ModeratorQuizzes").then((module) => ({ default: module.ModeratorQuizzes })));
+const Exhibitions = lazy(() => import("./ModeratorExhibitionPage").then((module) => ({ default: module.ModeratorExhibitionPage })));
 
 const CREATE_MILESTONE_QUERY = "?create=milestone";
 
@@ -40,6 +41,7 @@ function WorkspaceContent({ section, creatingMilestone, onAction }: WorkspaceCon
     case "assignments": return <Assignments />;
     case "tickets": return <Tickets />;
     case "quizzes": return <Quizzes />;
+    case "exhibitions": return <Exhibitions />;
     case "schedule": return <ReleaseSchedule />;
     case "pending": return <ReviewQueue />;
     case "angles": return <Angles />;
@@ -53,9 +55,10 @@ export function ModeratorWorkspacePage(): ReactElement {
   const { pathname } = useLocation();
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
+  const editingExhibition = useMatch("/moderator/exhibitions/:id/edit");
   const section = moderatorSectionFromPath(pathname);
   return (
-    <ModeratorLayout section={section}>
+    <ModeratorLayout section={section} compact={Boolean(editingExhibition)}>
       <ModeratorContentBoundary section={section}>
         <div key={section} className="mod-content-view">
           <WorkspaceContent
