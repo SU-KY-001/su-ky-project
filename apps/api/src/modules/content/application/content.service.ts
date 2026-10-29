@@ -303,16 +303,17 @@ export class ContentService {
     return this.getSeriesDetail(created.id);
   }
 
+  /** `visibleEpisodeIds` is null when the viewer may see every episode (owner, admin). */
   async getSeriesDetailForRead(
     session: Session,
     id: string,
-  ): Promise<SeriesDetailEntity> {
+  ): Promise<{ series: SeriesDetailEntity; visibleEpisodeIds: ReadonlySet<string> | null }> {
     const series = await this.loadSeriesForRead(session, id);
     const detail = await this.getSeriesDetail(id);
-    if (session.user.role === "admin" || series.ownerId === session.user.id) return detail;
-    // A collaborator sees the series through one assigned episode, not the owner's other drafts.
-    const readable = new Set(await this.series.listActiveCollaboratorEpisodeIds(id, session.user.id));
-    return { ...detail, episodes: detail.episodes.filter((e) => readable.has(e.id)) };
+    if (session.user.role === "admin" || series.ownerId === session.user.id) return { series: detail, visibleEpisodeIds: null };
+    // A collaborator sees the series through their assigned episodes, not the owner's other drafts.
+    const ids = await this.series.listActiveCollaboratorEpisodeIds(id, session.user.id);
+    return { series: detail, visibleEpisodeIds: new Set(ids) };
   }
 
   async updateSeries(

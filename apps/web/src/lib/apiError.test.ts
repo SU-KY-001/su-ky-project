@@ -5,8 +5,8 @@ const respond = (status: number, body: unknown) => ApiError.fromResponse({ statu
 
 describe("ApiError.fromResponse", () => {
   it("keeps the failing fields of a validation error", async () => {
-    const error = await respond(400, { error_code: "VALIDATION_ERROR", message: "Request validation failed", details: [{ path: "name", message: "too short" }] });
-    expect(error.details).toEqual([{ path: "name", message: "too short" }]);
+    const error = await respond(400, { error_code: "VALIDATION_ERROR", message: "Request validation failed", details: [{ path: "name", code: "too_small" }] });
+    expect(error.details).toEqual([{ path: "name", code: "too_small" }]);
     expect(error.is("VALIDATION_ERROR")).toBe(true);
   });
 

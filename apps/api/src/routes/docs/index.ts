@@ -41,7 +41,7 @@ Mọi lỗi có cùng một dạng, kèm HTTP status đúng nghĩa (không bao g
 { "error_code": "STALE_WRITE", "message": "Content was updated by another request" }
 \`\`\`
 
-Lỗi \`VALIDATION_ERROR\` (400) kèm \`details: [{ path, message }]\` (tối đa 20 mục) chỉ ra trường nào sai; không bao giờ chứa giá trị client đã gửi.
+Lỗi \`VALIDATION_ERROR\` (400) kèm \`details: [{ path, code }]\` (tối đa 20 mục): \`path\` là trường sai, \`code\` là mã lỗi zod (\`too_small\`, \`invalid_type\`...), không phải câu hiển thị. Không bao giờ chứa giá trị client đã gửi.
 
 Client (web, mobile) xử lý theo \`error_code\`, không dựa vào \`message\` hay chỉ dựa vào status. Mỗi \`error_code\` chỉ có một status. Lỗi **có thể thử lại cùng \`Idempotency-Key\`**: \`SLUG_CONFLICT\`, \`WRITE_CONFLICT\`, \`RATE_LIMITED\`, \`MEDIA_PROVIDER_UNAVAILABLE\`, \`NO_READABLE_SOURCE\`, \`AI_UNAVAILABLE\`, \`AI_DISABLED\`, \`AI_CHECK_ALREADY_RUNNING\`, \`AI_CONCURRENCY_LIMIT\`, \`AI_TIMEOUT\`; mọi lỗi 5xx cũng vậy. Còn lại không nên tự động thử lại.
 

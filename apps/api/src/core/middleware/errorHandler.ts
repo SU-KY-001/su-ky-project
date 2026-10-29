@@ -46,7 +46,10 @@ const PRISMA_REQUEST_ERRORS: Record<string, MappedError> = {
 };
 
 function mapPrismaError(error: unknown): MappedError | null {
-  if (error instanceof Prisma.PrismaClientInitializationError) return DB_UNAVAILABLE;
+  if (error instanceof Prisma.PrismaClientInitializationError) {
+    // Only unreachable-database codes are transient; bad credentials (P1000) or a broken config will not heal on retry.
+    return error.errorCode ? (PRISMA_REQUEST_ERRORS[error.errorCode] ?? null) : null;
+  }
   if (error instanceof Prisma.PrismaClientKnownRequestError) return PRISMA_REQUEST_ERRORS[error.code] ?? null;
   return null;
 }

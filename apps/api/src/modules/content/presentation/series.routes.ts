@@ -72,15 +72,11 @@ export function createSeriesRoute(
     )
     .get("/:id", zValidator("param", idParam, throwOnInvalid), async (c) => {
       const session = c.get("session")!;
-      return c.json(
-        mapSeriesDetail(
-          await service.getSeriesDetailForRead(
-            session,
-            c.req.valid("param").id,
-          ),
-          storage,
-        ),
+      const { series, visibleEpisodeIds } = await service.getSeriesDetailForRead(
+        session,
+        c.req.valid("param").id,
       );
+      return c.json(mapSeriesDetail(series, storage, visibleEpisodeIds));
     })
     .patch(
       "/:id",
