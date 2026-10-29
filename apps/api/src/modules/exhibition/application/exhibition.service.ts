@@ -5,6 +5,8 @@ import type { ExhibitionRecord, ExhibitionRepository } from "../domain/exhibitio
 export class ExhibitionService {
   constructor(private readonly repository: ExhibitionRepository) {}
 
+  listPublished() { return this.repository.listPublished(); }
+
   private async workspace(record: ExhibitionRecord) {
     return { id: record.id, slug: record.slug, revision: record.revision, updatedAt: record.updatedAt.toISOString(), publicationStatus: record.publishedRevision === null ? "UNPUBLISHED" as const : "PUBLISHED" as const, publishedRevision: record.publishedRevision, document: record.document, resolved: await this.repository.resolve(record.document), allowedActions: ["edit", "publish"] as ("edit" | "publish")[] };
   }

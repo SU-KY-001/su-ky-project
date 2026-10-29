@@ -1,4 +1,4 @@
-import type { ExhibitionDocument, ExhibitionSummary, ResolvedExhibition, ExhibitionPodcastOption, ExhibitionPodcastQuery } from "@repo/shared";
+import type { ExhibitionDocument, ExhibitionSummary, ResolvedExhibition, ExhibitionPodcastOption, ExhibitionPodcastQuery, PublicExhibitionList } from "@repo/shared";
 
 export interface ExhibitionRecord {
   id: string;
@@ -12,6 +12,7 @@ export interface ExhibitionRecord {
 }
 
 export interface ExhibitionRepository {
+  listPublished(): Promise<PublicExhibitionList>;
   list(ownerId: string, query: { q: string; status: "all" | "published" | "unpublished"; page: number; limit: number }): Promise<{ items: ExhibitionSummary[]; page: number; limit: number; total: number }>;
   resolve(document: ExhibitionDocument): Promise<ResolvedExhibition>;
   podcastOptions(query: ExhibitionPodcastQuery): Promise<{ items: ExhibitionPodcastOption[]; page: number; limit: number; total: number }>;

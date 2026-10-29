@@ -28,5 +28,7 @@ export function createStudioExhibitionRoute(service: ExhibitionService) {
 }
 
 export function createPublicExhibitionRoute(service: ExhibitionService) {
-  return new Hono<AppEnv>().get("/exhibitions/:slug", zValidator("param", z.object({ slug: z.string().min(1).max(280) }), throwOnInvalid), async c => c.json(await service.publicExhibition(c.req.valid("param").slug)));
+  return new Hono<AppEnv>()
+    .get("/exhibitions", async c => c.json(await service.listPublished()))
+    .get("/exhibitions/:slug", zValidator("param", z.object({ slug: z.string().min(1).max(280) }), throwOnInvalid), async c => c.json(await service.publicExhibition(c.req.valid("param").slug)));
 }

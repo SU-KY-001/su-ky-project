@@ -4,6 +4,7 @@ import { Raycaster, Vector2 } from "three";
 import { exhibitionTemplate } from "@repo/shared";
 import { benchWalls, chapterAt, galleryReturns, walls, type Artwork, type Point3 } from "../data";
 import { movePlayer } from "../movement";
+export { initialView } from "../galleryView";
 
 export interface GalleryInput { keys: Set<string> }
 export interface GalleryView { position: Point3; yaw: number; revision: number }
@@ -20,11 +21,12 @@ export interface ControlsProps {
   pointerLockOnClick?: boolean;
   items?: Artwork[];
   roomCount?: number;
+  keyboardRequiresFocus?: boolean;
 }
 
 const walkingKeys = new Set(["KeyW", "KeyA", "KeyS", "KeyD", "ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"]);
 
-export function GalleryControls({ active, input, view, onPause, onNavigate, onInspect, onTarget, onChapter, onViewChange, pointerLockOnClick = false, items = [], roomCount = 3 }: ControlsProps): null {
+export function GalleryControls({ active, input, view, onPause, onNavigate, onInspect, onTarget, onChapter, onViewChange, pointerLockOnClick = false, keyboardRequiresFocus = false, items = [], roomCount = 3 }: ControlsProps): null {
   const { camera, gl, scene, invalidate } = useThree();
   const velocity = useRef({ x: 0, z: 0 });
   const drag = useRef({ active: false, x: 0, y: 0, distance: 0 });
@@ -65,6 +67,7 @@ export function GalleryControls({ active, input, view, onPause, onNavigate, onIn
       if (hit && hit.distance < 5.5 && typeof id === "string") callbacks.current.onInspect(id);
     };
     const keyDown = (event: KeyboardEvent): void => {
+      if (keyboardRequiresFocus && document.activeElement !== canvas) return;
       if (event.target instanceof HTMLElement && event.target.closest("button, input, textarea, select, [contenteditable=true], [role=dialog]")) return;
       if (walkingKeys.has(event.code)) { event.preventDefault(); input.current.keys.add(event.code); }
       if (event.code === "Escape") callbacks.current.onPause();
@@ -77,6 +80,7 @@ export function GalleryControls({ active, input, view, onPause, onNavigate, onIn
     const clear = (): void => { input.current.keys.clear(); drag.current.active = false; callbacks.current.onPause(); };
     const hidden = (): void => { if (document.hidden) clear(); };
     const pointerDown = (event: PointerEvent): void => {
+      if (keyboardRequiresFocus) canvas.focus({ preventScroll: true });
       drag.current = { active: true, x: event.clientX, y: event.clientY, distance: 0 };
       if (!document.pointerLockElement) canvas.setPointerCapture(event.pointerId);
     };
@@ -89,9 +93,12 @@ export function GalleryControls({ active, input, view, onPause, onNavigate, onIn
       drag.current.x = event.clientX; drag.current.y = event.clientY; drag.current.distance += Math.abs(dx) + Math.abs(dy);
     };
     const pointerUp = (event: PointerEvent): void => {
-      if (pointerLockOnClick && !document.pointerLockElement && drag.current.active && drag.current.distance < 8 && !window.matchMedia("(pointer: coarse)").matches) {
+      if (pointerLockOnClick && canvas.requestPointerLock && !document.pointerLockElement && drag.current.active && drag.current.distance < 8 && !window.matchMedia("(pointer: coarse)").matches) {
         drag.current.active = false;
-        void canvas.requestPointerLock().catch(() => undefined);
+        try {
+          const request = canvas.requestPointerLock();
+          if (request) void request.catch(() => undefined);
+        } catch { /* Drag controls remain available when pointer lock is denied. */ }
         return;
       }
       if (drag.current.active && (document.pointerLockElement || drag.current.distance < 8)) inspect(event.clientX, event.clientY);
@@ -120,7 +127,7 @@ export function GalleryControls({ active, input, view, onPause, onNavigate, onIn
       canvas.removeEventListener("pointerup", pointerUp);
       canvas.removeEventListener("pointercancel", clear);
     };
-  }, [active, camera, gl, input, scene]);
+  }, [active, camera, gl, input, scene, keyboardRequiresFocus]);
 
   useFrame((_, delta) => {
     if (!active) return;
@@ -156,4 +163,3 @@ export function GalleryControls({ active, input, view, onPause, onNavigate, onIn
   return null;
 }
 
-export const initialView: GalleryView = { position: [...exhibitionTemplate.spawns[0].position], yaw: exhibitionTemplate.spawns[0].yaw, revision: 0 };
