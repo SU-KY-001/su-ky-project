@@ -11,6 +11,7 @@ export function GalleryArchitecture({ chapterText, artworks = [] }: { chapterTex
   useEffect(() => () => { plaster.color.dispose(); plaster.normal.dispose(); plaster.roughness.dispose(); }, [plaster]);
   return <group>
     <GalleryFloor />
+    {chapterText.length < 3 && <mesh position={[3.5, 2.2, chapterText.length === 1 ? -8 : -24]}><boxGeometry args={[3, 4.4, 0.28]} /><meshStandardMaterial color={palette.wall} map={plaster.color} normalMap={plaster.normal} roughnessMap={plaster.roughness} roughness={1} /></mesh>}
     {floorAreas.map(area => <group key={area.z}>
       <mesh position={[area.x, 4.4, area.z]} rotation={[Math.PI / 2, 0, 0]}>
         <planeGeometry args={[area.width, area.depth]} /><meshBasicMaterial color={palette.ceiling} toneMapped={false} />

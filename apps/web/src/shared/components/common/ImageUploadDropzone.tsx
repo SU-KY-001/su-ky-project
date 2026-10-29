@@ -28,10 +28,11 @@ function uploadFailure(error: unknown): { status: "error" | "invalid-format"; me
   return { status: "error", message: "Chưa hoàn tất tải và xác minh ảnh trên kho lưu trữ. Kiểm tra kết nối rồi bấm Thử tải lại hoặc chọn ảnh khác.", retry: true };
 }
 
-export function ImageUploadDropzone({ label, value, policy, disabled = false, readOnly = false, onUpload, onChange, onBusyChange }: {
+export function ImageUploadDropzone({ label, value, policy, disabled = false, readOnly = false, onUpload, onChange, onBusyChange, successMessage = "Ảnh đã được tải lên và xác minh. Lưu bản nháp hoặc lưu thay đổi để gắn poster vào tập." }: {
   label: string; value: UploadedImage | null; policy?: ImageUploadPolicy; disabled?: boolean; readOnly?: boolean;
   onUpload: (file: File, signal: AbortSignal) => Promise<UploadedImage>;
   onChange: (image: UploadedImage | null) => void; onBusyChange: (busy: boolean) => void;
+  successMessage?: string;
 }): ReactElement {
   const id = useId();
   const input = useRef<HTMLInputElement>(null);
@@ -110,7 +111,7 @@ export function ImageUploadDropzone({ label, value, policy, disabled = false, re
 
   function choose(files: File[]): void {
     if (unavailable || readOnly || !files.length) return;
-    if (files.length !== 1) { setStatus("error"); setRetry(false); setMessage("Mỗi tập chỉ dùng một ảnh poster. Chọn hoặc kéo thả một ảnh duy nhất."); return; }
+    if (files.length !== 1) { setStatus("error"); setRetry(false); setMessage("Chọn hoặc kéo thả một ảnh duy nhất."); return; }
     void upload(files[0]);
   }
 
@@ -139,6 +140,6 @@ export function ImageUploadDropzone({ label, value, policy, disabled = false, re
     </div>
     {message && <p role="alert" className="text-xs leading-6 text-mod-danger">{message}</p>}
     {previewFailed && <p role="alert" className="text-xs leading-6 text-mod-danger">Không mở được ảnh xem trước. Tải lại trang hoặc chọn ảnh khác.</p>}
-    {!readOnly && status === "success" && <p className="text-xs leading-6 text-mod-text-secondary">Ảnh đã được tải lên và xác minh. Lưu bản nháp hoặc lưu thay đổi để gắn poster vào tập.</p>}
+    {!readOnly && status === "success" && <p className="text-xs leading-6 text-mod-text-secondary">{successMessage}</p>}
   </div>;
 }

@@ -22,6 +22,11 @@ export const exhibitionService = {
   podcastOptions: (q: string, page: number, seriesId?: string) => parse(client.api.studio["exhibition-podcast-options"].$get({ query: { q, seriesId, page: String(page), limit: "10" } }), paginatedSchema(ExhibitionPodcastOptionSchema)),
   series: (page: number) => parse(client.api.series.$get({ query: { page: String(page), limit: "50" } }), paginatedSchema(LibrarySeriesSchema)),
   imagePolicy: () => parse(client.api.studio["media-assets"]["image-policy"].$get(), ImageUploadPolicySchema),
+  uploadAudio: async (file: File, signal: AbortSignal) => {
+    const id = await uploadCatalogMedia(file, "AUDIO", signal);
+    const media = await parse(client.api.studio["media-assets"][":id"].$get({ param: { id } }), z.object({ previewUrl: z.string().url() }));
+    return { id, url: media.previewUrl };
+  },
   uploadImage: async (file: File, signal: AbortSignal) => {
     const bitmap = await createImageBitmap(file);
     const dimensions = { width: bitmap.width, height: bitmap.height };

@@ -35,7 +35,7 @@ export function GalleryScene(props: ControlsProps & { onUnavailable: () => void;
     <GalleryCeilingLights />
     <GalleryArtworkLights artworks={props.items} />
     {props.items.map(artwork => <GalleryArtwork key={artwork.id} artwork={artwork} />)}
-    <GalleryControls {...props} />
+    <GalleryControls {...props} roomCount={props.chapterText.length} />
     <ContextEvents onUnavailable={props.onUnavailable} />
   </Canvas>;
 }

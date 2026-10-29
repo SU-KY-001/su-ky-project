@@ -4,11 +4,11 @@ import { ArrowLeft } from "@phosphor-icons/react/dist/icons/ArrowLeft";
 import { ArrowRight } from "@phosphor-icons/react/dist/icons/ArrowRight";
 import { ArrowUp } from "@phosphor-icons/react/dist/icons/ArrowUp";
 import { Compass } from "@phosphor-icons/react/dist/icons/Compass";
-import { MouseSimple } from "@phosphor-icons/react/dist/icons/MouseSimple";
 import { Button } from "@/shared/components/ui/button";
 import { exhibitionTemplate } from "@repo/shared";
 import { resolvedArtworks } from "./resolvedLayout";
 import type { ResolvedExhibition } from "@repo/shared";
+import { ExhibitionEntrance } from "./components/ExhibitionEntrance";
 import { ArtworkDetail, ExhibitionMenu } from "./components/ExhibitionDialogs";
 import { initialView, type GalleryInput, type GalleryView } from "./components/GalleryControls";
 
@@ -36,6 +36,8 @@ export function ExhibitionExperience({ exhibition, startInGallery = false }: { e
   const [target, setTarget] = useState<string | null>(null);
   const [view, setView] = useState<GalleryView>(initialView);
   const container = useRef<HTMLElement>(null);
+  const audio = useRef<HTMLAudioElement>(null);
+  const audioStarted = useRef(false);
   const resumeButton = useRef<HTMLButtonElement>(null);
   const input = useRef<GalleryInput>({ keys: new Set() });
   const overlayUnlock = useRef(false);
@@ -43,6 +45,13 @@ export function ExhibitionExperience({ exhibition, startInGallery = false }: { e
   const menuReturnPhase = useRef<"walking" | "paused">("walking");
   const focusedArtwork = artworks.find(item => item.id === target);
   const selectedArtwork = artworks.find(item => item.id === selected);
+
+  useEffect(() => {
+    if (startInGallery && audio.current) {
+      audioStarted.current = true;
+      void audio.current.play().catch(() => { audioStarted.current = false; });
+    }
+  }, [startInGallery, exhibition.audio?.url]);
 
   useEffect(() => {
     const previousTitle = document.title;
@@ -99,6 +108,10 @@ export function ExhibitionExperience({ exhibition, startInGallery = false }: { e
   }, [phase, releasePointer]);
   const unavailable = useCallback((): void => { setAvailable(false); setPhase("paused"); releasePointer(); }, [releasePointer]);
   const enter = (): void => {
+    if (!audioStarted.current && audio.current) {
+      audioStarted.current = true;
+      void audio.current.play().catch(() => { audioStarted.current = false; });
+    }
     if (!available) { navigate(); return; }
     setPhase("walking");
     const canvas = container.current?.querySelector("canvas");
@@ -125,25 +138,14 @@ export function ExhibitionExperience({ exhibition, startInGallery = false }: { e
   };
 
   return <main ref={container} className={`exhibition${startInGallery ? " exhibition-preview" : ""}`} aria-label={`Triển lãm ảnh tư liệu: ${title}`}>
-    <div className="exhibition-stage absolute inset-0 touch-none [&_canvas]:block [&_canvas]:outline-none" aria-hidden={phase === "intro" || phase === "menu" || phase === "artwork"}>
+    {exhibition.audio && <audio ref={audio} src={exhibition.audio.url} controls preload="metadata" aria-label="Âm thanh kể chuyện triển lãm" className={phase === "intro" ? "exhibition-cover-audio" : "absolute bottom-4 right-4 z-20 w-64 max-w-[calc(100%-2rem)]"} />}
+    <div className={`exhibition-stage absolute inset-0 touch-none [&_canvas]:block [&_canvas]:outline-none${phase === "intro" ? " exhibition-stage-cover" : ""}`} aria-hidden={phase === "intro" || phase === "menu" || phase === "artwork"}>
       {ready && available && <SceneBoundary onUnavailable={unavailable}><Suspense fallback={null}>
         <GalleryScene active={phase === "walking"} input={input} view={view} onPause={pause} onNavigate={navigate} onInspect={inspect} onTarget={setTarget} onChapter={setChapter} onUnavailable={unavailable} items={artworks} chapterText={chapters} />
       </Suspense></SceneBoundary>}
     </div>
 
-    {phase === "intro" && <section className="exhibition-entrance">
-      <header className="exhibition-brand flex items-center gap-6"><span>SỬ KÝ</span><span>KHÔNG GIAN TƯ LIỆU</span></header>
-      <div className="exhibition-intro-copy my-auto w-[min(610px,54vw)] py-8">
-        <p className="exhibition-eyebrow mb-[27px] text-[10px] font-medium tracking-[.2em] text-[var(--exhibit-muted)]">TRIỂN LÃM ẢNH TƯ LIỆU</p>
-        <h1>{title}<span>.</span></h1>
-        <p className="exhibition-subtitle text-[clamp(14px,1.35vw,19px)] font-medium tracking-[-.02em]">{exhibition.metadata.subtitle}</p>
-        <p className="exhibition-invitation mt-7 text-[13px] leading-[1.9] text-[var(--exhibit-muted)]">{exhibition.metadata.description}</p>
-        <Button onClick={enter} disabled={!ready} className="exhibition-enter">Enter <ArrowRight size={22} weight="light" /></Button>
-        {!ready && <p role="status" className="exhibition-loading mt-3 max-w-[340px] text-xs text-[var(--exhibit-muted)]">Đang chuẩn bị không gian…</p>}
-        {!available && <p className="exhibition-loading mt-3 max-w-[340px] text-xs text-[var(--exhibit-muted)]">Thiết bị không hỗ trợ 3D. Enter để xem ảnh và đọc câu chuyện.</p>}
-      </div>
-      <footer className="exhibition-entry-footer flex items-center gap-10 text-[10px] text-[var(--exhibit-muted)]"><span>{artworks.length} ảnh tư liệu <span aria-hidden="true">/</span> 3 chương</span><span className="exhibition-entry-controls ml-auto flex items-center gap-3 bg-[color:var(--exhibit-paper)]/85 px-4 py-3"><MouseSimple size={18} /> Chuột để nhìn <span aria-hidden="true">/</span> WASD để bước đi</span></footer>
-    </section>}
+    {phase === "intro" && <ExhibitionEntrance title={title} subtitle={exhibition.metadata.subtitle} description={exhibition.metadata.description} artworkCount={artworks.length} chapterCount={chapters.length} ready={ready} available={available} onEnter={enter} />}
 
     {phase === "walking" && <>
       <div className="exhibition-room-label pointer-events-none absolute left-9 top-[30px] flex items-center gap-[19px] bg-[color:var(--exhibit-paper)]/10 px-2.5 py-1 backdrop-blur-[6px]"><span>0{chapter + 1}</span><div>{chapters[chapter]?.title}<small>{chapters[chapter]?.period}</small></div></div>
@@ -169,7 +171,7 @@ export function ExhibitionExperience({ exhibition, startInGallery = false }: { e
     }} onTravel={travel} onInspect={inspect} onReturnFocus={() => {
       if (available && menuReturnPhase.current === "walking") container.current?.querySelector("canvas")?.focus();
     }} />}
-    {phase === "artwork" && <ArtworkDetail artwork={selectedArtwork} narration={exhibition.items.find(item => item.id === selected)?.narration} onClose={closeDetails} onReturnFocus={() => {
+    {phase === "artwork" && <ArtworkDetail artwork={selectedArtwork} narration={exhibition.audio ? null : exhibition.items.find(item => item.id === selected)?.narration} onClose={closeDetails} onReturnFocus={() => {
       if (available && artworkReturnPhase.current === "walking") container.current?.querySelector("canvas")?.focus();
     }} />}
   </main>;
