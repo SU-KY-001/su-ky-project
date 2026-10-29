@@ -198,6 +198,7 @@ export function episodeChecklist(episode: EpisodeWorkspaceEntity) {
 export function mapSeriesDetail(
   series: SeriesDetailEntity,
   storage?: MediaStorageGateway,
+  visibleEpisodeIds: ReadonlySet<string> | null = null,
 ) {
   return {
     id: series.id,
@@ -233,7 +234,8 @@ export function mapSeriesDetail(
     updatedAt: series.updatedAt,
     publishChecklist: seriesChecklist(series),
     sources: series.sources.map((item) => mapSeriesSource(item, storage)),
-    episodes: series.episodes.map((episode) => {
+    // Checklist above is computed from every episode: filtering only limits what is listed, not what is true.
+    episodes: series.episodes.filter((episode) => !visibleEpisodeIds || visibleEpisodeIds.has(episode.id)).map((episode) => {
       const third = episode.narrations.find(
         (item) => item.narrationType === "THIRD_PERSON",
       );

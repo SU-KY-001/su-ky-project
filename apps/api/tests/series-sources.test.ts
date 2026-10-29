@@ -328,7 +328,7 @@ describe.skipIf(!RUN_INTEGRATION)(
         await expect(
           content.publishSeries(session, noSource.id),
         ).rejects.toMatchObject({ code: "SERIES_NOT_PUBLISHABLE" });
-        const detail = await content.getSeriesDetailForRead(
+        const { series: detail } = await content.getSeriesDetailForRead(
           session,
           noSource.id,
         );
@@ -349,7 +349,7 @@ describe.skipIf(!RUN_INTEGRATION)(
         await expect(
           content.publishSeries(session, bare.id),
         ).rejects.toMatchObject({ code: "SERIES_NOT_PUBLISHABLE" });
-        const detail = await content.getSeriesDetailForRead(session, bare.id);
+        const { series: detail } = await content.getSeriesDetailForRead(session, bare.id);
         expect(detail.language).toBe("vi");
         expect(
           seriesChecklist(detail)

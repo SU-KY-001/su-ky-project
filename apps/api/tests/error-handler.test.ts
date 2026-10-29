@@ -47,6 +47,13 @@ describe("errorHandler: Prisma errors", () => {
   it("leaves unmapped Prisma codes as 500", async () => {
     expect((await call(prismaError("P2999"))).status).toBe(500);
   });
+
+  it("treats an unreachable database as retryable but bad credentials as a plain 500", async () => {
+    const init = (code?: string) => new Prisma.PrismaClientInitializationError("secret host details", "test", code);
+    expect((await call(init("P1001"))).status).toBe(503);
+    expect((await call(init("P1000"))).status).toBe(500);
+    expect((await call(init())).status).toBe(500);
+  });
 });
 
 describe("errorHandler: HTTPException", () => {
@@ -71,7 +78,7 @@ describe("errorHandler: request validation", () => {
   it("names the failing fields and never echoes what was submitted", async () => {
     const response = await post({ name: "", role: "SECRETPASSWORD", tags: [987654, 987655] });
     const raw = await response.text();
-    const body = JSON.parse(raw) as { error_code: string; details: { path: string; message: string }[] };
+    const body = JSON.parse(raw) as { error_code: string; details: { path: string; code: string }[] };
     expect(response.status).toBe(400);
     expect(body.error_code).toBe("VALIDATION_ERROR");
     expect(body.details.map((d) => d.path).sort()).toEqual(["name", "role", "tags.0", "tags.1"]);

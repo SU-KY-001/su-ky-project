@@ -56,7 +56,7 @@ describe("Su-Ky API", () => {
     expect(error).toEqual({
       error_code: "VALIDATION_ERROR",
       message: "Request validation failed",
-      details: [{ path: "limit", message: expect.any(String) }],
+      details: [{ path: "limit", code: expect.any(String) }],
     });
   });
 

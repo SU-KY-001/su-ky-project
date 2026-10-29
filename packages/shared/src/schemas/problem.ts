@@ -92,7 +92,8 @@ export const MAX_ERROR_DETAILS = 20;
 export const ErrorDetailSchema = z.object({
   /** Dot-joined path inside the request part that failed, for example `blocks.0.text`. */
   path: z.string(),
-  message: z.string(),
+  /** zod issue code (`too_small`, `invalid_enum_value`...), not a sentence: clients map it to their own text. */
+  code: z.string(),
 });
 
 export const ErrorResponseSchema = z.object({
