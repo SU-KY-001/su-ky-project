@@ -1,5 +1,6 @@
 import { CreateExhibitionSchema, ExhibitionListQuerySchema, ExhibitionPodcastQuerySchema, ExhibitionPodcastOptionSchema, ExhibitionSummarySchema, ExhibitionWorkspaceSchema, PublishExhibitionSchema, ResolvedExhibitionSchema, SaveExhibitionDraftSchema, UuidParamSchema, paginatedSchema } from "@repo/shared";
 import { z } from "zod";
+import { PublicExhibitionListSchema } from "@repo/shared";
 import { operation, type Paths } from "../operation";
 
 const tag = "Studio Exhibitions";
@@ -8,6 +9,7 @@ const list = paginatedSchema(ExhibitionSummarySchema);
 const podcastOptions = paginatedSchema(ExhibitionPodcastOptionSchema);
 const params = { pathParams: UuidParamSchema, pathParamDocs: { id: "ID triển lãm" } };
 export const exhibitionPaths: Paths = {
+  "/api/exhibitions": { get: operation({ id: "listPublicExhibitions", tag, summary: "Danh sách triển lãm đã công khai", description: "Chỉ trả slug, tiêu đề và mô tả ngắn từ snapshot đã xuất bản; không trả thông tin bản nháp.", access: "public", ok: { status: 200, description: "Danh sách công khai, có thể rỗng", schema: { name: "PublicExhibitionList", schema: PublicExhibitionListSchema } } }) },
   "/api/studio/exhibition-templates": { get: operation({ id: "listExhibitionTemplates", tag, summary: "Danh sách mẫu phòng", access: "moderator", ok: { status: 200, description: "Mẫu triển lãm" } }) },
   "/api/studio/exhibition-podcast-options": { get: operation({ id: "listExhibitionPodcastOptions", tag, summary: "Chọn bản kể đã phát hành", access: "moderator", query: ExhibitionPodcastQuerySchema, ok: { status: 200, description: "Bản kể", schema: { name: "ExhibitionPodcastOptions", schema: podcastOptions } } }) },
   "/api/studio/exhibitions": {

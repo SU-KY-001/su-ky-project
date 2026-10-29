@@ -3,12 +3,26 @@ import { ExhibitionService } from "../src/modules/exhibition/application/exhibit
 import type { ExhibitionRepository, ExhibitionRecord } from "../src/modules/exhibition/domain/exhibition.repository";
 import { ExhibitionDocumentSchema } from "@repo/shared";
 import { validateReferences } from "../src/modules/exhibition/domain/exhibition-references";
+import { createPublicExhibitionRoute } from "../src/modules/exhibition/presentation/exhibition.routes";
 
 const document = ExhibitionDocumentSchema.parse({ schemaVersion: 1, templateId: "gallery-1975-v1", templateVersion: 1, metadata: { title: "Phòng", subtitle: "", description: "", coverAssetId: null }, chapters: [1, 2, 3].map(n => ({ id: `00000000-0000-4000-8000-00000000000${n}`, roomKey: `room-${n}`, title: `Chương ${n}`, period: "", description: "" })), items: [] });
+
+test("public exhibition list is anonymous and returns only public summaries without resolving scenes", async () => {
+  const items = [{ slug: "first", title: "Triển lãm một", description: "Câu chuyện một" }, { slug: "second", title: "Triển lãm hai", description: "" }];
+  const unexpected = async (): Promise<never> => { throw new Error("Public list must not read draft workspaces or resolve scene assets"); };
+  const repository: ExhibitionRepository = { listPublished: async () => ({ items }), list: unexpected, resolve: unexpected, podcastOptions: unexpected, create: unexpected, publish: unexpected, findPublished: unexpected, find: unexpected, save: unexpected };
+  const route = createPublicExhibitionRoute(new ExhibitionService(repository));
+  const response = await route.request("/exhibitions");
+  expect(response.status).toBe(200);
+  expect(await response.json()).toEqual({ items });
+  items.length = 0;
+  expect(await (await route.request("/exhibitions")).json()).toEqual({ items: [] });
+});
 
 test("draft writes enforce ownership and compare revisions without losing server data", async () => {
   let row: ExhibitionRecord = { id: "00000000-0000-4000-8000-000000000004", ownerId: "owner", slug: "phong", revision: 1, document, publishedDocument: null, publishedRevision: null, updatedAt: new Date() };
   const repository: ExhibitionRepository = {
+    async listPublished() { return { items: [] }; },
     async publish() { return null; },
     async findPublished() { return null; },
     async podcastOptions(query) { return { items: [], total: 0, page: query.page, limit: query.limit }; },
@@ -29,6 +43,7 @@ test("draft writes enforce ownership and compare revisions without losing server
 test("creating a draft validates the document before persistence", async () => {
   let calls = 0;
   const repository: ExhibitionRepository = {
+    async listPublished() { return { items: [] }; },
     async publish() { return null; },
     async findPublished() { return null; },
     async podcastOptions(query) { return { items: [], total: 0, page: query.page, limit: query.limit }; },

@@ -1,4 +1,5 @@
 export { ExhibitionExperience } from "./ExhibitionExperience";
+export { EmbeddedExhibition } from "./EmbeddedExhibition";
 export { GalleryArchitecture } from "./components/GalleryArchitecture";
 export { GalleryCeilingLights } from "./components/GalleryCeilingLights";
 export { GalleryArtworkLights } from "./components/GalleryArtworkLights";
