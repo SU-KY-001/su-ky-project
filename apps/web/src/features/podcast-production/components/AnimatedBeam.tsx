@@ -4,15 +4,17 @@ import { motion, useReducedMotion } from "motion/react";
 export function AnimatedBeam({
   stepCount,
   activeStepIndex,
+  inset = "12.5%",
 }: {
   stepCount: number;
   activeStepIndex: number;
+  inset?: string;
 }): ReactElement {
   const reducedMotion = useReducedMotion();
   const progress = stepCount > 1 ? activeStepIndex / (stepCount - 1) : 0;
 
   return (
-    <div aria-hidden="true" className="pointer-events-none absolute inset-x-[12.5%] top-[15px] h-0.5 bg-mod-border">
+    <div aria-hidden="true" style={{ left: inset, right: inset }} className="pointer-events-none absolute top-[15px] h-0.5 bg-mod-border">
       <motion.div
         className="h-full origin-left bg-mod-primary"
         initial={false}

@@ -16,9 +16,10 @@ const item = z.object({
 export const ExhibitionDocumentSchema = z.object({
   schemaVersion: z.literal(1), templateId: z.literal("gallery-1975-v1"), templateVersion: z.literal(1),
   metadata,
-  chapters: z.array(chapter).length(3), items: z.array(item).max(100),
+  audioAssetId: uuid.nullable().optional(),
+  chapters: z.array(chapter).min(1).max(3), items: z.array(item).max(100),
 }).superRefine((document, ctx) => {
-  if (new Set(document.chapters.map(value => value.id)).size !== 3 || new Set(document.chapters.map(value => value.roomKey)).size !== 3)
+  if (new Set(document.chapters.map(value => value.id)).size !== document.chapters.length || new Set(document.chapters.map(value => value.roomKey)).size !== document.chapters.length)
     ctx.addIssue({ code: "custom", message: "Chương và phòng phải duy nhất", path: ["chapters"] });
   if (new Set(document.items.map(value => value.id)).size !== document.items.length)
     ctx.addIssue({ code: "custom", message: "Điểm trưng bày phải có ID duy nhất", path: ["items"] });
@@ -39,7 +40,7 @@ export type ExhibitionPodcastOption = z.infer<typeof ExhibitionPodcastOptionSche
 export type ExhibitionPodcastQuery = z.infer<typeof ExhibitionPodcastQuerySchema>;
 export const ExhibitionSummarySchema = z.object({ id: uuid, title: z.string(), slug: z.string(), chapterCount: z.number().int().nonnegative(), itemCount: z.number().int().nonnegative(), podcastCount: z.number().int().nonnegative(), publicationStatus: z.enum(["UNPUBLISHED", "PUBLISHED"]), revision: z.number().int().positive(), updatedAt: z.string().datetime() });
 const resolvedItem = item.extend({ image: z.object({ url: z.string().url(), width: z.number().positive(), height: z.number().positive() }), narration: z.object({ id: uuid, episodeTitle: z.string(), seriesTitle: z.string(), narrationLabel: z.string(), available: z.boolean() }).nullable() });
-export const ResolvedExhibitionSchema = z.object({ metadata, chapters: z.array(chapter).length(3), items: z.array(resolvedItem) });
+export const ResolvedExhibitionSchema = z.object({ metadata, chapters: z.array(chapter).min(1).max(3), items: z.array(resolvedItem), audio: z.object({ url: z.string().url() }).nullable().optional() });
 export const ExhibitionWorkspaceSchema = z.object({ id: uuid, slug: z.string(), revision: z.number().int().positive(), updatedAt: z.string().datetime(), publicationStatus: z.enum(["UNPUBLISHED", "PUBLISHED"]), publishedRevision: z.number().int().positive().nullable(), document: ExhibitionDocumentSchema, resolved: ResolvedExhibitionSchema, allowedActions: z.array(z.enum(["edit", "publish"])) });
 export type ExhibitionDocument = z.infer<typeof ExhibitionDocumentSchema>;
 export type ExhibitionWorkspace = z.infer<typeof ExhibitionWorkspaceSchema>;

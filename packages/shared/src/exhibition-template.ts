@@ -19,9 +19,9 @@ export const exhibitionTemplate = {
     { id: "room-3-north", roomKey: "room-3", a: [-4, -40], b: [6, -40], normal: [0, 1], range: [1, 9] },
   ],
   suggestions: [
-    { wallId: "room-1-west", offset: 14.6 }, { wallId: "room-1-west", offset: 7.5 }, { wallId: "room-1-north", offset: 4.6 }, { wallId: "room-1-east", offset: 6.2 },
-    { wallId: "room-2-east", offset: 5.6 }, { wallId: "room-2-south", offset: 4.7 }, { wallId: "room-2-south", offset: 11.7 }, { wallId: "room-2-north", offset: 3.1 },
-    { wallId: "room-3-west", offset: 8.4 }, { wallId: "room-3-east", offset: 11.5 }, { wallId: "room-3-east", offset: 5 }, { wallId: "room-3-north", offset: 4.2 },
+    { wallId: "room-1-west", offset: 14.6 }, { wallId: "room-1-west", offset: 7.5 }, { wallId: "room-1-north", offset: 2.3 }, { wallId: "room-1-east", offset: 8 },
+    { wallId: "room-2-east", offset: 5.6 }, { wallId: "room-2-south", offset: 3 }, { wallId: "room-2-south", offset: 13 }, { wallId: "room-2-north", offset: 3.1 },
+    { wallId: "room-3-west", offset: 6.4 }, { wallId: "room-3-east", offset: 9 }, { wallId: "room-3-east", offset: 3 }, { wallId: "room-3-north", offset: 4.2 },
   ],
   reservedAreas: [
     { wallId: "room-1-north", start: 8.4, end: 11 },

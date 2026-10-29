@@ -19,11 +19,12 @@ export interface ControlsProps {
   onViewChange?: (view: GalleryView) => void;
   pointerLockOnClick?: boolean;
   items?: Artwork[];
+  roomCount?: number;
 }
 
 const walkingKeys = new Set(["KeyW", "KeyA", "KeyS", "KeyD", "ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"]);
 
-export function GalleryControls({ active, input, view, onPause, onNavigate, onInspect, onTarget, onChapter, onViewChange, pointerLockOnClick = false, items = [] }: ControlsProps): null {
+export function GalleryControls({ active, input, view, onPause, onNavigate, onInspect, onTarget, onChapter, onViewChange, pointerLockOnClick = false, items = [], roomCount = 3 }: ControlsProps): null {
   const { camera, gl, scene, invalidate } = useThree();
   const velocity = useRef({ x: 0, z: 0 });
   const drag = useRef({ active: false, x: 0, y: 0, distance: 0 });
@@ -135,7 +136,8 @@ export function GalleryControls({ active, input, view, onPause, onNavigate, onIn
     velocity.current.x += (targetX - velocity.current.x) * damping;
     velocity.current.z += (targetZ - velocity.current.z) * damping;
     if (Math.abs(velocity.current.x) + Math.abs(velocity.current.z) > 0.001) {
-      const [x, z] = movePlayer([camera.position.x, camera.position.z], [velocity.current.x * dt, velocity.current.z * dt], [...walls, ...benchWalls, ...galleryReturns(items)]);
+      const endWall = roomCount < 3 ? [{ a: [2, roomCount === 1 ? -8 : -24] as const, b: [5, roomCount === 1 ? -8 : -24] as const }] : [];
+      const [x, z] = movePlayer([camera.position.x, camera.position.z], [velocity.current.x * dt, velocity.current.z * dt], [...walls, ...benchWalls, ...galleryReturns(items), ...endWall]);
       camera.position.set(x, 1.65, z);
     }
     const chapter = chapterAt(camera.position.x, camera.position.z);

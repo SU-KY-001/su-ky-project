@@ -57,3 +57,12 @@ test("draft references require verified owned images and published playable narr
   expect(() => validateReferences(withItem, "owner", [{ ...image, status: "PENDING" }], [narrationId])).toThrow();
   expect(() => validateReferences(withItem, "owner", [image], [])).toThrow();
 });
+
+test("shared exhibition audio must be verified and owned by its creator", () => {
+  const audio = { id: "00000000-0000-4000-8000-000000000009", uploadedById: "owner", kind: "AUDIO", status: "READY", verifiedAt: new Date(), deletedAt: null, widthPx: null, heightPx: null };
+  const withAudio = { ...document, audioAssetId: audio.id };
+  expect(() => validateReferences(withAudio, "owner", [], [], audio)).not.toThrow();
+  expect(() => validateReferences(withAudio, "other", [], [], audio)).toThrow();
+  expect(() => validateReferences(withAudio, "owner", [], [], { ...audio, status: "PENDING" })).toThrow();
+  expect(() => validateReferences(withAudio, "owner", [], [], null)).toThrow();
+});
