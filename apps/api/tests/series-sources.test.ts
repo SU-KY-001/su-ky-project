@@ -432,8 +432,8 @@ describe.skipIf(!RUN_INTEGRATION)(
           PublishEpisodeExceptionSchema.safeParse({ ...(await exception(workspace.id)), exceptionReason: "quá ngắn" }).success,
         ).toBe(false);
         expect(
-          PublishEpisodeExceptionSchema.safeParse({ baseUpdatedAt: new Date(), assessment: validAssessment() }).success,
-        ).toBe(false);
+          PublishEpisodeExceptionSchema.parse({ baseUpdatedAt: new Date() }).exceptionReason.length,
+        ).toBeGreaterThanOrEqual(20);
       });
     });
 

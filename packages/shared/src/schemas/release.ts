@@ -86,7 +86,7 @@ export const LinkReleaseEpisodeSchema = z.object({
 });
 
 export const ReviewEpisodeSchema = z.discriminatedUnion("decision", [
-  z.object({ decision: z.literal("APPROVE"), contentRevision: z.number().int().positive(), reviewNote: z.string().trim().max(5000).nullish(), assessment: PublicationAssessmentSchema }),
+  z.object({ decision: z.literal("APPROVE"), contentRevision: z.number().int().positive(), reviewNote: z.string().trim().max(5000).nullish(), assessment: PublicationAssessmentSchema.default({}) }),
   z.object({ decision: z.literal("REQUEST_CHANGES"), contentRevision: z.number().int().positive(), reviewNote: z.string().trim().min(1).max(5000) }),
 ]);
 
@@ -280,6 +280,7 @@ export type CreateReleaseScheduleInput = z.infer<typeof CreateReleaseScheduleSch
 export type UpdateReleaseScheduleInput = z.infer<typeof UpdateReleaseScheduleSchema>;
 export type SubmitEpisodeReviewInput = z.infer<typeof SubmitEpisodeReviewSchema>;
 export type ReviewEpisodeInput = z.infer<typeof ReviewEpisodeSchema>;
+export type ReviewEpisodeRequest = z.input<typeof ReviewEpisodeSchema>;
 export type ReleaseScheduleRecord = z.infer<typeof ReleaseScheduleRecordSchema>;
 export type ReleaseProgressEvent = z.infer<typeof ReleaseProgressEventSchema>;
 export type ReleaseDashboard = z.infer<typeof ReleaseDashboardSchema>;

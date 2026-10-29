@@ -16,7 +16,7 @@ import {
   EpisodePosterSchema,
   ScriptConfigSchema,
   ImageUploadPolicySchema,
-  type PublishEpisodeExceptionInput,
+  type PublishEpisodeExceptionRequest,
 } from "@repo/shared";
 import { client } from "@/lib/client";
 import { ApiError } from "@/lib/apiError";
@@ -140,7 +140,7 @@ export const podcastProductionService = {
       SeriesDetailSchema,
     ),
   /** Admin-only exception publish: the server rejects without a substantial reason and a full assessment. */
-  publishEpisode: (id: string, json: PublishEpisodeExceptionInput) =>
+  publishEpisode: (id: string, json: PublishEpisodeExceptionRequest) =>
     parse(
       studio.episodes[":id"].publish.$post({
         param: { id },

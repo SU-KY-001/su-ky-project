@@ -60,8 +60,6 @@ describe("release HTTP routes", () => {
     });
     expect(invalid.status).toBe(400);
     for (const body of [
-      { decision: "APPROVE", contentRevision: 3 },
-      { decision: "APPROVE", contentRevision: 3, assessment: { ...assessment, audioNote: "ngắn" } },
       { decision: "APPROVE", contentRevision: 3, assessment: { ...assessment, rightsExpiresAt: "2026-02-30" } },
     ]) {
       const rejected = await app.request(`/api/admin/releases/${scheduleId}/review`, {
@@ -69,7 +67,13 @@ describe("release HTTP routes", () => {
       });
       expect(rejected.status).toBe(400);
     }
-    expect(calls).toHaveLength(1);
+    const bare = await app.request(`/api/admin/releases/${scheduleId}/review`, {
+      method: "POST", headers: { "content-type": "application/json" },
+      body: JSON.stringify({ decision: "APPROVE", contentRevision: 3 }),
+    });
+    expect(bare.status).toBe(200);
+    expect(calls[1]?.[2]).toMatchObject({ decision: "APPROVE", assessment: { editorialNote: null, credits: null } });
+    expect(calls).toHaveLength(2);
   });
 
   it("serves review content through both Admin and Moderator routes", async () => {

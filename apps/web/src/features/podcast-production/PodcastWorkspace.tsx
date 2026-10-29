@@ -41,7 +41,6 @@ import { ModeratorListToolbar } from "@/features/moderator/components/ModeratorL
 import { formField } from "@/features/moderator/components/CreationPage";
 import { ModeratorSelect } from "@/features/moderator/components/ModeratorSelect";
 import { notify } from "@/shared/lib/notifications";
-import { newIdempotencyKey } from "@/lib/idempotency";
 import { errorMessage, isApiError } from "@/lib/apiError";
 import {
   useHistoricalEntities,
@@ -109,8 +108,7 @@ function SeriesEvidence({
   };
   const mutation = useMutation({
     mutationFn: async (action: {
-      kind: "patch" | "source" | "remove" | "publish" | "hide";
-      id?: string;
+      kind: "patch" | "publish" | "hide";
     }) => {
       if (action.kind === "patch")
         await api.patch(series.id, {
@@ -123,10 +121,6 @@ function SeriesEvidence({
           ...(cover?.assetId !== seriesCover?.assetId ? { coverImageAssetId: cover?.assetId ?? null } : {}),
           baseUpdatedAt: series.updatedAt,
         });
-      else if (action.kind === "source" && action.id)
-        await api.addCitation(series.id, action.id, newIdempotencyKey());
-      else if (action.kind === "remove" && action.id)
-        await api.removeSource(series.id, action.id);
       else if (action.kind === "publish")
         await api.publishSeries(series.id, series.updatedAt);
       else await api.hideSeries(series.id);
@@ -286,63 +280,6 @@ function SeriesEvidence({
             </dl>
           )}
         </section>
-
-        {event.data ? (
-          <section className="rounded-xl border border-mod-border bg-mod-surface p-4 sm:p-5" aria-labelledby="series-sources-title">
-            <div className="mb-4">
-              <h2 id="series-sources-title" className="font-bold text-mod-text">Nguồn tư liệu</h2>
-              <p className="mt-1 text-sm text-mod-text-secondary">Các trích dẫn được gắn với series và sự kiện chính.</p>
-            </div>
-            <div className="space-y-2">
-              <h3 className="text-sm font-semibold text-mod-text">Nguồn đã chọn</h3>
-              {series.sources.length ? series.sources.map((source) => (
-                <div key={source.id} className="flex items-center justify-between gap-3 rounded-lg bg-mod-canvas-accent px-3 py-2.5 text-sm">
-                  <span className="min-w-0 text-mod-text"><strong>{source.source.title}</strong>{source.locator ? ` · ${source.locator}` : ""}</span>
-                  {editing ? (
-                    <Button
-                      type="button"
-                      size="xs"
-                      variant="ghost"
-                      className="text-mod-danger hover:bg-mod-danger/10 hover:text-mod-danger"
-                      disabled={mutation.isPending}
-                      onClick={() => mutation.mutate({ kind: "remove", id: source.id })}
-                    >
-                      Gỡ
-                    </Button>
-                  ) : null}
-                </div>
-              )) : <p className="rounded-lg border border-dashed border-mod-border p-3 text-sm text-mod-text-secondary">Chưa chọn nguồn.</p>}
-            </div>
-
-            {editing ? (
-              <div className="mt-5 space-y-2">
-                <h3 className="text-sm font-semibold text-mod-text">Trích dẫn có thể chọn</h3>
-                {event.data.citations.length ? event.data.citations.map((citation) => {
-                  const selected = series.sources.some((source) => source.source.id === citation.sourceId && source.locator === citation.locator);
-                  return (
-                    <div key={citation.id} className="flex items-center justify-between gap-3 rounded-lg border border-mod-border px-3 py-2.5 text-sm">
-                      <div className="min-w-0">
-                        <p className="font-medium text-mod-text">{citation.source.title}</p>
-                        <p className="mt-0.5 text-xs text-mod-text-secondary">
-                          {citation.locator || "Chưa có vị trí trích"} · <CardBadge type="status" tone={citation.outdated ? "warning" : cardBadgeToneForStatus(citation.source.verificationStatus)}>{citation.outdated ? "Phiên bản cũ" : citation.source.verificationStatus === "VERIFIED" ? "Đã xác minh" : "Chưa xác minh"}</CardBadge>
-                        </p>
-                      </div>
-                      <Button
-                        type="button"
-                        size="xs"
-                        variant="outline"
-                        disabled={mutation.isPending || selected}
-                        onClick={() => mutation.mutate({ kind: "source", id: citation.id })}
-                      >
-                        {selected ? "Đã chọn" : "Chọn"}
-                      </Button>
-                    </div>
-                  );
-                }) : <p className="text-sm text-mod-text-secondary">Sự kiện chưa có trích dẫn.</p>}
-              </div>
-            ) : null}
-          </section>
-        ) : null}
 
         {missingChecklist.length ? (
           <section className="rounded-xl border border-mod-attention/30 bg-mod-attention/5 p-4" aria-label="Điều kiện cần hoàn tất">

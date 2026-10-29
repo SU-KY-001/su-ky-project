@@ -55,24 +55,6 @@ export const STATE_LABEL: Partial<Record<ReadinessItem["state"], { text: string;
   MISSING: { text: "Thiếu", tone: "missing" },
 };
 
-/** First required row that is not OK: the reason shown next to the locked "Duyệt" button. */
-export function firstMissing(readiness: EpisodeReadiness): string | null {
-  const item = readiness.items.find((row) => row.level === "REQUIRED" && row.state !== "OK");
-  return item ? readinessLabels[item.key](item) : null;
-}
-
-export interface ReviewReason {
-  tone: "blocked" | "warn" | "ok";
-  text: string;
-}
-
-/** Three states from the mock: something required is missing, only warnings, or clean. Warnings never block. */
-export function reviewReason(readiness: EpisodeReadiness): ReviewReason {
-  if (!readiness.ready) return { tone: "blocked", text: `Chưa thể Duyệt: ${firstMissing(readiness) ?? "tập chưa đủ điều kiện."}` };
-  const warned = readiness.items.some((row) => row.state === "WARN" && !AI_READINESS_KEYS.has(row.key) && readinessLabels[row.key](row));
-  return warned ? { tone: "warn", text: "Có thể Duyệt. Cảnh báo không chặn, nhưng bạn nên xem." } : { tone: "ok", text: "Có thể Duyệt." };
-}
-
 /** One non-empty line per paragraph, matching how the script is stored (`\n` between paragraphs). */
 export const paragraphCount = (script: string): number => script.split(/\n+/).filter((line) => line.trim()).length;
 

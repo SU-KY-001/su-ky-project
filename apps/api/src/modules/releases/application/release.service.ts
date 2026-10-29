@@ -12,6 +12,7 @@ import {
   assertAssessmentGate,
   hasAiVoiceAudio,
   hasPublicationWarnings,
+  withGateStatements,
 } from "../../content/application/publication-gate";
 import type {
   EpisodeReviewEntity,
@@ -317,12 +318,12 @@ export class ReleaseService {
     let readinessSnapshot: ReviewReadinessSnapshot;
     if (input.decision === "APPROVE") {
       const content = await this.loadReviewable(schedule.episodeId, input.contentRevision);
-      assertAssessmentGate(input.assessment, {
-        hasAiVoice: hasAiVoiceAudio(content.episode.narrations.filter((item) => item.audio)),
-        hasWarnings: hasPublicationWarnings(content.readiness),
-        now: this.clock(),
-      });
-      readinessSnapshot = { readiness: content.readiness, assessment: input.assessment };
+      const hasAiVoice = hasAiVoiceAudio(content.episode.narrations.filter((item) => item.audio));
+      const hasWarnings = hasPublicationWarnings(content.readiness);
+      const facts = { hasAiVoice, hasWarnings, now: this.clock() };
+      const assessment = withGateStatements(input.assessment, facts);
+      assertAssessmentGate(assessment, facts);
+      readinessSnapshot = { readiness: content.readiness, assessment };
     } else {
       const content = await this.publisher.reviewContent(schedule.episodeId);
       if (!content) throw new DomainError(404, "NOT_FOUND", "Không tìm thấy tập podcast");
