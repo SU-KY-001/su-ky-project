@@ -34,8 +34,10 @@ const NOT_FOUND = "`NOT_FOUND`: tập, lượt rà hoặc mục không tồn t�
 const ANGLES = "/api/studio/ai/angles";
 const COMPOSE = "/api/studio/episodes/{id}/ai";
 const COMPOSE_ERRORS: Record<number, string> = {
+  400: "`REQUEST_ABORTED`: client đã hủy yêu cầu",
   404: NOT_FOUND,
-  422: "`VALIDATION_ERROR`: góc kể hoặc nhân vật kể không tồn tại; `SCRIPT_TOO_LONG`: số từ đích hoặc đoạn chọn vượt trần; `HASH_MISMATCH` (rewrite): `hash` không khớp `text`",
+  409: "`HASH_MISMATCH` (rewrite): `hash` không khớp `text`",
+  422: "`VALIDATION_ERROR`: góc kể hoặc nhân vật kể không tồn tại; `SCRIPT_TOO_LONG`: số từ đích hoặc đoạn chọn vượt trần",
   429: "`RATE_LIMITED` (kèm `Retry-After`): hết hạn mức `rate_limit.ai_generate`; `AI_CONCURRENCY_LIMIT`: quá `AI_ASSIST_MAX_CONCURRENT_PER_USER` lời gọi đang chạy",
   502: "`AI_BAD_OUTPUT`: đầu ra hỏng sau một lần sửa schema hoặc không còn phần hợp lệ",
   503: "`AI_DISABLED`: tắt bằng `ai_assist.enabled`; `AI_UNAVAILABLE`: chưa cấu hình hoặc nhà cung cấp tạm lỗi; `AI_PROVIDER_AUTH` / `AI_PROVIDER_QUOTA`: nhà cung cấp từ chối",
@@ -231,7 +233,7 @@ export const aiAssistPaths: Paths = {
       tag: TAG,
       summary: "AI viết lại đoạn",
       description: [
-        "Đồng bộ, không lưu DB. Server tính lại `hash` của từng block, lệch thì `422 HASH_MISMATCH`. `count` tối đa `AI_REWRITE_MAX_VARIANTS`.",
+        "Đồng bộ, không lưu DB. Server tính lại `hash` của từng block, lệch thì `409 HASH_MISMATCH`. `count` tối đa `AI_REWRITE_MAX_VARIANTS`.",
         "`returned < requested` khi bản trùng gốc, trùng nhau, rỗng hoặc quá khác độ dài bị loại; không còn bản nào thì `502 AI_NO_VARIANTS`. Bản có số lạ được giữ, kèm `novelNumbers`.",
       ].join("\n\n"),
       access: "studio",
@@ -269,7 +271,7 @@ export const aiAssistPaths: Paths = {
     get: operation({
       id: "getVoiceAudio", tag: TAG, summary: "Tải MP3 đã tạo", access: "studio", ...voiceParams,
       ok: { status: 200, description: "File MP3, Cache-Control: no-store", contentType: "audio/mpeg", contentSchema: { type: "string", format: "binary" } },
-      errors: { 404: "Job không tồn tại hoặc không thuộc người dùng", 409: "Job chưa DONE hoặc không có file" },
+      errors: { 404: "Job không tồn tại hoặc không thuộc người dùng", 409: "`INVALID_STATE_TRANSITION`: job chưa DONE hoặc không có file" },
     }),
   },
 };

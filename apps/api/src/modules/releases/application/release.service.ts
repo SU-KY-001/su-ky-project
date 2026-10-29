@@ -222,7 +222,7 @@ export class ReleaseService {
     if (!current)
       throw new DomainError(404, "NOT_FOUND", "Không tìm thấy ticket chuyển giao");
     if (current.requestedById === replacementModeratorId)
-      throw new DomainError(409, "CONFLICT", "Người thay thế phải khác Moderator hiện tại");
+      throw new DomainError(422, "VALIDATION_ERROR", "Người thay thế phải khác Moderator hiện tại");
     const result = await this.repository.approveReassignmentTicket({
       ticketId,
       replacementModeratorId,
@@ -230,7 +230,7 @@ export class ReleaseService {
       correlationId,
     });
     if (result === "INVALID_REPLACEMENT")
-      throw new DomainError(409, "CONFLICT", "Moderator thay thế không còn hoạt động hoặc không hợp lệ");
+      throw new DomainError(422, "VALIDATION_ERROR", "Moderator thay thế không còn hoạt động hoặc không hợp lệ");
     if (!result)
       throw new DomainError(409, "INVALID_STATE_TRANSITION", "Ticket không còn ở trạng thái chờ duyệt");
     return result;
@@ -252,7 +252,7 @@ export class ReleaseService {
       );
     if (!schedule.episodeId || !schedule.episode)
       throw new DomainError(
-        409,
+        422,
         "CONTENT_NOT_READY",
         "Lịch chưa được liên kết với tập podcast",
       );
@@ -312,7 +312,7 @@ export class ReleaseService {
         "Nội dung đã thay đổi sau khi gửi duyệt",
       );
     if (!schedule.episodeId)
-      throw new DomainError(409, "CONTENT_NOT_READY", "Lịch chưa được liên kết với tập podcast");
+      throw new DomainError(422, "CONTENT_NOT_READY", "Lịch chưa được liên kết với tập podcast");
 
     let readinessSnapshot: ReviewReadinessSnapshot;
     if (input.decision === "APPROVE") {
@@ -418,7 +418,7 @@ export class ReleaseService {
     );
     if (!readiness.canPublish)
       throw new DomainError(
-        409,
+        422,
         "CONTENT_NOT_READY",
         "Podcast chưa được duyệt ở phiên bản hiện tại hoặc chưa hoàn tất checklist xuất bản",
       );
@@ -693,7 +693,7 @@ export class ReleaseService {
     });
     if (!schedule)
       throw new DomainError(
-        409,
+        422,
         "CONTENT_NOT_READY",
         "Chỉ có thể liên kết tập nháp thuộc nội dung của bạn với lịch đang hoạt động",
       );

@@ -193,11 +193,9 @@ export class CatalogService {
     input: Omit<SourcePatchInput, "baseVersion"> & { baseVersion?: number },
   ): Promise<Source> {
     const existing = await this.sources.getSource(id);
-    if (
-      !existing ||
-      (actor.role !== "admin" && existing.createdById !== actor.userId)
-    ) {
-      throw new DomainError(404, "NOT_FOUND", "Source not found");
+    if (!existing) throw new DomainError(404, "NOT_FOUND", "Source not found");
+    if (actor.role !== "admin" && existing.createdById !== actor.userId) {
+      throw new DomainError(403, "FORBIDDEN", "Bạn không có quyền sửa nguồn này");
     }
     const isbn =
       input.isbn === undefined ? undefined : normalizeIsbn(input.isbn);
@@ -234,11 +232,9 @@ export class CatalogService {
     baseVersion?: number,
   ): Promise<Source> {
     const source = await this.sources.getSource(id);
-    if (
-      !source ||
-      (actor.role !== "admin" && source.createdById !== actor.userId)
-    ) {
-      throw new DomainError(404, "NOT_FOUND", "Source not found");
+    if (!source) throw new DomainError(404, "NOT_FOUND", "Source not found");
+    if (actor.role !== "admin" && source.createdById !== actor.userId) {
+      throw new DomainError(403, "FORBIDDEN", "Bạn không có quyền sửa nguồn này");
     }
     return this.sources.setSourceArchivedAt(
       id,
@@ -254,11 +250,9 @@ export class CatalogService {
     baseVersion?: number,
   ): Promise<Source> {
     const source = await this.sources.getSource(id);
-    if (
-      !source ||
-      (actor.role !== "admin" && source.createdById !== actor.userId)
-    ) {
-      throw new DomainError(404, "NOT_FOUND", "Source not found");
+    if (!source) throw new DomainError(404, "NOT_FOUND", "Source not found");
+    if (actor.role !== "admin" && source.createdById !== actor.userId) {
+      throw new DomainError(403, "FORBIDDEN", "Bạn không có quyền sửa nguồn này");
     }
     return this.sources.setSourceArchivedAt(
       id,
@@ -328,11 +322,9 @@ export class CatalogService {
     input: HistoricalEntityPatchInput,
   ): Promise<HistoricalEntity> {
     const existing = await this.historicalEntities.getEntity(id);
-    if (
-      !existing ||
-      (actor.role !== "admin" && existing.createdById !== actor.userId)
-    ) {
-      throw new DomainError(404, "NOT_FOUND", "Historical entity not found");
+    if (!existing) throw new DomainError(404, "NOT_FOUND", "Historical entity not found");
+    if (actor.role !== "admin" && existing.createdById !== actor.userId) {
+      throw new DomainError(403, "FORBIDDEN", "Bạn không có quyền sửa thực thể lịch sử này");
     }
     return this.historicalEntities.updateEntity(id, input);
   }

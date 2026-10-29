@@ -65,7 +65,7 @@ describe.skipIf(!RUN_INTEGRATION)("historical taxonomy CRUD", () => {
         name: "Không được sửa",
         baseVersion: 1,
       }),
-    ).rejects.toMatchObject({ status: 404 });
+    ).rejects.toMatchObject({ status: 403, code: "FORBIDDEN" });
     const ph = await service.createNode(owner, "phase", {
       name: "Giai đoạn riêng",
       periodId: p.id,

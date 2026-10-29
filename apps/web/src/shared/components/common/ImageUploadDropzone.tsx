@@ -18,11 +18,11 @@ const sizeLabel = (bytes: number): string => bytes < 1024 * 1024 ? `${Math.ceil(
 
 function uploadFailure(error: unknown): { status: "error" | "invalid-format"; message: string; retry: boolean } {
   if (error instanceof ApiError) {
-    if (["MEDIA_TYPE_NOT_ALLOWED", "MEDIA_INVALID"].includes(error.errorCode ?? "")) return { status: "invalid-format", message: "Máy chủ không chấp nhận định dạng hoặc nội dung ảnh này. Xuất lại ảnh theo định dạng cho phép và chọn tệp mới.", retry: false };
-    if (error.errorCode === "MEDIA_TOO_LARGE") return { status: "error", message: "Ảnh vượt giới hạn dung lượng hiện tại của máy chủ. Nén ảnh hoặc chọn ảnh nhỏ hơn rồi tải lại.", retry: false };
+    if (error.is("MEDIA_TYPE_NOT_ALLOWED") || error.is("MEDIA_INVALID")) return { status: "invalid-format", message: "Máy chủ không chấp nhận định dạng hoặc nội dung ảnh này. Xuất lại ảnh theo định dạng cho phép và chọn tệp mới.", retry: false };
+    if (error.is("MEDIA_TOO_LARGE")) return { status: "error", message: "Ảnh vượt giới hạn dung lượng hiện tại của máy chủ. Nén ảnh hoặc chọn ảnh nhỏ hơn rồi tải lại.", retry: false };
     if (error.status === 401 || error.status === 403) return { status: "error", message: "Phiên đăng nhập đã hết hạn hoặc tài khoản không có quyền tải ảnh. Đăng nhập lại và chọn ảnh để tiếp tục.", retry: false };
     if (error.status === 429) return { status: "error", message: "Bạn đang tải ảnh quá nhanh. Chờ một lát rồi bấm Thử tải lại.", retry: true };
-    if (error.status === 503) return { status: "error", message: "Kho lưu trữ ảnh tạm thời chưa sẵn sàng. Bấm Thử tải lại sau ít phút; nếu lỗi tiếp diễn, liên hệ quản trị viên.", retry: true };
+    if (error.status === 503 || error.is("MEDIA_PROVIDER_UNAVAILABLE")) return { status: "error", message: "Kho lưu trữ ảnh tạm thời chưa sẵn sàng. Bấm Thử tải lại sau ít phút; nếu lỗi tiếp diễn, liên hệ quản trị viên.", retry: true };
   }
   if (error instanceof DOMException && error.name === "TimeoutError") return { status: "error", message: "Tải ảnh quá thời gian chờ. Kiểm tra kết nối mạng rồi bấm Thử tải lại.", retry: true };
   return { status: "error", message: "Chưa hoàn tất tải và xác minh ảnh trên kho lưu trữ. Kiểm tra kết nối rồi bấm Thử tải lại hoặc chọn ảnh khác.", retry: true };

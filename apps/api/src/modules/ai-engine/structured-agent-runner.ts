@@ -11,7 +11,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { env } from "../../core/env";
 import { logger } from "../../core/logger";
-import { AgentAbortedError } from "./errors";
+import { AgentAbortedError, AiUnavailableError } from "./errors";
 import { piRuntime } from "./pi-runtime";
 import { attachPiTracer, type PiTraceEvent } from "./pi-tracer";
 import { classifyProviderFailure, readField, sumUsage, type AgentUsage } from "./provider-failure";
@@ -133,12 +133,12 @@ export async function runStructuredAgent<T>(request: StructuredAgentRequest<T>):
   if (signal?.aborted) throw new AgentAbortedError();
   await piRuntime.ensureInit();
   if (!piRuntime.modelRuntime || !piRuntime.model || !piRuntime.isReady) {
-    throw new Error("Pi model runtime is not ready");
+    throw new AiUnavailableError();
   }
   const modelId = piRuntime.model.id;
   const agentLog = logger.child({ scope: "agent", label, model: modelId });
   const liveModel = piRuntime.modelRuntime.getModel(env.PI_PROVIDER, modelId);
-  if (!liveModel) throw new Error(`Model ${modelId} is no longer available`);
+  if (!liveModel) throw new AiUnavailableError();
 
   const thinkingLevel = request.thinking ?? env.PI_THINKING_LEVEL;
   // Pi's own retry is the only retry layer; provider.maxRetries 0 stops the SDK stacking a second one.
