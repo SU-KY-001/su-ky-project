@@ -73,18 +73,14 @@ describe("series checklist (no database)", () => {
       typeof seriesChecklist
     >[0]);
 
-  it("is ready only with a phase and at least one source", () => {
+  it("is ready with a phase and no source", () => {
     expect(checklist({}).ready).toBe(true);
     expect(
       checklist({ historicalPhaseId: null }).items.find(
         (item) => item.key === "HISTORICAL_PHASE",
       )?.ok,
     ).toBe(false);
-    expect(
-      checklist({ sources: [] }).items.find((item) => item.key === "HAS_SOURCE")
-        ?.ok,
-    ).toBe(false);
-    expect(checklist({ sources: [] }).ready).toBe(false);
+    expect(checklist({ sources: [] }).ready).toBe(true);
   });
 
   it("no longer asks episodes for a source", () => {
@@ -312,7 +308,7 @@ describe.skipIf(!RUN_INTEGRATION)(
     });
 
     describe("publish checklist", () => {
-      it("blocks series publishing without a phase or without a source", async () => {
+      it("blocks series publishing without a phase, but not without a source", async () => {
         const noPhase = await makeSeries("No phase", { phase: null });
         await publishedEpisode(noPhase.id);
         await content.addSource(session, noPhase.id, {
@@ -325,9 +321,6 @@ describe.skipIf(!RUN_INTEGRATION)(
 
         const noSource = await makeSeries("No source");
         await publishedEpisode(noSource.id);
-        await expect(
-          content.publishSeries(session, noSource.id),
-        ).rejects.toMatchObject({ code: "SERIES_NOT_PUBLISHABLE" });
         const { series: detail } = await content.getSeriesDetailForRead(
           session,
           noSource.id,
@@ -336,7 +329,13 @@ describe.skipIf(!RUN_INTEGRATION)(
           seriesChecklist(detail)
             .items.filter((item) => !item.ok)
             .map((item) => item.key),
-        ).toEqual(["HAS_SOURCE"]);
+        ).toEqual([]);
+        await content.publishSeries(session, noSource.id);
+        const published = await prisma.series.findUniqueOrThrow({
+          where: { id: noSource.id },
+        });
+        expect(published.status).toBe("PUBLISHED");
+        expect(published.publicationEvidence).toMatchObject({ sources: [] });
       });
 
       it("blocks series publishing without a description, a READY cover or a language", async () => {
@@ -412,9 +411,6 @@ describe.skipIf(!RUN_INTEGRATION)(
         await content.attachAudio(session, workspace.id, "THIRD_PERSON", {
           assetId: audio.id,
         });
-        await expect(
-          content.publishEpisode(adminSession, workspace.id, await exception(workspace.id)),
-        ).rejects.toMatchObject({ code: "CONTENT_NOT_READY" });
         await content.addSource(session, series.id, {
           sourceId: await makeSource("Inherited"),
           locator: "tr. 1",
@@ -442,7 +438,7 @@ describe.skipIf(!RUN_INTEGRATION)(
     });
 
     describe("series sources", () => {
-      it("blocks deleting the last source of a published series", async () => {
+      it("lets a published series drop its last source", async () => {
         const series = await makeSeries("Last source");
         await publishedEpisode(series.id);
         const first = await content.addSource(session, series.id, {
@@ -451,21 +447,8 @@ describe.skipIf(!RUN_INTEGRATION)(
         });
         await content.publishSeries(session, series.id);
 
-        await expect(
-          content.deleteSource(session, series.id, first.id),
-        ).rejects.toMatchObject({ code: "REQUIRED_FOR_PUBLISHED" });
-        expect(
-          await prisma.seriesSource.count({ where: { seriesId: series.id } }),
-        ).toBe(1);
-
-        const second = await content.addSource(session, series.id, {
-          sourceId: await makeSource("C2"),
-          locator: "",
-        });
         await content.deleteSource(session, series.id, first.id);
-        await expect(
-          content.deleteSource(session, series.id, second.id),
-        ).rejects.toMatchObject({ code: "REQUIRED_FOR_PUBLISHED" });
+        expect(await content.listSources(session, series.id)).toHaveLength(0);
       });
 
       it("lets a draft series drop its last source", async () => {

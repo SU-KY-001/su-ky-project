@@ -122,7 +122,7 @@ Tất cả yêu cầu vai trò `admin`. Thao tác ghi đều có audit log, ghi 
 ### BREAKING — Audio chỉ upload, script text thuần
 - Xóa `audioProvider` / `AttachAudioSchema.provider`. Audio chỉ upload file.
 - `PUT /api/studio/episodes/:id/narrations/THIRD_PERSON` chỉ nhận text thuần — có thẻ HTML → 422. Giới hạn `script.max_chars` (mặc định 60000, đọc từ system config).
-- Checklist publish đổi key — Series: `TOPIC`, `HISTORICAL_PHASE`, `YEAR_RANGE`, `HAS_SOURCE`, `HAS_PUBLISHED_EPISODE`. Episode: `BASIC_INFO`, `THIRD_PERSON_SCRIPT`, `THIRD_PERSON_AUDIO`. Series publish bắt buộc ≥1 nguồn.
+- Checklist publish đổi key — Series: `TOPIC`, `HISTORICAL_PHASE`, `YEAR_RANGE`, `HAS_PUBLISHED_EPISODE`. Episode: `BASIC_INFO`, `THIRD_PERSON_SCRIPT`, `THIRD_PERSON_AUDIO`. Series publish không còn bắt buộc nguồn (bỏ `HAS_SOURCE` và chốt `REQUIRED_FOR_PUBLISHED` khi xóa nguồn cuối).
 - FE phải sửa: editor script dùng `<textarea>`, không rich text.
 
 ### BREAKING — Public citations về cấp series

@@ -122,12 +122,6 @@ export async function collectHistoricalEvidence(
       "CONTENT_NOT_READY",
       "Sự kiện hoặc phiên bản đã chọn chưa sẵn sàng; hãy chọn lại sự kiện hiện tại",
     );
-  if (!sourceRows.length)
-    throw new DomainError(
-      422,
-      "CONTENT_NOT_READY",
-      "Chọn ít nhất một trích dẫn cho podcast",
-    );
   const rows = await tx.seriesSource.findMany({
     where: { seriesId },
     orderBy: { sortOrder: "asc" },

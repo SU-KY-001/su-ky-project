@@ -64,7 +64,6 @@ const checklistLabels: Record<string, string> = {
   TOPIC: "Cần chủ đề",
   HISTORICAL_PHASE: "Cần giai đoạn",
   YEAR_RANGE: "Cần khoảng thời gian",
-  HAS_SOURCE: "Cần nguồn tư liệu",
   HAS_PUBLISHED_EPISODE: "Cần một tập đã phát hành",
   DESCRIPTION: "Cần mô tả series (bấm Chỉnh sửa để nhập)",
   COVER: "Cần ít nhất một ảnh bìa đã xử lý xong (bấm Chỉnh sửa để tải ảnh)",

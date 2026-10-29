@@ -245,7 +245,7 @@ export const studioPaths: Paths = {
       tag: SERIES_TAG,
       summary: "Chi tiết Series",
       description:
-        "Kèm danh sách tập và poster riêng của từng tập (`episodes[].poster`, null nếu chưa có), nguồn (`sources`), Giai đoạn kèm Thời kỳ (`historicalPhase`) và `publishChecklist` (điều kiện xuất bản: chủ đề, Giai đoạn, khoảng năm, ít nhất một nguồn, ít nhất một tập đã xuất bản).",
+        "Kèm danh sách tập và poster riêng của từng tập (`episodes[].poster`, null nếu chưa có), nguồn (`sources`), Giai đoạn kèm Thời kỳ (`historicalPhase`) và `publishChecklist` (điều kiện xuất bản: chủ đề, Giai đoạn, khoảng năm, ít nhất một tập đã xuất bản).",
       access: "studio",
       ...seriesParams,
       ok: { status: 200, description: "Series", schema: seriesDetail },
@@ -291,7 +291,7 @@ export const studioPaths: Paths = {
     post: seriesAction(
       "publishSeries",
       "Xuất bản Series",
-      "Chỉ thành công khi `publishChecklist.ready = true` (gồm chủ đề, Giai đoạn, khoảng năm, nguồn, tập đã xuất bản, mô tả, ít nhất một ảnh bìa READY, ngôn ngữ). Phải có primary event đã duyệt, revision nguồn VERIFIED hiện tại. Publish kiểm baseUpdatedAt và lưu snapshot bằng chứng trong transaction. Owner là người chịu trách nhiệm nội dung.",
+      "Chỉ thành công khi `publishChecklist.ready = true` (gồm chủ đề, Giai đoạn, khoảng năm, tập đã xuất bản, mô tả, ít nhất một ảnh bìa READY, ngôn ngữ). Series không bắt buộc có nguồn. Phải có primary event đã duyệt, revision nguồn VERIFIED hiện tại. Publish kiểm baseUpdatedAt và lưu snapshot bằng chứng trong transaction. Owner là người chịu trách nhiệm nội dung.",
       writeErrors("Series", {
         409: "`STALE_WRITE`: baseUpdatedAt đã cũ",
         422: "`SERIES_NOT_PUBLISHABLE`: checklist chưa đạt (kiểm lại trong transaction); `CONTENT_NOT_READY`: sự kiện/nguồn chưa duyệt hoặc revision đã cũ",
@@ -707,9 +707,7 @@ export const studioPaths: Paths = {
       ...seriesChildParams,
       ok: NO_CONTENT,
       rate: "write",
-      errors: writeErrors("Series", {
-        409: "`REQUIRED_FOR_PUBLISHED`: Series đã xuất bản phải còn ít nhất một nguồn",
-      }),
+      errors: writeErrors("Series"),
     }),
   },
 

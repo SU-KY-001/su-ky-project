@@ -700,10 +700,6 @@ export class PrismaSeriesRepository implements SeriesRepository {
     });
   }
 
-  async countSeriesSources(seriesId: string): Promise<number> {
-    return prisma.seriesSource.count({ where: { seriesId } });
-  }
-
   async deleteSeriesSource(seriesId: string, childId: string): Promise<void> {
     await prisma.$transaction(async (tx) => {
       await tx.$queryRaw`SELECT id FROM series WHERE id=${seriesId}::uuid FOR UPDATE`;

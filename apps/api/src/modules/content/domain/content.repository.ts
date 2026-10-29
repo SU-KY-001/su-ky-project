@@ -183,7 +183,6 @@ export interface SeriesRepository {
     childId: string,
     patch: { locator?: string; excerpt?: string | null },
   ): Promise<SeriesSourceWithSourceEntity>;
-  countSeriesSources(seriesId: string): Promise<number>;
   deleteSeriesSource(seriesId: string, childId: string): Promise<void>;
   listSeriesSourceIds(seriesId: string): Promise<string[]>;
   /** Transactional unit: one sortOrder update per source id. */

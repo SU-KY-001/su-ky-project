@@ -510,16 +510,6 @@ export class ContentService {
     assertWritable(session, series);
     const existing = await this.series.findSeriesSource(seriesId, childId);
     if (!existing) return;
-    if (
-      series.status === "PUBLISHED" &&
-      (await this.series.countSeriesSources(seriesId)) <= 1
-    ) {
-      throw new DomainError(
-        409,
-        "REQUIRED_FOR_PUBLISHED",
-        "Published series require a source",
-      );
-    }
     await this.series.deleteSeriesSource(seriesId, childId);
   }
 
