@@ -10,13 +10,14 @@ import { AudioPlayback } from "@/features/landing";
 import { useCurrentUser } from "@/shared/hooks/useCurrentUser";
 import { exhibitionTemplate, type ResolvedExhibition } from "@repo/shared";
 import { walls, type Artwork } from "../data";
+import brandLogo from "@/public/brand-su-ky-viet-nam.png";
 
 function FloorPlan({ chapter, chapterList }: { chapter: number; chapterList: { title: string; period: string }[] }): ReactElement {
-  return <svg viewBox="-8 -42 16 56" role="img" aria-label={`Sơ đồ ${chapterList.length} phòng. Bạn đang ở ${chapterList[chapter]?.title}.`} className="exhibition-plan max-h-60 w-full text-[var(--exhibit-ink)]">
+  return <svg viewBox={`-8 ${6 - chapterList.length * 16} 16 ${chapterList.length * 16 + 4}`} role="img" aria-label={`Sơ đồ ${chapterList.length} phòng. Phòng đã chọn: ${chapterList[chapter]?.title}.`} className="exhibition-plan h-56 w-full text-bronze">
     <g>
-      {exhibitionTemplate.floorAreas.slice(0, chapterList.length).map(area => <rect key={area.z} x={area.x - area.width / 2} y={area.z - area.depth / 2} width={area.width} height={area.depth} fill="var(--exhibit-soft)" />)}
+      {exhibitionTemplate.floorAreas.slice(0, chapterList.length).map((area, index) => <rect key={area.z} x={area.x - area.width / 2} y={area.z - area.depth / 2} width={area.width} height={area.depth} fill={chapter === index ? "var(--color-paper-deep)" : "var(--color-paper)"} />)}
       {walls.map((wall, index) => <line key={index} x1={wall.a[0]} y1={Math.max(wall.a[1], chapterList.length === 1 ? -8 : chapterList.length === 2 ? -24 : -40)} x2={wall.b[0]} y2={Math.max(wall.b[1], chapterList.length === 1 ? -8 : chapterList.length === 2 ? -24 : -40)} stroke="currentColor" strokeWidth="0.25" />)}
-      {exhibitionTemplate.floorAreas.slice(0, chapterList.length).map((area, index) => <circle key={area.z} cx={area.x} cy={area.z} r={chapter === index ? 0.9 : 0.45} fill={chapter === index ? "var(--exhibit-ink)" : "var(--exhibit-muted)"} />)}
+      {exhibitionTemplate.floorAreas.slice(0, chapterList.length).map((area, index) => <circle key={area.z} cx={area.x} cy={area.z} r={chapter === index ? 0.9 : 0.45} fill={chapter === index ? "var(--color-vermilion)" : "var(--color-bronze)"} />)}
     </g>
   </svg>;
 }
@@ -27,16 +28,17 @@ export function ExhibitionMenu({ open, chapter, available, onClose, onTravel, on
   return <Dialog open={open} onOpenChange={value => { if (!value) onClose(); }}>
     <DialogContent className="exhibition-dialog exhibition-menu max-w-[720px]" onCloseAutoFocus={event => {
       event.preventDefault();
-      queueMicrotask(() => onReturnFocus?.());
+      queueMicrotask(() => { if (!document.querySelector('[role="dialog"]')) onReturnFocus?.(); });
     }}>
-      <div className="exhibition-menu max-w-[720px]-heading mb-3 flex items-center gap-3 text-[9px] tracking-[.15em]"><MapTrifold size={24} weight="light" /><span>THAM QUAN TRIỂN LÃM</span></div>
-      <DialogTitle className="exhibition-dialog-title text-[28px] font-medium leading-[1.35] tracking-[-.04em] text-[var(--exhibit-ink)]">Hành trình triển lãm.</DialogTitle>
-      <DialogDescription className="exhibition-dialog-description text-[13px] leading-[1.9] text-[var(--exhibit-muted)]">Chọn một phòng để bước tiếp, hoặc mở một tác phẩm để đọc kỹ hơn.</DialogDescription>
-      <div className="exhibition-menu max-w-[720px]-grid my-3 grid grid-cols-[160px_1fr] items-center gap-8">
-        <FloorPlan chapter={chapter} chapterList={chapterList} />
+      <div className="exhibition-menu-heading flex flex-wrap items-center justify-between gap-4 pr-8"><img src={brandLogo} alt="Sử Ký Việt Nam" className="h-auto w-36" /><span className="flex items-center gap-2 text-xs text-bronze-dark"><MapTrifold size={18} /><span>Bản đồ triển lãm</span></span></div>
+      <DialogTitle className="exhibition-dialog-title">Hành trình triển lãm</DialogTitle>
+      <DialogDescription className="exhibition-dialog-description">Chọn một phòng để bắt đầu khám phá, hoặc mở ảnh tư liệu để đọc câu chuyện và nguồn trích dẫn.</DialogDescription>
+      {!available && <p role="status" className="rounded-lg border border-line bg-paper-deep/50 p-4 text-sm leading-6 text-ink-soft">Chưa mở được không gian 3D. Bạn vẫn có thể xem ảnh và nguồn tư liệu bên dưới.</p>}
+      <div className="exhibition-menu-grid my-2 grid grid-cols-[120px_minmax(0,1fr)] items-center gap-6 sm:grid-cols-[160px_minmax(0,1fr)] sm:gap-8">
+        <div className="rounded-xl bg-paper-deep/40 px-3 py-5"><FloorPlan chapter={chapter} chapterList={chapterList} /><p className="mt-4 text-center text-xs text-ink-soft">{chapterList.length} phòng trưng bày</p></div>
         <div className="exhibition-chapters">
           {chapterList.map((item, index) => <button key={index} type="button" disabled={!available} className="exhibition-chapter-link flex w-full items-center gap-[17px] border-b border-[var(--exhibit-line)] py-[19px] text-left" onClick={() => onTravel(index)} aria-current={chapter === index ? "location" : undefined}>
-            <span className="exhibition-chapter-number text-[11px] text-[var(--exhibit-muted)]">0{index + 1}</span><span><strong>{item.title}</strong><small>{item.period}</small></span><ArrowRight size={20} />
+            <span className="exhibition-chapter-number text-[11px] text-[var(--exhibit-muted)]">0{index + 1}</span><span className="min-w-0"><strong>{item.title}</strong><small>{item.period}</small></span><ArrowRight size={20} />
           </button>)}
         </div>
       </div>
@@ -54,15 +56,15 @@ export function ArtworkDetail({ artwork, narration, onPlayingChange, onClose, on
   const session = useCurrentUser();
   const [openPlayer, setOpenPlayer] = useState(false);
   return <Dialog open={Boolean(artwork)} onOpenChange={value => { if (!value) onClose(); }}>
-    <DialogContent className="exhibition-dialog exhibition-artwork-dialog grid max-w-[1010px] grid-cols-[minmax(0,1.15fr)_minmax(250px,1fr)] gap-[30px] rounded-md p-6" onCloseAutoFocus={event => {
+    <DialogContent className="exhibition-dialog exhibition-artwork-dialog" data-orientation={artwork && artwork.aspect < 1 ? "portrait" : "landscape"} onCloseAutoFocus={event => {
       event.preventDefault();
-      queueMicrotask(() => onReturnFocus?.());
+      queueMicrotask(() => { if (!document.querySelector('[role="dialog"]')) onReturnFocus?.(); });
     }}>
       {artwork && <>
-        <div className="exhibition-detail-image flex min-h-[300px] items-center justify-center bg-[var(--exhibit-soft)]">
-          {failedImage === artwork.id ? <p>Không tải được ảnh. Bạn có thể xem tại nguồn tư liệu bên dưới.</p> : <img src={artwork.image} alt={artwork.description} onError={() => setFailedImage(artwork.id)} />}
+        <div className="exhibition-detail-image">
+          {failedImage === artwork.id ? <p role="status">Không tải được ảnh. Bạn có thể xem tại nguồn tư liệu bên dưới.</p> : <img src={artwork.image} alt={artwork.description || artwork.title} decoding="async" onError={() => setFailedImage(artwork.id)} />}
         </div>
-        <div className="exhibition-detail-copy self-center py-7 pr-1">
+        <div className="exhibition-detail-copy">
           <DialogTitle className="exhibition-dialog-title text-[28px] font-medium leading-[1.35] tracking-[-.04em] text-[var(--exhibit-ink)]">{artwork.title}</DialogTitle>
           <p className="exhibition-detail-date mt-2 text-sm text-[var(--exhibit-muted)]">{artwork.date}</p>
           <DialogDescription className="exhibition-dialog-description text-[13px] leading-[1.9] text-[var(--exhibit-muted)]">{artwork.description}</DialogDescription>

@@ -1,5 +1,5 @@
 import { useState, type ReactElement } from "react";
-import type { EpisodeWorkspaceDto, PublishEpisodeExceptionInput, StudioSeriesDetailDto } from "@repo/shared";
+import type { EpisodeWorkspaceDto, StudioSeriesDetailDto } from "@repo/shared";
 import {
   BookOpen,
   CheckCircle2,
@@ -19,7 +19,6 @@ import { usePodcastEpisode } from "../hooks/usePodcastProduction";
 import { buildLocalReviewChecklist } from "../reviewChecklist";
 import { emptyScriptDocument } from "../scriptEditor";
 import { podcastProductionService as api } from "../services/podcastProductionService";
-import { AdminExceptionPublishDialog } from "./AdminExceptionPublishDialog";
 import { AudioDetails } from "./AudioDetails";
 
 const backendChecklistLabels: Record<string, string> = {
@@ -46,7 +45,6 @@ export function PodcastReviewStep({
   const episode = usePodcastEpisode(wizard.state.episodeId ?? "");
   const [busy, setBusy] = useState<"save" | "publish" | null>(null);
   const [error, setError] = useState("");
-  const [exceptionEpisode, setExceptionEpisode] = useState<EpisodeWorkspaceDto | null>(null);
   const isAdmin = useCurrentUser().data?.role === "admin";
   const narration = episode.data?.narrations.find((item) => item.type === "THIRD_PERSON");
   const attachments = episode.data?.attachments ?? [];
@@ -76,8 +74,8 @@ export function PodcastReviewStep({
     }
   };
 
-  /** Saves pending edits, then loads the latest episode so the dialog assesses exactly what will be published. */
-  const openException = async (): Promise<void> => {
+  /** Saves pending edits, then publishes the latest saved revision. The server re-checks role, checklist and evidence. */
+  const publishDirect = async (): Promise<void> => {
     setBusy("publish");
     setError("");
     try {
@@ -86,21 +84,8 @@ export function PodcastReviewStep({
       if (!latest.publishChecklist.ready) {
         throw new Error("Tập podcast chưa đủ điều kiện xuất bản. Kiểm tra các mục còn thiếu bên dưới.");
       }
-      setExceptionEpisode(latest);
-    } catch (caught) {
-      setError(caught instanceof Error ? caught.message : "Không chuẩn bị được bản xuất bản.");
-    } finally {
-      setBusy(null);
-    }
-  };
-
-  const publish = async (target: EpisodeWorkspaceDto, input: Pick<PublishEpisodeExceptionInput, "exceptionReason" | "assessment">): Promise<void> => {
-    setBusy("publish");
-    setError("");
-    try {
-      await api.publishEpisode(target.id, { ...input, baseUpdatedAt: target.updatedAt });
-      notify.success({ title: "Đã xuất bản tập podcast (ngoại lệ Admin, đã ghi nhật ký)." });
-      setExceptionEpisode(null);
+      await api.publishEpisode(id, { baseUpdatedAt: latest.updatedAt });
+      notify.success({ title: "Đã xuất bản tập podcast (Admin, đã ghi nhật ký)." });
       onPublished(wizard.state.seriesId);
     } catch (caught) {
       setError(errorMessage(caught));
@@ -154,13 +139,13 @@ export function PodcastReviewStep({
         </aside>
       </div>
 
-      {error && !exceptionEpisode ? <p role="alert" className="text-sm text-mod-danger">{error}</p> : null}
+      {error ? <p role="alert" className="text-sm text-mod-danger">{error}</p> : null}
       {!readOnly ? <div className="flex flex-wrap items-center justify-end gap-3 border-t border-mod-border pt-4">
         {existingStatus !== "PUBLISHED" && !isAdmin ? <p className="mr-auto text-xs text-mod-text-secondary">Xuất bản qua lịch phát hành: gửi duyệt để người duyệt độc lập xác nhận. Chỉ Admin được xuất bản trực tiếp (ngoại lệ có ghi nhật ký).</p> : null}
         <Button type="button" variant="outline" disabled={busy !== null} onClick={() => void save()}>{busy === "save" ? <LoaderCircle className="animate-spin" /> : <Save />} {busy === "save" ? "Đang lưu…" : existingStatus ? "Lưu thay đổi" : "Lưu bản nháp"}</Button>
-        {existingStatus !== "PUBLISHED" && isAdmin ? <Button type="button" variant="destructive" disabled={busy !== null || Boolean(episode.data && !episode.data.publishChecklist.ready)} onClick={() => void openException()}>{busy === "publish" ? <LoaderCircle className="animate-spin" /> : <Radio />} {busy === "publish" ? "Đang xuất bản…" : "Xuất bản ngoại lệ…"}</Button> : null}
+        {existingStatus !== "PUBLISHED" && isAdmin ? <Button type="button" variant="destructive" disabled={busy !== null || Boolean(episode.data && !episode.data.publishChecklist.ready)} onClick={() => void publishDirect()}>{busy === "publish" ? <LoaderCircle className="animate-spin" /> : <Radio />} {busy === "publish" ? "Đang xuất bản…" : "Duyệt và xuất bản"}</Button> : null}
       </div> : null}
-      {exceptionEpisode ? <AdminExceptionPublishDialog episode={exceptionEpisode} pending={busy === "publish"} error={error} onConfirm={(input) => void publish(exceptionEpisode, input)} onClose={() => { setExceptionEpisode(null); setError(""); }} /> : null}
+
     </section>
   );
 }

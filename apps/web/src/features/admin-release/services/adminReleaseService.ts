@@ -8,7 +8,7 @@ import {
   SystemHealthSchema,
   ReviewContentSchema,
   EpisodeReviewRecordSchema,
-  type ReviewEpisodeInput,
+  type ReviewEpisodeRequest,
   type ReleaseScheduleStatus,
   type ReleaseScheduleScope,
 } from "@repo/shared";
@@ -55,7 +55,7 @@ export const adminReleaseService = {
   },
   get: (id: string) => parse(admin[":id"].$get({ param: { id } }), ReleaseScheduleRecordSchema),
   reviewContent: (id: string) => parse(admin[":id"]["review-content"].$get({ param: { id } }), ReviewContentSchema),
-  review: (id: string, input: ReviewEpisodeInput) => parse(
+  review: (id: string, input: ReviewEpisodeRequest) => parse(
     admin[":id"].review.$post({ param: { id }, json: input }), EpisodeReviewRecordSchema,
   ),
   dashboard: () => parse(admin.dashboard.$get(), ReleaseDashboardSchema),

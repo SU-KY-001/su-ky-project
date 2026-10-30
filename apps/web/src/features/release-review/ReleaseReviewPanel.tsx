@@ -5,18 +5,16 @@ import { FileText } from "@phosphor-icons/react/dist/icons/FileText";
 import { Info } from "@phosphor-icons/react/dist/icons/Info";
 import { Warning } from "@phosphor-icons/react/dist/icons/Warning";
 import { XCircle } from "@phosphor-icons/react/dist/icons/XCircle";
-import type { AudioOrigin, EpisodeReadiness, EpisodeWorkspaceDto, ReadinessItem, ReviewContent, ReviewEpisodeInput } from "@repo/shared";
+import type { AudioOrigin, EpisodeReadiness, EpisodeWorkspaceDto, ReadinessItem, ReviewContent, ReviewEpisodeRequest } from "@repo/shared";
 import { Button } from "@/shared/components/ui/button";
 import { Textarea } from "@/shared/components/ui/textarea";
 import { cn } from "@/lib/utils";
 import { useCurrentUser } from "@/shared/hooks/useCurrentUser";
 import { voiceName } from "@/features/podcast-production/voice/voiceLabels";
-import { AssessmentForm } from "./AssessmentForm";
 import { CollapsibleScript } from "./CollapsibleScript";
-import { assessmentProblems, assessmentRequirements, emptyAssessmentDraft, toAssessment, type AssessmentDraft } from "./publicationAssessment";
-import { AI_READINESS_KEYS, formatClock, readinessLabels, reviewReason, STATE_LABEL, type ReviewReason } from "./readinessLabels";
+import { AI_READINESS_KEYS, formatClock, readinessLabels, STATE_LABEL } from "./readinessLabels";
 
-export type ReviewDecisionInput = ReviewEpisodeInput;
+export type ReviewDecisionInput = ReviewEpisodeRequest;
 
 /** Which file and which voice/model made the recording, so the reviewer judges AI audio as AI audio. */
 function AudioOriginLine({ origin }: { origin: AudioOrigin | undefined }): ReactElement {
@@ -30,11 +28,6 @@ function AudioOriginLine({ origin }: { origin: AudioOrigin | undefined }): React
 const NARRATION_TITLE = { THIRD_PERSON: "Lời kể ngôi thứ ba", FIRST_PERSON: "Lời kể ngôi thứ nhất" } as const;
 const NOTE_MAX_CHARS = 5000;
 
-const REASON_CLASS: Record<ReviewReason["tone"], string> = {
-  blocked: "text-xs font-semibold text-mod-danger",
-  warn: "text-xs font-semibold text-mod-attention",
-  ok: "text-xs font-semibold text-mod-success",
-};
 const STATE_PILL_CLASS = {
   ok: "bg-mod-success/10 text-mod-success",
   warn: "bg-mod-attention/10 text-mod-attention",
@@ -126,8 +119,8 @@ export function ReadinessColumn({ readiness }: { readiness: EpisodeReadiness }):
   });
   const plain = rows.filter(({ item }) => !AI_READINESS_KEYS.has(item.key));
   return (
-    <div className="space-y-4">
-      <h3 className="text-sm font-bold">Tình trạng tập</h3>
+    <div className="grid gap-x-8 gap-y-4 md:grid-cols-2">
+      <h3 className="text-sm font-bold md:col-span-2">Tình trạng tập</h3>
       <Group title="Cần có" items={plain.filter(({ item }) => item.level === "REQUIRED")} />
       <Group title="Cần xem" items={plain.filter(({ item }) => item.level === "WARNING")} />
       <Group title="Thông tin" items={plain.filter(({ item }) => item.level === "INFO")} />
@@ -140,67 +133,62 @@ interface Props {
   content: ReviewContent;
   /** False when the pending review is for an older revision than the episode now has. */
   validRevision: boolean;
-  reviewRevision: number;
   pending: boolean;
-  onDecide: (input: ReviewDecisionInput) => void;
+  note: string;
+  onNoteChange: (note: string) => void;
   noteId: string;
 }
 
-/** Shared two-column review surface for Admin and Moderator reviewers: content left, system readiness + decision right. */
-export function ReleaseReviewPanel({ content, validRevision, reviewRevision, pending, onDecide, noteId }: Props): ReactElement {
-  const [note, setNote] = useState("");
-  const [assessment, setAssessment] = useState<AssessmentDraft>(emptyAssessmentDraft);
+/** Shared single-column review surface for Admin and Moderator reviewers: readiness, content, then the reviewer note. Decision buttons live in the dialog footer. */
+export function ReleaseReviewPanel({ content, validRevision, pending, note, onNoteChange, noteId }: Props): ReactElement {
   const { data: user } = useCurrentUser();
-  const reason = reviewReason(content.readiness);
-  const trimmed = note.trim();
-  const requirements = assessmentRequirements(content.episode, content.readiness);
-  const problems = assessmentProblems(assessment, requirements);
-  const canApprove = content.readiness.ready && problems.length === 0;
   return (
-    <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_24rem]">
-      {user ? <p className="text-xs text-mod-text-secondary lg:col-span-2">Người duyệt: <b className="text-mod-text">{user.name}</b> (không phải người sản xuất, không phải AI)</p> : null}
+    <div className="space-y-6">
+      {user ? <p className="text-xs text-mod-text-secondary">Người duyệt: <b className="text-mod-text">{user.name}</b> (không phải người sản xuất, không phải AI)</p> : null}
+      <div className="rounded-xl border border-mod-border p-4"><ReadinessColumn readiness={content.readiness} /></div>
       <EpisodeReviewBody episode={content.episode} />
-      <aside className="space-y-5 lg:border-l lg:border-mod-border lg:pl-6">
-        <ReadinessColumn readiness={content.readiness} />
-        {validRevision ? (
-          <div className="space-y-3 border-t border-mod-border pt-4 font-moderator">
-            <label htmlFor={noteId} className="text-sm font-semibold text-mod-text">Ghi chú</label>
-            <Textarea
-              id={noteId}
-              value={note}
-              onChange={(event) => setNote(event.target.value)}
-              maxLength={NOTE_MAX_CHARS}
-              rows={4}
-              disabled={pending}
-              placeholder="Nêu rõ phần cần sửa để người sản xuất xử lý"
-              className="resize-none border-mod-border bg-mod-surface text-[13px] font-normal leading-5 text-mod-text placeholder:text-mod-text-secondary/60 md:text-[13px]"
-            />
-            <p className="text-xs text-mod-text-secondary">Bắt buộc khi Yêu cầu chỉnh sửa. Không cần điền phần xác nhận bên dưới khi yêu cầu chỉnh sửa.</p>
-            <div className="space-y-3 border-t border-mod-border pt-4">
-              <AssessmentForm idPrefix={noteId} draft={assessment} requirements={requirements} disabled={pending} onChange={setAssessment} />
-              <p className="text-xs text-mod-text-secondary">Bạn chịu trách nhiệm về các xác nhận này; chúng được lưu cùng phiên bản {reviewRevision} và không thay thế đánh giá pháp lý.</p>
-            </div>
-            <p role={reason.tone === "blocked" ? "alert" : "status"} className={REASON_CLASS[reason.tone]}>{reason.text}</p>
-            {content.readiness.ready && problems.length ? (
-              <div role="status" className="text-xs text-mod-attention">
-                <p className="font-semibold">Để Duyệt, còn cần:</p>
-                <ul className="list-disc pl-5">{problems.map((problem) => <li key={problem}>{problem}</li>)}</ul>
-              </div>
-            ) : null}
-            <div className="flex flex-wrap justify-end gap-2">
-              <Button type="button" variant="outline" disabled={pending || !trimmed} onClick={() => onDecide({ decision: "REQUEST_CHANGES", contentRevision: reviewRevision, reviewNote: trimmed })}>
-                <XCircle size={17} />Yêu cầu chỉnh sửa
-              </Button>
-              <Button type="button" disabled={pending || !canApprove} onClick={() => onDecide({ decision: "APPROVE", contentRevision: reviewRevision, reviewNote: trimmed || null, assessment: toAssessment(assessment) })}>
-                <CheckCircle size={17} />{pending ? "Đang xử lý…" : "Duyệt nội dung"}
-              </Button>
-            </div>
-            <p className="text-xs text-mod-text-secondary">Ghi chú và quyết định được lưu, gắn với phiên bản {reviewRevision}. Người sản xuất thấy nhận xét này ở trang Công việc của họ (không có thông báo đẩy).</p>
-          </div>
-        ) : (
-          <p className="border-t border-mod-border pt-4 text-sm leading-6 text-mod-text-secondary">Phiên bản đã được xử lý hoặc nội dung đã thay đổi. Người sản xuất cần gửi lại phiên bản hiện tại nếu muốn kiểm duyệt tiếp.</p>
-        )}
-      </aside>
+      {validRevision ? (
+        <div className="space-y-2 border-t border-mod-border pt-5 font-moderator">
+          <label htmlFor={noteId} className="text-sm font-semibold text-mod-text">Ghi chú</label>
+          <Textarea
+            id={noteId}
+            value={note}
+            onChange={(event) => onNoteChange(event.target.value)}
+            maxLength={NOTE_MAX_CHARS}
+            rows={4}
+            disabled={pending}
+            placeholder="Nêu rõ phần cần sửa để người sản xuất xử lý"
+            className="resize-none border-mod-border bg-mod-surface text-[13px] font-normal leading-5 text-mod-text placeholder:text-mod-text-secondary/60 md:text-[13px]"
+          />
+        </div>
+      ) : (
+        <p className="border-t border-mod-border pt-4 text-sm leading-6 text-mod-text-secondary">Phiên bản đã được xử lý hoặc nội dung đã thay đổi. Người sản xuất cần gửi lại phiên bản hiện tại nếu muốn kiểm duyệt tiếp.</p>
+      )}
     </div>
+  );
+}
+
+interface DecisionProps {
+  ready: boolean;
+  validRevision: boolean;
+  reviewRevision: number;
+  pending: boolean;
+  note: string;
+  onDecide: (input: ReviewDecisionInput) => void;
+}
+
+/** The two review decisions, rendered in the dialog footer next to "Đóng". */
+export function ReviewDecisionButtons({ ready, validRevision, reviewRevision, pending, note, onDecide }: DecisionProps): ReactElement | null {
+  if (!validRevision) return null;
+  const trimmed = note.trim();
+  return (
+    <>
+      <Button type="button" variant="outline" disabled={pending || !trimmed} onClick={() => onDecide({ decision: "REQUEST_CHANGES", contentRevision: reviewRevision, reviewNote: trimmed })}>
+        <XCircle size={17} />Yêu cầu chỉnh sửa
+      </Button>
+      <Button type="button" disabled={pending || !ready} onClick={() => onDecide({ decision: "APPROVE", contentRevision: reviewRevision, reviewNote: trimmed || null })}>
+        <CheckCircle size={17} />{pending ? "Đang xử lý…" : "Duyệt nội dung"}
+      </Button>
+    </>
   );
 }

@@ -15,6 +15,18 @@ export interface PublicationFacts {
   now: Date;
 }
 
+const AI_VOICE_DISCLOSURE = "Giọng đọc trong tập này được tạo bằng AI.";
+const WARNING_ACCEPTED_BY_DECISION = "Người quyết định đã xem các cảnh báo hệ thống và chấp nhận phát hành.";
+
+/** One-click decisions carry no typed statements, so the gate texts the content needs get a fixed one (never invented when not needed). */
+export function withGateStatements(assessment: PublicationAssessment, facts: PublicationFacts): PublicationAssessment {
+  return {
+    ...assessment,
+    aiDisclosure: assessment.aiDisclosure ?? (facts.hasAiVoice ? AI_VOICE_DISCLOSURE : null),
+    warningAcceptance: assessment.warningAcceptance ?? (facts.hasWarnings ? WARNING_ACCEPTED_BY_DECISION : null),
+  };
+}
+
 /** How an episode is allowed to go live: a current review approval, or an Admin exception that records its own. */
 export type EpisodePublishGate =
   | { mode: "APPROVAL"; hasWarnings: boolean }

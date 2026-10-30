@@ -45,4 +45,6 @@ export const ExhibitionWorkspaceSchema = z.object({ id: uuid, slug: z.string(), 
 export type ExhibitionDocument = z.infer<typeof ExhibitionDocumentSchema>;
 export type ExhibitionWorkspace = z.infer<typeof ExhibitionWorkspaceSchema>;
 export type ExhibitionSummary = z.infer<typeof ExhibitionSummarySchema>;
+export const PublicExhibitionListSchema = z.object({ items: z.array(z.object({ slug: z.string(), title: z.string(), description: z.string() })) });
+export type PublicExhibitionList = z.infer<typeof PublicExhibitionListSchema>;
 export type ResolvedExhibition = z.infer<typeof ResolvedExhibitionSchema>;

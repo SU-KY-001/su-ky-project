@@ -441,30 +441,24 @@ describe("release service", () => {
     expect(repository.snapshots[0]?.readinessSnapshot.readiness.contentRevision).toBe(3);
   });
 
-  it("requires an AI disclosure when the audio is an AI voice", async () => {
+  it("fills a fixed AI disclosure when the audio is an AI voice and the reviewer gave none", async () => {
     const { releaseService, repository } = service(undefined, true, { aiVoice: true });
     repository.current = schedule({ status: "SCHEDULED" });
     repository.latestReview = { ...approvedReview(), status: "IN_REVIEW" };
-    const approve = (disclosure: string | null) => releaseService.reviewEpisode(session("admin-1", "admin"), "schedule-1", {
-      decision: "APPROVE", contentRevision: 3, assessment: { ...assessment, aiDisclosure: disclosure },
+    await releaseService.reviewEpisode(session("admin-1", "admin"), "schedule-1", {
+      decision: "APPROVE", contentRevision: 3, assessment: { ...assessment, aiDisclosure: null },
     }, "ai-disclosure");
-    await expect(approve(null)).rejects.toMatchObject({ status: 422, code: "AI_DISCLOSURE_REQUIRED" });
-    expect(repository.decisions).toHaveLength(0);
-    await approve("Giọng đọc được tạo bằng AI.");
-    expect(repository.decisions).toHaveLength(1);
+    expect(repository.snapshots[0]?.readinessSnapshot.assessment?.aiDisclosure).toContain("AI");
   });
 
-  it("requires a written reason when warnings remain", async () => {
+  it("records the approval as acceptance of remaining warnings when no reason is typed", async () => {
     const { releaseService, repository } = service(undefined, true, { warning: true });
     repository.current = schedule({ status: "SCHEDULED" });
     repository.latestReview = { ...approvedReview(), status: "IN_REVIEW" };
-    await expect(releaseService.reviewEpisode(session("admin-1", "admin"), "schedule-1", {
-      decision: "APPROVE", contentRevision: 3, assessment,
-    }, "warning")).rejects.toMatchObject({ status: 422, code: "WARNING_ACCEPTANCE_REQUIRED" });
     await releaseService.reviewEpisode(session("admin-1", "admin"), "schedule-1", {
-      decision: "APPROVE", contentRevision: 3, assessment: { ...assessment, warningAcceptance: "Bản ngắn có chủ đích." },
-    }, "warning-ok");
-    expect(repository.decisions).toHaveLength(1);
+      decision: "APPROVE", contentRevision: 3, assessment,
+    }, "warning");
+    expect(repository.snapshots[0]?.readinessSnapshot.assessment?.warningAcceptance).toContain("cảnh báo");
   });
 
   it("rejects an approval whose rights have expired", async () => {

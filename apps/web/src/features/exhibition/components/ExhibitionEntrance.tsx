@@ -6,7 +6,7 @@ import { MouseSimple } from "@phosphor-icons/react/dist/icons/MouseSimple";
 import { Button } from "@/shared/components/ui/button";
 import brandLogo from "@/public/brand-su-ky-viet-nam.png";
 
-export function ExhibitionEntrance({ title, subtitle, description, artworkCount, chapterCount, ready, available, onEnter }: {
+export function ExhibitionEntrance({ title, subtitle, description, artworkCount, chapterCount, ready, available, loading = false, onEnter, onCancel }: {
   title: string;
   subtitle: string;
   description: string;
@@ -14,7 +14,9 @@ export function ExhibitionEntrance({ title, subtitle, description, artworkCount,
   chapterCount: number;
   ready: boolean;
   available: boolean;
+  loading?: boolean;
   onEnter: () => void;
+  onCancel?: () => void;
 }): ReactElement {
   const words = title.trim().split(/\s+/);
   const split = words.length > 2 ? Math.ceil(words.length / 2) : words.length;
@@ -28,8 +30,9 @@ export function ExhibitionEntrance({ title, subtitle, description, artworkCount,
         <h1 aria-label={title}>{leading}{accent && <> <span className="exhibition-cover-title-accent">{accent}</span></>}</h1>
         {subtitle && <p className="exhibition-cover-subtitle">{subtitle}</p>}
         {description && <p className="exhibition-cover-description">{description}</p>}
-        <Button onClick={onEnter} disabled={!ready} className="exhibition-cover-enter">Bước vào triển lãm <ArrowRight size={20} aria-hidden="true" /></Button>
-        {!ready && <p role="status" className="exhibition-cover-message">Đang chuẩn bị không gian…</p>}
+        <Button onClick={onEnter} disabled={!ready || loading} className="exhibition-cover-enter">Bước vào triển lãm <ArrowRight size={20} aria-hidden="true" /></Button>
+        {(!ready || loading) && <p role="status" className="exhibition-cover-message">Đang chuẩn bị không gian…</p>}
+        {loading && onCancel && <Button variant="ghost" onClick={onCancel}>Quay lại giới thiệu</Button>}
         {!available && <p className="exhibition-cover-message">Thiết bị không hỗ trợ 3D. Bạn vẫn có thể xem ảnh và đọc câu chuyện.</p>}
       </div>
       <footer className="exhibition-cover-meta"><span><Image size={19} aria-hidden="true" /> {artworkCount} ảnh tư liệu</span><span><BookOpen size={19} aria-hidden="true" /> {chapterCount} chương</span></footer>

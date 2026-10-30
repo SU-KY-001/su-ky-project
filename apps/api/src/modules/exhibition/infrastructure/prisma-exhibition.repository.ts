@@ -28,6 +28,14 @@ async function checkReferences(tx: Prisma.TransactionClient, document: Exhibitio
 export class PrismaExhibitionRepository implements ExhibitionRepository {
   constructor(private readonly storage: Pick<MediaStorageGateway, "deliveryUrl">) {}
 
+  async listPublished() {
+    const rows = await prisma.exhibition.findMany({ where: { publishedRevision: { not: null }, publishedDocument: { not: Prisma.DbNull } }, select: { slug: true, publishedDocument: true }, orderBy: [{ publishedAt: "desc" }, { id: "desc" }] });
+    return { items: rows.map(row => {
+      const { metadata } = ExhibitionDocumentSchema.parse(row.publishedDocument);
+      return { slug: row.slug, title: metadata.title, description: metadata.description.slice(0, 240) };
+    }) };
+  }
+
   async findPublished(slug: string): Promise<ExhibitionDocument | null> {
     const row = await prisma.exhibition.findFirst({ where: { slug, publishedRevision: { not: null } }, select: { publishedDocument: true } });
     return row?.publishedDocument ? ExhibitionDocumentSchema.parse(row.publishedDocument) : null;

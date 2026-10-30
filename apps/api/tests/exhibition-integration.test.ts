@@ -19,6 +19,7 @@ test.skipIf(!RUN_INTEGRATION)("Prisma draft save rejects invalid media and stale
     expect((await repository.list(userId, { q: "Kiểm", status: "all", page: 1, limit: 10 })).total).toBe(1);
     expect((await repository.list(crypto.randomUUID(), { q: "", status: "all", page: 1, limit: 10 })).total).toBe(0);
     expect((await repository.list(userId, { q: "", status: "published", page: 1, limit: 10 })).total).toBe(0);
+    expect((await repository.listPublished()).items.some(item => item.slug === created.slug)).toBe(false);
     expect((await repository.podcastOptions({ q: "không có tập này", page: 1, limit: 10 })).items).toEqual([]);
     expect(await repository.find(exhibitionId, crypto.randomUUID())).toBeNull();
     const invalid = ExhibitionDocumentSchema.parse({ ...document, metadata: { ...document.metadata, coverAssetId: crypto.randomUUID() } });
@@ -47,6 +48,8 @@ test.skipIf(!RUN_INTEGRATION)("Prisma draft save rejects invalid media and stale
     expect(publicData.metadata.title).toBe(document.metadata.title);
     expect(publicData).not.toHaveProperty("ownerId");
     expect(publicData).not.toHaveProperty("document");
+    const summary = (await repository.listPublished()).items.find(item => item.slug === created.slug);
+    expect(summary).toEqual({ slug: created.slug, title: document.metadata.title, description: document.metadata.description });
   } finally {
     await prisma.exhibition.deleteMany({ where: { id: exhibitionId, ownerId: userId } });
     await prisma.mediaAsset.deleteMany({ where: { uploadedById: userId } });

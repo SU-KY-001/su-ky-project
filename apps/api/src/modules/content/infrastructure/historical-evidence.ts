@@ -10,6 +10,7 @@ import {
   currentPublicationApproval,
   hasAiVoiceAudio,
   parseAdminException,
+  withGateStatements,
   type EpisodePublishGate,
 } from "../application/publication-gate";
 import { DomainError } from "../../../core/errors/domain-error";
@@ -277,10 +278,11 @@ export async function publishWithHistoricalEvidence(
         if (actor?.role !== "admin" || actor.banned)
           throw new DomainError(403, "FORBIDDEN", "Chỉ Admin được phát hành ngoại lệ");
         const parsed = parseAdminException(gate);
-        assertAssessmentGate(parsed.assessment, facts);
+        const assessment = withGateStatements(parsed.assessment, facts);
+        assertAssessmentGate(assessment, facts);
         exception = {
           contentRevision: episode.contentRevision,
-          assessment: parsed.assessment,
+          assessment,
           approvedById: actorId!,
           approvedAt: facts.now,
           exceptionReason: parsed.exceptionReason,
