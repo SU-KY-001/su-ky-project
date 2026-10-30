@@ -1,5 +1,4 @@
 [install]
-# Strict isolated linker to prevent phantom dependencies
-linker = "isolated"
+# Expo/React Native requires a hoisted tree for Metro and native autolinking on Windows.
+linker = "hoisted"
 linkWorkspacePackages = true
-publicHoistPattern = ["@repo/*"]
