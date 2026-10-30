@@ -1,4 +1,5 @@
-import { ArrowSquareOut, BookOpenText } from "@phosphor-icons/react";
+import { ArrowSquareOut } from "@phosphor-icons/react/dist/icons/ArrowSquareOut";
+import { BookOpenText } from "@phosphor-icons/react/dist/icons/BookOpenText";
 import { citations } from "../data";
 import { SectionFrame, SectionHeading } from "./SectionFrame";
 

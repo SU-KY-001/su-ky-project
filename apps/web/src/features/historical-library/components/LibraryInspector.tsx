@@ -1,14 +1,12 @@
-import {
-  ArrowRight,
-  BookOpenText,
-  CalendarBlank,
-  Headphones,
-  Plus,
-  TreeStructure,
-} from "@phosphor-icons/react";
+import { ArrowRight } from "@phosphor-icons/react/dist/icons/ArrowRight";
+import { BookOpenText } from "@phosphor-icons/react/dist/icons/BookOpenText";
+import { CalendarBlank } from "@phosphor-icons/react/dist/icons/CalendarBlank";
+import { Headphones } from "@phosphor-icons/react/dist/icons/Headphones";
+import { Plus } from "@phosphor-icons/react/dist/icons/Plus";
+import { TreeStructure } from "@phosphor-icons/react/dist/icons/TreeStructure";
 import { Link } from "react-router";
 import { Button } from "@/shared/components/ui/button";
-import { APP_PATHS } from "@/shared/constants/routes";
+import { moderatorPodcastPath } from "@/features/moderator/paths";
 import type { SelectedHistoryNode } from "../types";
 import { LibraryStatusBadge } from "./LibraryStatusBadge";
 
@@ -140,7 +138,7 @@ export function LibraryInspector({
               </p>
             ) : null}
             <Link
-              to={`${APP_PATHS.moderator}?event=${encodeURIComponent(selected.event.id)}`}
+              to={`${moderatorPodcastPath.newEpisode}?event=${encodeURIComponent(selected.event.id)}`}
               className="inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-lg bg-vermilion px-4 text-sm font-bold text-white no-underline transition-colors hover:bg-vermilion-dark active:translate-y-px focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus"
             >
               Tạo tập podcast

@@ -1,4 +1,4 @@
-import { PublishContentSchema } from "@repo/shared";
+import { PublishContentSchema, PublishEpisodeExceptionSchema } from "@repo/shared";
 import { z } from "zod";
 import {
   AttachAudioSchema,
@@ -20,6 +20,7 @@ import {
   SeriesSourceOrderSchema,
   SeriesSourceSchema,
   UuidParamSchema,
+  ScriptConfigSchema,
 } from "@repo/shared";
 import { operation, type Paths } from "../operation";
 import {
@@ -62,6 +63,7 @@ const notFound = (what: string) =>
   `\`NOT_FOUND\`: ${what} không tồn tại hoặc không thuộc Moderator này (Admin xem được mọi nội dung)`;
 
 interface WriteErrorExtras {
+  403?: string;
   409?: string;
   422?: string;
 }
@@ -72,7 +74,7 @@ const writeErrors = (
   extras: WriteErrorExtras = {},
 ): Record<number, string> => {
   const errors: Record<number, string> = {
-    403: LOCKED,
+    403: [LOCKED, extras[403]].filter(Boolean).join("; "),
     404: notFound(what),
     409: [IN_TRASH, extras[409]].filter(Boolean).join("; "),
   };
@@ -170,7 +172,7 @@ const episodeAction = (
     access: "studio",
     ...episodeParams,
     ...(id === "publishEpisode"
-      ? { body: { name: "PublishContentInput", schema: PublishContentSchema } }
+      ? { body: { name: "PublishEpisodeExceptionInput", schema: PublishEpisodeExceptionSchema } }
       : {}),
     ok: {
       status: 200,
@@ -182,6 +184,7 @@ const episodeAction = (
   });
 
 export const studioPaths: Paths = {
+  "/api/studio/script-config": { get: operation({ id: "getScriptConfig", tag: EPISODE_TAG, summary: "Tốc độ đọc dùng để ước lượng thời lượng", description: "Trả `script.words_per_minute` để web ước lượng thời lượng kịch bản bằng số từ, cùng nguồn với ước lượng của server.", access: "studio", ok: { status: 200, description: "Tốc độ đọc (từ mỗi phút)", schema: { name: "ScriptConfig", schema: ScriptConfigSchema } } }) },
   [`${EPISODES}/{id}/poster`]: { put: operation({ id: "setEpisodePoster", tag: EPISODE_TAG, summary: "Gắn, thay hoặc gỡ poster của tập podcast", description: "assetId phải là IMAGE đã xác minh READY của người dùng (Admin có thể chọn ảnh của người khác). Gửi null để gỡ poster. Poster lưu riêng với tài liệu bổ sung; thay ảnh không xóa tệp trực tiếp khỏi kho lưu trữ.", access: "studio", ...episodeParams, rate: "write", body: { name: "SetEpisodePoster", schema: SetEpisodePosterSchema }, ok: { status: 200, description: "Workspace kèm poster mới", schema: workspace }, errors: writeErrors("tập podcast", { 409: "`ASSET_IN_USE`: ảnh đã gắn vào tập khác", 422: "`VALIDATION_ERROR`: ảnh chưa READY, sai loại hoặc không thuộc tài khoản" }) }) },
   [SERIES]: {
     get: operation({
@@ -242,7 +245,7 @@ export const studioPaths: Paths = {
       tag: SERIES_TAG,
       summary: "Chi tiết Series",
       description:
-        "Kèm danh sách tập và poster riêng của từng tập (`episodes[].poster`, null nếu chưa có), nguồn (`sources`), Giai đoạn kèm Thời kỳ (`historicalPhase`) và `publishChecklist` (điều kiện xuất bản: chủ đề, Giai đoạn, khoảng năm, ít nhất một nguồn, ít nhất một tập đã xuất bản).",
+        "Kèm danh sách tập và poster riêng của từng tập (`episodes[].poster`, null nếu chưa có), nguồn (`sources`), Giai đoạn kèm Thời kỳ (`historicalPhase`) và `publishChecklist` (điều kiện xuất bản: chủ đề, Giai đoạn, khoảng năm, ít nhất một tập đã xuất bản).",
       access: "studio",
       ...seriesParams,
       ok: { status: 200, description: "Series", schema: seriesDetail },
@@ -288,10 +291,10 @@ export const studioPaths: Paths = {
     post: seriesAction(
       "publishSeries",
       "Xuất bản Series",
-      "Chỉ thành công khi `publishChecklist.ready = true`. Phải có primary event đã duyệt, revision nguồn VERIFIED hiện tại. Publish kiểm baseUpdatedAt và lưu snapshot bằng chứng trong transaction.",
+      "Chỉ thành công khi `publishChecklist.ready = true` (gồm chủ đề, Giai đoạn, khoảng năm, tập đã xuất bản, mô tả, ít nhất một ảnh bìa READY, ngôn ngữ). Series không bắt buộc có nguồn. Phải có primary event đã duyệt, revision nguồn VERIFIED hiện tại. Publish kiểm baseUpdatedAt và lưu snapshot bằng chứng trong transaction. Owner là người chịu trách nhiệm nội dung.",
       writeErrors("Series", {
         409: "`STALE_WRITE`: baseUpdatedAt đã cũ",
-        422: "`SERIES_NOT_PUBLISHABLE`: checklist chưa đạt; `CONTENT_NOT_READY`: sự kiện/nguồn chưa duyệt hoặc revision đã cũ",
+        422: "`SERIES_NOT_PUBLISHABLE`: checklist chưa đạt (kiểm lại trong transaction); `CONTENT_NOT_READY`: sự kiện/nguồn chưa duyệt hoặc revision đã cũ",
       }),
     ),
   },
@@ -425,10 +428,11 @@ export const studioPaths: Paths = {
     post: episodeAction(
       "publishEpisode",
       "Xuất bản tập",
-      "Chỉ thành công khi `publishChecklist.ready = true`. Kiểm baseUpdatedAt và bằng chứng của series; lưu snapshot nguồn khi phát hành.",
+      "Ngoại lệ Admin — đường duy nhất phát hành không qua hàng chờ duyệt. Body: `baseUpdatedAt`, `exceptionReason` (20..5000 ký tự) và `assessment` (kết luận nội dung/quyền/âm thanh, hạn quyền, công khai AI, chấp nhận cảnh báo). Chỉ Admin (vai trò đọc lại từ DB trong transaction). Không miễn checklist, bằng chứng nguồn hay tài sản; ghi approval ngoại lệ cho revision hiện tại và audit `episode.published_exception` (lý do + kết luận). Phát hành theo lịch dùng approval từ hàng chờ duyệt, không dùng route này.",
       writeErrors("tập", {
+        403: "`FORBIDDEN`: không phải Admin",
         409: "`STALE_WRITE`: baseUpdatedAt đã cũ",
-        422: "`EPISODE_NOT_PUBLISHABLE`: thiếu thông tin/kịch bản/audio; `CONTENT_NOT_READY`: bằng chứng chưa đủ điều kiện hoặc series cần phát hành lại",
+        422: "`VALIDATION_ERROR`: lý do/kết luận thiếu hoặc quá ngắn; `RIGHTS_EXPIRED`; `AI_DISCLOSURE_REQUIRED`; `WARNING_ACCEPTANCE_REQUIRED`; `EPISODE_NOT_PUBLISHABLE`: thiếu thông tin/kịch bản/audio; `CONTENT_NOT_READY`: bằng chứng chưa đủ điều kiện hoặc series cần phát hành lại",
       }),
     ),
   },
@@ -511,7 +515,7 @@ export const studioPaths: Paths = {
       tag: EPISODE_TAG,
       summary: "Gắn hoặc thay audio",
       description:
-        "Gắn media `AUDIO` đã `READY` (xem `POST /api/studio/media-assets/{id}/verify`). Thay audio của tập đang xuất bản cần `confirmReplacePublished = true`.",
+        "Gắn media `AUDIO` đã `READY` (xem `POST /api/studio/media-assets/{id}/verify`). Thay audio của tập đang xuất bản cần `confirmReplacePublished = true`. Với `analysis.origin.kind = AI_VOICE` bắt buộc `scriptHash`, server đối chiếu với kịch bản hiện tại trong transaction. Gắn audio làm đổi revision nội dung nên approval cũ không còn hiệu lực.",
       access: "studio",
       ...narrationParams,
       body: {
@@ -526,7 +530,7 @@ export const studioPaths: Paths = {
       },
       rate: "write",
       errors: writeErrors("tập", {
-        409: "`ASSET_IN_USE`: audio đang gắn vào bản kể khác; `REPLACE_CONFIRMATION_REQUIRED`: cần `confirmReplacePublished` khi thay audio của tập đã xuất bản",
+        409: "`ASSET_IN_USE`: audio đang gắn vào bản kể khác; `REPLACE_CONFIRMATION_REQUIRED`: cần `confirmReplacePublished` khi thay audio của tập đã xuất bản; `HASH_MISMATCH`: audio giọng AI được tạo từ kịch bản khác kịch bản hiện tại",
         422: "`VALIDATION_ERROR`: audio không tồn tại, chưa `READY`, không phải audio hoặc không do bạn upload",
       }),
     }),
@@ -703,9 +707,7 @@ export const studioPaths: Paths = {
       ...seriesChildParams,
       ok: NO_CONTENT,
       rate: "write",
-      errors: writeErrors("Series", {
-        409: "`REQUIRED_FOR_PUBLISHED`: Series đã xuất bản phải còn ít nhất một nguồn",
-      }),
+      errors: writeErrors("Series"),
     }),
   },
 

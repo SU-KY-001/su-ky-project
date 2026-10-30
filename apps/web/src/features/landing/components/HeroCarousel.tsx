@@ -1,4 +1,6 @@
-import { Heart, Play, WarningCircle } from "@phosphor-icons/react";
+import { Heart } from "@phosphor-icons/react/dist/icons/Heart";
+import { Play } from "@phosphor-icons/react/dist/icons/Play";
+import { WarningCircle } from "@phosphor-icons/react/dist/icons/WarningCircle";
 import { useRef, useState } from "react";
 import { useNavigate } from "react-router";
 import { Button } from "@/shared/components/ui/button";

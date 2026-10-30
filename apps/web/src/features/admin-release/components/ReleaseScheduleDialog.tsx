@@ -1,6 +1,10 @@
 import { useMemo } from "react";
 import type { ReleaseScheduleRecord } from "@repo/shared";
-import { ArrowClockwise, CalendarPlus, FloppyDisk, PaperPlaneTilt, X } from "@phosphor-icons/react";
+import { ArrowClockwise } from "@phosphor-icons/react/dist/icons/ArrowClockwise";
+import { CalendarPlus } from "@phosphor-icons/react/dist/icons/CalendarPlus";
+import { FloppyDisk } from "@phosphor-icons/react/dist/icons/FloppyDisk";
+import { PaperPlaneTilt } from "@phosphor-icons/react/dist/icons/PaperPlaneTilt";
+import { X } from "@phosphor-icons/react/dist/icons/X";
 import { ApiError, errorMessage } from "@/lib/apiError";
 import { Button } from "@/shared/components/ui/button";
 import {
@@ -86,7 +90,7 @@ export function ReleaseScheduleDialog({
       // Mutation state owns the displayed error; retaining this component keeps edits intact.
     }
   };
-  const stale = error instanceof ApiError && error.errorCode === "STALE_WRITE";
+  const stale = error instanceof ApiError && error.is("STALE_WRITE");
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>

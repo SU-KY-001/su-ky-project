@@ -1,47 +1,43 @@
-import {
-  Article,
-  BookOpenText,
-  CalendarBlank,
-  ChartBar,
-  CheckSquareOffset,
-  ClipboardText,
-  Headphones,
-  MapTrifold,
-  Ticket,
-  Exam,
-} from "@phosphor-icons/react";
+import { Article } from "@phosphor-icons/react/dist/icons/Article";
+import { BookOpenText } from "@phosphor-icons/react/dist/icons/BookOpenText";
+import { CalendarBlank } from "@phosphor-icons/react/dist/icons/CalendarBlank";
+import { ChartBar } from "@phosphor-icons/react/dist/icons/ChartBar";
+import { CheckSquareOffset } from "@phosphor-icons/react/dist/icons/CheckSquareOffset";
+import { ClipboardText } from "@phosphor-icons/react/dist/icons/ClipboardText";
+import { Headphones } from "@phosphor-icons/react/dist/icons/Headphones";
+import { MapTrifold } from "@phosphor-icons/react/dist/icons/MapTrifold";
+import { PencilSimpleLine } from "@phosphor-icons/react/dist/icons/PencilSimpleLine";
+import { Ticket } from "@phosphor-icons/react/dist/icons/Ticket";
+import { Exam } from "@phosphor-icons/react/dist/icons/Exam";
+import { Cube } from "@phosphor-icons/react/dist/icons/Cube";
 import type { ShellNavItem } from "./components/ModeratorShell";
+import { moderatorSectionPath } from "./paths";
 import type { ModeratorSection } from "./types";
 
-export function moderatorWorkspaceNav(
-  activeSection: ModeratorSection,
-  onSelect: (section: ModeratorSection) => void,
-): ShellNavItem[] {
+export function moderatorWorkspaceNav(activeSection: ModeratorSection): ShellNavItem[] {
+  const link = (id: string, label: string, icon: ShellNavItem["icon"], section: ModeratorSection): ShellNavItem => ({
+    id,
+    label,
+    icon,
+    active: activeSection === section,
+    to: moderatorSectionPath[section],
+  });
   return [
-    {
-      id: "moderator-overview",
-      label: "Tổng quan",
-      icon: ChartBar,
-      active: activeSection === "overview",
-      onSelect: () => onSelect("overview"),
-    },
+    link("moderator-overview", "Tổng quan", ChartBar, "overview"),
     { id: "history-heading", label: "THƯ VIỆN LỊCH SỬ", active: false, groupStart: true },
-    {
-      id: "historical-timeline",
-      label: "Dòng lịch sử",
-      icon: MapTrifold,
-      active: activeSection === "timeline",
-      onSelect: () => onSelect("timeline"),
-    },
-    { id: "historical-events", label: "Sự kiện", icon: Article, active: activeSection === "events", onSelect: () => onSelect("events") },
-    { id: "historical-sources", label: "Nguồn tư liệu", icon: BookOpenText, active: activeSection === "sources", onSelect: () => onSelect("sources") },
+    link("historical-timeline", "Dòng lịch sử", MapTrifold, "timeline"),
+    link("historical-events", "Sự kiện", Article, "events"),
+    link("historical-sources", "Nguồn tư liệu", BookOpenText, "sources"),
     { id: "podcast-heading", label: "SẢN XUẤT PODCAST", active: false, groupStart: true },
-    { id: "podcast-production", label: "Sản xuất podcast", icon: Headphones, active: activeSection === "podcast", onSelect: () => onSelect("podcast") },
-    { id: "moderator-assignments", label: "Nhiệm vụ của tôi", icon: ClipboardText, active: activeSection === "assignments", onSelect: () => onSelect("assignments") },
-    { id: "moderator-tickets", label: "Ticket", icon: Ticket, active: activeSection === "tickets", onSelect: () => onSelect("tickets") },
-    { id: "moderator-quizzes", label: "Tạo quiz", icon: Exam, active: activeSection === "quizzes", onSelect: () => onSelect("quizzes") },
+    link("podcast-production", "Sản xuất podcast", Headphones, "podcast"),
+    link("moderator-exhibitions", "Triển lãm 3D", Cube, "exhibitions"),
+    link("moderator-assignments", "Nhiệm vụ của tôi", ClipboardText, "assignments"),
+    link("moderator-tickets", "Ticket", Ticket, "tickets"),
+    link("moderator-quizzes", "Tạo quiz", Exam, "quizzes"),
     { id: "publishing-heading", label: "XUẤT BẢN", active: false, groupStart: true },
-    { id: "moderator-pending", label: "Cần xử lý", icon: CheckSquareOffset, active: activeSection === "pending", onSelect: () => onSelect("pending") },
-    { id: "moderator-schedule", label: "Lịch phát hành", icon: CalendarBlank, active: activeSection === "schedule", onSelect: () => onSelect("schedule") },
+    link("moderator-pending", "Cần xử lý", CheckSquareOffset, "pending"),
+    link("moderator-schedule", "Lịch phát hành", CalendarBlank, "schedule"),
+    { id: "settings-heading", label: "CÀI ĐẶT", active: false, groupStart: true },
+    link("moderator-angles", "Góc kể", PencilSimpleLine, "angles"),
   ];
 }

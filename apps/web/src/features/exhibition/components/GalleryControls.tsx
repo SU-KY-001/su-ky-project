@@ -1,8 +1,10 @@
 import { useEffect, useRef, type RefObject } from "react";
 import { useFrame, useThree } from "@react-three/fiber";
 import { Raycaster, Vector2 } from "three";
-import { chapterAt, chapters, walls, type Point3 } from "../data";
+import { exhibitionTemplate } from "@repo/shared";
+import { benchWalls, chapterAt, galleryReturns, walls, type Artwork, type Point3 } from "../data";
 import { movePlayer } from "../movement";
+export { initialView } from "../galleryView";
 
 export interface GalleryInput { keys: Set<string> }
 export interface GalleryView { position: Point3; yaw: number; revision: number }
@@ -15,11 +17,16 @@ export interface ControlsProps {
   onInspect: (id: string) => void;
   onTarget: (id: string | null) => void;
   onChapter: (chapter: number) => void;
+  onViewChange?: (view: GalleryView) => void;
+  pointerLockOnClick?: boolean;
+  items?: Artwork[];
+  roomCount?: number;
+  keyboardRequiresFocus?: boolean;
 }
 
 const walkingKeys = new Set(["KeyW", "KeyA", "KeyS", "KeyD", "ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"]);
 
-export function GalleryControls({ active, input, view, onPause, onNavigate, onInspect, onTarget, onChapter }: ControlsProps): null {
+export function GalleryControls({ active, input, view, onPause, onNavigate, onInspect, onTarget, onChapter, onViewChange, pointerLockOnClick = false, keyboardRequiresFocus = false, items = [], roomCount = 3 }: ControlsProps): null {
   const { camera, gl, scene, invalidate } = useThree();
   const velocity = useRef({ x: 0, z: 0 });
   const drag = useRef({ active: false, x: 0, y: 0, distance: 0 });
@@ -60,7 +67,8 @@ export function GalleryControls({ active, input, view, onPause, onNavigate, onIn
       if (hit && hit.distance < 5.5 && typeof id === "string") callbacks.current.onInspect(id);
     };
     const keyDown = (event: KeyboardEvent): void => {
-      if (event.target instanceof HTMLElement && event.target.closest("button, input, textarea, [role=dialog]")) return;
+      if (keyboardRequiresFocus && document.activeElement !== canvas) return;
+      if (event.target instanceof HTMLElement && event.target.closest("button, input, textarea, select, [contenteditable=true], [role=dialog]")) return;
       if (walkingKeys.has(event.code)) { event.preventDefault(); input.current.keys.add(event.code); }
       if (event.code === "Escape") callbacks.current.onPause();
       if (event.code === "KeyM") { event.preventDefault(); callbacks.current.onNavigate(); }
@@ -72,6 +80,7 @@ export function GalleryControls({ active, input, view, onPause, onNavigate, onIn
     const clear = (): void => { input.current.keys.clear(); drag.current.active = false; callbacks.current.onPause(); };
     const hidden = (): void => { if (document.hidden) clear(); };
     const pointerDown = (event: PointerEvent): void => {
+      if (keyboardRequiresFocus) canvas.focus({ preventScroll: true });
       drag.current = { active: true, x: event.clientX, y: event.clientY, distance: 0 };
       if (!document.pointerLockElement) canvas.setPointerCapture(event.pointerId);
     };
@@ -84,29 +93,41 @@ export function GalleryControls({ active, input, view, onPause, onNavigate, onIn
       drag.current.x = event.clientX; drag.current.y = event.clientY; drag.current.distance += Math.abs(dx) + Math.abs(dy);
     };
     const pointerUp = (event: PointerEvent): void => {
+      if (pointerLockOnClick && canvas.requestPointerLock && !document.pointerLockElement && drag.current.active && drag.current.distance < 8 && !window.matchMedia("(pointer: coarse)").matches) {
+        drag.current.active = false;
+        try {
+          const request = canvas.requestPointerLock();
+          if (request) void request.catch(() => undefined);
+        } catch { /* Drag controls remain available when pointer lock is denied. */ }
+        return;
+      }
       if (drag.current.active && (document.pointerLockElement || drag.current.distance < 8)) inspect(event.clientX, event.clientY);
       drag.current.active = false;
     };
+    const lockChanged = (): void => { if (pointerLockOnClick && !document.pointerLockElement) { input.current.keys.clear(); callbacks.current.onPause(); } };
     window.addEventListener("keydown", keyDown);
     window.addEventListener("keyup", keyUp);
     window.addEventListener("blur", clear);
     document.addEventListener("visibilitychange", hidden);
+    document.addEventListener("pointerlockchange", lockChanged);
     canvas.addEventListener("pointerdown", pointerDown);
     document.addEventListener("pointermove", pointerMove);
     canvas.addEventListener("pointerup", pointerUp);
     canvas.addEventListener("pointercancel", clear);
     return () => {
       input.current.keys.clear();
+      onViewChange?.({ position: [camera.position.x, camera.position.y, camera.position.z], yaw: camera.rotation.y, revision: view.revision + 1 });
       window.removeEventListener("keydown", keyDown);
       window.removeEventListener("keyup", keyUp);
       window.removeEventListener("blur", clear);
       document.removeEventListener("visibilitychange", hidden);
+      document.removeEventListener("pointerlockchange", lockChanged);
       canvas.removeEventListener("pointerdown", pointerDown);
       document.removeEventListener("pointermove", pointerMove);
       canvas.removeEventListener("pointerup", pointerUp);
       canvas.removeEventListener("pointercancel", clear);
     };
-  }, [active, camera, gl, input, scene]);
+  }, [active, camera, gl, input, scene, keyboardRequiresFocus]);
 
   useFrame((_, delta) => {
     if (!active) return;
@@ -122,7 +143,8 @@ export function GalleryControls({ active, input, view, onPause, onNavigate, onIn
     velocity.current.x += (targetX - velocity.current.x) * damping;
     velocity.current.z += (targetZ - velocity.current.z) * damping;
     if (Math.abs(velocity.current.x) + Math.abs(velocity.current.z) > 0.001) {
-      const [x, z] = movePlayer([camera.position.x, camera.position.z], [velocity.current.x * dt, velocity.current.z * dt], walls);
+      const endWall = roomCount < 3 ? [{ a: [2, roomCount === 1 ? -8 : -24] as const, b: [5, roomCount === 1 ? -8 : -24] as const }] : [];
+      const [x, z] = movePlayer([camera.position.x, camera.position.z], [velocity.current.x * dt, velocity.current.z * dt], [...walls, ...benchWalls, ...galleryReturns(items), ...endWall]);
       camera.position.set(x, 1.65, z);
     }
     const chapter = chapterAt(camera.position.x, camera.position.z);
@@ -141,4 +163,3 @@ export function GalleryControls({ active, input, view, onPause, onNavigate, onIn
   return null;
 }
 
-export const initialView: GalleryView = { position: [...chapters[0]!.spawn], yaw: 0.16, revision: 0 };

@@ -17,6 +17,7 @@ import { auth, currentUserRoute } from "./modules/auth";
 import { adminRoute } from "./modules/admin";
 import { publicCatalogRoute, studioCatalogRoute } from "./modules/catalog";
 import { createStudioContentRoute } from "./modules/content";
+import { createStudioAiAssistRoute } from "./modules/ai-assist";
 import { mediaRoute, mediaStorage } from "./modules/media";
 import { meListeningRoute, publicListeningRoute } from "./modules/listening";
 import { createReleaseRoutes } from "./modules/releases/presentation/release.routes";
@@ -24,6 +25,7 @@ import { releaseService } from "./modules/releases";
 import { meMissionRoute, publicQuizRoute, studioQuizRoute } from "./modules/gamification";
 import type { AppEnv } from "./types";
 import { showcaseRoute } from "./modules/showcase/showcase.routes";
+import { exhibitionRoute, publicExhibitionRoute } from "./modules/exhibition";
 const MAX_REQUEST_BODY_BYTES = 10 * 1024 * 1024;
 
 export const app = new Hono<AppEnv>()
@@ -68,13 +70,16 @@ export const routes = app
   .route("/api/me", currentUserRoute)
   .route("/api", publicCatalogRoute)
   .route("/api", publicListeningRoute)
+  .route("/api", publicExhibitionRoute)
   .route("/api", publicQuizRoute)
   .route("/api/showcase", showcaseRoute)
   .route("/api/me", meListeningRoute)
   .route("/api/me", meMissionRoute)
   .route("/api/studio", studioCatalogRoute)
   .route("/api/studio", studioQuizRoute)
+  .route("/api/studio", exhibitionRoute)
   .route("/api/studio", createStudioContentRoute(mediaStorage))
+  .route("/api/studio", createStudioAiAssistRoute())
   .route("/api/studio/media-assets", mediaRoute)
   .route("/api/admin", adminRoute)
   .route("/api/admin/releases", createReleaseRoutes(releaseService).admin)

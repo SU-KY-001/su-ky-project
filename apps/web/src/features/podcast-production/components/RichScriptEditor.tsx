@@ -1,9 +1,12 @@
 import {
   forwardRef,
+  useEffect,
   useImperativeHandle,
   useMemo,
   useRef,
+  useState,
   type ReactElement,
+  type ReactNode,
 } from "react";
 import type { EditorOptions } from "@tiptap/core";
 import { EditorContent, useEditor } from "@tiptap/react";
@@ -29,9 +32,31 @@ import {
 import { Button } from "@/shared/components/ui/button";
 import { cn } from "@/lib/utils";
 import { SourceCitation } from "../scriptEditor";
+import type { ScriptBlock } from "../aiCheck/blockRefs";
+import {
+  editorBlocks, focusBlock, insertAfterRange, insertDraft, isEditorEmpty, replaceBlockText, replaceRange, textBlockSpans,
+  selectionBlocks, selectionRange, selectRange,
+  type DraftInsertItem, type EditResult, type SelectionRange,
+} from "../aiCheck/editorBlocks";
+import { BlockHighlights, setBlockHighlights, type BlockHighlight } from "../aiCheck/blockHighlights";
+import { RewriteFloatingButton } from "../rewrite/RewriteFloatingButton";
+
+export const EMPTY_SCRIPT_PLACEHOLDER =
+  "Kịch bản đang trống. Viết trực tiếp, hoặc bấm 'Soạn bản nháp' ở thanh công cụ để AI soạn dàn ý rồi từng đoạn.";
 
 export interface RichScriptEditorHandle {
   insertCitation: (sourceId: string) => void;
+  getBlocks: () => ScriptBlock[];
+  getSelectionBlocks: () => ScriptBlock[];
+  focusBlock: (ref: string | null) => void;
+  setBlockHighlights: (highlights: BlockHighlight[]) => void;
+  replaceBlockText: (ref: string, expectedHash: string, text: string) => "ok" | "conflict";
+  /** Replace a sentence-expanded range (Ctrl+Z undoes it). Never writes when a block changed. */
+  replaceRange: (range: SelectionRange, paragraphs: string[]) => EditResult;
+  insertAfterRange: (range: SelectionRange, paragraphs: string[]) => EditResult;
+  /** AI draft: optional h3 per item, then paragraphs; at the end or after the block holding the caret. */
+  insertDraft: (items: DraftInsertItem[], at: "end" | "cursor") => EditResult;
+  isEmpty: () => boolean;
 }
 
 interface Tool {
@@ -40,6 +65,9 @@ interface Tool {
   active: () => boolean;
   run: () => void;
 }
+
+/** Distance between the selection top and the floating button, px. */
+const REWRITE_BUTTON_OFFSET_PX = 44;
 
 const editorExtensions = [
   StarterKit.configure({
@@ -50,9 +78,10 @@ const editorExtensions = [
     strike: false,
   }),
   Placeholder.configure({
-    placeholder: "Soạn kịch bản podcast tại đây…",
+    placeholder: EMPTY_SCRIPT_PLACEHOLDER,
   }),
   SourceCitation,
+  BlockHighlights,
 ];
 
 export const RichScriptEditor = forwardRef<
@@ -61,12 +90,20 @@ export const RichScriptEditor = forwardRef<
     initialDocument: EditorDocument;
     onChange: (document: EditorDocument) => void;
     onPasteLimitReached?: (limit: number) => void;
+    /** Set to enable the floating "Viết lại" button: called with the sentence-expanded selection. */
+    onRewriteRequest?: (range: SelectionRange) => void;
+    /** Right-aligned controls of the toolbar row (AI actions, sources). */
+    toolbarActions?: ReactNode;
+    /** Called with the block ref (`b{index}`) of the paragraph the moderator clicked. */
+    onBlockClick?: (ref: string) => void;
     disabled?: boolean;
   }
 >(function RichScriptEditor(
-  { initialDocument, onChange, onPasteLimitReached, disabled = false },
+  { initialDocument, onChange, onPasteLimitReached, onRewriteRequest, onBlockClick, toolbarActions, disabled = false },
   ref,
 ): ReactElement {
+  const wrapperRef = useRef<HTMLDivElement>(null);
+  const [anchor, setAnchor] = useState<{ top: number; left: number; range: SelectionRange } | null>(null);
   const initialContent = useRef(initialDocument);
   const pasteLimitCallback = useRef(onPasteLimitReached);
   pasteLimitCallback.current = onPasteLimitReached;
@@ -123,12 +160,37 @@ export const RichScriptEditor = forwardRef<
     },
   });
 
+  useEffect(() => {
+    if (!editor) return;
+    const clearWhenCollapsed = (): void => { if (editor.state.selection.empty) setAnchor(null); };
+    const clearOnEdit = (): void => setAnchor(null);
+    editor.on("selectionUpdate", clearWhenCollapsed);
+    editor.on("update", clearOnEdit);
+    return () => {
+      editor.off("selectionUpdate", clearWhenCollapsed);
+      editor.off("update", clearOnEdit);
+    };
+  }, [editor]);
+
   useImperativeHandle(
     ref,
     () => ({
       insertCitation: (sourceId: string) => {
         editor?.chain().focus().setMark("sourceCitation", { sourceId }).run();
       },
+      getBlocks: () => (editor ? editorBlocks(editor) : []),
+      getSelectionBlocks: () => (editor ? selectionBlocks(editor) : []),
+      focusBlock: (ref) => {
+        if (editor) focusBlock(editor, ref);
+      },
+      setBlockHighlights: (highlights) => {
+        if (editor) setBlockHighlights(editor, highlights);
+      },
+      replaceBlockText: (ref, expectedHash, text) => (editor ? replaceBlockText(editor, ref, expectedHash, text) : "conflict"),
+      replaceRange: (range, paragraphs) => (editor ? replaceRange(editor, range, paragraphs) : { ok: false, reason: "CONFLICT" }),
+      insertAfterRange: (range, paragraphs) => (editor ? insertAfterRange(editor, range, paragraphs) : { ok: false, reason: "CONFLICT" }),
+      insertDraft: (items, at) => (editor ? insertDraft(editor, items, at) : { ok: false, reason: "CONFLICT" }),
+      isEmpty: () => (editor ? isEditorEmpty(editor) : true),
     }),
     [editor],
   );
@@ -136,6 +198,20 @@ export const RichScriptEditor = forwardRef<
   if (!editor) {
     return <div className="min-h-80 animate-pulse bg-mod-canvas-accent" aria-label="Đang tải trình soạn thảo" />;
   }
+
+  /** After the pointer/keyboard selection settles: expand to whole sentences, show it, and anchor the button above it. */
+  const pickRange = (): void => {
+    if (!onRewriteRequest || disabled) return;
+    window.setTimeout(() => {
+      const range = selectionRange(editor);
+      const wrapper = wrapperRef.current;
+      if (!range || !wrapper) return setAnchor(null);
+      selectRange(editor, range);
+      const coords = editor.view.coordsAtPos(range.from);
+      const box = wrapper.getBoundingClientRect();
+      setAnchor({ top: coords.top - box.top - REWRITE_BUTTON_OFFSET_PX, left: Math.max(coords.left - box.left, 0), range });
+    }, 0);
+  };
 
   const tools: Tool[] = [
     {
@@ -201,7 +277,7 @@ export const RichScriptEditor = forwardRef<
   ];
 
   return (
-    <div className="min-w-0 max-w-full overflow-hidden rounded-xl border border-mod-border bg-mod-surface">
+    <div ref={wrapperRef} className="relative min-w-0 max-w-full overflow-visible rounded-xl border border-mod-border bg-mod-surface">
       <div className="flex flex-wrap gap-1 border-b border-mod-border bg-mod-canvas-accent p-2">
         {tools.map((tool) => {
           const Icon = tool.icon;
@@ -225,13 +301,28 @@ export const RichScriptEditor = forwardRef<
             </Button>
           );
         })}
+        {toolbarActions ? <div className="ml-auto flex flex-wrap items-center gap-1.5">{toolbarActions}</div> : null}
       </div>
-      <div data-script-scroll-region className="podcast-editor-viewport">
+      <div
+        data-script-scroll-region
+        className="podcast-editor-viewport"
+        onMouseUp={pickRange}
+        onKeyUp={pickRange}
+        onClick={(event) => {
+          if (!editor || !onBlockClick) return;
+          // Coordinates, not selection: ProseMirror applies the clicked selection after this event.
+          const at = editor.view.posAtCoords({ left: event.clientX, top: event.clientY })?.pos;
+          if (at === undefined) return;
+          const index = textBlockSpans(editor.state.doc).findIndex((span) => at >= span.from && at <= span.to);
+          if (index >= 0) onBlockClick(`b${index}`);
+        }}
+      >
         <EditorContent
           editor={editor}
-          className="h-full min-w-0 max-w-full overflow-hidden"
+          className="min-w-0 max-w-full"
         />
       </div>
+      {anchor ? <RewriteFloatingButton top={anchor.top} left={anchor.left} onClick={() => onRewriteRequest?.(anchor.range)} /> : null}
     </div>
   );
 });

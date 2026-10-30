@@ -11,12 +11,15 @@ import {
   Save,
 } from "lucide-react";
 import { Button } from "@/shared/components/ui/button";
+import { errorMessage } from "@/lib/apiError";
+import { useCurrentUser } from "@/shared/hooks/useCurrentUser";
 import { notify } from "@/shared/lib/notifications";
 import type { PodcastCreationWizard } from "../hooks/usePodcastCreationWizard";
 import { usePodcastEpisode } from "../hooks/usePodcastProduction";
 import { buildLocalReviewChecklist } from "../reviewChecklist";
 import { emptyScriptDocument } from "../scriptEditor";
 import { podcastProductionService as api } from "../services/podcastProductionService";
+import { AudioDetails } from "./AudioDetails";
 
 const backendChecklistLabels: Record<string, string> = {
   BASIC_INFO: "Thông tin cơ bản",
@@ -42,6 +45,7 @@ export function PodcastReviewStep({
   const episode = usePodcastEpisode(wizard.state.episodeId ?? "");
   const [busy, setBusy] = useState<"save" | "publish" | null>(null);
   const [error, setError] = useState("");
+  const isAdmin = useCurrentUser().data?.role === "admin";
   const narration = episode.data?.narrations.find((item) => item.type === "THIRD_PERSON");
   const attachments = episode.data?.attachments ?? [];
   const analysis = narration?.audioAnalysis ?? wizard.state.uploadedAudio?.analysis;
@@ -70,7 +74,8 @@ export function PodcastReviewStep({
     }
   };
 
-  const publish = async (): Promise<void> => {
+  /** Saves pending edits, then publishes the latest saved revision. The server re-checks role, checklist and evidence. */
+  const publishDirect = async (): Promise<void> => {
     setBusy("publish");
     setError("");
     try {
@@ -79,11 +84,11 @@ export function PodcastReviewStep({
       if (!latest.publishChecklist.ready) {
         throw new Error("Tập podcast chưa đủ điều kiện xuất bản. Kiểm tra các mục còn thiếu bên dưới.");
       }
-      await api.publishEpisode(id, latest.updatedAt);
-      notify.success({ title: "Đã xuất bản tập podcast." });
+      await api.publishEpisode(id, { baseUpdatedAt: latest.updatedAt });
+      notify.success({ title: "Đã xuất bản tập podcast (Admin, đã ghi nhật ký)." });
       onPublished(wizard.state.seriesId);
     } catch (caught) {
-      setError(caught instanceof Error ? caught.message : "Không xuất bản được tập podcast.");
+      setError(errorMessage(caught));
     } finally {
       setBusy(null);
     }
@@ -121,7 +126,7 @@ export function PodcastReviewStep({
 
           <ReviewCard icon={Headphones} title="File thu âm">
             {audioUrl ? <audio controls src={audioUrl} className="w-full" preload="metadata" /> : <p className="text-sm text-mod-text-secondary">Chưa có file thu âm.</p>}
-            {analysis ? <div className="mt-3 grid gap-2 text-sm sm:grid-cols-3"><p className="rounded-lg bg-mod-canvas-accent p-3">Thời lượng: <strong>{analysis.clientDurationMs ? `${Math.round(analysis.clientDurationMs / 1000)} giây` : "Chưa rõ"}</strong></p><p className="rounded-lg bg-mod-canvas-accent p-3">So với kịch bản: <strong>{analysis.durationStatus === "PASS" ? "Phù hợp" : "Cần kiểm tra"}</strong></p><p className="rounded-lg bg-mod-canvas-accent p-3">Độ ồn: <strong>{analysis.noiseStatus === "PASS" ? "Ổn" : "Cần kiểm tra"}</strong></p></div> : null}
+            <div className="mt-3"><AudioDetails episodeId={wizard.state.episodeId ?? null} analysis={analysis} /></div>
           </ReviewCard>
         </div>
 
@@ -135,10 +140,12 @@ export function PodcastReviewStep({
       </div>
 
       {error ? <p role="alert" className="text-sm text-mod-danger">{error}</p> : null}
-      {!readOnly ? <div className="flex flex-wrap justify-end gap-3 border-t border-mod-border pt-4">
+      {!readOnly ? <div className="flex flex-wrap items-center justify-end gap-3 border-t border-mod-border pt-4">
+        {existingStatus !== "PUBLISHED" && !isAdmin ? <p className="mr-auto text-xs text-mod-text-secondary">Xuất bản qua lịch phát hành: gửi duyệt để người duyệt độc lập xác nhận. Chỉ Admin được xuất bản trực tiếp (ngoại lệ có ghi nhật ký).</p> : null}
         <Button type="button" variant="outline" disabled={busy !== null} onClick={() => void save()}>{busy === "save" ? <LoaderCircle className="animate-spin" /> : <Save />} {busy === "save" ? "Đang lưu…" : existingStatus ? "Lưu thay đổi" : "Lưu bản nháp"}</Button>
-        {existingStatus !== "PUBLISHED" ? <Button type="button" disabled={busy !== null || Boolean(episode.data && !episode.data.publishChecklist.ready)} onClick={() => void publish()}>{busy === "publish" ? <LoaderCircle className="animate-spin" /> : <Radio />} {busy === "publish" ? "Đang xuất bản…" : "Xuất bản"}</Button> : null}
+        {existingStatus !== "PUBLISHED" && isAdmin ? <Button type="button" variant="destructive" disabled={busy !== null || Boolean(episode.data && !episode.data.publishChecklist.ready)} onClick={() => void publishDirect()}>{busy === "publish" ? <LoaderCircle className="animate-spin" /> : <Radio />} {busy === "publish" ? "Đang xuất bản…" : "Duyệt và xuất bản"}</Button> : null}
       </div> : null}
+
     </section>
   );
 }

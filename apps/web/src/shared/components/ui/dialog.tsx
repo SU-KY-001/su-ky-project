@@ -1,6 +1,6 @@
 import * as React from "react";
 import { Dialog as DialogPrimitive } from "radix-ui";
-import { X } from "@phosphor-icons/react";
+import { X } from "@phosphor-icons/react/dist/icons/X";
 import { cn } from "@/lib/utils";
 
 function Dialog(props: React.ComponentProps<typeof DialogPrimitive.Root>) {

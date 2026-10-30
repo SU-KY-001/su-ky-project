@@ -1,6 +1,8 @@
 import type { ComponentProps } from "react";
 import { Select as SelectPrimitive } from "radix-ui";
-import { CaretDown, CaretUp, Check } from "@phosphor-icons/react";
+import { CaretDown } from "@phosphor-icons/react/dist/icons/CaretDown";
+import { CaretUp } from "@phosphor-icons/react/dist/icons/CaretUp";
+import { Check } from "@phosphor-icons/react/dist/icons/Check";
 import { cn } from "@/lib/utils";
 
 export const Select = SelectPrimitive.Root;

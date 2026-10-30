@@ -20,7 +20,7 @@ import { component, parametersFrom, type JsonSchema } from "./registry";
  */
 export type Access = "public" | "optional" | "user" | "studio" | "moderator" | "admin";
 
-export type RatePolicy = "write" | "media_upload" | "listening_progress";
+export type RatePolicy = "write" | "media_upload" | "listening_progress" | "ai_check" | "ai_generate";
 
 type Method = "get" | "post" | "put" | "patch" | "delete";
 
@@ -35,11 +35,11 @@ interface BodyInput extends SchemaInput {
 }
 
 interface OkInput {
-  status: 200 | 201 | 204;
+  status: 200 | 201 | 202 | 204;
   description: string;
   schema?: SchemaInput;
   example?: unknown;
-  /** Adds the `Location` header on 201 responses. */
+  /** Adds the `Location` header on 201 and 202 responses. */
   location?: string;
   /** Overrides the default `application/json` media type (e.g. SSE). */
   contentType?: string;
@@ -88,6 +88,8 @@ const RATE_DOC: Record<RatePolicy, string> = {
   write: "ghi nội dung",
   media_upload: "upload media",
   listening_progress: "đồng bộ tiến trình nghe",
+  ai_check: "AI rà kịch bản",
+  ai_generate: "AI soạn thảo",
 };
 
 const IDEMPOTENCY_NOTES: Array<[number, string]> = [

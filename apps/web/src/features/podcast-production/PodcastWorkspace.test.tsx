@@ -2,6 +2,7 @@ import { afterEach, expect, it } from "bun:test";
 import { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { MemoryRouter } from "react-router";
 import { PodcastWorkspace } from "./PodcastWorkspace";
 
 let root: Root | undefined;
@@ -16,7 +17,7 @@ it("keeps fixed columns on expansion and renders a direct edit button for every 
     { id: "episode-2", title: "Khởi nghĩa thắng lợi ở Hà Nội", sortOrder: 2, status: "DRAFT", progress: { hasThirdPersonScript: false, hasThirdPersonAudio: false } },
   ] });
   const host = document.createElement("div"); document.body.append(host); root = createRoot(host);
-  await act(async () => root?.render(<QueryClientProvider client={queryClient!}><PodcastWorkspace /></QueryClientProvider>));
+  await act(async () => root?.render(<MemoryRouter><QueryClientProvider client={queryClient!}><PodcastWorkspace /></QueryClientProvider></MemoryRouter>));
   const widths = [...host.querySelectorAll("col")].map((column) => column.style.width);
   const expand = host.querySelector<HTMLButtonElement>('button[aria-label="Series: Giải phóng miền Nam"]');
   expect(expand).not.toBeNull();

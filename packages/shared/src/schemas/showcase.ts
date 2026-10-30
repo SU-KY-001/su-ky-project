@@ -1,12 +1,13 @@
 import { z } from "zod";
 import { PublicSeriesListItemSchema } from "./listening";
+import { PublicPublicationInfoSchema } from "./content/publication-review";
 
 const cover = z.object({ url: z.string() }).nullable();
 export const LibrarySeriesSchema = PublicSeriesListItemSchema.extend({ cover, coverLandscape: cover });
 export const LibraryNarrationSchema = z.object({ id: z.string().uuid(), type: z.enum(["FIRST_PERSON", "THIRD_PERSON"]), durationMs: z.number().nullable(), available: z.boolean() });
 export const LibraryChapterSchema = z.object({ id: z.string().uuid(), slug: z.string(), title: z.string(), publishedAt: z.coerce.date().nullable().optional(), description: z.string().nullable().optional(), poster: cover.optional(), sortOrder: z.number(), narrations: z.array(LibraryNarrationSchema) });
 export const LibrarySeriesDetailSchema = z.object({ id: z.string().uuid(), slug: z.string(), title: z.string(), description: z.string().nullable(), publishedAt: z.coerce.date().nullable().optional(), creator: z.object({ name: z.string() }).nullable().optional(), cover, episodes: z.array(LibraryChapterSchema), historicalEvent: z.object({ id: z.string(), name: z.string() }).optional() });
-export const LibraryEpisodeSchema = z.object({ id: z.string().uuid(), slug: z.string(), title: z.string(), description: z.string().nullable(), series: z.object({ slug: z.string() }).optional(), hasQuiz: z.boolean(), narrations: z.array(LibraryNarrationSchema.extend({ narrator: z.object({ name: z.string() }).nullable() })) });
+export const LibraryEpisodeSchema = z.object({ id: z.string().uuid(), slug: z.string(), title: z.string(), description: z.string().nullable(), series: z.object({ slug: z.string() }).optional(), hasQuiz: z.boolean(), publicationInfo: PublicPublicationInfoSchema.nullable().optional(), narrations: z.array(LibraryNarrationSchema.extend({ narrator: z.object({ name: z.string() }).nullable() })) });
 export const PublicHonorsQuerySchema = z.object({ period: z.enum(["week", "month"]).default("week") });
 export const PublicHonorsSchema = z.object({ period: z.enum(["week", "month"]), from: z.coerce.date(), to: z.coerce.date(), items: z.array(z.object({ rank: z.number().int(), name: z.string(), image: z.string().nullable(), xp: z.number().int() })) });
 export const PublicReleaseQuerySchema = z.object({ from: z.coerce.date(), to: z.coerce.date(), seriesId: z.string().uuid().optional() }).refine((v) => v.to > v.from && v.to.getTime() - v.from.getTime() <= 62 * 86400000, { message: "Khoảng lịch phải lớn hơn 0 và không quá 62 ngày" });

@@ -14,28 +14,32 @@ export const dashboardTableCell = "px-4 py-3.5 align-middle text-mod-text";
 
 export interface DashboardDataTableProps {
   caption: string;
-  columns: string[];
+  columns: ReactNode[];
+  columnAriaSort?: Array<"none" | "ascending" | "descending" | undefined>;
   children: ReactNode;
   columnWidths?: string[];
   minWidth?: number;
   embedded?: boolean;
+  responsive?: boolean;
 }
 
 export function DashboardDataTable({
   caption,
   columns,
+  columnAriaSort,
   children,
   columnWidths,
   minWidth = 720,
   embedded = false,
+  responsive = false,
 }: DashboardDataTableProps) {
   return (
-    <div className={cn("mod-data-table font-moderator", embedded ? "w-full overflow-visible rounded-none border-0 bg-transparent shadow-none" : "overflow-hidden rounded-lg border border-mod-text-low/40 bg-mod-surface shadow-sm")}>
+    <div data-responsive={responsive || undefined} className={cn("mod-data-table font-moderator", embedded ? "w-full overflow-visible rounded-none border-0 bg-transparent shadow-none" : "overflow-hidden rounded-lg border border-mod-text-low/40 bg-mod-surface shadow-sm")}>
       <Table className={cn("border-collapse text-left", columnWidths && "table-fixed")} style={{ minWidth }}>
         <TableCaption className="sr-only">{caption}</TableCaption>
         {columnWidths ? <colgroup>{columnWidths.map((width, index) => <col key={index} style={{ width }} />)}</colgroup> : null}
         <TableHeader className="bg-mod-canvas-accent text-sm text-mod-text">
-          <TableRow className="border-mod-text-low/40">{columns.map((column) => <TableHead key={column} scope="col" className="whitespace-nowrap px-4 py-4 font-bold text-mod-text">{column}</TableHead>)}</TableRow>
+          <TableRow className="border-mod-text-low/40">{columns.map((column, index) => <TableHead key={index} scope="col" aria-sort={columnAriaSort?.[index]} className="whitespace-nowrap px-4 py-4 font-bold text-mod-text">{column}</TableHead>)}</TableRow>
         </TableHeader>
         <TableBody className="divide-y divide-mod-text-low/25">{children}</TableBody>
       </Table>

@@ -1,5 +1,8 @@
 import type { ReleaseScheduleStatus } from "@repo/shared";
-import { Kanban, List, MagnifyingGlass, Plus } from "@phosphor-icons/react";
+import { Kanban } from "@phosphor-icons/react/dist/icons/Kanban";
+import { List } from "@phosphor-icons/react/dist/icons/List";
+import { MagnifyingGlass } from "@phosphor-icons/react/dist/icons/MagnifyingGlass";
+import { Plus } from "@phosphor-icons/react/dist/icons/Plus";
 import { Button } from "@/shared/components/ui/button";
 import { Input } from "@/shared/components/ui/input";
 import { DatePicker } from "@/shared/components/ui/date-picker";

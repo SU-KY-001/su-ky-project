@@ -24,6 +24,8 @@ export interface SourceListQuery {
   q?: string;
   /** ISBN term pre-normalized by the application layer (may be null when q has no ISBN digits). */
   normalizedIsbn?: string | null;
+  sortBy?: "title" | "createdAt";
+  sortDirection?: "asc" | "desc";
 }
 
 export interface SimilarSourceQuery {

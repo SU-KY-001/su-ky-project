@@ -1,9 +1,13 @@
 import type { Session } from "../../auth";
 import {
-  AudioAnalysisSchema,
+  AttachAudioAnalysisSchema,
+  DialogueSchema,
+  dialogueScriptContent,
   EditorDocumentSchema,
   type AudioAnalysis,
+  type Dialogue,
   type EditorDocument,
+  type PublishEpisodeExceptionInput,
 } from "@repo/shared";
 import { DomainError } from "../../../core/errors/domain-error";
 import { insertWithUniqueSlug } from "../../../core/slug";
@@ -17,6 +21,7 @@ import type {
   ContentStatus,
   EpisodeNarrationDetailEntity,
   EpisodeAttachmentEntity,
+  SeriesReviewSourceEntity,
   SeriesSourceWithSourceEntity,
   EpisodeWorkspaceEntity,
   MediaAssetEntity,
@@ -25,7 +30,8 @@ import type {
   SeriesListItemEntity,
 } from "../domain/content.entity";
 import { getSystemConfig } from "../../../core/config/system-config";
-import { episodeChecklist, seriesChecklist } from "./content.mappers";
+import { mapWorkspace, seriesChecklist } from "./content.mappers";
+import { hasPublicationWarnings } from "./publication-gate";
 import {
   extractCitationSourceIds,
   extractScriptText,
@@ -65,11 +71,9 @@ export class ContentService {
       series.ownerId !== session.user.id &&
       await this.series.isActiveReleaseCollaboratorForSeries?.(id, session.user.id),
     );
-    if (
-      !series ||
-      (session.user.role !== "admin" && series.ownerId !== session.user.id && !isCollaborator)
-    ) {
-      throw new DomainError(404, "NOT_FOUND", "Series not found");
+    if (!series) throw new DomainError(404, "NOT_FOUND", "Series not found");
+    if (session.user.role !== "admin" && series.ownerId !== session.user.id && !isCollaborator) {
+      throw new DomainError(403, "FORBIDDEN", "Bạn không có quyền truy cập series này");
     }
     return series;
   }
@@ -82,13 +86,9 @@ export class ContentService {
       episode.series.ownerId !== session.user.id &&
       await this.series.isActiveReleaseCollaboratorForEpisode?.(id, session.user.id),
     );
-    if (
-      !episode ||
-      (session.user.role !== "admin" &&
-        episode.series.ownerId !== session.user.id &&
-        !isCollaborator)
-    ) {
-      throw new DomainError(404, "NOT_FOUND", "Episode not found");
+    if (!episode) throw new DomainError(404, "NOT_FOUND", "Episode not found");
+    if (session.user.role !== "admin" && episode.series.ownerId !== session.user.id && !isCollaborator) {
+      throw new DomainError(403, "FORBIDDEN", "Bạn không có quyền truy cập tập này");
     }
     return episode;
   }
@@ -233,6 +233,7 @@ export class ContentService {
       status?: string | null;
       q?: string | null;
       ownerId?: string | null;
+      owned?: "true";
     },
   ): Promise<{
     items: SeriesListItemEntity[];
@@ -242,10 +243,12 @@ export class ContentService {
   }> {
     const items = await this.series.listSeries({
       ownerId:
-        session.user.role === "admin"
-          ? (filter.ownerId ?? null)
-          : null,
-      viewerId: session.user.role === "admin" ? null : session.user.id,
+        filter.owned === "true"
+          ? session.user.id
+          : session.user.role === "admin"
+            ? (filter.ownerId ?? null)
+            : null,
+      viewerId: session.user.role === "admin" || filter.owned === "true" ? null : session.user.id,
       status:
         (filter.status as ContentStatus | "TRASH" | null | undefined) ?? null,
       q: filter.q ?? null,
@@ -273,6 +276,7 @@ export class ContentService {
       endYear?: number | null;
       coverImageAssetId?: string | null;
       coverLandscapeAssetId?: string | null;
+      language?: string;
     },
     ipAddress: string | null,
   ): Promise<SeriesDetailEntity> {
@@ -299,12 +303,17 @@ export class ContentService {
     return this.getSeriesDetail(created.id);
   }
 
+  /** `visibleEpisodeIds` is null when the viewer may see every episode (owner, admin). */
   async getSeriesDetailForRead(
     session: Session,
     id: string,
-  ): Promise<SeriesDetailEntity> {
-    await this.loadSeriesForRead(session, id);
-    return this.getSeriesDetail(id);
+  ): Promise<{ series: SeriesDetailEntity; visibleEpisodeIds: ReadonlySet<string> | null }> {
+    const series = await this.loadSeriesForRead(session, id);
+    const detail = await this.getSeriesDetail(id);
+    if (session.user.role === "admin" || series.ownerId === session.user.id) return { series: detail, visibleEpisodeIds: null };
+    // A collaborator sees the series through their assigned episodes, not the owner's other drafts.
+    const ids = await this.series.listActiveCollaboratorEpisodeIds(id, session.user.id);
+    return { series: detail, visibleEpisodeIds: new Set(ids) };
   }
 
   async updateSeries(
@@ -322,6 +331,7 @@ export class ContentService {
       coverImageAssetId?: string | null;
       coverLandscapeAssetId?: string | null;
       baseUpdatedAt?: Date;
+      language?: string;
     },
     ipAddress: string | null,
   ): Promise<SeriesDetailEntity> {
@@ -500,16 +510,6 @@ export class ContentService {
     assertWritable(session, series);
     const existing = await this.series.findSeriesSource(seriesId, childId);
     if (!existing) return;
-    if (
-      series.status === "PUBLISHED" &&
-      (await this.series.countSeriesSources(seriesId)) <= 1
-    ) {
-      throw new DomainError(
-        409,
-        "REQUIRED_FOR_PUBLISHED",
-        "Published series require a source",
-      );
-    }
     await this.series.deleteSeriesSource(seriesId, childId);
   }
 
@@ -568,6 +568,10 @@ export class ContentService {
     input: AppendEpisodeInput,
   ): Promise<EpisodeWorkspaceEntity> {
     const series = await this.loadSeriesForRead(session, seriesId);
+    // A release collaborator may read the series but only the owner (or an admin) can add episodes: the new episode would be unreadable to the collaborator.
+    if (session.user.role !== "admin" && series.ownerId !== session.user.id) {
+      throw new DomainError(403, "FORBIDDEN", "Only the series owner can add episodes");
+    }
     assertWritable(session, series);
     const [created] = await this.episodes.appendEpisodes(seriesId, [input]);
     return this.getEpisodeWorkspace(created!.episodeId);
@@ -579,6 +583,12 @@ export class ContentService {
   ): Promise<EpisodeWorkspaceEntity> {
     await this.loadEpisodeForRead(session, id);
     return this.getEpisodeWorkspace(id);
+  }
+
+  /** Sources of the episode's series for the AI review; same access rule as reading the episode. */
+  async listReviewSources(session: Session, episodeId: string): Promise<SeriesReviewSourceEntity[]> {
+    const episode = await this.loadEpisodeForRead(session, episodeId);
+    return this.series.listReviewSources(episode.seriesId);
   }
 
   async updateEpisode(
@@ -612,10 +622,14 @@ export class ContentService {
     return this.getEpisodeWorkspace(id);
   }
 
+  /**
+   * Admin direct publish: the only path that skips review. It needs a written reason and a full assessment; the DB actor role,
+   * reason, assessment, evidence and timestamp are all re-checked inside the publish transaction.
+   */
   async publishEpisode(
     session: Session,
     id: string,
-    baseUpdatedAt?: Date,
+    input: PublishEpisodeExceptionInput,
   ): Promise<EpisodeWorkspaceEntity> {
     if (session.user.role !== "admin")
       throw new DomainError(
@@ -626,7 +640,8 @@ export class ContentService {
     const current = await this.loadEpisodeForRead(session, id);
     assertWritable(session, current.series, current);
     const episode = await this.getEpisodeWorkspace(id);
-    if (!episodeChecklist(episode).ready)
+    const { readiness } = await mapWorkspace(episode);
+    if (!readiness.ready)
       throw new DomainError(
         422,
         "EPISODE_NOT_PUBLISHABLE",
@@ -635,7 +650,13 @@ export class ContentService {
     await this.episodes.publishEpisodeWithEvidence(
       session.user.id,
       id,
-      baseUpdatedAt ?? episode.updatedAt,
+      input.baseUpdatedAt,
+      {
+        mode: "ADMIN_EXCEPTION",
+        hasWarnings: hasPublicationWarnings(readiness),
+        exceptionReason: input.exceptionReason,
+        assessment: input.assessment,
+      },
     );
     return this.getEpisodeWorkspace(id);
   }
@@ -773,6 +794,7 @@ export class ContentService {
       baseUpdatedAt?: Date;
       scriptContent?: string | null;
       scriptDocument?: EditorDocument | null;
+      dialogue?: Dialogue | null;
       narratorEntityId?: string | null;
     },
   ): Promise<EpisodeNarrationDetailEntity> {
@@ -787,10 +809,32 @@ export class ContentService {
       );
     let scriptDocument = input.scriptDocument;
     let scriptContent = input.scriptContent;
+    let dialogue: Dialogue | null | undefined;
+    if (input.dialogue != null) {
+      if (type !== "THIRD_PERSON" || input.scriptDocument != null)
+        throw new DomainError(
+          422,
+          "VALIDATION_ERROR",
+          "Dialogue is only for third-person scripts and excludes scriptDocument",
+        );
+      const parsed = DialogueSchema.safeParse(input.dialogue);
+      if (!parsed.success)
+        throw new DomainError(422, "VALIDATION_ERROR", "Dialogue is invalid");
+      dialogue = parsed.data;
+      scriptDocument = null;
+      scriptContent = dialogueScriptContent(parsed.data);
+    } else if (
+      input.dialogue === null ||
+      input.scriptDocument !== undefined ||
+      input.scriptContent !== undefined
+    ) {
+      // Saving any other script form switches the episode back to a single narrator.
+      dialogue = null;
+    }
     if (input.scriptDocument === undefined && input.scriptContent !== undefined) {
       scriptDocument = null;
     }
-    if (input.scriptDocument !== undefined) {
+    if (input.dialogue == null && input.scriptDocument !== undefined) {
       if (input.scriptDocument === null) {
         scriptContent = null;
       } else {
@@ -851,6 +895,7 @@ export class ContentService {
       narrationType: type,
       scriptContent,
       scriptDocument,
+      dialogue,
       narratorEntityId:
         type === "FIRST_PERSON" ? input.narratorEntityId! : null,
     });
@@ -909,7 +954,7 @@ export class ContentService {
       );
     }
     const analysis = input.analysis
-      ? AudioAnalysisSchema.parse(input.analysis)
+      ? AttachAudioAnalysisSchema.parse(input.analysis)
       : undefined;
     return this.episodes.attachAudio(narration.id, {
       previousAudioAssetId: narration.audioAssetId,

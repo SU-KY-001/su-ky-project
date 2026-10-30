@@ -1,151 +1,75 @@
-# Podcast AI Backend Notes
+# Podcast AI và cổng xuất bản
 
-Tài liệu này ghi lại hướng mở rộng backend cho AI Assistant và ElevenLabs sau khi wizard sản xuất podcast truyền thống đã ổn định. Các mục dưới đây không thuộc phạm vi triển khai hiện tại.
+Cập nhật: 2026-10-23. Tài liệu mô tả implementation hiện tại; thay ghi chú thiết kế ElevenLabs/segment cũ. Phạm vi phát hành: thư viện Sử Ký, chưa có RSS/distribution.
 
-## Nguyên tắc
+## AI hỗ trợ nội dung
 
-- Backend sở hữu API key, tính chi phí, rate limit, retry và kiểm tra đầu ra.
-- Frontend không gọi ElevenLabs hoặc model provider trực tiếp.
-- Âm thanh AI được tạo theo từng đoạn, không gửi cả kịch bản dài trong một request.
-- Mỗi đoạn có thể nghe thử, tạo lại và theo dõi tiến độ độc lập.
-- Định danh đoạn phải ổn định qua những chỉnh sửa không làm thay đổi nội dung đoạn đó.
-- Mọi nội dung AI phải giữ liên kết tới nguồn lịch sử đã được moderator chọn.
+`apps/api/src/modules/ai-assist` chia theo review, compose, angles và voice. AI rà kịch bản theo nguồn series; câu trích được kiểm với nội dung nguồn đã đọc, nhưng không tự xác minh sự thật. `REVIEWED` nghĩa là đã xem, không có nghĩa đã sửa hoặc kiểm chứng. AI không tự duyệt hoặc publish.
 
-## Cấu hình môi trường dự kiến
+Soạn dàn ý/viết phần/viết lại chạy qua ai-engine và model-gate; không lưu bản nháp vào DB. Góc kể lưu riêng theo người dùng. Nguồn chỉ gắn series; không upload lặp tại tập. Không triển khai claim register.
 
-- `ELEVENLABS_API_KEY`.
-- `ELEVENLABS_BASE_URL`, mặc định dùng endpoint chính thức.
-- `ELEVENLABS_MODEL_ID`.
-- Timeout cho request danh sách giọng, preview và tạo audio.
-- Giới hạn ký tự theo request và theo moderator trong một khoảng thời gian.
-- Giá hoặc hệ số credit theo ký tự để trả ước lượng trước khi tạo.
+## Giọng AI Gemini
 
-Không đưa API key hoặc provider secret vào response, log hay client bundle.
+- `POST /api/studio/episodes/:id/ai/voice`: trả job 202; GET theo job để poll; DELETE hủy; GET `/audio` tải MP3.
+- Model mặc định `gemini-3.8-flash-lite-tts`; cấu hình TTS trong `.env.example`, ffmpeg qua `FFMPEG_PATH`. Không gọi provider trực tiếp từ web.
+- `GEMINI_API_KEY` nhận một key hoặc danh sách cách nhau bằng dấu phẩy; bỏ khoảng trắng, mục rỗng và key trùng. TTS gặp 429 sẽ thử key kế tiếp, mỗi key tối đa một lần/chunk, giữ key kế tiếp cho các chunk sau. Hết danh sách vẫn trả `RATE_LIMITED`; không retry lỗi khác. Toàn bộ các lượt dùng chung `TTS_REQUEST_TIMEOUT_MS` và tín hiệu hủy. Không log key. AI review/compose dùng key đầu tiên (hoặc `PI_API_KEY`), không áp vòng xoay TTS. Key cùng project có thể chia sẻ quota nên không bảo đảm tăng hạn mức.
+- Đọc kịch bản đã lưu, bỏ heading, chia theo đoạn/câu, gọi Gemini rồi ghép MP3. Job chạy nền, có progress/cancel và giới hạn thời gian.
+- Job ghi `scriptHash` SHA-256 của các đoạn sẽ đọc và `contentRevision`. Gắn audio qua pipeline upload hiện có, server tính lại hash trong transaction; hash khác trả `HASH_MISMATCH`.
+- Thay heading không đổi lời đọc không đổi hash. Đổi nội dung lời đọc phải tạo lại audio hoặc dùng bản thu phù hợp.
+- Audio lưu nguồn `UPLOAD` (fileName) hoặc `AI_VOICE` (voice/model/style/chars/scriptHash). Dữ liệu AI cũ thiếu hash vẫn đọc được, nhưng không được attach mới với metadata thiếu hash. Không tạo hash giả cho dữ liệu cũ.
+- Job trong RAM, file ở temp; restart làm mất job chưa gắn. Sau khi người dùng upload/gắn, audio nằm trong media lifecycle hiện có. Chưa có segment editor, voice clone, speed control hoặc hàng đợi TTS bền vững.
+- MP3 có bước resample; không kết luận 24 kHz là nguyên nhân lỗi playback. Không cần gọi Gemini thật cho regression thông thường.
 
-## Gateway ElevenLabs
+### Kịch bản hội thoại hai người
 
-Tạo interface provider độc lập với application service, tối thiểu gồm:
+- `EpisodeNarration.dialogue` (JSON, nullable, chỉ `THIRD_PERSON`): `{ speakers: [A, B], turns[] }`, mỗi lượt có `id`, `speaker`, `text`, `style?`, `note?`. Lưu qua `PUT /api/studio/episodes/:id/narrations/THIRD_PERSON` với `dialogue`; server đặt `scriptDocument = null` và `scriptContent` = lời đã bỏ tag/`|` (đếm từ, thời lượng, kiểm duyệt dùng được). Gửi `scriptDocument`/`scriptContent` sau đó chuyển tập về một người kể (`dialogue = null`). `dialogue` cùng `scriptDocument` hoặc trên `FIRST_PERSON` trả 422.
+- Tag trong lời chỉ nhận danh sách `DIALOGUE_TAGS` (`@repo/shared`); `|…|` là người kia chen vào, phải cân bằng. Hai người nói khác tên và khác giọng; giọng chỉ là giọng dựng sẵn (không `en-us-riko`).
+- Voice job: tập hội thoại **không** gửi `voice` (giọng lấy từ `dialogue.speakers`); tập một người kể bắt buộc `voice`. Sai dạng trả 422. `VoiceJob` có `mode: "SINGLE" | "DIALOGUE"`, `voice` null với `DIALOGUE`. Một request Gemini = nhiều lượt nguyên vẹn, gọi `models/{TTS_DIALOGUE_MODEL}:generateContent` (mỗi lượt là một `part` với `speech_metadata.speaker/style`, hai giọng trong `speechConfig.multiSpeakerVoiceConfig`; không có tham số `mode`), chia chunk theo `TTS_CHUNK_CHARS`, không cắt giữa lượt; model mặc định `gemini-3.8-flash-tts`. Tập một người kể vẫn dùng Interactions API.
+- `scriptHash` của tập hội thoại = sha256 của `{speakers[key,voice], turns[speaker,text,style]}`; đổi `note` hoặc tên người nói không làm âm thanh cũ mất hiệu lực, đổi lời, giọng điệu, giọng hoặc thứ tự thì `HASH_MISMATCH`.
+- Chưa có: AI rà/soạn cho hội thoại, tạo lại riêng một lượt, lịch thu âm, giọng tự thiết kế/nhân bản. Giới hạn độ dài một request hai giọng của Gemini chưa đo; Gemini từ chối thì job `ERROR` kèm mã lỗi thật. Thu âm thủ công là thu ngoài hệ thống rồi upload một file; hệ thống không trộn track.
 
-- Liệt kê giọng được phép sử dụng.
-- Lấy hoặc tạo preview ngắn.
-- Tạo audio cho một đoạn với voice, model, speed và stability.
-- Đọc metadata request khi provider hỗ trợ.
+## Hồ sơ và quyết định kiểm duyệt
 
-Implementation ElevenLabs nằm ở infrastructure. Application layer không phụ thuộc trực tiếp SDK hoặc response shape của provider.
+APPROVE yêu cầu `PublicationAssessmentSchema`:
 
-## Mô hình đoạn giọng đọc
+| Trường | Nội dung |
+|---|---|
+| editorialNote | Kết luận biên tập/nguồn trọng yếu, 10..5000 ký tự |
+| rightsNote | Căn cứ quyền tài sản, consent nếu áp dụng, 10..5000 |
+| audioNote | Kết luận bản nghe, 10..5000 |
+| credits | Ghi công công khai, tùy chọn |
+| rightsExpiresAt | Ngày ISO hoặc datetime; ngày không giờ có hiệu lực đến hết ngày UTC |
+| aiDisclosure | Công khai cho người nghe; bắt buộc khi audio có origin AI_VOICE |
+| warningAcceptance | Lý do chấp nhận; bắt buộc khi có WARNING/WARN |
 
-Đề xuất thêm `NarrationSegment`:
+Đây là kết luận có trách nhiệm của người duyệt, không phải bằng chứng hệ thống tự kiểm lịch sử/pháp lý hoặc theo dõi đã nghe hết. REQUEST_CHANGES chỉ cần reviewNote, không bắt điền assessment.
 
-- `id`.
-- `narrationId`.
-- `position`.
-- `sourceNodeId` lấy từ block Tiptap.
-- `text`.
-- `textHash`.
-- `characterCount`.
-- `voiceId`.
-- `modelId`.
-- `speed`.
-- `stability`.
-- `status`: `PENDING`, `PROCESSING`, `READY`, `FAILED`, `STALE`.
-- `audioAssetId`.
-- `providerRequestId` nếu provider trả về.
-- `errorCode` và thông báo lỗi nội bộ đã lọc secret.
-- `createdAt`, `updatedAt`.
+Gửi duyệt/ra quyết định khóa tập và kiểm phiên bản trong transaction. Chỉ một quyết định được chuyển từ IN_REVIEW; yêu cầu đồng thời đến sau bị conflict. Approval nằm ở `Episode.publicationApproval`, gắn contentRevision; snapshot readiness/assessment nằm ở `EpisodeReview.readinessSnapshot`. Thay kịch bản/audio tăng revision, approval cũ không dùng để phát hành bản mới. Lịch sử giữ quyết định cũ thay vì xóa.
 
-Khi nội dung một block thay đổi, chỉ segment có `textHash` khác bị đánh dấu `STALE`. Audio của các đoạn không đổi tiếp tục được sử dụng.
+Ba điều kiện readiness bắt buộc vẫn là tên, script ngôi thứ ba, audio READY. Cảnh báo cần kết luận chấp nhận, không tự động kết luận tập sai. Lượt AI mới có thể sinh cảnh báo sau duyệt; gate publish tính lại tình trạng, có thể yêu cầu kết luận mới. Nguồn/sự kiện/phiên bản được kiểm riêng tại publication transaction.
 
-Một narration có cấu hình giọng mặc định. Segment có thể override cấu hình khi cần sửa riêng một đoạn.
+## Ngoại lệ Admin
 
-## Chia đoạn
+`POST /api/studio/episodes/:id/publish` dùng `PublishEpisodeExceptionSchema`: baseUpdatedAt + exceptionReason 20..5000 ký tự + assessment. Không dùng body publish series thay cho endpoint này.
 
-Nguồn chia đoạn là block của `scriptDocument`, ưu tiên heading và paragraph. Backend áp dụng giới hạn ký tự của provider và chỉ tách tiếp ở ranh giới câu khi một block quá dài.
+- Bỏ qua hàng chờ/người duyệt độc lập, không bỏ qua script/audio, bằng chứng nguồn, hạn quyền, công khai AI hoặc timestamp lock.
+- Vai trò và banned flag của Admin được đọc lại từ DB trong transaction.
+- Ghi approval ngoại lệ theo revision và audit `episode.published_exception`, gồm actor, reason, assessment và revision. Nếu kiểm bằng chứng thất bại, transaction không để lại approval/publish/audit một phần.
+- Màn Admin hàng chờ kiểm duyệt → Xem chi tiết → Xuất bản ngoại lệ… mở form cảnh báo và bắt lý do. Không cần cho Admin vào workspace moderator. API vẫn hỗ trợ ngoại lệ không phụ thuộc lịch.
+- Quiz middleware chỉ bảo vệ đường quiz, không được áp role moderator-only lên toàn bộ `/api/studio`.
 
-Không dựa vào vị trí ký tự tuyệt đối vì chỉnh sửa ở đầu tài liệu sẽ làm thay đổi mọi offset. `sourceNodeId` và `textHash` giúp đối chiếu đoạn ổn định hơn.
+## Series và dữ liệu công khai
 
-## Job tạo giọng
+Series có `language` default `vi`, owner là người chịu trách nhiệm nội dung. Publish yêu cầu description và ít nhất một cover READY, bên cạnh topic/giai đoạn/năm, nguồn hợp lệ và ít nhất một tập đã xuất bản. Không cần mọi tập hoàn thành hoặc ảnh bìa riêng cho từng tập.
 
-Dùng hàng đợi nền hiện có thay vì giữ HTTP request mở trong suốt thời gian provider xử lý.
+Nguồn đã có trạng thái xác minh và ghim source revision; publication snapshot giữ thông tin nguồn/locator. Đó là kiểm chứng danh mục, không tự chứng minh từng khẳng định trong podcast.
 
-Luồng dự kiến:
+Public episode DTO chỉ có `publicationInfo.aiDisclosure` và `credits`; không trả editorialNote, rightsNote, audioNote, warningAcceptance hoặc danh tính người duyệt. Web hiển thị thông báo/ghi công tại trang nghe và tập được chọn trong series. Nội dung đã public trước migration vẫn đọc được; lần publish tiếp theo cần approval mới hoặc ngoại lệ Admin.
 
-1. Frontend yêu cầu tạo một segment hoặc các segment còn thiếu.
-2. Backend kiểm tra quyền, phiên bản kịch bản, voice và credit estimate.
-3. Backend tạo job idempotent theo narration, segment, text hash và voice settings.
-4. Worker gọi provider, tải kết quả vào media storage và xác minh media asset.
-5. Transaction gắn asset vào segment nếu text hash vẫn khớp.
-6. Frontend poll trạng thái hoặc dùng cơ chế realtime nếu dự án bổ sung sau này.
+## Triển khai và kiểm tra
 
-Retry chỉ áp dụng cho lỗi mạng, rate limit và lỗi provider tạm thời. Thay đổi text hoặc voice tạo idempotency fingerprint mới.
+Chạy `bun run db:generate` và `bun run db:deploy` để áp migration `20261023120000_publication_gates` (thêm language, publication_approval, readiness_snapshot; không xóa dữ liệu). Snapshot cũ NULL, không backfill xác nhận giả.
 
-## Ghép audio hoàn chỉnh
+Regression DB chỉ chạy với `RUN_INTEGRATION=1` và DATABASE_URL trỏ DB có tên chứa test; không reset DB development. Kiểm tra trọng tâm tại `tests/publication-gate.test.ts`, `release-review-gates.test.ts`, `podcast-historical-evidence.test.ts` và `studio-route-scope.test.ts`.
 
-Sau khi mọi segment sẵn sàng, backend cần tạo một audio hoàn chỉnh để tương thích với playback hiện tại. Có hai hướng:
-
-- Ghép server-side bằng worker và FFmpeg, sau đó gắn asset kết quả vào narration.
-- Nâng playback để phát playlist segment.
-
-Khuyến nghị ghép server-side trong giai đoạn đầu vì giữ nguyên API playback, listening progress và logic publish đang dùng một `audioAssetId`.
-
-Khi một segment được tạo lại, narration audio tổng bị đánh dấu stale và chỉ job ghép cần chạy lại; các segment còn lại không gọi ElevenLabs lần nữa.
-
-## API dự kiến cho giọng AI
-
-- `GET /api/studio/tts/voices`.
-- `POST /api/studio/tts/preview`.
-- `POST /api/studio/episodes/:id/narrations/:type/segments/sync` để đồng bộ segment từ tài liệu hiện tại.
-- `POST /api/studio/narration-segments/:id/generate`.
-- `POST /api/studio/episodes/:id/narrations/:type/generate-missing`.
-- `GET /api/studio/episodes/:id/narrations/:type/segments`.
-- `POST /api/studio/episodes/:id/narrations/:type/assemble`.
-
-Response ước lượng cần trả số ký tự, số đoạn và chi phí hoặc credit dự kiến trước khi moderator xác nhận tạo.
-
-## AI Assistant cho kịch bản
-
-AI Assistant nên dùng `ai-engine` hiện có qua một application service riêng. Input gồm:
-
-- Plain text và cấu trúc block của kịch bản.
-- Danh sách citation đang gắn.
-- Nguồn của series cùng locator và excerpt.
-- Loại yêu cầu: phân tích, gợi ý tách câu, phát hiện câu thiếu nguồn hoặc đề xuất sửa.
-
-Output phải dùng schema có kiểm tra, chứa danh sách finding với block/node id, severity, message và suggestion. AI không tự động sửa tài liệu; moderator chọn áp dụng từng gợi ý.
-
-Các khẳng định lịch sử do AI đề xuất phải trỏ tới source/citation ID hiện có. Finding không có nguồn được đánh dấu rõ, không tự tạo citation giả.
-
-## API dự kiến cho AI Assistant
-
-- `POST /api/studio/episodes/:id/script-analysis`.
-- `POST /api/studio/episodes/:id/script-suggestions`.
-- `GET /api/studio/episodes/:id/script-analysis/:runId` nếu chuyển sang job nền.
-
-Response không trả chain-of-thought. Chỉ trả finding, lý do ngắn, citation liên quan và nội dung thay thế có cấu trúc.
-
-## Chi phí và giới hạn
-
-- Tính số ký tự bằng cùng quy tắc backend dùng khi gửi provider.
-- Trả estimate trước khi moderator tạo giọng.
-- Lưu usage theo provider request, user, episode và segment.
-- Giới hạn số job đồng thời cho mỗi moderator.
-- Không tự động tạo lại đoạn khi moderator đang gõ.
-- Cần hành động rõ ràng để tạo tất cả đoạn còn thiếu.
-
-## Bảo mật và quan sát
-
-- Chỉ moderator sở hữu series hoặc admin được dùng các endpoint studio.
-- Không log toàn bộ kịch bản, audio binary hoặc provider secret.
-- Log correlation ID, provider request ID, segment ID, duration, character count và error code.
-- Theo dõi latency, failure rate, retry count, ký tự đã dùng và media orphan.
-- Media do AI tạo phải đi qua cùng xác minh và cleanup lifecycle như media upload.
-
-## Điều kiện trước khi triển khai AI thật
-
-- Wizard truyền thống đã lưu ổn định `scriptDocument` và `scriptContent`.
-- Block trong Tiptap có định danh ổn định.
-- Upload và playback audio hoàn chỉnh hoạt động ở bước 3 và bước 4.
-- Checklist publish phân biệt audio hoàn chỉnh với segment rời.
-- Đã thống nhất tài khoản ElevenLabs, model, voice allowlist, quota và cách tính chi phí.
-- Có môi trường test provider hoặc adapter giả để kiểm thử mà không tiêu tốn credit.
-
+Chi tiết phạm vi/kiểm tra thực tế: `plans/261015-1640-podcast-ai-source-check-p1/phase-08-publication-gates.md`.

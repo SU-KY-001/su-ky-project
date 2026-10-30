@@ -1,5 +1,6 @@
 import { useState, type FormEvent, type ReactElement } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { DEFAULT_SERIES_LANGUAGE, LanguageTagSchema } from "@repo/shared";
 import { Button } from "@/shared/components/ui/button";
 import {
   DialogContent,
@@ -32,6 +33,9 @@ import {
   podcastProductionService as api,
 } from "./services/podcastProductionService";
 
+/** Matches the server's BCP 47 tag length limit. */
+const LANGUAGE_INPUT_MAX_CHARS = 35;
+
 interface SeriesCreationDialogProps {
   onBack: () => void;
   onSaved: (seriesId: string) => void;
@@ -46,6 +50,7 @@ export function SeriesCreationDialog({
   const [q, setQ] = useState("");
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
+  const [language, setLanguage] = useState<string>(DEFAULT_SERIES_LANGUAGE);
   const [chosen, setChosen] = useState<Set<string>>(new Set());
   const [savedId, setSavedId] = useState<string>();
   const [error, setError] = useState("");
@@ -75,6 +80,10 @@ export function SeriesCreationDialog({
       );
       return;
     }
+    if (!LanguageTagSchema.safeParse(language).success) {
+      setError("Ngôn ngữ phải là mã BCP 47 hợp lệ, ví dụ vi hoặc en-US.");
+      return;
+    }
     if (!topic) {
       setError("Chưa có chủ đề Lịch sử dân tộc trong hệ thống.");
       return;
@@ -91,6 +100,7 @@ export function SeriesCreationDialog({
             primaryHistoricalEventId: eventId,
             historicalPhaseId: phaseId,
             topicId: topic.id,
+            language: language.trim(),
             startYear: event.data?.startYear,
             endYear: event.data?.endYear,
           })
@@ -104,6 +114,7 @@ export function SeriesCreationDialog({
           description: description.trim(),
           primaryHistoricalEventId: eventId,
           topicId: topic.id,
+          language: language.trim(),
           baseUpdatedAt: current.updatedAt,
         });
       }
@@ -182,6 +193,18 @@ export function SeriesCreationDialog({
               disabled={busy}
               onChange={(changeEvent) => setDescription(changeEvent.target.value)}
             />
+          </FormField>
+          <FormField label="Ngôn ngữ" htmlFor="series-language">
+            <Input
+              id="series-language"
+              aria-label="Ngôn ngữ series"
+              className={formField}
+              value={language}
+              disabled={busy}
+              maxLength={LANGUAGE_INPUT_MAX_CHARS}
+              onChange={(changeEvent) => setLanguage(changeEvent.target.value)}
+            />
+            <p className="mt-1 text-xs text-mod-text-secondary">Mã ngôn ngữ BCP 47, ví dụ vi hoặc en-US. Mặc định vi (tiếng Việt).</p>
           </FormField>
           <FormField label="Giai đoạn" htmlFor="series-phase">
             <ModeratorSelect

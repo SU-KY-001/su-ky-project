@@ -105,13 +105,15 @@ export const catalogPaths: Paths = {
       tag: TAG,
       summary: "Tìm và lọc nguồn",
       description:
-        "Tìm chứa chuỗi (không phân biệt hoa thường) trong tiêu đề, tiêu đề gốc hoặc tác giả; hoặc khớp đúng ISBN (ISBN được chuẩn hoá trước). Sắp xếp theo tiêu đề. Mặc định ẩn nguồn đã lưu trữ.",
+        "Tìm chứa chuỗi (không phân biệt hoa thường) trong tiêu đề, tiêu đề gốc hoặc tác giả; hoặc khớp đúng ISBN (ISBN được chuẩn hoá trước). Sắp xếp mặc định theo tiêu đề tăng dần; có thể chọn tiêu đề hoặc ngày tạo, mỗi cột hỗ trợ tăng/giảm dần. Mặc định ẩn nguồn đã lưu trữ.",
       access: "studio",
       query: SourceQuerySchema,
       queryDocs: {
         q: "Từ khoá: tiêu đề, tác giả hoặc ISBN",
         tier: "Lọc theo bậc độ tin cậy",
         includeArchived: "Gồm cả nguồn đã lưu trữ",
+        sortBy: "Cột sắp xếp: title hoặc createdAt",
+        sortDirection: "Hướng sắp xếp: asc hoặc desc",
         page: "Trang, bắt đầu từ 1",
         limit: "Số dòng mỗi trang (tối đa 50)",
       },
@@ -126,7 +128,7 @@ export const catalogPaths: Paths = {
       tag: TAG,
       summary: "Tạo nguồn",
       description:
-        "Nên gọi `GET /api/studio/sources/similar` trước để tránh tạo nguồn trùng. Nguồn phải có `url` hoặc `fileAssetId` (PDF: tạo media asset `kind = DOCUMENT`, upload, `verify`, rồi truyền `assetId`). Một PDF chỉ gắn được cho một nguồn.",
+        "Nên gọi `GET /api/studio/sources/similar` trước để tránh tạo nguồn trùng. Nguồn phải có `url` hoặc `fileAssetId` (PDF: tạo media asset `kind = DOCUMENT`, upload, `verify`, rồi truyền `assetId`). Một PDF chỉ gắn được cho một nguồn. Với PDF, server tách text từng trang và lưu source_pages đúng version trong cùng transaction tạo nguồn, trước khi trả 201. PDF scan không được OCR.",
       access: "studio",
       body: {
         name: "SourceInput",
@@ -148,7 +150,8 @@ export const catalogPaths: Paths = {
       rate: "write",
       errors: {
         409: "`SOURCE_ISBN_TAKEN`: ISBN đã tồn tại; `ASSET_IN_USE`: PDF đã gắn cho nguồn khác; `CONFLICT`: không tạo được nguồn",
-        422: "`VALIDATION_ERROR`: thiếu cả `url` và `fileAssetId`, hoặc asset không phải PDF `READY` của bạn",
+        422: "`VALIDATION_ERROR`: thiếu URL/file hoặc asset không hợp lệ; `MEDIA_INVALID`: PDF hỏng/mã hóa; `MEDIA_TOO_LARGE`: vượt dung lượng",
+        503: "`MEDIA_PROVIDER_UNAVAILABLE`: không tải được PDF; có thể thử lại",
       },
     }),
   },

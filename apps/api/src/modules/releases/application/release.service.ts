@@ -1,11 +1,19 @@
 import type {
   CreateReleaseScheduleInput,
+  ReviewContent,
   ReviewEpisodeInput,
+  ReviewReadinessSnapshot,
   UpdateReleaseScheduleInput,
 } from "@repo/shared";
 import { DomainError } from "../../../core/errors/domain-error";
 import type { Session } from "../../auth";
 import { evaluateReleaseReadiness } from "../domain/release-policy";
+import {
+  assertAssessmentGate,
+  hasAiVoiceAudio,
+  hasPublicationWarnings,
+  withGateStatements,
+} from "../../content/application/publication-gate";
 import type {
   EpisodeReviewEntity,
   ReleaseRepository,
@@ -14,6 +22,7 @@ import type {
 
 export interface ReleasePublisher {
   checklistReady(episodeId: string): Promise<boolean>;
+  reviewContent(episodeId: string): Promise<ReviewContent | null>;
   publishEpisode(episodeId: string, baseUpdatedAt: Date): Promise<void>;
 }
 
@@ -214,7 +223,7 @@ export class ReleaseService {
     if (!current)
       throw new DomainError(404, "NOT_FOUND", "Không tìm thấy ticket chuyển giao");
     if (current.requestedById === replacementModeratorId)
-      throw new DomainError(409, "CONFLICT", "Người thay thế phải khác Moderator hiện tại");
+      throw new DomainError(422, "VALIDATION_ERROR", "Người thay thế phải khác Moderator hiện tại");
     const result = await this.repository.approveReassignmentTicket({
       ticketId,
       replacementModeratorId,
@@ -222,7 +231,7 @@ export class ReleaseService {
       correlationId,
     });
     if (result === "INVALID_REPLACEMENT")
-      throw new DomainError(409, "CONFLICT", "Moderator thay thế không còn hoạt động hoặc không hợp lệ");
+      throw new DomainError(422, "VALIDATION_ERROR", "Moderator thay thế không còn hoạt động hoặc không hợp lệ");
     if (!result)
       throw new DomainError(409, "INVALID_STATE_TRANSITION", "Ticket không còn ở trạng thái chờ duyệt");
     return result;
@@ -244,7 +253,7 @@ export class ReleaseService {
       );
     if (!schedule.episodeId || !schedule.episode)
       throw new DomainError(
-        409,
+        422,
         "CONTENT_NOT_READY",
         "Lịch chưa được liên kết với tập podcast",
       );
@@ -260,6 +269,8 @@ export class ReleaseService {
         "INVALID_STATE_TRANSITION",
         "Lịch không còn nhận nội dung kiểm duyệt",
       );
+    // Submitting needs only the required checklist; approval is decided later, so readiness never depends on it.
+    await this.loadReviewable(schedule.episodeId, contentRevision);
     return this.repository.createReview({
       scheduleId,
       episodeId: schedule.episodeId,
@@ -301,6 +312,23 @@ export class ReleaseService {
         "STALE_WRITE",
         "Nội dung đã thay đổi sau khi gửi duyệt",
       );
+    if (!schedule.episodeId)
+      throw new DomainError(422, "CONTENT_NOT_READY", "Lịch chưa được liên kết với tập podcast");
+
+    let readinessSnapshot: ReviewReadinessSnapshot;
+    if (input.decision === "APPROVE") {
+      const content = await this.loadReviewable(schedule.episodeId, input.contentRevision);
+      const hasAiVoice = hasAiVoiceAudio(content.episode.narrations.filter((item) => item.audio));
+      const hasWarnings = hasPublicationWarnings(content.readiness);
+      const facts = { hasAiVoice, hasWarnings, now: this.clock() };
+      const assessment = withGateStatements(input.assessment, facts);
+      assertAssessmentGate(assessment, facts);
+      readinessSnapshot = { readiness: content.readiness, assessment };
+    } else {
+      const content = await this.publisher.reviewContent(schedule.episodeId);
+      if (!content) throw new DomainError(404, "NOT_FOUND", "Không tìm thấy tập podcast");
+      readinessSnapshot = { readiness: content.readiness, assessment: null };
+    }
 
     const status =
       input.decision === "APPROVE" ? "APPROVED" : "CHANGES_REQUESTED";
@@ -311,11 +339,12 @@ export class ReleaseService {
       actorType: session.user.role === "admin" ? "ADMIN" : "MODERATOR",
       reviewNote: input.reviewNote ?? null,
       correlationId,
+      expectedRevision: input.contentRevision,
+      readinessSnapshot,
     });
 
     if (
       status === "APPROVED" &&
-      schedule.episodeId &&
       (await this.publisher.checklistReady(schedule.episodeId))
     ) {
       await this.repository.setStatus({
@@ -331,6 +360,32 @@ export class ReleaseService {
       });
     }
     return decided;
+  }
+
+  /** Read-only content for the reviewer: full episode + readiness + AI counts. Never for the assigned producer. */
+  async reviewContent(session: Session, scheduleId: string): Promise<ReviewContent> {
+    if (session.user.role !== "admin" && session.user.role !== "moderator")
+      throw new DomainError(403, "FORBIDDEN", "Chỉ Admin hoặc Moderator được xem nội dung kiểm duyệt");
+    const schedule = requireSchedule(await this.repository.findSchedule(scheduleId));
+    if (await this.repository.isModeratorAssigned(scheduleId, session.user.id))
+      throw new DomainError(403, "SELF_REVIEW_FORBIDDEN", "Moderator sản xuất không được xem tập mình phụ trách ở vai trò người duyệt");
+    const review = await this.repository.findLatestReview(scheduleId);
+    if (!review || review.status !== "IN_REVIEW" || !schedule.episodeId)
+      throw new DomainError(404, "NOT_FOUND", "Lịch này không có nội dung đang chờ duyệt");
+    const content = await this.publisher.reviewContent(schedule.episodeId);
+    if (!content) throw new DomainError(404, "NOT_FOUND", "Không tìm thấy tập podcast");
+    return content;
+  }
+
+  /** Content at exactly `revision` with every required checklist row satisfied; otherwise the specific error. */
+  private async loadReviewable(episodeId: string, revision: number): Promise<ReviewContent> {
+    const content = await this.publisher.reviewContent(episodeId);
+    if (!content) throw new DomainError(404, "NOT_FOUND", "Không tìm thấy tập podcast");
+    if (!content.readiness.ready)
+      throw new DomainError(422, "CHECKLIST_INCOMPLETE", "Tập chưa đủ mục bắt buộc (tên tập, kịch bản và âm thanh ngôi thứ ba)");
+    if (content.readiness.contentRevision !== revision)
+      throw new DomainError(409, "STALE_WRITE", "Nội dung đã thay đổi; tải lại phiên bản mới");
+    return content;
   }
 
   async checkReadiness(
@@ -364,7 +419,7 @@ export class ReleaseService {
     );
     if (!readiness.canPublish)
       throw new DomainError(
-        409,
+        422,
         "CONTENT_NOT_READY",
         "Podcast chưa được duyệt ở phiên bản hiện tại hoặc chưa hoàn tất checklist xuất bản",
       );
@@ -639,7 +694,7 @@ export class ReleaseService {
     });
     if (!schedule)
       throw new DomainError(
-        409,
+        422,
         "CONTENT_NOT_READY",
         "Chỉ có thể liên kết tập nháp thuộc nội dung của bạn với lịch đang hoạt động",
       );

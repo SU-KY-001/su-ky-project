@@ -20,6 +20,7 @@ describe("podcast wizard state", () => {
         type: "THIRD_PERSON",
         scriptContent: "Nội dung cũ",
         scriptDocument: null,
+        dialogue: null,
         audioAnalysis: null,
         audio: { assetId: "audio-1", previewUrl: "/audio.mp3" },
       }],

@@ -1,6 +1,12 @@
 import { useEffect, useId, useRef, useState, type ReactElement } from "react";
 import type { EpisodePoster as UploadedImage, ImageUploadPolicy } from "@repo/shared";
-import { ArrowClockwise, CheckCircle, Image as ImageIcon, SpinnerGap, UploadSimple, WarningCircle, X } from "@phosphor-icons/react";
+import { ArrowClockwise } from "@phosphor-icons/react/dist/icons/ArrowClockwise";
+import { CheckCircle } from "@phosphor-icons/react/dist/icons/CheckCircle";
+import { Image as ImageIcon } from "@phosphor-icons/react/dist/icons/Image";
+import { SpinnerGap } from "@phosphor-icons/react/dist/icons/SpinnerGap";
+import { UploadSimple } from "@phosphor-icons/react/dist/icons/UploadSimple";
+import { WarningCircle } from "@phosphor-icons/react/dist/icons/WarningCircle";
+import { X } from "@phosphor-icons/react/dist/icons/X";
 import { ApiError } from "@/lib/apiError";
 import { cn } from "@/lib/utils";
 import { Button } from "../ui/button";
@@ -12,20 +18,21 @@ const sizeLabel = (bytes: number): string => bytes < 1024 * 1024 ? `${Math.ceil(
 
 function uploadFailure(error: unknown): { status: "error" | "invalid-format"; message: string; retry: boolean } {
   if (error instanceof ApiError) {
-    if (["MEDIA_TYPE_NOT_ALLOWED", "MEDIA_INVALID"].includes(error.errorCode ?? "")) return { status: "invalid-format", message: "Máy chủ không chấp nhận định dạng hoặc nội dung ảnh này. Xuất lại ảnh theo định dạng cho phép và chọn tệp mới.", retry: false };
-    if (error.errorCode === "MEDIA_TOO_LARGE") return { status: "error", message: "Ảnh vượt giới hạn dung lượng hiện tại của máy chủ. Nén ảnh hoặc chọn ảnh nhỏ hơn rồi tải lại.", retry: false };
+    if (error.is("MEDIA_TYPE_NOT_ALLOWED") || error.is("MEDIA_INVALID")) return { status: "invalid-format", message: "Máy chủ không chấp nhận định dạng hoặc nội dung ảnh này. Xuất lại ảnh theo định dạng cho phép và chọn tệp mới.", retry: false };
+    if (error.is("MEDIA_TOO_LARGE")) return { status: "error", message: "Ảnh vượt giới hạn dung lượng hiện tại của máy chủ. Nén ảnh hoặc chọn ảnh nhỏ hơn rồi tải lại.", retry: false };
     if (error.status === 401 || error.status === 403) return { status: "error", message: "Phiên đăng nhập đã hết hạn hoặc tài khoản không có quyền tải ảnh. Đăng nhập lại và chọn ảnh để tiếp tục.", retry: false };
     if (error.status === 429) return { status: "error", message: "Bạn đang tải ảnh quá nhanh. Chờ một lát rồi bấm Thử tải lại.", retry: true };
-    if (error.status === 503) return { status: "error", message: "Kho lưu trữ ảnh tạm thời chưa sẵn sàng. Bấm Thử tải lại sau ít phút; nếu lỗi tiếp diễn, liên hệ quản trị viên.", retry: true };
+    if (error.status === 503 || error.is("MEDIA_PROVIDER_UNAVAILABLE")) return { status: "error", message: "Kho lưu trữ ảnh tạm thời chưa sẵn sàng. Bấm Thử tải lại sau ít phút; nếu lỗi tiếp diễn, liên hệ quản trị viên.", retry: true };
   }
   if (error instanceof DOMException && error.name === "TimeoutError") return { status: "error", message: "Tải ảnh quá thời gian chờ. Kiểm tra kết nối mạng rồi bấm Thử tải lại.", retry: true };
   return { status: "error", message: "Chưa hoàn tất tải và xác minh ảnh trên kho lưu trữ. Kiểm tra kết nối rồi bấm Thử tải lại hoặc chọn ảnh khác.", retry: true };
 }
 
-export function ImageUploadDropzone({ label, value, policy, disabled = false, readOnly = false, onUpload, onChange, onBusyChange }: {
+export function ImageUploadDropzone({ label, value, policy, disabled = false, readOnly = false, onUpload, onChange, onBusyChange, successMessage = "Ảnh đã được tải lên và xác minh. Lưu bản nháp hoặc lưu thay đổi để gắn poster vào tập." }: {
   label: string; value: UploadedImage | null; policy?: ImageUploadPolicy; disabled?: boolean; readOnly?: boolean;
   onUpload: (file: File, signal: AbortSignal) => Promise<UploadedImage>;
   onChange: (image: UploadedImage | null) => void; onBusyChange: (busy: boolean) => void;
+  successMessage?: string;
 }): ReactElement {
   const id = useId();
   const input = useRef<HTMLInputElement>(null);
@@ -104,7 +111,7 @@ export function ImageUploadDropzone({ label, value, policy, disabled = false, re
 
   function choose(files: File[]): void {
     if (unavailable || readOnly || !files.length) return;
-    if (files.length !== 1) { setStatus("error"); setRetry(false); setMessage("Mỗi tập chỉ dùng một ảnh poster. Chọn hoặc kéo thả một ảnh duy nhất."); return; }
+    if (files.length !== 1) { setStatus("error"); setRetry(false); setMessage("Chọn hoặc kéo thả một ảnh duy nhất."); return; }
     void upload(files[0]);
   }
 
@@ -122,7 +129,7 @@ export function ImageUploadDropzone({ label, value, policy, disabled = false, re
       <div className={cn("flex flex-col items-center gap-3 text-center", (candidate || value) && "sm:flex-row sm:gap-5 sm:text-left")}>
         {candidate || value ? <div className="grid h-32 w-40 shrink-0 place-items-center overflow-hidden rounded-lg border border-mod-border bg-mod-canvas-accent/30">{previewUrl && !previewFailed ? <img src={previewUrl} alt={`Xem trước ${label.toLowerCase()}`} className="size-full object-contain" onError={() => setPreviewFailed(true)} /> : <ImageIcon size={30} className="text-mod-text-low" aria-hidden="true" />}</div> : <span className="grid size-10 place-items-center rounded-lg border border-mod-border bg-mod-surface text-mod-text-secondary shadow-xs"><UploadSimple size={22} aria-hidden="true" /></span>}
         <div className="min-w-0"><p className="text-sm font-semibold text-mod-text">{readOnly ? value?.fileName ?? "Chưa có poster" : dragging ? "Thả ảnh tại đây" : "Kéo thả ảnh vào đây"}</p>
-          {!readOnly && <p id={`${id}-conditions`} className="mt-2 text-xs leading-5 text-mod-text-secondary">{policy ? `${formats} (tối đa ${sizeLabel(policy.maxBytes)}) · Một ảnh mỗi tập` : "Đang lấy điều kiện tải ảnh…"}</p>}
+          {!readOnly && <p id={`${id}-conditions`} className="mt-2 text-xs leading-5 text-mod-text-secondary">{policy ? `${formats} (tối đa ${sizeLabel(policy.maxBytes)}) · Chỉ một ảnh` : "Đang lấy điều kiện tải ảnh…"}</p>}
           {(candidate || value) && !readOnly && <p className="mt-2 break-words text-xs leading-5 text-mod-text-secondary">{candidate?.name ?? value?.fileName}{(candidate?.size ?? value?.sizeBytes) ? ` · ${sizeLabel(candidate?.size ?? value?.sizeBytes ?? 0)}` : ""}</p>}
           {!readOnly && <div className={cn("mt-3 flex flex-wrap justify-center gap-2", (candidate || value) && "sm:justify-start")}><Button type="button" variant="outline" size="sm" disabled={unavailable} onClick={() => input.current?.click()}>{value || candidate ? "Chọn ảnh khác" : "Chọn ảnh"}</Button>{retry && candidate && <Button type="button" variant="outline" size="sm" disabled={unavailable} onClick={() => { void upload(candidate); }}><ArrowClockwise aria-hidden="true" /> Thử tải lại</Button>}{value && failed && <Button type="button" variant="ghost" size="sm" disabled={uploading || disabled} onClick={clearCandidate}>Giữ ảnh đã tải</Button>}{(value || candidate) && <Button type="button" variant="ghost" size="sm" disabled={disabled || uploading} onClick={() => { clearCandidate(); onChange(null); setStatus("idle"); }}><X aria-hidden="true" /> Gỡ ảnh</Button>}</div>}
         </div>
@@ -133,6 +140,6 @@ export function ImageUploadDropzone({ label, value, policy, disabled = false, re
     </div>
     {message && <p role="alert" className="text-xs leading-6 text-mod-danger">{message}</p>}
     {previewFailed && <p role="alert" className="text-xs leading-6 text-mod-danger">Không mở được ảnh xem trước. Tải lại trang hoặc chọn ảnh khác.</p>}
-    {!readOnly && status === "success" && <p className="text-xs leading-6 text-mod-text-secondary">Ảnh đã được tải lên và xác minh. Lưu bản nháp hoặc lưu thay đổi để gắn poster vào tập.</p>}
+    {!readOnly && status === "success" && <p className="text-xs leading-6 text-mod-text-secondary">{successMessage}</p>}
   </div>;
 }

@@ -39,7 +39,7 @@ apps/web/src/
 
 ## 3. Quy chuẩn
 
-- **UI:** Tailwind utility + `src/styles/globals.css`. Component shadcn thêm vào `src/components/ui`. **Không** import Tamagui hay `@tamagui/*` (thuộc `apps/mobile`).
+- **UI:** Tailwind utility + `src/styles/globals.css`. Component shadcn thêm vào `src/components/ui`. Không import thư viện component chỉ dành cho mobile.
 - **Đồng bộ dashboard:** tuân thủ Rule 5 trong `docs/skill/PERMISSION-RULES-SKILL.md`. Giữ nút chữ “Xem chi tiết” cũ của Moderator, bấm mở popup trực tiếp qua `DashboardRowActions` với action `id: "detail"`. Không thay bằng ba chấm, icon mắt hoặc dropdown “Thao tác → Xem chi tiết”. Chỉ dùng menu cho nhóm hành động nghiệp vụ cần gom. Tái sử dụng các component bảng, badge và toast có sẵn.
 - **Token:** trang công khai dùng token trong `docs/design/COLOR-FONT.md`. Khu moderator (`/moderator`) dùng riêng token `--color-mod-*` và font Manrope (`--font-moderator`) định nghĩa trong `src/styles/globals.css`; render chữ qua `ModeratorText` hoặc class `font-moderator`. Không hardcode mã màu hay font.
 - **Lịch sử:** kế hoạch và spec migrate sang Tailwind/shadcn nằm ở `docs/superpowers/` (chỉ để tham khảo).
@@ -58,3 +58,4 @@ cd apps/web && bun run check-types
 ```
 
 Việc đụng giao diện: chạy `bun run dev` và mở trang đã sửa để xem thực tế, không chỉ dựa vào typecheck.
+

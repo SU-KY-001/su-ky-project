@@ -1,4 +1,4 @@
-import { PublishContentSchema } from "@repo/shared";
+import { PublishEpisodeExceptionSchema } from "@repo/shared";
 import {
   AttachAudioSchema,
   AttachEpisodeDocumentSchema,
@@ -19,6 +19,7 @@ import {
   throwOnInvalid,
 } from "../../../core/middleware";
 import type { AppEnv } from "../../../types";
+import { getSystemConfig } from "../../../core/config/system-config";
 import { requireAuth, requireRole } from "../../auth";
 import type { MediaStorageGateway } from "../../media";
 import {
@@ -46,6 +47,7 @@ export function createEpisodeRoute(
 ) {
   return new Hono<AppEnv>()
     .use("*", requireAuth, requireRole("moderator", "admin"))
+    .get("/script-config", async (c) => c.json({ wordsPerMinute: await getSystemConfig("script.words_per_minute") }))
     .put("/episodes/:id/poster", rateLimit("write"), zValidator("param", idParam, throwOnInvalid), zValidator("json", SetEpisodePosterSchema, throwOnInvalid), async (c) => c.json(await mapWorkspace(await service.setEpisodePoster(c.get("session")!, c.req.valid("param").id, c.req.valid("json")), storage)))
     .post(
       "/series/:seriesId/episodes",
@@ -100,7 +102,7 @@ export function createEpisodeRoute(
       "/episodes/:id/publish",
       rateLimit("write"),
       zValidator("param", idParam, throwOnInvalid),
-      zValidator("json", PublishContentSchema, throwOnInvalid),
+      zValidator("json", PublishEpisodeExceptionSchema, throwOnInvalid),
       async (c) => {
         const session = c.get("session")!;
         return c.json(
@@ -108,7 +110,7 @@ export function createEpisodeRoute(
             await service.publishEpisode(
               session,
               c.req.valid("param").id,
-              c.req.valid("json").baseUpdatedAt,
+              c.req.valid("json"),
             ),
             storage,
           ),

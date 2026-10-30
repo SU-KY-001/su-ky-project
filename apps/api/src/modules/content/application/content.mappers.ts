@@ -1,6 +1,7 @@
 import { z } from "zod";
 import {
   AudioAnalysisSchema,
+  DialogueSchema,
   EditorDocumentSchema,
   SourceTierSchema,
 } from "@repo/shared";
@@ -14,6 +15,11 @@ import type {
   SeriesListItemEntity,
   SeriesSourceWithSourceEntity,
 } from "../domain/content.entity";
+import {
+  computeEpisodeReadiness,
+  episodeChecklistFromReadiness,
+} from "./episode-readiness";
+import { currentPublicationApproval } from "./publication-gate";
 
 export function mapEpisodeAttachment(
   attachment: EpisodeAttachmentEntity,
@@ -86,9 +92,9 @@ export function mapSeriesSource(
 
 export function mapEntityTag(item: {
   id: string;
-  status: string;
+  status: "SUGGESTED" | "CONFIRMED" | "REJECTED";
   origin: string;
-  entity: { id: string; entityType: string; name: string };
+  entity: { id: string; entityType: "FIGURE" | "EVENT"; name: string };
 }) {
   return item;
 }
@@ -106,11 +112,15 @@ export async function mapNarration(
   const estimatedDurationMs = wordCount
     ? Math.round((wordCount / wordsPerMinute) * 60_000)
     : 0;
-  const warnings: Array<{ key: string; ratio?: number }> = [];
+  const warnings: Array<{
+    key: "SCRIPT_CHANGED_AFTER_AUDIO" | "DURATION_MISMATCH";
+    ratio?: number;
+  }> = [];
   const scriptDocument = EditorDocumentSchema.safeParse(
     narration.scriptDocument,
   );
   const audioAnalysis = AudioAnalysisSchema.safeParse(narration.audioAnalysis);
+  const dialogue = DialogueSchema.safeParse(narration.dialogue);
   if (
     narration.scriptUpdatedAt &&
     narration.audioAttachedAt &&
@@ -132,6 +142,7 @@ export async function mapNarration(
     narrator: narration.narratorEntity ?? null,
     scriptContent: narration.scriptContent,
     scriptDocument: scriptDocument.success ? scriptDocument.data : null,
+    dialogue: dialogue.success ? dialogue.data : null,
     audioAnalysis: audioAnalysis.success ? audioAnalysis.data : null,
     wordCount,
     estimatedDurationMs,
@@ -163,44 +174,37 @@ export function seriesChecklist(series: SeriesDetailEntity) {
         series.endYear != null &&
         series.startYear <= series.endYear,
     },
-    { key: "HAS_SOURCE", ok: series.sources.length > 0 },
     {
       key: "HAS_PUBLISHED_EPISODE",
       ok: series.episodes.some((episode) => episode.status === "PUBLISHED"),
     },
+    { key: "DESCRIPTION", ok: Boolean(series.description?.trim()) },
+    {
+      key: "COVER",
+      ok:
+        series.coverImageAsset?.status === "READY" ||
+        series.coverLandscapeAsset?.status === "READY",
+    },
+    { key: "LANGUAGE", ok: Boolean(series.language.trim()) },
   ];
   return { ready: items.every((item) => item.ok), items };
 }
 
 export function episodeChecklist(episode: EpisodeWorkspaceEntity) {
-  const third = episode.narrations.find(
-    (item) => item.narrationType === "THIRD_PERSON",
-  );
-  const items = [
-    { key: "BASIC_INFO", ok: Boolean(episode.title.trim()) },
-    { key: "THIRD_PERSON_SCRIPT", ok: Boolean(third?.scriptContent?.trim()) },
-    { key: "THIRD_PERSON_AUDIO", ok: third?.audioAsset?.status === "READY" },
-  ];
-  const warnings: Array<{ key: string; count?: number }> = [];
-  if (episode.series.status !== "PUBLISHED")
-    warnings.push({ key: "SERIES_NOT_PUBLISHED" });
-  const unconfirmed = episode.entityTags.filter(
-    (tag) => tag.status !== "CONFIRMED",
-  ).length;
-  if (unconfirmed)
-    warnings.push({ key: "ENTITY_TAGS_UNCONFIRMED", count: unconfirmed });
-  return { ready: items.every((item) => item.ok), items, warnings };
+  return episodeChecklistFromReadiness(computeEpisodeReadiness(episode));
 }
 
 export function mapSeriesDetail(
   series: SeriesDetailEntity,
   storage?: MediaStorageGateway,
+  visibleEpisodeIds: ReadonlySet<string> | null = null,
 ) {
   return {
     id: series.id,
     title: series.title,
     slug: series.slug,
     description: series.description,
+    language: series.language,
     status: series.status,
     isDeleted: Boolean(series.deletedAt),
     lock: series.adminLockedAt
@@ -229,7 +233,8 @@ export function mapSeriesDetail(
     updatedAt: series.updatedAt,
     publishChecklist: seriesChecklist(series),
     sources: series.sources.map((item) => mapSeriesSource(item, storage)),
-    episodes: series.episodes.map((episode) => {
+    // Checklist above is computed from every episode: filtering only limits what is listed, not what is true.
+    episodes: series.episodes.filter((episode) => !visibleEpisodeIds || visibleEpisodeIds.has(episode.id)).map((episode) => {
       const third = episode.narrations.find(
         (item) => item.narrationType === "THIRD_PERSON",
       );
@@ -291,6 +296,14 @@ export async function mapWorkspace(
   episode: EpisodeWorkspaceEntity,
   storage?: MediaStorageGateway,
 ) {
+  const narrations = await Promise.all(
+    episode.narrations.map((item) => mapNarration(item, storage)),
+  );
+  const readiness = computeEpisodeReadiness(
+    episode,
+    narrations,
+    { minScriptWords: await getSystemConfig("readiness.min_script_words") },
+  );
   return {
     id: episode.id,
     seriesId: episode.seriesId,
@@ -307,14 +320,14 @@ export async function mapWorkspace(
       : null,
     publishedAt: episode.publishedAt,
     updatedAt: episode.updatedAt,
-    narrations: await Promise.all(
-      episode.narrations.map((item) => mapNarration(item, storage)),
-    ),
+    narrations,
     poster: mapEpisodePoster(episode.attachments, storage),
-    attachments: episode.attachments.filter((item) => item.mediaAsset.kind === "DOCUMENT").map((item) =>
-      mapEpisodeAttachment(item, storage),
-    ),
+    attachments: episode.attachments
+      .filter((item) => item.mediaAsset.kind === "DOCUMENT")
+      .map((item) => mapEpisodeAttachment(item, storage)),
     entityTags: episode.entityTags.map(mapEntityTag),
-    publishChecklist: episodeChecklist(episode),
+    publishChecklist: episodeChecklistFromReadiness(readiness),
+    readiness,
+    publicationApproval: currentPublicationApproval(episode.publicationApproval, episode.contentRevision),
   };
 }

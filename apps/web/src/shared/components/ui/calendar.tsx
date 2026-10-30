@@ -1,5 +1,8 @@
 import type { ComponentProps } from "react";
-import { CaretDown, CaretLeft, CaretRight, CaretUp } from "@phosphor-icons/react";
+import { CaretDown } from "@phosphor-icons/react/dist/icons/CaretDown";
+import { CaretLeft } from "@phosphor-icons/react/dist/icons/CaretLeft";
+import { CaretRight } from "@phosphor-icons/react/dist/icons/CaretRight";
+import { CaretUp } from "@phosphor-icons/react/dist/icons/CaretUp";
 import { DayPicker, type ChevronProps } from "react-day-picker";
 import { vi } from "react-day-picker/locale";
 import { cn } from "@/lib/utils";

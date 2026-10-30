@@ -1,4 +1,7 @@
 export * from "./historical-range";
+export * from "./exhibition-layout";
+export * from "./exhibition-template";
+export * from "./schemas/exhibition";
 export * from "./historical-time";
 export * from "./historical-permissions";
 export * from "./schemas/historical-time";
@@ -17,7 +20,15 @@ export * from "./schemas/content/media";
 export * from "./schemas/listening";
 export * from "./schemas/admin";
 export * from "./schemas/quiz-mission";
+export * from "./schemas/quiz-authoring";
 export * from "./schemas/showcase";
 export * from "./types/index";
 
 export * from "./schemas/content/studio";
+export * from "./schemas/content/ai-check";
+export * from "./schemas/content/ai-compose";
+export * from "./schemas/content/ai-voice";
+export * from "./schemas/content/dialogue";
+export * from "./schemas/content/readiness";
+export * from "./schemas/content/review-content";
+export * from "./schemas/content/publication-review";

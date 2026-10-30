@@ -4,6 +4,8 @@ import { zValidator } from "@hono/zod-validator";
 import {
   MyWeeklyMissionsSchema,
   PublicQuizSchema,
+  PublicQuizCatalogQuerySchema,
+  PublicQuizCatalogSchema,
   QuizAttemptResultSchema,
   StudioQuizSchema,
   SubmitQuizAttemptSchema,
@@ -14,6 +16,7 @@ import { idempotency, rateLimit, throwOnInvalid } from "../../core/middleware";
 import type { AppEnv } from "../../types";
 import { attachSession, requireAuth, requireRole } from "../auth";
 import { GamificationService } from "./gamification.service";
+import { quizAuthoringRoute } from "./quiz-authoring.routes";
 
 const episodeIdParam = z.object({ episodeId: z.string().uuid() });
 const quizIdParam = z.object({ quizId: z.string().uuid() });
@@ -22,7 +25,8 @@ const slugParam = z.object({ slug: z.string().min(1) });
 export const gamificationService = new GamificationService();
 
 export const studioQuizRoute = new Hono<AppEnv>()
-  .use("*", requireRole("moderator"))
+  .route("/", quizAuthoringRoute)
+  .use("/episodes/:episodeId/quiz", requireRole("moderator"))
   .get(
     "/episodes/:episodeId/quiz",
     zValidator("param", episodeIdParam, throwOnInvalid),
@@ -67,8 +71,13 @@ export const studioQuizRoute = new Hono<AppEnv>()
 
 export const publicQuizRoute = new Hono<AppEnv>()
   .use("*", attachSession)
+  .get("/quizzes", zValidator("query", PublicQuizCatalogQuerySchema, throwOnInvalid), async (c) => {
+    c.header("Cache-Control", "private, no-store");
+    return c.json(PublicQuizCatalogSchema.parse(await gamificationService.listPublishedQuizzes(c.req.valid("query"), c.get("session")?.user.id)));
+  })
   .get(
     "/episodes/:slug/quiz",
+    requireAuth,
     zValidator("param", slugParam, throwOnInvalid),
     async (c) =>
       c.json(

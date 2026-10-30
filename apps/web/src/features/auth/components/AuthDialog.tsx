@@ -1,4 +1,6 @@
-import { ArrowLeft, Eye, EyeSlash } from "@phosphor-icons/react";
+import { ArrowLeft } from "@phosphor-icons/react/dist/icons/ArrowLeft";
+import { Eye } from "@phosphor-icons/react/dist/icons/Eye";
+import { EyeSlash } from "@phosphor-icons/react/dist/icons/EyeSlash";
 import { useState, type ReactElement, type ReactNode } from "react";
 import type { UseFormRegisterReturn } from "react-hook-form";
 import brandLogo from "@/public/brand-su-ky-viet-nam.png";

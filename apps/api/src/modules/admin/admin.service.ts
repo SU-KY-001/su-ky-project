@@ -59,6 +59,7 @@ const configDescriptions: Record<keyof typeof SYSTEM_CONFIGS, string> = {
   "script.max_chars": "Số ký tự tối đa của kịch bản",
   "script.words_per_minute": "Tốc độ đọc dùng để ước lượng thời lượng",
   "narration.duration_mismatch_ratio": "Ngưỡng cảnh báo lệch thời lượng",
+  "readiness.min_script_words": "Số từ tối thiểu của kịch bản trước khi cảnh báo quá ngắn",
   "slug.max_length": "Độ dài slug tối đa",
   "slug.max_attempts": "Số lần thử tạo slug duy nhất",
   "search.similar_candidate_limit": "Số kết quả tương tự tối đa",
@@ -67,6 +68,9 @@ const configDescriptions: Record<keyof typeof SYSTEM_CONFIGS, string> = {
   "rate_limit.write": "Giới hạn thao tác ghi",
   "rate_limit.media_upload": "Giới hạn upload media",
   "rate_limit.listening_progress": "Giới hạn cập nhật tiến trình nghe",
+  "rate_limit.ai_check": "Giới hạn AI rà kịch bản",
+  "rate_limit.ai_generate": "Giới hạn AI soạn thảo",
+  "ai_assist.enabled": "Bật trợ lý AI",
 };
 
 export class AdminService {
@@ -159,7 +163,7 @@ export class AdminService {
     audit: AuditContext,
   ) {
     if (await prisma.user.findUnique({ where: { email: input.email } }))
-      throw new DomainError(409, "CONFLICT", "Email đã được sử dụng");
+      throw new DomainError(409, "EMAIL_TAKEN", "Email đã được sử dụng");
     // signUpEmail is Better Auth's own write and cannot join the Prisma transaction; only role + audit are atomic.
     await auth.api.signUpEmail({
       body: { name: input.name, email: input.email, password: input.password },

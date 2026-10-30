@@ -14,16 +14,19 @@ import type {
   SeriesDetailEntity,
   SeriesEntity,
   SeriesListItemEntity,
+  SeriesReviewSourceEntity,
   SeriesSourceEntity,
   SeriesSourceWithSourceEntity,
 } from "./content.entity";
-import type { AudioAnalysis, EditorDocument } from "@repo/shared";
+import type { AudioAnalysis, Dialogue, EditorDocument } from "@repo/shared";
+import type { EpisodePublishGate } from "../application/publication-gate";
 
 export interface CreateSeriesDraftInput {
   ownerId: string;
   title: string;
   slug?: string;
   description?: string | null;
+  language?: string;
   topicId?: string | null;
   historicalPhaseId?: string | null;
   primaryHistoricalEventId?: string | null;
@@ -43,6 +46,7 @@ export interface SeriesPatch {
   title?: string;
   slug?: string;
   description?: string | null;
+  language?: string;
   topicId?: string | null;
   historicalPhaseId?: string | null;
   primaryHistoricalEventId?: string | null;
@@ -96,6 +100,8 @@ export interface UpsertNarrationInput {
   /** Passed through verbatim: `undefined` keeps the stored content (Prisma semantics). */
   scriptContent?: string | null;
   scriptDocument?: EditorDocument | null;
+  /** Two-person script; when set, `scriptDocument` is null and `scriptContent` is its spoken text. */
+  dialogue?: Dialogue | null;
   narratorEntityId: string | null;
 }
 
@@ -115,6 +121,8 @@ export interface SeriesRepository {
   findSeriesById(id: string): Promise<SeriesEntity | null>;
   isActiveReleaseCollaboratorForSeries?(seriesId: string, moderatorId: string): Promise<boolean>;
   isActiveReleaseCollaboratorForEpisode?(episodeId: string, moderatorId: string): Promise<boolean>;
+  /** Episodes of the series the moderator is actively assigned to release; the only ones a non-owner collaborator may open. */
+  listActiveCollaboratorEpisodeIds(seriesId: string, moderatorId: string): Promise<string[]>;
   getSeriesDetail(id: string): Promise<SeriesDetailEntity | null>;
   findSeriesUpdatedAt(id: string): Promise<Date | null>;
   /** True when another series already holds `slug` (excluding `excludeId`). */
@@ -150,6 +158,8 @@ export interface SeriesRepository {
   restoreSeries(id: string, restoredStatus: ContentStatus): Promise<void>;
 
   listSeriesSources(seriesId: string): Promise<SeriesSourceWithSourceEntity[]>;
+  /** Read-only view for AI review: one row per source of the series, in sortOrder. */
+  listReviewSources(seriesId: string): Promise<SeriesReviewSourceEntity[]>;
   /** False when the (seriesId, sourceId, locator) duplicate made `skipDuplicates` drop the row. */
   createSeriesSource(
     seriesId: string,
@@ -173,7 +183,6 @@ export interface SeriesRepository {
     childId: string,
     patch: { locator?: string; excerpt?: string | null },
   ): Promise<SeriesSourceWithSourceEntity>;
-  countSeriesSources(seriesId: string): Promise<number>;
   deleteSeriesSource(seriesId: string, childId: string): Promise<void>;
   listSeriesSourceIds(seriesId: string): Promise<string[]>;
   /** Transactional unit: one sortOrder update per source id. */
@@ -195,10 +204,12 @@ export interface EpisodeRepository {
   /** Transactional unit: one sortOrder update per episode id + series updatedAt stamp. */
   reorderEpisodes(orderedIds: string[], seriesId: string): Promise<void>;
   updateEpisode(id: string, patch: EpisodePatch): Promise<void>;
+  /** `gate` is evaluated inside the publish transaction together with evidence validity and the timestamp lock. */
   publishEpisodeWithEvidence(
     actorId: string | null,
     id: string,
     baseUpdatedAt: Date,
+    gate: EpisodePublishGate,
   ): Promise<void>;
   publishEpisode(id: string, publishedAt: Date): Promise<void>;
   hideEpisode(id: string): Promise<void>;
@@ -281,6 +292,7 @@ export type {
   SeriesDetailEntity,
   SeriesEntity,
   SeriesListItemEntity,
+  SeriesReviewSourceEntity,
   SeriesSourceEntity,
   SeriesSourceWithSourceEntity,
 };

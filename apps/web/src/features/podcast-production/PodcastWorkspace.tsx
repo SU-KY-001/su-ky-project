@@ -1,13 +1,17 @@
 import { CardBadge, cardBadgeToneForStatus } from "@/shared/components/dashboard/CardBadge";
 import { ImageThumbnail } from "@/shared/components/common/ImageThumbnail";
 import { Fragment, useState, type ReactNode } from "react";
+import { useLocation, useMatch, useNavigate, useSearchParams } from "react-router";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import {
+  LanguageTagSchema,
   PublicationEvidenceSchema,
+  type EpisodePoster,
   type StudioSeriesDetailDto,
 } from "@repo/shared";
 import { Button } from "@/shared/components/ui/button";
-import { Eye, PencilSimple } from "@phosphor-icons/react";
+import { Eye } from "@phosphor-icons/react/dist/icons/Eye";
+import { PencilSimple } from "@phosphor-icons/react/dist/icons/PencilSimple";
 import { DashboardRowActions } from "@/shared/components/dashboard/DashboardRowActions";
 import {
   Dialog,
@@ -32,11 +36,11 @@ import {
   ContentKindLegend,
 } from "@/features/moderator/components/ModeratorTreeNode";
 import { ModeratorSectionPanel } from "@/features/moderator/components/ModeratorSectionPanel";
+import { moderatorPodcastPath, moderatorPodcastPattern } from "@/features/moderator/paths";
 import { ModeratorListToolbar } from "@/features/moderator/components/ModeratorListToolbar";
 import { formField } from "@/features/moderator/components/CreationPage";
 import { ModeratorSelect } from "@/features/moderator/components/ModeratorSelect";
 import { notify } from "@/shared/lib/notifications";
-import { newIdempotencyKey } from "@/lib/idempotency";
 import { errorMessage, isApiError } from "@/lib/apiError";
 import {
   useHistoricalEntities,
@@ -53,12 +57,16 @@ import {
 } from "./services/podcastProductionService";
 import { PodcastCreation } from "./PodcastCreation";
 import { SeriesCreationDialog } from "./SeriesCreationDialog";
+import { PodcastPosterField } from "./components/PodcastPosterField";
+const LANGUAGE_INPUT_MAX_CHARS = 35;
 const checklistLabels: Record<string, string> = {
   TOPIC: "Cần chủ đề",
   HISTORICAL_PHASE: "Cần giai đoạn",
   YEAR_RANGE: "Cần khoảng thời gian",
-  HAS_SOURCE: "Cần nguồn tư liệu",
   HAS_PUBLISHED_EPISODE: "Cần một tập đã phát hành",
+  DESCRIPTION: "Cần mô tả series (bấm Chỉnh sửa để nhập)",
+  COVER: "Cần ít nhất một ảnh bìa đã xử lý xong (bấm Chỉnh sửa để tải ảnh)",
+  LANGUAGE: "Cần ngôn ngữ series",
   THIRD_PERSON_SCRIPT: "Cần kịch bản",
   THIRD_PERSON_AUDIO: "Cần âm thanh",
   BASIC_INFO: "Cần thông tin tập",
@@ -75,6 +83,10 @@ function SeriesEvidence({
   const [eventId, setEventId] = useState(series.primaryHistoricalEventId ?? "");
   const [title, setTitle] = useState(series.title);
   const [description, setDescription] = useState(series.description ?? "");
+  const [language, setLanguage] = useState(series.language);
+  const seriesCover: EpisodePoster | null = series.cover ? { assetId: series.cover.assetId, url: series.cover.url, fileName: "Ảnh bìa hiện tại", sizeBytes: null } : null;
+  const [cover, setCover] = useState<EpisodePoster | null>(seriesCover);
+  const [coverBusy, setCoverBusy] = useState(false);
   const event = useHistoricalEvent(eventId);
   const events = useHistoricalEntities({}, editing);
   const topics = useQuery({
@@ -96,21 +108,19 @@ function SeriesEvidence({
   };
   const mutation = useMutation({
     mutationFn: async (action: {
-      kind: "patch" | "source" | "remove" | "publish" | "hide";
-      id?: string;
+      kind: "patch" | "publish" | "hide";
     }) => {
       if (action.kind === "patch")
         await api.patch(series.id, {
           title,
           description,
+          language: language.trim(),
           primaryHistoricalEventId: eventId || null,
           topicId: topic?.id ?? series.topic?.id ?? null,
+          // Only send the cover when it changed, so the server does not revalidate an asset the Admin did not upload.
+          ...(cover?.assetId !== seriesCover?.assetId ? { coverImageAssetId: cover?.assetId ?? null } : {}),
           baseUpdatedAt: series.updatedAt,
         });
-      else if (action.kind === "source" && action.id)
-        await api.addCitation(series.id, action.id, newIdempotencyKey());
-      else if (action.kind === "remove" && action.id)
-        await api.removeSource(series.id, action.id);
       else if (action.kind === "publish")
         await api.publishSeries(series.id, series.updatedAt);
       else await api.hideSeries(series.id);
@@ -122,7 +132,7 @@ function SeriesEvidence({
     },
     onError: (error, action) => {
       if (action.kind !== "publish") return;
-      if (isApiError(error) && error.errorCode === "SERIES_NOT_PUBLISHABLE") {
+      if (isApiError(error) && error.is("SERIES_NOT_PUBLISHABLE")) {
         notifyNotPublishable();
         return;
       }
@@ -141,6 +151,8 @@ function SeriesEvidence({
   const resetEditing = () => {
     setTitle(series.title);
     setDescription(series.description ?? "");
+    setLanguage(series.language);
+    setCover(seriesCover);
     setEventId(series.primaryHistoricalEventId ?? "");
     setEditing(false);
   };
@@ -196,6 +208,21 @@ function SeriesEvidence({
                   onChange={(changeEvent) => setDescription(changeEvent.target.value)}
                 />
               </label>
+              <label className="text-sm font-medium text-mod-text">
+                Ngôn ngữ
+                <Input
+                  className={formField}
+                  value={language}
+                  maxLength={LANGUAGE_INPUT_MAX_CHARS}
+                  disabled={mutation.isPending}
+                  aria-invalid={!LanguageTagSchema.safeParse(language).success}
+                  onChange={(changeEvent) => setLanguage(changeEvent.target.value)}
+                />
+                <span className="mt-1 block text-xs font-normal text-mod-text-secondary">Mã BCP 47, ví dụ vi hoặc en-US.</span>
+              </label>
+              <div className="sm:col-span-2">
+                <PodcastPosterField label="Ảnh bìa series (cần để phát hành)" value={cover} busy={mutation.isPending} readOnly={false} onChange={setCover} onBusyChange={setCoverBusy} />
+              </div>
               <div className="sm:col-span-2">
                 <p className="text-sm font-medium text-mod-text">Chủ đề</p>
                 <p className="mt-1 rounded-lg border border-mod-border bg-mod-surface px-3 py-3 text-sm text-mod-text">
@@ -229,6 +256,18 @@ function SeriesEvidence({
                 <dt className="text-xs font-semibold uppercase tracking-wide text-mod-text-secondary">Mô tả</dt>
                 <dd className="mt-1 whitespace-pre-wrap leading-6 text-mod-text">{series.description || "Chưa có mô tả."}</dd>
               </div>
+              <div>
+                <dt className="text-xs font-semibold uppercase tracking-wide text-mod-text-secondary">Ngôn ngữ</dt>
+                <dd className="mt-1 text-mod-text">{series.language}</dd>
+              </div>
+              <div>
+                <dt className="text-xs font-semibold uppercase tracking-wide text-mod-text-secondary">Ảnh bìa</dt>
+                <dd className="mt-1 text-mod-text">{series.cover?.url ? <img src={series.cover.url} alt="Ảnh bìa series" className="h-24 max-w-full rounded-lg border border-mod-border object-contain" /> : series.coverLandscape?.url ? "Có ảnh bìa ngang" : "Chưa có ảnh bìa"}</dd>
+              </div>
+              <div className="sm:col-span-2">
+                <dt className="text-xs font-semibold uppercase tracking-wide text-mod-text-secondary">Người chịu trách nhiệm</dt>
+                <dd className="mt-1 text-sm leading-6 text-mod-text"><strong>{series.owner.name}</strong> là chủ sở hữu và chịu trách nhiệm về nội dung series này. Hệ thống không có vai trò biên tập viên riêng; người duyệt tập chỉ xác nhận từng phiên bản.</dd>
+              </div>
               <div className="sm:col-span-2 rounded-lg border border-mod-kind-series/20 bg-mod-surface/80 p-3">
                 <dt className="text-xs font-semibold uppercase tracking-wide text-mod-text-secondary">Sự kiện chính</dt>
                 <dd className="mt-1 font-semibold text-mod-text">{event.data?.name ?? "Chưa chọn sự kiện"}</dd>
@@ -241,63 +280,6 @@ function SeriesEvidence({
             </dl>
           )}
         </section>
-
-        {event.data ? (
-          <section className="rounded-xl border border-mod-border bg-mod-surface p-4 sm:p-5" aria-labelledby="series-sources-title">
-            <div className="mb-4">
-              <h2 id="series-sources-title" className="font-bold text-mod-text">Nguồn tư liệu</h2>
-              <p className="mt-1 text-sm text-mod-text-secondary">Các trích dẫn được gắn với series và sự kiện chính.</p>
-            </div>
-            <div className="space-y-2">
-              <h3 className="text-sm font-semibold text-mod-text">Nguồn đã chọn</h3>
-              {series.sources.length ? series.sources.map((source) => (
-                <div key={source.id} className="flex items-center justify-between gap-3 rounded-lg bg-mod-canvas-accent px-3 py-2.5 text-sm">
-                  <span className="min-w-0 text-mod-text"><strong>{source.source.title}</strong>{source.locator ? ` · ${source.locator}` : ""}</span>
-                  {editing ? (
-                    <Button
-                      type="button"
-                      size="xs"
-                      variant="ghost"
-                      className="text-mod-danger hover:bg-mod-danger/10 hover:text-mod-danger"
-                      disabled={mutation.isPending}
-                      onClick={() => mutation.mutate({ kind: "remove", id: source.id })}
-                    >
-                      Gỡ
-                    </Button>
-                  ) : null}
-                </div>
-              )) : <p className="rounded-lg border border-dashed border-mod-border p-3 text-sm text-mod-text-secondary">Chưa chọn nguồn.</p>}
-            </div>
-
-            {editing ? (
-              <div className="mt-5 space-y-2">
-                <h3 className="text-sm font-semibold text-mod-text">Trích dẫn có thể chọn</h3>
-                {event.data.citations.length ? event.data.citations.map((citation) => {
-                  const selected = series.sources.some((source) => source.source.id === citation.sourceId && source.locator === citation.locator);
-                  return (
-                    <div key={citation.id} className="flex items-center justify-between gap-3 rounded-lg border border-mod-border px-3 py-2.5 text-sm">
-                      <div className="min-w-0">
-                        <p className="font-medium text-mod-text">{citation.source.title}</p>
-                        <p className="mt-0.5 text-xs text-mod-text-secondary">
-                          {citation.locator || "Chưa có vị trí trích"} · <CardBadge type="status" tone={citation.outdated ? "warning" : cardBadgeToneForStatus(citation.source.verificationStatus)}>{citation.outdated ? "Phiên bản cũ" : citation.source.verificationStatus === "VERIFIED" ? "Đã xác minh" : "Chưa xác minh"}</CardBadge>
-                        </p>
-                      </div>
-                      <Button
-                        type="button"
-                        size="xs"
-                        variant="outline"
-                        disabled={mutation.isPending || selected}
-                        onClick={() => mutation.mutate({ kind: "source", id: citation.id })}
-                      >
-                        {selected ? "Đã chọn" : "Chọn"}
-                      </Button>
-                    </div>
-                  );
-                }) : <p className="text-sm text-mod-text-secondary">Sự kiện chưa có trích dẫn.</p>}
-              </div>
-            ) : null}
-          </section>
-        ) : null}
 
         {missingChecklist.length ? (
           <section className="rounded-xl border border-mod-attention/30 bg-mod-attention/5 p-4" aria-label="Điều kiện cần hoàn tất">
@@ -333,7 +315,7 @@ function SeriesEvidence({
             <Button type="button" variant="outline" className={secondaryAction} disabled={mutation.isPending} onClick={resetEditing}>
               Hủy chỉnh sửa
             </Button>
-            <Button type="button" className={primaryAction} disabled={mutation.isPending || !title.trim()} onClick={() => mutation.mutate({ kind: "patch" })}>
+            <Button type="button" className={primaryAction} disabled={mutation.isPending || coverBusy || !title.trim() || !LanguageTagSchema.safeParse(language).success} onClick={() => mutation.mutate({ kind: "patch" })}>
               {mutation.isPending ? "Đang lưu…" : "Lưu thay đổi"}
             </Button>
           </>
@@ -485,32 +467,42 @@ function SeriesBranch({
     </>
   );
 }
-export function PodcastWorkspace({
-  initialKind,
-}: {
-  initialKind?: "series" | "episode";
-}) {
-  const [creation, setCreation] = useState<"series" | "episode" | null>(
-    initialKind ?? null,
-  );
+export function PodcastWorkspace() {
+  const navigate = useNavigate();
+  const { search } = useLocation();
+  const [searchParams, setSearchParams] = useSearchParams();
+  // useMatch ignores route ranking, so ".../new" also matches the ":id" patterns and must be excluded.
+  const newSeries = Boolean(useMatch(moderatorPodcastPattern.newSeries));
+  const newEpisode = Boolean(useMatch(moderatorPodcastPattern.newEpisode));
+  const seriesParam = useMatch(moderatorPodcastPattern.series)?.params.seriesId;
+  const episodeParam = useMatch(moderatorPodcastPattern.episode)?.params.episodeId;
+  const detailSeriesId = newSeries ? undefined : seriesParam;
+  const editingEpisodeId = newEpisode ? undefined : episodeParam;
   const [expanded, setExpanded] = useState<Set<string>>(new Set());
-  const [editingEpisodeId, setEditingEpisodeId] = useState<string | null>(null);
-  const [detailSeriesId, setDetailSeriesId] = useState<string | null>(null);
-  const [q, setQ] = useState("");
-  const [status, setStatus] = useState("all");
+  const q = searchParams.get("q") ?? "";
+  const status = searchParams.get("status") ?? "all";
+  const setFilter = (key: "q" | "status", value: string, emptyValue: string) =>
+    setSearchParams(
+      (previous) => {
+        const next = new URLSearchParams(previous);
+        if (value === emptyValue) next.delete(key);
+        else next.set(key, value);
+        return next;
+      },
+      { replace: true },
+    );
+  const setQ = (value: string) => setFilter("q", value, "");
+  const setStatus = (value: string) => setFilter("status", value, "all");
+  // Keep list filters across list <-> detail/creation navigation.
+  const go = (pathname: string) => navigate({ pathname, search });
   const series = usePodcastSeries(q);
   const rows = series.data?.pages.flatMap((p) => p.items) ?? [];
-  const finishCreation = () => {
-    setCreation(null);
-    setEditingEpisodeId(null);
-    setQ("");
-    setStatus("all");
-  };
-  if (creation === "episode" || editingEpisodeId)
+  const finishCreation = () => navigate(moderatorPodcastPath.list);
+  if (newEpisode || editingEpisodeId)
     return (
       <PodcastCreation
-        episodeId={editingEpisodeId ?? undefined}
-        onBack={() => { setCreation(null); setEditingEpisodeId(null); }}
+        episodeId={editingEpisodeId}
+        onBack={() => go(moderatorPodcastPath.list)}
         onSaved={finishCreation}
       />
     );
@@ -558,13 +550,13 @@ export function PodcastWorkspace({
                   <Button
                     variant="outline"
                     className={secondaryAction}
-                    onClick={() => setCreation("series")}
+                    onClick={() => go(moderatorPodcastPath.newSeries)}
                   >
                     Tạo series
                   </Button>
                   <Button
                     className={primaryAction}
-                    onClick={() => setCreation("episode")}
+                    onClick={() => go(moderatorPodcastPath.newEpisode)}
                   >
                     Tạo podcast
                   </Button>
@@ -608,13 +600,13 @@ export function PodcastWorkspace({
                       : "Bản nháp"}</CardBadge>
                 </TableCell>
                 <TableCell className={tableCell}>
-                  <DashboardRowActions label={s.title} actions={[{ id: "detail", label: "Xem chi tiết", icon: Eye, onSelect: () => setDetailSeriesId(s.id) }]} />
+                  <DashboardRowActions label={s.title} actions={[{ id: "detail", label: "Xem chi tiết", icon: Eye, onSelect: () => go(moderatorPodcastPath.series(s.id)) }]} />
                 </TableCell>
               </InteractiveTableRow>
               {expanded.has(s.id) ? (
                 <SeriesBranch
                   id={s.id}
-                  onEditEpisode={setEditingEpisodeId}
+                  onEditEpisode={(id) => go(moderatorPodcastPath.episode(id))}
                   status={status}
                 />
               ) : null}
@@ -650,14 +642,14 @@ export function PodcastWorkspace({
         </ModeratorSectionPanel>
       </section>
       <Dialog
-        open={creation === "series"}
+        open={newSeries}
         onOpenChange={(open) => {
-          if (!open) setCreation(null);
+          if (!open) go(moderatorPodcastPath.list);
         }}
       >
-        {creation === "series" ? (
+        {newSeries ? (
           <SeriesCreationDialog
-            onBack={() => setCreation(null)}
+            onBack={() => go(moderatorPodcastPath.list)}
             onSaved={finishCreation}
           />
         ) : null}
@@ -665,10 +657,10 @@ export function PodcastWorkspace({
       <Dialog
         open={Boolean(detailSeriesId)}
         onOpenChange={(open) => {
-          if (!open) setDetailSeriesId(null);
+          if (!open) go(moderatorPodcastPath.list);
         }}
       >
-        {detailSeriesId ? <SeriesDetailDialog id={detailSeriesId} onEditEpisode={(id) => { setDetailSeriesId(null); setEditingEpisodeId(id); }} /> : null}
+        {detailSeriesId ? <SeriesDetailDialog id={detailSeriesId} onEditEpisode={(id) => go(moderatorPodcastPath.episode(id))} /> : null}
       </Dialog>
     </>
   );

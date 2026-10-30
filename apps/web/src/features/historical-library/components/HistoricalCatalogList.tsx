@@ -1,7 +1,17 @@
 import { CardBadge, cardBadgeToneForStatus } from "@/shared/components/dashboard/CardBadge";
 import { Fragment, useState } from "react";
 import { Button } from "@/shared/components/ui/button";
-import { PencilSimple } from "@phosphor-icons/react";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/shared/components/ui/dialog";
+import { CaretDown } from "@phosphor-icons/react/dist/icons/CaretDown";
+import { CaretUp } from "@phosphor-icons/react/dist/icons/CaretUp";
+import { CaretUpDown } from "@phosphor-icons/react/dist/icons/CaretUpDown";
+import { PencilSimple } from "@phosphor-icons/react/dist/icons/PencilSimple";
 import { DashboardRowActions } from "@/shared/components/dashboard/DashboardRowActions";
 import { TableCell, TableHead, TableRow } from "@/shared/components/ui/table";
 import { useCurrentUser } from "@/shared/hooks/useCurrentUser";
@@ -11,7 +21,13 @@ import {
   useHistoricalEntities,
   useHistoricalSources,
 } from "../hooks/useHistoricalCatalog";
-import type { CatalogSourceDto } from "@repo/shared";
+import type {
+  CatalogSourceDto,
+} from "@repo/shared";
+import type {
+  SourceSortBy,
+  SourceSortDirection,
+} from "../services/historicalCatalogService";
 import {
   ModeratorTable,
   EmptyTableRow,
@@ -23,6 +39,21 @@ import { ModeratorSectionPanel } from "@/features/moderator/components/Moderator
 import { ModeratorListToolbar } from "@/features/moderator/components/ModeratorListToolbar";
 import type { ModeratorSection } from "@/features/moderator/types";
 import { DashboardPagination } from "@/shared/components/dashboard/DashboardPagination";
+function SourceSortIcon({
+  active,
+  direction,
+}: {
+  active: boolean;
+  direction: SourceSortDirection;
+}) {
+  if (!active) return <CaretUpDown size={15} aria-hidden="true" />;
+  return direction === "asc" ? (
+    <CaretUp size={15} aria-hidden="true" />
+  ) : (
+    <CaretDown size={15} aria-hidden="true" />
+  );
+}
+
 export function HistoricalCatalogList({
   section,
 }: {
@@ -38,7 +69,19 @@ export function HistoricalCatalogList({
   const [review, setReview] = useState("all");
   const [editing, setEditing] = useState<CatalogSourceDto>();
   const [creating, setCreating] = useState(false);
+  const [sourceBusy, setSourceBusy] = useState(false);
   const [archived, setArchived] = useState(false);
+  const [sourceSort, setSourceSort] = useState<SourceSortBy>("title");
+  const [sourceDirection, setSourceDirection] = useState<SourceSortDirection>("asc");
+  const toggleSourceSort = (nextSort: SourceSortBy) => {
+    if (nextSort === sourceSort) {
+      setSourceDirection((current) => (current === "asc" ? "desc" : "asc"));
+    } else {
+      setSourceSort(nextSort);
+      setSourceDirection(nextSort === "createdAt" ? "desc" : "asc");
+    }
+    setPage(1);
+  };
   const status =
     review === "DRAFT" ||
     review === "IN_REVIEW" ||
@@ -52,7 +95,13 @@ export function HistoricalCatalogList({
     { q, reviewStatus: status },
     section === "events" || section === "pending",
   );
-  const sources = useHistoricalSources(q, page, archived);
+  const sources = useHistoricalSources(
+    q,
+    page,
+    archived,
+    sourceSort,
+    sourceDirection,
+  );
   const rows = events.data?.pages.flatMap((p) => p.items) ?? [];
   const title =
     section === "events"
@@ -234,7 +283,46 @@ export function HistoricalCatalogList({
             <ModeratorTable
               embedded
               caption={title}
-              columns={["Nguồn tư liệu", "Ấn bản", "Trạng thái", "Thao tác"]}
+              columns={[
+                <Button
+                  key="title"
+                  variant="ghost"
+                  className={tableAction + " gap-1 font-bold"}
+                  onClick={() => toggleSourceSort("title")}
+                  aria-label={`Sắp xếp theo tên nguồn ${sourceSort === "title" && sourceDirection === "desc" ? "từ Z đến A" : "từ A đến Z"}`}
+                >
+                  Nguồn tư liệu
+                  <SourceSortIcon active={sourceSort === "title"} direction={sourceDirection} />
+                </Button>,
+                <Button
+                  key="createdAt"
+                  variant="ghost"
+                  className={tableAction + " gap-1 font-bold"}
+                  onClick={() => toggleSourceSort("createdAt")}
+                  aria-label={`Sắp xếp theo ngày tạo ${sourceSort === "createdAt" && sourceDirection === "asc" ? "cũ đến mới" : "mới đến cũ"}`}
+                >
+                  Ngày tạo
+                  <SourceSortIcon active={sourceSort === "createdAt"} direction={sourceDirection} />
+                </Button>,
+                "Ấn bản",
+                "Trạng thái",
+                "Thao tác",
+              ]}
+              columnAriaSort={[
+                sourceSort === "title"
+                  ? sourceDirection === "asc"
+                    ? "ascending"
+                    : "descending"
+                  : "none",
+                sourceSort === "createdAt"
+                  ? sourceDirection === "asc"
+                    ? "ascending"
+                    : "descending"
+                  : "none",
+                undefined,
+                undefined,
+                undefined,
+              ]}
             >
               {sources.data?.items.map((s) => (
                 <Fragment key={s.id}>
@@ -250,6 +338,9 @@ export function HistoricalCatalogList({
                         {s.title}
                       </Button>
                     </TableHead>
+                    <TableCell className={tableCell}>
+                      {s.createdAt.toLocaleString("vi-VN")}
+                    </TableCell>
                     <TableCell className={tableCell}>
                       {[s.author, s.publisher, s.edition, s.publicationYear]
                         .filter(Boolean)
@@ -276,7 +367,7 @@ export function HistoricalCatalogList({
                   </TableRow>
                   {selected === s.id ? (
                     <TableRow>
-                      <TableCell colSpan={4} className="space-y-3 p-5">
+                      <TableCell colSpan={5} className="space-y-3 p-5">
                         {s.url ? (
                           <a
                             href={s.url}
@@ -306,7 +397,7 @@ export function HistoricalCatalogList({
               {sources.isPending ||
               sources.error ||
               !sources.data?.items.length ? (
-                <EmptyTableRow columns={4}>
+                <EmptyTableRow columns={5}>
                   {sources.isPending ? (
                     "Đang tải…"
                   ) : sources.error ? (
@@ -335,20 +426,45 @@ export function HistoricalCatalogList({
           </p>
         ) : null}
       </ModeratorSectionPanel>
-      {creating ? (
-        <SourceComposer
-          key={editing?.id ?? "new"}
-          source={editing}
-          onCancel={() => {
+      <Dialog
+        open={creating}
+        onOpenChange={(open) => {
+          if (!open && !sourceBusy) {
             setCreating(false);
             setEditing(undefined);
-          }}
-          onSaved={() => {
-            setCreating(false);
-            setEditing(undefined);
-          }}
-        />
-      ) : null}
+          }
+        }}
+      >
+        <DialogContent
+          showCloseButton={!sourceBusy}
+          onEscapeKeyDown={(event) => { if (sourceBusy) event.preventDefault(); }}
+          onPointerDownOutside={(event) => { if (sourceBusy) event.preventDefault(); }}
+          className="flex max-h-[calc(100dvh-2rem)] max-w-3xl flex-col gap-0 overflow-hidden border-mod-border bg-mod-surface p-0 font-moderator text-mod-text sm:p-0 motion-reduce:animate-none"
+        >
+          <DialogHeader className="shrink-0 border-b border-mod-border px-6 py-5 pr-14 sm:px-8 sm:pr-16">
+            <DialogTitle>
+              {editing ? "Sửa nguồn tư liệu" : "Thêm nguồn tư liệu"}
+            </DialogTitle>
+            <DialogDescription>
+              {editing ? "Cập nhật tài liệu dùng chung trong thư viện." : "Lưu tài liệu vào thư viện để sử dụng cho các series."}
+            </DialogDescription>
+          </DialogHeader>
+            <SourceComposer
+              key={editing?.id ?? "new"}
+              inModal
+              source={editing}
+              onBusyChange={setSourceBusy}
+              onCancel={() => {
+                setCreating(false);
+                setEditing(undefined);
+              }}
+              onSaved={() => {
+                setCreating(false);
+                setEditing(undefined);
+              }}
+            />
+        </DialogContent>
+      </Dialog>
     </section>
   );
 }

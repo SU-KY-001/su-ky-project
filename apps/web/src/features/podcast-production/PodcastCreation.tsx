@@ -1,7 +1,9 @@
 import { CardBadge, cardBadgeToneForStatus } from "@/shared/components/dashboard/CardBadge";
 import { useState, type ReactElement } from "react";
+import { useNavigate, useSearchParams } from "react-router";
 import type { EpisodeWorkspaceDto } from "@repo/shared";
 import { ArrowLeft, ArrowRight, Pencil, Save } from "lucide-react";
+import { moderatorPodcastPath } from "@/features/moderator/paths";
 import { CreationPage } from "@/features/moderator/components/CreationPage";
 import {
   primaryAction,
@@ -37,6 +39,12 @@ const stepOrder: PodcastWizardStep[] = [
   "review",
 ];
 
+const STEP_PARAM = "step";
+const DEFAULT_STEP: PodcastWizardStep = "information";
+
+// Unknown or missing values fall back to the first step instead of failing on a hand-edited URL.
+const stepFromParam = (value: string | null): PodcastWizardStep => stepOrder.find((step) => step === value) ?? DEFAULT_STEP;
+
 export function PodcastCreation({ onBack, onSaved, episodeId }: PodcastCreationProps): ReactElement {
   const episode = usePodcastEpisode(episodeId ?? "");
   const existingSeries = usePodcastSeriesDetail(episode.data?.seriesId ?? "");
@@ -70,14 +78,33 @@ function PodcastWizardPage({
   const wizard = usePodcastCreationWizard(
     existingEpisode ? () => podcastWizardStateFromEpisode(existingEpisode, historicalEventId) : undefined,
   );
-  const series = usePodcastSeries();
+  const series = usePodcastSeries("", true);
   const selected = usePodcastSeriesDetail(wizard.state.seriesId);
   const event = useHistoricalEvent(wizard.state.historicalEventId);
-  const [editing, setEditing] = useState(!existingEpisode);
+  const navigate = useNavigate();
+  // A draft belongs to its moderator and is still being written, so it opens for editing; published/hidden/locked stay view-only.
+  const [editing, setEditing] = useState(!existingEpisode || (existingEpisode.status === "DRAFT" && !existingEpisode.lock));
   const [busy, setBusy] = useState(false);
   const [posterBusy, setPosterBusy] = useState(false);
   const [error, setError] = useState("");
-  const currentIndex = stepOrder.indexOf(wizard.state.activeStep);
+  // For an existing episode the server rebuilds all wizard state, so the URL can own the step (F5/links).
+  // A new draft cannot be restored from a URL, so it keeps the step in the reducer.
+  const [searchParams, setSearchParams] = useSearchParams();
+  const activeStep = existingEpisode ? stepFromParam(searchParams.get(STEP_PARAM)) : wizard.state.activeStep;
+  const currentIndex = stepOrder.indexOf(activeStep);
+  const selectStep = (step: PodcastWizardStep): void => {
+    if (!existingEpisode) return wizard.selectStep(step);
+    setSearchParams(
+      (previous) => {
+        const next = new URLSearchParams(previous);
+        if (step === DEFAULT_STEP) next.delete(STEP_PARAM);
+        else next.set(STEP_PARAM, step);
+        return next;
+      },
+      // The page has its own back button, so steps must not pile up in browser history.
+      { replace: true },
+    );
+  };
 
   const handleSelectSeries = async (seriesId: string): Promise<void> => {
     wizard.dispatch({
@@ -100,11 +127,12 @@ function PodcastWizardPage({
     setBusy(true);
     setError("");
     try {
-      await wizard.saveInformation();
+      const id = await wizard.saveInformation();
       if (wizard.state.scriptDirty) {
         await wizard.saveScript(wizard.state.scriptDocument);
       }
       notify.success({ title: existingEpisode ? "Đã lưu thay đổi." : "Đã lưu bản nháp." });
+      if (!existingEpisode) openSavedDraft(id, activeStep);
     } catch (caught) {
       setError(caught instanceof Error ? caught.message : "Không lưu được bản nháp.");
     } finally {
@@ -112,9 +140,32 @@ function PodcastWizardPage({
     }
   };
 
+  // A new podcast lives at /episodes/new, which cannot be restored on reload. Once the draft exists, move to its own URL.
+  const openSavedDraft = (id: string, step: PodcastWizardStep): void => {
+    const query = step === DEFAULT_STEP ? "" : `?${STEP_PARAM}=${step}`;
+    navigate(`${moderatorPodcastPath.episode(id)}${query}`, { replace: true });
+  };
+
+  // Later steps save through the episode id, so leaving "Thông tin" on a new podcast must create the draft first.
+  const goToStep = async (step: PodcastWizardStep): Promise<void> => {
+    if (editing && activeStep === "information" && step !== "information" && !existingEpisode) {
+      setBusy(true);
+      setError("");
+      try {
+        openSavedDraft(await wizard.saveInformation(), step);
+      } catch (caught) {
+        setError(caught instanceof Error ? caught.message : "Không lưu được bản nháp.");
+      } finally {
+        setBusy(false);
+      }
+      return;
+    }
+    selectStep(step);
+  };
+
   const move = (offset: number): void => {
     const next = stepOrder[currentIndex + offset];
-    if (next) wizard.selectStep(next);
+    if (next) void goToStep(next);
   };
 
   const queryError = series.error ?? selected.error ?? event.error;
@@ -141,14 +192,14 @@ function PodcastWizardPage({
         ) : null}
         <div className="border-b border-mod-border px-4 py-5 sm:px-6">
           <PodcastWizardStepper
-            activeStep={wizard.state.activeStep}
+            activeStep={activeStep}
             completion={wizard.completion}
-            onSelect={(step) => { if (!posterBusy) wizard.selectStep(step); }}
+            onSelect={(step) => { if (!posterBusy) void goToStep(step); }}
           />
         </div>
 
         <div className="min-h-[420px] min-w-0 max-w-full px-4 py-6 sm:px-6">
-          <div hidden={wizard.state.activeStep !== "information"}>
+          <div hidden={activeStep !== "information"}>
             <PodcastInformationStep
               state={wizard.state}
               readOnly={!editing}
@@ -175,17 +226,17 @@ function PodcastWizardPage({
               }
             />
           </div>
-          <div hidden={wizard.state.activeStep !== "script"}>
+          <div hidden={activeStep !== "script"}>
             <PodcastScriptStep
               wizard={wizard}
               sources={selected.data?.sources ?? []}
               readOnly={!editing}
             />
           </div>
-          <div hidden={wizard.state.activeStep !== "voice"}>
+          <div hidden={activeStep !== "voice"}>
             <PodcastVoiceStep wizard={wizard} readOnly={!editing} published={existingEpisode?.status === "PUBLISHED"} />
           </div>
-          <div hidden={wizard.state.activeStep !== "review"}>
+          <div hidden={activeStep !== "review"}>
             <PodcastReviewStep
               wizard={wizard}
               series={selected.data}
@@ -209,7 +260,7 @@ function PodcastWizardPage({
             Bước trước
           </Button>
           <div className="flex flex-wrap justify-end gap-3">
-            {editing && wizard.state.activeStep !== "review" ? (
+            {editing && activeStep !== "review" ? (
               <Button
                 type="button"
                 variant="outline"

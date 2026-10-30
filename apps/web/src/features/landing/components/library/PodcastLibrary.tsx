@@ -2,7 +2,7 @@ import { useState, type ReactElement } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link } from "react-router";
 import type { PublicHistoricalEventDto } from "@repo/shared";
-import { ArrowRight } from "@phosphor-icons/react";
+import { ArrowRight } from "@phosphor-icons/react/dist/icons/ArrowRight";
 import { Button } from "@/shared/components/ui/button";
 import { notify } from "@/shared/lib/notifications";
 import { cn } from "@/lib/utils";
@@ -15,8 +15,7 @@ import { PodcastSeriesGallery } from "./PodcastSeriesGallery";
 import { HistoryFilterTree } from "./HistoryFilterTree";
 import { LibraryQuiz } from "./LibraryQuiz";
 import { ReleaseCalendar } from "./ReleaseCalendar";
-import { MuseumSection } from "../MuseumSection";
-import "./podcast-library.css";
+import { ExhibitionSection } from "../ExhibitionSection";
 
 export function PodcastLibrary(): ReactElement {
   const { requestAccess, accessDialog } = usePodcastAccess();
@@ -66,13 +65,13 @@ export function PodcastLibrary(): ReactElement {
             </aside>
             <div className="min-w-0">
               <div className="flex flex-wrap items-center justify-between gap-3"><p className="text-sm leading-7 text-ink-soft" aria-live="polite">{[activePeriod?.name, phases.find(item => item.id === phase)?.name, event?.name].filter(Boolean).join(" / ") || "Theo dấu những câu chuyện qua từng thời kỳ."}</p>{(period || phase || event) && <Button variant="link" size="sm" onClick={clearHistory}>Xóa bộ lọc</Button>}</div>
-              {periods.data && periods.data.items.length > 0 && <ol aria-label="Các mốc thời kỳ" className="library-history-timeline mt-6 flex gap-3 overflow-x-auto pb-4">{periods.data.items.map(item => <li key={item.id} className="w-44 shrink-0"><Button variant="ghost" aria-pressed={period === item.id} className="library-choice h-full w-full flex-col items-start justify-start gap-3 whitespace-normal px-3 py-4 text-left" onClick={() => choosePeriod(item.id)}><span className="text-[11px] font-normal text-bronze-dark">{item.startYear === null ? "Chưa xác định niên đại" : item.startYear < 0 ? `${Math.abs(item.startYear)} TCN` : item.startYear}{item.endYear !== null && ` — ${item.endYear < 0 ? `${Math.abs(item.endYear)} TCN` : item.endYear}`}</span><span className="text-sm leading-6">{item.name}</span></Button></li>)}</ol>}
+              {periods.data && periods.data.items.length > 0 && <ol aria-label="Các mốc thời kỳ" className="mt-6 flex gap-3 overflow-x-auto pb-4 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">{periods.data.items.map(item => <li key={item.id} className="w-44 shrink-0"><Button variant="ghost" aria-pressed={period === item.id} className="h-full w-full flex-col items-start justify-start gap-3 whitespace-normal rounded-xl border-0 bg-transparent px-3 py-4 text-left text-ink-soft hover:bg-bronze/10 hover:text-ink aria-pressed:bg-bronze/20 aria-pressed:text-ink" onClick={() => choosePeriod(item.id)}><span className="text-[11px] font-normal text-bronze-dark">{item.startYear === null ? "Chưa xác định niên đại" : item.startYear < 0 ? `${Math.abs(item.startYear)} TCN` : item.startYear}{item.endYear !== null && ` — ${item.endYear < 0 ? `${Math.abs(item.endYear)} TCN` : item.endYear}`}</span><span className="text-sm leading-6">{item.name}</span></Button></li>)}</ol>}
             <div className="mt-7">{events.isPending ? <LibraryState loading /> : events.isError ? <LibraryState error title="Chưa tải được dòng lịch sử" retry={() => { void events.refetch(); }} /> : events.data.items.length === 0 ? <LibraryState title="Chưa có sự kiện công khai trong lựa chọn này" description="Thử một thời kỳ hoặc giai đoạn khác để tiếp tục khám phá." /> : <div className="grid gap-5 md:grid-cols-2">{(event ? [event] : events.data.items).map((item) => <article key={item.id} className={cn("relative flex flex-col border-l-2 border-bronze/50 bg-paper/50 p-5", event?.id === item.id && "border-bronze bg-paper-deep/40")}><time className="text-xs text-bronze-dark">{item.timeLabel}</time><p className="mt-3 text-[11px] leading-5 text-muted-foreground">{item.parent.period.name} / {item.parent.phase.name}</p><h3 className="mt-2 text-lg font-semibold leading-7">{item.name}</h3><p className="mb-4 mt-3 line-clamp-3 text-sm leading-7 text-muted-foreground">{item.summary}</p><div className="mt-auto flex flex-wrap items-center gap-2"><Button size="sm" variant="link" className="px-0" onClick={() => { chooseEvent(item); jump("library-podcasts"); }}>Khám phá podcast <ArrowRight aria-hidden="true" /></Button><Button asChild size="sm" variant="ghost"><Link to={`/history/events/${item.slug}`}>Đọc sự kiện</Link></Button></div></article>)}</div>}{events.data && !event && <LibraryPages page={eventPage} limit={events.data.limit} total={events.data.total} onChange={setEventPage} />}</div>
             </div>
           </div>
         </LibrarySection>
-        <MuseumSection />
-          <LibrarySection id="library-podcasts" title="Series và podcast">
+        <ExhibitionSection />
+        <LibrarySection id="library-podcasts" title="Series và podcast">
             {(period || phase || event) && <div className="mb-6 flex flex-wrap items-center gap-3"><p className="flex-1 text-sm leading-7 text-muted-foreground">Đang khám phá podcast theo: {event?.name ?? phases.find(item => item.id === phase)?.name ?? activePeriod?.name}</p><Button size="sm" variant="link" onClick={clearHistory}>Xem tất cả series</Button></div>}
             <PodcastSeriesGallery key={`${period}-${phase}-${event?.id ?? "all"}`} filter={{ periodId: period || undefined, phaseId: phase || undefined, eventId: event?.id }} onPlay={async (item, seriesSlug) => { if (!await requestAccess()) return; await startPodcast(seriesSlug, item.id); }} />
           </LibrarySection>

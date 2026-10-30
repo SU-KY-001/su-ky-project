@@ -8,6 +8,8 @@ import type { Session } from "../../auth";
 import { writeAudit } from "../../../core/audit";
 import { DomainError } from "../../../core/errors/domain-error";
 import { insertWithUniqueSlug } from "../../../core/slug";
+import type { EpisodePublishGate } from "../application/publication-gate";
+import { scriptSpeechHash } from "../../ai-assist/voice/speech-text";
 import type {
   AppendEpisodeInput,
   AttachAudioInput,
@@ -23,6 +25,7 @@ import type {
 import type {
   ContentStatus,
   EpisodeNarrationDetailEntity,
+  SeriesReviewSourceEntity,
   SeriesSourceWithSourceEntity,
   EpisodeWithSeriesEntity,
   MediaAssetEntity,
@@ -284,6 +287,21 @@ export class PrismaSeriesRepository implements SeriesRepository {
     return Boolean(assignment);
   }
 
+  async listActiveCollaboratorEpisodeIds(seriesId: string, moderatorId: string): Promise<string[]> {
+    const assignments = await prisma.productionAssignment.findMany({
+      where: {
+        moderatorId,
+        removedAt: null,
+        schedule: {
+          status: { in: ["SCHEDULED", "READY_TO_PUBLISH", "PUBLISHING", "BLOCKED", "FAILED"] },
+          episode: { seriesId },
+        },
+      },
+      select: { schedule: { select: { episodeId: true } } },
+    });
+    return assignments.flatMap((a) => (a.schedule.episodeId ? [a.schedule.episodeId] : []));
+  }
+
   async listSeries(filter: {
     ownerId: string | null;
     viewerId?: string | null;
@@ -352,6 +370,7 @@ export class PrismaSeriesRepository implements SeriesRepository {
         title: input.title,
         slug: input.slug,
         description: input.description,
+        language: input.language,
         topicId: input.topicId,
         historicalPhaseId: input.historicalPhaseId,
         startYear: input.startYear,
@@ -530,6 +549,33 @@ export class PrismaSeriesRepository implements SeriesRepository {
     });
   }
 
+  async listReviewSources(seriesId: string): Promise<SeriesReviewSourceEntity[]> {
+    const rows = await prisma.seriesSource.findMany({
+      where: { seriesId },
+      orderBy: { sortOrder: "asc" },
+      select: {
+        sortOrder: true,
+        source: { select: { id: true, title: true, url: true, fileAssetId: true, version: true, verificationStatus: true, verifiedVersion: true } },
+      },
+    });
+    // One source may be attached at several locators; the AI reads each source once.
+    const seen = new Set<string>();
+    return rows.flatMap(({ sortOrder, source }) => {
+      if (seen.has(source.id)) return [];
+      seen.add(source.id);
+      return [{
+        sourceId: source.id,
+        title: source.title,
+        url: source.url,
+        hasFile: source.fileAssetId !== null,
+        version: source.version,
+        verificationStatus: source.verificationStatus,
+        verifiedVersion: source.verifiedVersion,
+        sortOrder,
+      }];
+    });
+  }
+
   async createSeriesSource(
     seriesId: string,
     input: {
@@ -654,10 +700,6 @@ export class PrismaSeriesRepository implements SeriesRepository {
     });
   }
 
-  async countSeriesSources(seriesId: string): Promise<number> {
-    return prisma.seriesSource.count({ where: { seriesId } });
-  }
-
   async deleteSeriesSource(seriesId: string, childId: string): Promise<void> {
     await prisma.$transaction(async (tx) => {
       await tx.$queryRaw`SELECT id FROM series WHERE id=${seriesId}::uuid FOR UPDATE`;
@@ -768,8 +810,8 @@ export class PrismaEpisodeRepository implements EpisodeRepository {
     });
   }
 
-  publishEpisodeWithEvidence(actorId: string | null, id: string, baseUpdatedAt: Date) {
-    return publishWithHistoricalEvidence(actorId, id, baseUpdatedAt, "episode");
+  publishEpisodeWithEvidence(actorId: string | null, id: string, baseUpdatedAt: Date, gate: EpisodePublishGate) {
+    return publishWithHistoricalEvidence(actorId, id, baseUpdatedAt, "episode", gate);
   }
   async publishEpisode(id: string, publishedAt: Date): Promise<void> {
     await prisma.episode.update({
@@ -937,6 +979,10 @@ export class PrismaEpisodeRepository implements EpisodeRepository {
             input.scriptDocument === null
               ? Prisma.DbNull
               : (input.scriptDocument as Prisma.InputJsonValue | undefined),
+          dialogue:
+            input.dialogue === null
+              ? Prisma.DbNull
+              : (input.dialogue as Prisma.InputJsonValue | undefined),
           narratorEntityId: input.narratorEntityId,
           scriptUpdatedAt: new Date(),
         },
@@ -946,6 +992,10 @@ export class PrismaEpisodeRepository implements EpisodeRepository {
             input.scriptDocument === null
               ? Prisma.DbNull
               : (input.scriptDocument as Prisma.InputJsonValue | undefined),
+          dialogue:
+            input.dialogue === null
+              ? Prisma.DbNull
+              : (input.dialogue as Prisma.InputJsonValue | undefined),
           narratorEntityId: input.narratorEntityId,
           scriptUpdatedAt: new Date(),
         },
@@ -969,6 +1019,13 @@ export class PrismaEpisodeRepository implements EpisodeRepository {
         where: { id: narrationId },
       });
       await lockEpisodeAndSeries(tx, narration.episodeId);
+      const origin = input.analysis?.origin;
+      if (origin?.kind === "AI_VOICE") {
+        // Re-read under the episode lock: a script saved while the voice was generating must not receive this audio.
+        const narrations = await tx.episodeNarration.findMany({ where: { episodeId: narration.episodeId } });
+        if (origin.scriptHash !== scriptSpeechHash(narrations))
+          throw new DomainError(409, "HASH_MISMATCH", "Kịch bản đã thay đổi sau khi tạo giọng AI; tạo lại giọng đọc cho kịch bản hiện tại");
+      }
       if (
         input.previousAudioAssetId &&
         input.previousAudioAssetId !== input.assetId

@@ -17,7 +17,7 @@ export function GalleryArtwork({ artwork }: { artwork: Artwork }): ReactElement 
     }, undefined, () => { if (alive) setFailed(true); });
     return () => { alive = false; loaded.dispose(); };
   }, [artwork.image]);
-  const { width, height, centerY, labelCenterY, labelWidth } = artworkLayout(artwork.width, artwork.aspect);
+  const { width, height, centerY, labelCenterY, labelWidth } = artworkLayout(artwork.width, artwork.aspect, artwork.widthMode);
   const shadow = useMemo(makeCanvasShadow, []);
   useEffect(() => () => shadow.dispose(), [shadow]);
   const lines = useMemo(() => [
@@ -30,13 +30,17 @@ export function GalleryArtwork({ artwork }: { artwork: Artwork }): ReactElement 
       <planeGeometry args={[width + 0.1, height + 0.1]} />
       <meshBasicMaterial map={shadow} transparent opacity={0.28} depthWrite={false} toneMapped={false} />
     </mesh>
-    <mesh castShadow receiveShadow position={[0, 0, CANVAS_DEPTH / 2]} userData={{ artworkId: artwork.id }}>
+    <mesh castShadow receiveShadow position={[0, 0, -0.012]} userData={{ artworkId: artwork.id }}>
+      <boxGeometry args={[width + 0.1, height + 0.1, 0.04]} /><meshStandardMaterial color={palette.frame} roughness={0.8} />
+    </mesh>
+    <mesh castShadow receiveShadow position={[0, 0, CANVAS_DEPTH / 2 + 0.012]} userData={{ artworkId: artwork.id }}>
       <boxGeometry args={[width, height, CANVAS_DEPTH]} />
       {[0, 1, 2, 3].map(index => <meshStandardMaterial key={index} attach={`material-${index}`} color={palette.frame} roughness={0.94} />)}
       <meshStandardMaterial key={texture?.uuid ?? "loading"} attach="material-4" map={texture} color={texture ? "white" : palette.trim} roughness={0.92} metalness={0} />
       <meshStandardMaterial attach="material-5" color={palette.mount} roughness={1} />
     </mesh>
     {failed && <SurfaceText position={[0, 0, CANVAS_DEPTH]} width={width * 0.8} height={0.6} lines={[{ text: "Không tải được ảnh. Mở chi tiết để thử lại.", size: 50 }]} />}
-    <SurfaceText position={[0, labelCenterY - centerY, 0.01]} width={labelWidth} height={LABEL_HEIGHT} lines={lines} />
+    <mesh position={[0, labelCenterY - centerY, -0.01]}><planeGeometry args={[labelWidth, LABEL_HEIGHT]} /><meshStandardMaterial color={palette.mount} roughness={1} /></mesh>
+    <SurfaceText position={[0, labelCenterY - centerY, 0.01]} width={labelWidth * 0.92} height={LABEL_HEIGHT * 0.9} lines={lines} />
   </group>;
 }

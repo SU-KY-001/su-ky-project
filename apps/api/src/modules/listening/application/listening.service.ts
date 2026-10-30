@@ -1,4 +1,4 @@
-import { PublicationEvidenceSchema } from "@repo/shared";
+import { PublicationApprovalSchema, PublicationEvidenceSchema, type PublicPublicationInfo } from "@repo/shared";
 import type { SeriesEntity } from "../domain/listening.entity";
 import type { z } from "zod";
 import {
@@ -32,6 +32,14 @@ function countBits(bytes: Uint8Array): number {
     }
   }
   return total;
+}
+
+/** Listener-facing slice of the approval: only AI disclosure and credits; notes, rights references and reviewer stay private. */
+function publicationInfo(stored: unknown): PublicPublicationInfo | null {
+  const parsed = PublicationApprovalSchema.safeParse(stored);
+  if (!parsed.success) return null;
+  const { aiDisclosure, credits } = parsed.data.assessment;
+  return { aiDisclosure, credits };
 }
 
 export class ListeningService {
@@ -407,6 +415,7 @@ export class ListeningService {
           ? episode.series.episodes[index + 1]
           : null,
       hasQuiz: Boolean(episode.quiz),
+      publicationInfo: publicationInfo(episode.publicationApproval),
       viewer: userId
         ? {
             isCompleted: saved.some((item) => item.completedAt),

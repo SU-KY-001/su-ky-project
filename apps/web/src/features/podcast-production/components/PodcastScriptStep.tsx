@@ -23,8 +23,11 @@ import { cn } from "@/lib/utils";
 import type { PodcastCreationWizard } from "../hooks/usePodcastCreationWizard";
 import {
   usePodcastEpisode,
+  useWordsPerMinute,
   usePodcastInvalidation,
 } from "../hooks/usePodcastProduction";
+import { savedAtLabel } from "../aiCheck/presentation";
+import { estimatedReadMinutes, scriptWordCount } from "../scriptDuration";
 import {
   emptyScriptDocument,
   scriptCharacterCount,
@@ -32,8 +35,13 @@ import {
 } from "../scriptEditor";
 import { podcastProductionService as api } from "../services/podcastProductionService";
 import { RichScriptEditor, type RichScriptEditorHandle } from "./RichScriptEditor";
-import { ScriptAssistantMock } from "./ScriptAssistantMock";
+import { DialogueScriptStep } from "./DialogueScriptStep";
+import { newDialogue } from "../dialogueState";
+import { AiDock, type AiTab } from "./AiDock";
+import type { DockState } from "./AiAssistantPanel";
+import type { SelectionRange } from "../aiCheck/editorBlocks";
 import { ScriptSourcesPanel } from "./ScriptSourcesPanel";
+import { Popover, PopoverContent, PopoverTrigger } from "@/shared/components/ui/popover";
 
 interface PendingDocument {
   id: string;
@@ -44,6 +52,8 @@ interface PendingDocument {
 }
 
 const allowedExtensions = new Set(["pdf", "doc", "docx"]);
+/** Tailwind `xl`: from this width the AI dock sits beside the editor; below it the dock overlays, so it starts closed. */
+const DOCK_OPEN_MEDIA = "(min-width: 1280px)";
 
 function documentExtension(file: File): string {
   return file.name.split(".").pop()?.toLowerCase() ?? "";
@@ -60,16 +70,24 @@ export function PodcastScriptStep({
 }): ReactElement {
   const editorRef = useRef<RichScriptEditorHandle>(null);
   const changed = useRef(false);
-  const [panel, setPanel] = useState<"assistant" | "sources">("assistant");
+  const [dock, setDock] = useState<DockState>(() => (window.matchMedia(DOCK_OPEN_MEDIA).matches ? "panel" : "closed"));
+  const [aiTab, setAiTab] = useState<AiTab>("check");
+  const [openCount, setOpenCount] = useState<number | null>(null);
+  const [clickedBlock, setClickedBlock] = useState<{ ref: string; seq: number } | null>(null);
+  const [sourcesOpen, setSourcesOpen] = useState(false);
+  const [rewriteRange, setRewriteRange] = useState<SelectionRange | null>(null);
   const [pendingDocuments, setPendingDocuments] = useState<PendingDocument[]>([]);
   const [saving, setSaving] = useState(false);
   const [saveState, setSaveState] = useState<"idle" | "saved" | "error">("idle");
+  const [savedAt, setSavedAt] = useState<Date | null>(null);
   const [error, setError] = useState("");
   const [pasteWarning, setPasteWarning] = useState("");
   const episode = usePodcastEpisode(wizard.state.episodeId ?? "");
   const invalidate = usePodcastInvalidation();
   const document = wizard.state.scriptDocument ?? emptyScriptDocument();
   const characterCount = scriptCharacterCount(document);
+  const wordsPerMinute = useWordsPerMinute();
+  const dockWide = dock === "wide" || rewriteRange !== null || aiTab === "draft";
 
   const persistScript = async (): Promise<void> => {
     setSaving(true);
@@ -77,6 +95,7 @@ export function PodcastScriptStep({
     try {
       await wizard.saveScript(wizard.state.scriptDocument ?? emptyScriptDocument());
       setSaveState("saved");
+      setSavedAt(new Date());
     } catch (caught) {
       setSaveState("error");
       setError(caught instanceof Error ? caught.message : "Không lưu được kịch bản.");
@@ -150,6 +169,8 @@ export function PodcastScriptStep({
     }
   };
 
+  if (wizard.state.dialogue) return <DialogueScriptStep wizard={wizard} readOnly={readOnly} />;
+
   if (readOnly) return (
     <section aria-labelledby="podcast-script-title" className="space-y-4">
       <div>
@@ -179,20 +200,51 @@ export function PodcastScriptStep({
         <div>
           <h2 id="podcast-script-title" className="text-lg font-bold text-mod-text">Kịch bản</h2>
           <p className="mt-1 text-sm text-mod-text-secondary">Soạn nội dung, gắn nguồn và tải tài liệu bổ sung.</p>
+          {characterCount === 0 ? (
+            <Button type="button" variant="outline" size="sm" className="mt-2" onClick={() => wizard.dispatch({ type: "setDialogue", value: newDialogue() })}>
+              Chuyển sang hội thoại hai người
+            </Button>
+          ) : null}
         </div>
         <div className="text-right text-xs text-mod-text-secondary">
-          <p>{characterCount.toLocaleString("vi-VN")} ký tự · khoảng {Math.max(1, Math.round(characterCount / 850))} phút đọc</p>
+          <p>
+            {characterCount.toLocaleString("vi-VN")} ký tự · {scriptWordCount(wizard.state.scriptText).toLocaleString("vi-VN")} từ
+            {wordsPerMinute ? ` · khoảng ${estimatedReadMinutes(wizard.state.scriptText, wordsPerMinute)} phút đọc` : ""}
+          </p>
           <p className={cn("mt-1", saveState === "error" ? "text-mod-danger" : "text-mod-success")}>
-            {saving ? "Đang lưu tự động…" : saveState === "saved" ? "Đã lưu tự động" : saveState === "error" ? "Chưa lưu được" : "Chưa có thay đổi"}
+            {saving ? "Đang lưu tự động…" : saveState === "saved" && savedAt ? savedAtLabel(savedAt) : saveState === "error" ? "Chưa lưu được" : "Chưa có thay đổi"}
           </p>
         </div>
       </div>
 
-      <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_320px]">
-        <div className="min-w-0 space-y-4">
+      <div className="flex items-start gap-4">
+        <div className="min-w-0 flex-1 space-y-4">
           <RichScriptEditor
             ref={editorRef}
             initialDocument={document}
+            onRewriteRequest={(range) => {
+              setRewriteRange(range);
+              if (dock === "closed") setDock("panel");
+            }}
+            onBlockClick={(ref) => setClickedBlock((previous) => ({ ref, seq: (previous?.seq ?? 0) + 1 }))}
+            toolbarActions={
+              <>
+                <Popover open={sourcesOpen} onOpenChange={setSourcesOpen}>
+                  <PopoverTrigger asChild>
+                    <Button type="button" size="sm" variant="outline">Nguồn ({sources.length})</Button>
+                  </PopoverTrigger>
+                  <PopoverContent align="end" className="w-80 p-3.5">
+                    <ScriptSourcesPanel sources={sources} onInsert={(sourceId) => editorRef.current?.insertCitation(sourceId)} />
+                  </PopoverContent>
+                </Popover>
+                <Button type="button" size="sm" aria-pressed={dock !== "closed"} onClick={() => setDock(dock === "closed" ? "panel" : "closed")}>
+                  Trợ lý AI
+                  {openCount !== null ? (
+                    <span className={cn("grid h-4 min-w-4 place-items-center rounded-full px-1 text-[10px] font-bold text-white", openCount ? "bg-mod-attention" : "bg-mod-success")}>{openCount || "✓"}</span>
+                  ) : null}
+                </Button>
+              </>
+            }
             onPasteLimitReached={(limit) => {
               setPasteWarning(
                 `Kịch bản hỗ trợ tối đa ${limit.toLocaleString("vi-VN")} ký tự. Phần nội dung vượt giới hạn không được chèn.`,
@@ -261,19 +313,36 @@ export function PodcastScriptStep({
           {error ? <p role="alert" className="text-sm text-mod-danger">{error}</p> : null}
         </div>
 
-        <aside className="h-fit overflow-hidden rounded-xl border border-mod-border bg-mod-surface">
-          <div className="grid grid-cols-2 border-b border-mod-border bg-mod-canvas-accent p-1">
-            <button type="button" className={cn("rounded-lg px-3 py-2 text-sm font-bold", panel === "assistant" ? "bg-mod-surface text-mod-primary shadow-sm" : "text-mod-text-secondary")} onClick={() => setPanel("assistant")}>Trợ lý AI</button>
-            <button type="button" className={cn("rounded-lg px-3 py-2 text-sm font-bold", panel === "sources" ? "bg-mod-surface text-mod-primary shadow-sm" : "text-mod-text-secondary")} onClick={() => setPanel("sources")}>Nguồn ({sources.length})</button>
-          </div>
-          <div className="p-4">
-            {panel === "assistant" ? (
-              <ScriptAssistantMock characterCount={characterCount} />
-            ) : (
-              <ScriptSourcesPanel sources={sources} onInsert={(sourceId) => editorRef.current?.insertCitation(sourceId)} />
+        <div className={cn("relative w-0 shrink-0 self-stretch transition-[width] duration-300 ease-out", dock === "closed" ? "-ml-4" : dockWide ? "xl:w-[620px]" : "xl:w-[340px]")}>
+          <aside
+            aria-label="Trợ lý AI"
+            className={cn(
+              "sticky top-4 h-[640px] max-h-[calc(100vh-2rem)] overflow-hidden rounded-xl border border-mod-border bg-mod-surface transition-[width] duration-300 ease-out max-xl:absolute max-xl:right-0 max-xl:top-0 max-xl:z-20",
+              dock === "closed" && "hidden",
+              dockWide ? "max-xl:w-[620px]" : "max-xl:w-[340px]",
+              "xl:w-full",
             )}
-          </div>
-        </aside>
+          >
+            <AiDock
+              dock={dock}
+              onDockChange={setDock}
+              tab={aiTab}
+              onTabChange={setAiTab}
+              rewriteRange={rewriteRange}
+              onRewriteClose={() => setRewriteRange(null)}
+              editorRef={editorRef}
+              episodeId={wizard.state.episodeId ?? null}
+              ensureEpisode={wizard.ensureDraft}
+              sources={sources}
+              hasScript={characterCount > 0}
+              scriptChars={characterCount}
+              wordsPerMinute={wordsPerMinute}
+              clickedBlock={clickedBlock}
+              onOpenSource={() => setSourcesOpen(true)}
+              onOpenCountChange={setOpenCount}
+            />
+          </aside>
+        </div>
       </div>
     </section>
   );

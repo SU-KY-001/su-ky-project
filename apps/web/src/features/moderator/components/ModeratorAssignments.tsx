@@ -2,6 +2,7 @@ import { useEffect, useRef } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { errorMessage } from "@/lib/apiError";
 import { notify } from "@/shared/lib/notifications";
+import type { StoredReview } from "@/features/release-review/ReviewHistory";
 import { moderatorReleaseService } from "../services/moderatorReleaseService";
 import { ModeratorAssignmentsView } from "./ModeratorAssignmentsTable";
 
@@ -14,7 +15,7 @@ export interface ModeratorAssignmentSummary {
   scheduledAt: Date;
   productionDeadline: Date;
   episode: { id: string; title?: string; contentRevision: number } | null;
-  reviews: Array<{ status: string; revision: number; reviewNote?: string | null }>;
+  reviews: StoredReview[];
   reassignmentTicket?: {
     id: string;
     status: "PENDING" | "APPROVED" | "REJECTED" | "CANCELLED";

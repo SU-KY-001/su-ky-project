@@ -1,6 +1,8 @@
 import type { DragEvent, KeyboardEvent } from "react";
 import type { ReleaseScheduleRecord } from "@repo/shared";
-import { CalendarBlank, Clock, WarningCircle } from "@phosphor-icons/react";
+import { CalendarBlank } from "@phosphor-icons/react/dist/icons/CalendarBlank";
+import { Clock } from "@phosphor-icons/react/dist/icons/Clock";
+import { WarningCircle } from "@phosphor-icons/react/dist/icons/WarningCircle";
 import {
   CardBadge,
   cardBadgeToneForStatus,

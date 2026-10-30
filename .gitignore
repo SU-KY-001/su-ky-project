@@ -46,3 +46,6 @@ Thumbs.db
 # Database local volume
 postgres_data/
 .superpowers/
+apps/api/spike-tts/out/
+tmp/
+.env.prod

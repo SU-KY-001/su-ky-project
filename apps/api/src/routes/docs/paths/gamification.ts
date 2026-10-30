@@ -2,11 +2,14 @@ import { z } from "zod";
 import {
   MyWeeklyMissionsSchema,
   PublicQuizSchema,
+  PublicQuizCatalogQuerySchema,
+  PublicQuizCatalogSchema,
   QuizAttemptResultSchema,
   StudioQuizSchema,
   SubmitQuizAttemptSchema,
   UpsertQuizSchema,
   WeeklyMissionQuerySchema,
+  QuizWorkspaceSchema, QuizWorkspaceListSchema, SaveQuizDraftSchema, ActivateQuizDraftSchema,
 } from "@repo/shared";
 import { operation, type Paths } from "../operation";
 
@@ -24,6 +27,7 @@ const studioQuiz = PublicQuizSchema.extend({
       text: z.string(),
       explanation: z.string().nullable(),
       sortOrder: z.number().int(),
+      timeLimit: z.number().int().positive().nullable(),
       options: z.array(
         z.object({
           id: z.string().uuid(),
@@ -37,6 +41,29 @@ const studioQuiz = PublicQuizSchema.extend({
 });
 
 export const gamificationPaths: Paths = {
+  "/api/quizzes": {
+    get: operation({ id: "listPublishedQuizzes", tag: QUIZ_TAG, summary: "Danh sách quiz của các tập công khai", access: "optional", query: PublicQuizCatalogQuerySchema,
+      ok: { status: 200, description: "Danh sách quiz phân trang", schema: { name: "PublicQuizCatalog", schema: PublicQuizCatalogSchema } } }),
+  },
+  "/api/studio/quiz-workspaces": {
+    get: operation({ id: "listQuizWorkspaces", tag: QUIZ_TAG, summary: "Danh sách quiz thật thuộc Moderator", access: "moderator",
+      ok: { status: 200, description: "Bản nháp và quiz đang dùng", schema: { name: "QuizWorkspaceList", schema: QuizWorkspaceListSchema } } }),
+  },
+  "/api/studio/episodes/{episodeId}/quiz-workspace": {
+    get: operation({ id: "getQuizWorkspace", tag: QUIZ_TAG, summary: "Đọc bản nháp và kịch bản quiz độc lập", access: "moderator", pathParams: EpisodeIdParam,
+      ok: { status: 200, description: "Nội dung referenceText là kịch bản riêng của quiz, không lấy từ podcast. Bản nháp cũ chưa có trường này dùng nội dung trống.", schema: { name: "QuizWorkspace", schema: QuizWorkspaceSchema } },
+      errors: { 403: LOCKED, 404: "`NOT_FOUND`: tập không thuộc Moderator", 409: IN_TRASH } }),
+    put: operation({ id: "saveQuizWorkspace", tag: QUIZ_TAG, summary: "Lưu câu hỏi và kịch bản quiz referenceText cùng bản nháp", access: "moderator", pathParams: EpisodeIdParam,
+      body: { name: "SaveQuizDraft", schema: SaveQuizDraftSchema }, rate: "write",
+      ok: { status: 200, description: "Bản nháp đã lưu với revision mới", schema: { name: "QuizWorkspace", schema: QuizWorkspaceSchema } },
+      errors: { 403: LOCKED, 404: "`NOT_FOUND`: tập không thuộc Moderator", 409: `${IN_TRASH}; \`STALE_WRITE\`: revision đã thay đổi`, 422: "`VALIDATION_ERROR`: ảnh quiz không hợp lệ" } }),
+  },
+  "/api/studio/episodes/{episodeId}/quiz-workspace/activate": {
+    post: operation({ id: "activateQuizWorkspace", tag: QUIZ_TAG, summary: "Đưa bản nháp đã rà soát vào sử dụng", access: "moderator", pathParams: EpisodeIdParam,
+      body: { name: "ActivateQuizDraft", schema: ActivateQuizDraftSchema }, rate: "write",
+      ok: { status: 200, description: "Quiz sẵn sàng cho tập công khai", schema: { name: "QuizWorkspace", schema: QuizWorkspaceSchema } },
+      errors: { 403: LOCKED, 404: "`NOT_FOUND`: tập không thuộc Moderator", 409: `${IN_TRASH}; \`STALE_WRITE\`: revision thay đổi; \`CONFLICT\`: đã có lượt làm`, 422: "`VALIDATION_ERROR`: câu hỏi chưa hoàn chỉnh" } }),
+  },
   "/api/studio/episodes/{episodeId}/quiz": {
     get: operation({
       id: "getStudioQuiz",
@@ -100,7 +127,7 @@ export const gamificationPaths: Paths = {
       tag: QUIZ_TAG,
       summary: "Lấy quiz của tập công khai",
       description: "Không trả đáp án đúng hay giải thích trước khi nộp bài.",
-      access: "optional",
+      access: "user",
       pathParams: SlugParam,
       pathParamDocs: { slug: "Slug tập công khai" },
       ok: {

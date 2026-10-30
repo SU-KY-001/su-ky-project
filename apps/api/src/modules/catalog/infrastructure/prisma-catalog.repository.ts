@@ -27,6 +27,8 @@ import type {
 import { jsonSnapshot } from "./prisma-historical-catalog.repository";
 import { DomainError } from "../../../core/errors/domain-error";
 import { writeAudit } from "../../../core/audit";
+import { insertSourcePages, readSourcePdfPages } from "./source-pdf-pages";
+import { env } from "../../../core/env";
 
 const SOURCE_INCLUDE = {
   fileAsset: {
@@ -170,12 +172,17 @@ export class PrismaCatalogRepository
           }
         : {}),
     };
+    const sortDirection = query.sortDirection ?? "asc";
+    const orderBy =
+      query.sortBy === "createdAt"
+        ? [{ createdAt: sortDirection }, { id: sortDirection }]
+        : [{ title: sortDirection }, { id: sortDirection }];
     const [rows, total] = await Promise.all([
       prisma.source.findMany({
         where,
         skip: (query.page - 1) * query.limit,
         take: query.limit,
-        orderBy: { title: "asc" },
+        orderBy,
         include: SOURCE_INCLUDE,
       }),
       prisma.source.count({ where }),
@@ -236,6 +243,7 @@ export class PrismaCatalogRepository
   }
 
   async createSource(data: CreateSourceData): Promise<boolean> {
+    const pages = await readSourcePdfPages(data.fileAssetId);
     return prisma.$transaction(async (tx) => {
       const result = await tx.source.createMany({
         data: [data],
@@ -254,6 +262,7 @@ export class PrismaCatalogRepository
             createdById: source.createdById,
           },
         });
+        if (pages) await insertSourcePages(tx, source.id, source.version, pages);
         await writeAudit(tx, {
           actorId: data.createdById,
           action: "source.created",
@@ -269,7 +278,7 @@ export class PrismaCatalogRepository
           data: { detachedAt: null },
         });
       return result.count > 0;
-    });
+    }, { timeout: env.SOURCE_PDF_TIMEOUT_MS });
   }
 
   async findSourceIdByIsbn(isbn: string | null): Promise<string | null> {
@@ -325,6 +334,7 @@ export class PrismaCatalogRepository
     data: PatchSourceData,
     actorId?: string,
   ): Promise<Source> {
+    const pages = data.fileAssetId ? await readSourcePdfPages(data.fileAssetId) : null;
     const row = await prisma.$transaction(async (tx) => {
       await tx.$queryRaw`SELECT id FROM sources WHERE id=${id}::uuid FOR UPDATE`;
       const before = await tx.source.findUniqueOrThrow({ where: { id } });
@@ -365,6 +375,15 @@ export class PrismaCatalogRepository
         },
         include: SOURCE_INCLUDE,
       });
+      if (pages) {
+        await insertSourcePages(tx, id, updated.version, pages);
+      } else if (updated.fileAssetId && updated.fileAssetId === before.fileAssetId) {
+        await tx.$executeRaw`
+          INSERT INTO source_pages (source_id, version, page, text)
+          SELECT source_id, ${updated.version}, page, text FROM source_pages
+          WHERE source_id = ${id}::uuid AND version = ${before.version}
+        `;
+      }
       await tx.sourceRevision.create({
         data: {
           sourceId: id,
@@ -383,7 +402,7 @@ export class PrismaCatalogRepository
         ipAddress: null,
       });
       return updated;
-    });
+    }, { timeout: env.SOURCE_PDF_TIMEOUT_MS });
     return toSource(row);
   }
 
@@ -410,6 +429,13 @@ export class PrismaCatalogRepository
         },
         include: SOURCE_INCLUDE,
       });
+      if (updated.fileAssetId) {
+        await tx.$executeRaw`
+          INSERT INTO source_pages (source_id, version, page, text)
+          SELECT source_id, ${updated.version}, page, text FROM source_pages
+          WHERE source_id = ${id}::uuid AND version = ${before.version}
+        `;
+      }
       await tx.sourceRevision.create({
         data: {
           sourceId: id,

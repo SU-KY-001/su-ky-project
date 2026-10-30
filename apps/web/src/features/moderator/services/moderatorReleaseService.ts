@@ -6,6 +6,8 @@ import {
   ReleaseReassignmentTicketPageSchema,
   ReleaseReassignmentTicketSchema,
   ReleaseReminderListSchema,
+  ReviewContentSchema,
+  type ReviewEpisodeRequest,
 } from "@repo/shared";
 import { client } from "@/lib/client";
 import { ApiError } from "@/lib/apiError";
@@ -26,6 +28,7 @@ export const moderatorReleaseService = {
   assignments: () => parse(releases.assignments.$get(), AssignedReleaseListSchema),
   assignableEpisodes: () => parse(releases["assignable-episodes"].$get(), AssignableEpisodeListSchema),
   reviewQueue: () => parse(releases["review-queue"].$get(), AssignedReleaseListSchema),
+  reviewContent: (id: string) => parse(releases[":id"]["review-content"].$get({ param: { id } }), ReviewContentSchema),
   reminders: () => parse(releases.reminders.$get(), ReleaseReminderListSchema),
   progress: (id: string) => parse(releases[":id"].progress.$get({ param: { id } }), ReleaseProgressListSchema),
   linkEpisode: (id: string, episodeId: string) =>
@@ -44,12 +47,7 @@ export const moderatorReleaseService = {
       }),
       EpisodeReviewRecordSchema,
     ),
-  review: (
-    id: string,
-    input:
-      | { decision: "APPROVE"; contentRevision: number; reviewNote?: string | null }
-      | { decision: "REQUEST_CHANGES"; contentRevision: number; reviewNote: string },
-  ) =>
+  review: (id: string, input: ReviewEpisodeRequest) =>
     parse(
       releases[":id"].review.$post({ param: { id }, json: input }),
       EpisodeReviewRecordSchema,

@@ -2,23 +2,14 @@ import { createBrowserRouter, redirect, redirectDocument, type RouteObject } fro
 import { GuestRoute, ProtectedRoute, RouteErrorFallback } from "@/shared/components/common";
 import { AppLoadingFallback } from "./AppLoadingFallback";
 import { APP_PATHS } from "@/shared/constants/routes";
+import { MODERATOR_SECTION_SEGMENTS } from "@/features/moderator/paths";
 import { AppFrame } from "@/shared/layouts/AppFrame";
-import { LoginPage } from "@/pages/auth/LoginPage";
 import { apiUrl } from "@/lib/client";
 import { PublicRoute } from "@/shared/components/common/PublicRoute";
 import { LandingLoadingPage } from "@/pages/landing/LandingLoadingPage";
 
 export const appRoutes: RouteObject[] = [
-  {
-    id: "exhibition-1975",
-    path: "/trien-lam-1975",
-    ErrorBoundary: RouteErrorFallback,
-    HydrateFallback: AppLoadingFallback,
-    lazy: async () => {
-      const { Exhibition1975Page } = await import("../pages/exhibition/Exhibition1975Page");
-      return { Component: Exhibition1975Page };
-    },
-  },
+  { id: "public-exhibition", path: "/trien-lam/:slug", ErrorBoundary: RouteErrorFallback, HydrateFallback: AppLoadingFallback, lazy: async () => { const { ExhibitionPage } = await import("../pages/exhibition/ExhibitionPage"); return { Component: ExhibitionPage }; } },
   {
     id: "app",
     path: APP_PATHS.home,
@@ -27,43 +18,19 @@ export const appRoutes: RouteObject[] = [
     ErrorBoundary: RouteErrorFallback,
     children: [
       {
+        id: "quiz-player-auth",
+        element: <ProtectedRoute allowedRoles={["user", "moderator", "admin"]} />,
+        children: [{ id: "quiz-player", path: "quiz/:slug", lazy: async () => {
+          const { QuizPlayerPage } = await import("../pages/quiz/QuizPlayerPage");
+          return { Component: QuizPlayerPage };
+        } }],
+      },
+      {
         id: "public-series-episodes",
         path: "series/:slug",
         lazy: async () => {
           const { SeriesEpisodesPage } = await import("../pages/series/SeriesEpisodesPage");
           return { Component: SeriesEpisodesPage };
-        },
-      },
-      {
-        id: "history-river-wireframe",
-        path: "wireframes/history-river",
-        lazy: async () => {
-          const { HistoryRiverWireframePage } = await import("../pages/wireframes/HistoryRiverWireframePage");
-          return { Component: HistoryRiverWireframePage };
-        },
-      },
-      {
-        id: "history-library-wireframe",
-        path: "wireframes/history-library",
-        lazy: async () => {
-          const { HistoryLibraryWireframePage } = await import("../pages/wireframes/HistoryLibraryWireframePage");
-          return { Component: HistoryLibraryWireframePage };
-        },
-      },
-      {
-        id: "history-design-wireframe",
-        path: "wireframes/history",
-        lazy: async () => {
-          const { HistoryDesignWireframePage } = await import("../pages/wireframes/HistoryDesignWireframePage");
-          return { Component: HistoryDesignWireframePage };
-        },
-      },
-      {
-        id: "podcast-showcase-wireframe",
-        path: "wireframes/podcast-showcase",
-        lazy: async () => {
-          const { PodcastShowcaseWireframePage } = await import("../pages/wireframes/PodcastShowcaseWireframePage");
-          return { Component: PodcastShowcaseWireframePage };
         },
       },
       {id:"historical-event",path:"history/events/:slug",lazy:async()=>{const {HistoricalEventPage}=await import("../pages/history/HistoricalEventPage");return {Component:HistoricalEventPage};}},
@@ -82,7 +49,14 @@ export const appRoutes: RouteObject[] = [
               {
                 id: "guest-routes",
                 element: <GuestRoute />,
-                children: [{ id: "login", path: APP_PATHS.login.slice(1), Component: LoginPage }],
+                children: [{
+                  id: "login",
+                  path: APP_PATHS.login.slice(1),
+                  lazy: async () => {
+                    const { LoginPage } = await import("@/pages/auth/LoginPage");
+                    return { Component: LoginPage };
+                  },
+                }],
               },
             ],
           },
@@ -98,18 +72,34 @@ export const appRoutes: RouteObject[] = [
         element: <ProtectedRoute allowedRoles={["moderator"]} />,
         children: [
           {
-            id: "moderator-dashboard",
+            id: "moderator-workspace",
             path: APP_PATHS.moderator.slice(1),
             lazy: async () => {
               const { ModeratorWorkspacePage } = await import("../pages/moderator/ModeratorWorkspacePage");
               return { Component: ModeratorWorkspacePage };
             },
-          },
-          {
-            id: "moderator-legacy-menu",
-            path: `${APP_PATHS.moderator.slice(1)}/*`,
-            element: null,
-            loader: () => redirect(APP_PATHS.moderator),
+            // Child routes only declare valid URLs (unknown ones fall through to 404); the page renders the screen itself.
+            children: [
+              { id: "moderator-overview", index: true },
+              ...MODERATOR_SECTION_SEGMENTS.filter((section) => section !== "podcast" && section !== "exhibitions").map((section) => ({ id: `moderator-${section}`, path: section })),
+              { id: "moderator-exhibitions", path: "exhibitions", children: [
+                { id: "moderator-exhibitions-list", index: true, element: <></> },
+                { id: "moderator-exhibitions-new", path: "new", element: <></> },
+                { id: "moderator-exhibitions-edit", path: ":id/edit", element: <></> },
+                { id: "moderator-exhibitions-preview", path: ":id/preview", element: <></> },
+              ] },
+              {
+                id: "moderator-podcast",
+                path: "podcast",
+                children: [
+                  { id: "moderator-podcast-list", index: true },
+                  { id: "moderator-podcast-new-series", path: "series/new" },
+                  { id: "moderator-podcast-series", path: "series/:seriesId" },
+                  { id: "moderator-podcast-new-episode", path: "episodes/new" },
+                  { id: "moderator-podcast-episode", path: "episodes/:episodeId" },
+                ],
+              },
+            ],
           },
         ],
       },

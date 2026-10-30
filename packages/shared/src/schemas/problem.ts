@@ -4,16 +4,22 @@ export const ERROR_CODES = [
   "VALIDATION_ERROR",
   "HAS_DEPENDENCIES",
   "SELF_REVIEW_FORBIDDEN",
+  "CHECKLIST_INCOMPLETE",
   "SOURCE_OUTDATED",
   "SOURCE_UNVERIFIED",
   "CONTENT_NOT_READY",
   "INVALID_REVIEW_STATE",
+  "APPROVAL_REQUIRED",
+  "RIGHTS_EXPIRED",
+  "AI_DISCLOSURE_REQUIRED",
+  "WARNING_ACCEPTANCE_REQUIRED",
   "AUTH_REQUIRED",
   "FORBIDDEN",
   "CONTENT_LOCKED",
   "NOT_FOUND",
   "CONTENT_UNAVAILABLE",
   "STALE_WRITE",
+  "EXHIBITION_REVISION_CONFLICT",
   "SOURCE_ISBN_TAKEN",
   "SERIES_SOURCE_DUPLICATE",
   "SLUG_LOCKED",
@@ -44,7 +50,26 @@ export const ERROR_CODES = [
   "INVALID_STATE_TRANSITION",
   "SERVICE_UNAVAILABLE",
   "INTERNAL_SERVER_ERROR",
+  "NO_READABLE_SOURCE",
+  "AI_UNAVAILABLE",
+  "AI_DISABLED",
+  "AI_CHECK_ALREADY_RUNNING",
+  "AI_CONCURRENCY_LIMIT",
+  "ANGLE_NAME_TAKEN",
+  "ANGLE_LIMIT",
+  "AI_BAD_OUTPUT",
+  "AI_NO_VARIANTS",
+  "AI_TIMEOUT",
+  "AI_PROVIDER_AUTH",
+  "AI_PROVIDER_QUOTA",
+  "HASH_MISMATCH",
+  "SCRIPT_TOO_LONG",
   "HTTP_ERROR",
+  "METHOD_NOT_ALLOWED",
+  "UNSUPPORTED_MEDIA_TYPE",
+  "WRITE_CONFLICT",
+  "REQUEST_ABORTED",
+  "EMAIL_TAKEN",
 ] as const;
 
 export type ErrorCode = (typeof ERROR_CODES)[number];
@@ -53,11 +78,29 @@ export const RETRYABLE_ERROR_CODES = [
   "SLUG_CONFLICT",
   "RATE_LIMITED",
   "MEDIA_PROVIDER_UNAVAILABLE",
+  "NO_READABLE_SOURCE",
+  "AI_UNAVAILABLE",
+  "AI_DISABLED",
+  "AI_CHECK_ALREADY_RUNNING",
+  "AI_CONCURRENCY_LIMIT",
+  "AI_TIMEOUT",
+  "WRITE_CONFLICT",
 ] as const satisfies readonly ErrorCode[];
+
+/** Cap so a hostile payload cannot make the error body huge. */
+export const MAX_ERROR_DETAILS = 20;
+
+export const ErrorDetailSchema = z.object({
+  /** Dot-joined path inside the request part that failed, for example `blocks.0.text`. */
+  path: z.string(),
+  /** zod issue code (`too_small`, `invalid_enum_value`...), not a sentence: clients map it to their own text. */
+  code: z.string(),
+});
 
 export const ErrorResponseSchema = z.object({
   error_code: z.enum(ERROR_CODES),
   message: z.string(),
+  details: z.array(ErrorDetailSchema).max(MAX_ERROR_DETAILS).optional(),
 });
 
 export type ErrorResponse = z.infer<typeof ErrorResponseSchema>;

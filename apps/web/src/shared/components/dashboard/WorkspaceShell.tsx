@@ -1,9 +1,12 @@
-import { useLayoutEffect, useState, type ReactNode } from "react";
+import { useId, useLayoutEffect, useState, type ReactNode } from "react";
 import { Link } from "react-router";
-import { ArrowUpRight, List, type Icon } from "@phosphor-icons/react";
+import { List } from "@phosphor-icons/react/dist/icons/List";
+import { SidebarSimple } from "@phosphor-icons/react/dist/icons/SidebarSimple";
+import type { Icon } from "@phosphor-icons/react";
 import brandLogo from "@/public/brand-su-ky-viet-nam.png";
 import { Button } from "@/shared/components/ui/button";
 import { Separator } from "@/shared/components/ui/separator";
+import { cn } from "@/lib/utils";
 import {
   Sheet,
   SheetContent,
@@ -32,28 +35,32 @@ export interface WorkspaceShellProps {
   nav: WorkspaceNavItem[];
   profile: ReactNode;
   children: ReactNode;
-  externalHomeLabel?: string;
+  compact?: boolean;
 }
 
 function WorkspaceNavLink({
   item,
   onNavigated,
+  collapsed = false,
 }: {
   item: WorkspaceNavItem;
   onNavigated: () => void;
+  collapsed?: boolean;
 }) {
-  if (item.groupStart)
+  if (item.groupStart) {
+    if (collapsed) return <div role="separator" aria-label={item.label} className="mx-3 my-2 border-t border-mod-border" />;
     return (
       <p className="mb-1 mt-4 px-3 text-[10px] font-bold tracking-[0.08em] text-mod-text-low first:mt-0">
         {item.label}
       </p>
     );
+  }
   const IconComponent = item.icon;
-  const className = `${NAV_LINK_CLASS} ${
+  const className = cn(NAV_LINK_CLASS, collapsed && "justify-center gap-0 px-0", 
     item.active
       ? "bg-mod-canvas-accent font-bold text-mod-text"
       : "font-semibold text-mod-text-secondary"
-  }`;
+  );
   const content = (
     <>
       {item.active ? (
@@ -70,7 +77,7 @@ function WorkspaceNavLink({
           aria-hidden="true"
         />
       ) : null}
-      {item.label}
+      <span className={collapsed ? "sr-only" : undefined}>{item.label}</span>
     </>
   );
   if (item.to)
@@ -80,6 +87,8 @@ function WorkspaceNavLink({
         onClick={onNavigated}
         aria-current={item.active ? "page" : undefined}
         className={className}
+        aria-label={item.label}
+        title={collapsed ? item.label : undefined}
       >
         {content}
       </Link>
@@ -94,6 +103,8 @@ function WorkspaceNavLink({
       }}
       aria-current={item.active ? "location" : undefined}
       className={className}
+      aria-label={item.label}
+      title={collapsed ? item.label : undefined}
     >
       {content}
     </a>
@@ -105,42 +116,37 @@ function WorkspaceSidebar({
   brandCaption,
   nav,
   profile,
-  externalHomeLabel,
   onNavigated,
+  collapsed = false,
+  toggle,
 }: Omit<WorkspaceShellProps, "children" | "mobileNavigationTitle"> & {
   onNavigated: () => void;
+  collapsed?: boolean;
+  toggle?: ReactNode;
 }) {
   return (
     <>
-      <div className="flex items-center gap-[11px] px-2 py-1">
+      <div className={cn("mod-sidebar-brand", collapsed && "is-compact")}>
         <span className="flex min-w-0 flex-col gap-1">
           <img
             src={brandLogo}
             alt="Sử Ký Việt Nam"
-            className="h-auto w-[164px] max-w-full object-contain"
+            className={cn("h-auto max-w-full object-contain", collapsed ? "w-12" : "w-[150px]")}
           />
-          <span className="pl-1 text-[9px] font-semibold tracking-[0.08em] text-mod-text-secondary">
+          <span className={cn("pl-1 text-[9px] font-semibold tracking-[0.08em] text-mod-text-secondary", collapsed && "sr-only")}>
             {brandCaption}
           </span>
         </span>
+        {toggle}
       </div>
       <nav className="mt-6 flex flex-col gap-1" aria-label={navigationLabel}>
         {nav.map((item) => (
-          <WorkspaceNavLink key={item.id} item={item} onNavigated={onNavigated} />
+          <WorkspaceNavLink key={item.id} item={item} onNavigated={onNavigated} collapsed={collapsed} />
         ))}
       </nav>
       <div className="mt-auto flex flex-col gap-4">
         <Separator className="bg-mod-border" />
         {profile}
-        {externalHomeLabel ? (
-          <a
-            href="/"
-            className="flex min-h-10 items-center gap-2 rounded-md px-2.5 text-xs font-semibold text-mod-text-secondary no-underline hover:bg-mod-canvas-accent focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-mod-primary"
-          >
-            <ArrowUpRight size={15} aria-hidden="true" />
-            <span>{externalHomeLabel}</span>
-          </a>
-        ) : null}
       </div>
     </>
   );
@@ -148,12 +154,16 @@ function WorkspaceSidebar({
 
 export function WorkspaceShell(props: WorkspaceShellProps) {
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const sidebarId = useId();
   const closeDrawer = () => setDrawerOpen(false);
+  const compact = props.compact || sidebarCollapsed;
 
   useLayoutEffect(() => {
     const className = "workspace-scroll-lock";
     document.documentElement.classList.add(className);
     document.body.classList.add(className);
+    window.scrollTo(0, 0);
 
     return () => {
       document.documentElement.classList.remove(className);
@@ -166,15 +176,22 @@ export function WorkspaceShell(props: WorkspaceShellProps) {
     brandCaption: props.brandCaption,
     nav: props.nav,
     profile: props.profile,
-    externalHomeLabel: props.externalHomeLabel,
     onNavigated: closeDrawer,
   };
 
   return (
-    <div className="mod-layout-root font-sans text-mod-text">
-      <div className="mod-layout-shell">
-        <aside className="mod-sidebar" aria-label={props.navigationLabel}>
-          <WorkspaceSidebar {...sidebarProps} />
+    <div className="mod-layout-root font-sans text-mod-text" data-compact-workspace={props.compact || undefined}>
+      <div className="mod-layout-shell" data-sidebar-collapsed={compact}>
+        <aside id={sidebarId} className="mod-sidebar" aria-label={props.navigationLabel}>
+          <WorkspaceSidebar {...sidebarProps} collapsed={compact} toggle={props.compact ? undefined :
+            <Button variant="ghost" size="icon" className="mod-sidebar-toggle shrink-0 text-mod-text-secondary"
+              aria-label={sidebarCollapsed ? "Mở rộng sidebar" : "Thu gọn sidebar"}
+              title={sidebarCollapsed ? "Mở rộng sidebar" : "Thu gọn sidebar"}
+              aria-expanded={!sidebarCollapsed} aria-controls={sidebarId}
+              onClick={() => setSidebarCollapsed(collapsed => !collapsed)}>
+              <SidebarSimple size={19} aria-hidden="true" />
+            </Button>
+          } />
         </aside>
         <div className="mod-main-column">
           <header className="mod-header mod-mobile-header">

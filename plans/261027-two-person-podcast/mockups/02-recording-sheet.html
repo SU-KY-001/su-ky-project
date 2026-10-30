@@ -1,0 +1,64 @@
+<!doctype html><html lang="vi"><head><meta charset="utf-8"><title>Thu âm thủ công, hai người</title><meta name="viewport" content="width=device-width,initial-scale=1"><link rel="stylesheet" href="../../261015-1640-podcast-ai-source-check-p1/mockups/mock.css">
+<style>
+.line{display:grid;grid-template-columns:28px 1fr;gap:12px;padding:14px 16px;border:1px solid var(--line);border-radius:12px;background:var(--card);transition:opacity .2s}
+.line .n{font:500 11px var(--mono);color:var(--low);padding-top:3px}
+.line.dim{opacity:.35}
+.line .who{display:flex;gap:8px;align-items:center;font-weight:600}
+.line .cue{display:flex;gap:6px;flex-wrap:wrap;margin:4px 0 6px}
+.line .tx{font-size:16px;line-height:1.8}
+.line .cx{font:500 11px var(--sans);color:var(--info);background:var(--info-bg);border-radius:4px;padding:0 6px}
+.line .bk{font:500 11px var(--sans);color:var(--low);border-bottom:1px dotted var(--low)}
+.line .nt{margin-top:6px;font-size:12px;color:var(--warn);background:var(--warn-bg);border-radius:6px;padding:4px 8px;display:inline-block}
+.dotc{width:10px;height:10px;border-radius:2px;display:inline-block}.sp-a{background:var(--text)}.sp-b{background:var(--info)}
+@media print{.top,.steps,.note,.side,.noprint{display:none!important}.cols{display:block}.line.dim{display:none}}
+</style></head><body>
+<div class="top"><div class="crumb">Studio / Hào khí Đại Việt / <b>Tập 3: Cuộc dời đô</b> <span class="tag t-info">Hội thoại 2 người</span></div>
+ <div class="row"><a class="btn" href="01-dialogue-editor.html"><i class="ph-bold ph-arrow-left"></i>Về kịch bản</a></div></div>
+<div class="steps"><span class="step done"><em><i class="ph-bold ph-check"></i></em>Thông tin</span><span class="step done"><em><i class="ph-bold ph-check"></i></em>Kịch bản</span><span class="step on"><em>3</em>Giọng đọc</span><span class="step"><em>4</em>Xem lại</span></div>
+<div class="wrap" style="padding-top:32px"><div class="stack">
+ <div class="seg" style="max-width:520px"><a href="01-dialogue-editor.html">Tạo bằng AI</a><a class="on">Thu âm thủ công</a></div>
+ <div class="cols">
+ <div class="stack">
+  <div class="row sp noprint"><div class="seg" id="who" style="width:360px"><button class="on" data-r="">Cả hai</button><button data-r="A"><span class="dotc sp-a"></span> Veda</button><button data-r="B"><span class="dotc sp-b"></span> Rami</button></div>
+   <button class="btn" onclick="print()"><i class="ph-bold ph-printer"></i>In / lưu PDF</button></div>
+  <p class="low noprint">Chọn tên của bạn để chỉ thấy lượt của mình nổi bật. Giọng điệu, expression và ghi chú lấy từ kịch bản.</p>
+  <div id="lines" class="stack s8"></div>
+ </div>
+ <div class="stack side">
+  <div class="card tight stack">
+   <div class="row sp"><h3>Lịch thu âm</h3><span class="tag t-mute">Tách pha sau</span></div>
+   <div class="alert info"><i class="ph-bold ph-info"></i><span>Mockup cho tính năng lịch. Có thể làm sau; bản đọc theo vai bên trái dùng được độc lập.</span></div>
+   <label class="f">Thời gian<input type="text" value="Thứ Bảy 31/10/2026, 14:00 – 16:00"></label>
+   <label class="f">Địa điểm hoặc liên kết<input type="text" value="Phòng thu tầng 3 / hoặc link họp"></label>
+   <div class="sec"><div class="row sp"><span><span class="dotc sp-a"></span> Veda</span><select style="width:auto"><option>Mod: Nguyễn An</option><option>Mod: Trần Bình</option></select></div>
+    <div class="row sp"><span><span class="dotc sp-b"></span> Rami</span><select style="width:auto"><option>Mod: Trần Bình</option><option>Mod: Nguyễn An</option></select></div></div>
+   <div class="row sp"><span class="low">Nhắc trước 24 giờ</span><span class="tag t-ok">Đã đặt</span></div>
+   <button class="btn p full"><i class="ph-bold ph-calendar-check"></i>Lưu lịch</button>
+  </div>
+  <div class="card tight stack">
+   <div class="row sp"><h3>Âm thanh sau khi thu</h3><span class="tag t-warn">Chưa có</span></div>
+   <p class="muted">Thu ngoài hệ thống (cùng phòng hoặc từ xa), trộn xong thành một file rồi tải lên. Hệ thống không kiểm soát cách thu.</p>
+   <button class="btn full"><i class="ph-bold ph-upload-simple"></i>Tải file thu âm (MP3, WAV, M4A)</button>
+   <div class="alert warn"><i class="ph-bold ph-warning-circle"></i><span>Trước khi thu: đeo tai nghe, mic gần miệng, mỗi người thu một track riêng nếu có thể để trộn sạch.</span></div>
+  </div>
+ </div></div></div></div>
+<p class="note">Mockup tĩnh có tương tác. Chưa nối API.</p>
+<script src="../../261015-1640-podcast-ai-source-check-p1/mockups/mock.js"></script>
+<script>
+const NAMES = { A: "Veda", B: "Rami" };
+const TURNS = [
+ { s: "A", style: "sôi nổi, hào hứng", text: "Chào mừng quay lại với chương trình! Hôm nay mình kể chuyện mùa thu năm 1010, khi triều đình quyết định rời kinh đô cũ.", note: "Mở đầu, nhịp nhanh" },
+ { s: "B", style: "tò mò, hơi chậm", text: "<chuckle> Nghe đã thấy hấp dẫn. Nhưng vì sao lại là Đại La, hả Veda?", note: "" },
+ { s: "A", style: "điềm đạm, rõ ràng", text: "Ừ, câu hỏi đúng đấy. |Ừm.| Chiếu dời đô nói về một vùng đất ở giữa trời đất, thuận cho việc dựng nghiệp lâu dài.", note: "Trích ý Chiếu dời đô, đọc chậm" },
+];
+const CUE = { chuckle: "cười khẽ", laugh: "cười", sigh: "thở dài", breath: "hít thở", gasp: "ngạc nhiên", cough: "ho", "throat-clearing": "e hèm", whispers: "thì thầm", "short pause": "nghỉ ngắn", "long pause": "nghỉ dài" };
+const fmt = (t) => t.replace(/<([^>]+)>/g, (_, k) => `<span class="cx">${CUE[k] ?? k}</span>`).replace(/\|([^|]+)\|/g, (_, r) => `<span class="bk" title="Người kia chen vào">[${r}]</span>`);
+let role = "";
+function render() {
+  $("#lines").innerHTML = TURNS.map((t, i) => `<div class="line ${role && role !== t.s ? "dim" : ""}"><div class="n">${i + 1}</div><div>
+   <div class="who"><span class="dotc ${t.s === "A" ? "sp-a" : "sp-b"}"></span>${NAMES[t.s]}${t.style ? `<span class="chip">${t.style}</span>` : ""}</div>
+   <div class="tx">${fmt(t.text)}</div>${t.note ? `<div class="nt"><i class="ph-bold ph-note-pencil"></i> ${t.note}</div>` : ""}</div></div>`).join("");
+}
+$("#who").addEventListener("click", (e) => { const b = e.target.closest("[data-r]"); if (!b) return; role = b.dataset.r; $$("#who button").forEach((x) => x.classList.toggle("on", x === b)); render(); });
+render();
+</script></body></html>

@@ -13,13 +13,13 @@ This skill enforces **feature-based architecture** with modern design patterns, 
 
 ## UI and Styling Systems
 
-`apps/web` uses Tailwind CSS v4 for styling, source-owned shadcn/ui components, and selected Magic UI registry components. `apps/mobile` uses Tamagui for native UI and styling.
+`apps/web` uses Tailwind CSS v4 for styling, source-owned shadcn/ui components, and selected Magic UI registry components. `apps/mobile` uses NativeWind 4.2 with Tailwind CSS 3.4 for native UI styling.
 
 - Build web UI with semantic HTML, Tailwind utility classes, and the existing global stylesheet at `src/styles/globals.css`.
 - Add or update shadcn/ui components as source under `src/components/ui`; use Magic UI registry components selectively when they fit the approved design.
-- Keep CSS tokens and responsive breakpoints in the web styling system. Do not import Tamagui or `@tamagui/*` into `apps/web`.
-- Build mobile UI with Tamagui components, props, tokens, themes, and responsive/media query props.
-- Keep Tamagui configuration and native UI dependencies scoped to mobile/root infrastructure; do not use Tailwind, DOM components, or shadcn/ui in `apps/mobile`.
+- Keep CSS tokens and responsive breakpoints in the web styling system. Do not import mobile-only component libraries into `apps/web`.
+- Build mobile UI with React Native components and NativeWind `className` utilities. Use native component libraries when they support React Native.
+- Keep NativeWind configuration and native UI dependencies scoped to mobile. Do not use DOM components or web shadcn/ui in `apps/mobile`.
 
 ---
 
@@ -572,3 +572,4 @@ const DocumentList: React.FC = () => {
 - Ignore TypeScript types
 - Leave error states unhandled
 - Forget loading and empty states
+

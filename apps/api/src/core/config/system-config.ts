@@ -33,6 +33,7 @@ export const SYSTEM_CONFIGS = {
   },
   "script.words_per_minute": { schema: z.number().int().positive(), defaultValue: 150 },
   "narration.duration_mismatch_ratio": { schema: z.number().nonnegative(), defaultValue: 0.3 },
+  "readiness.min_script_words": { schema: z.number().int().positive(), defaultValue: 150 },
   "slug.max_length": { schema: z.number().int().min(8), defaultValue: 80 },
   "slug.max_attempts": { schema: z.number().int().positive(), defaultValue: 5 },
   "search.similar_candidate_limit": { schema: z.number().int().positive(), defaultValue: 5 },
@@ -41,6 +42,9 @@ export const SYSTEM_CONFIGS = {
   "rate_limit.write": { schema: rateLimitSchema, defaultValue: { limit: 120, windowSeconds: 60 } },
   "rate_limit.media_upload": { schema: rateLimitSchema, defaultValue: { limit: 30, windowSeconds: 3600 } },
   "rate_limit.listening_progress": { schema: rateLimitSchema, defaultValue: { limit: 20, windowSeconds: 60 } },
+  "rate_limit.ai_check": { schema: rateLimitSchema, defaultValue: { limit: 10, windowSeconds: 3600 } },
+  "rate_limit.ai_generate": { schema: rateLimitSchema, defaultValue: { limit: 60, windowSeconds: 3600 } },
+  "ai_assist.enabled": { schema: z.boolean(), defaultValue: true },
 } as const;
 
 export type SystemConfigKey = keyof typeof SYSTEM_CONFIGS;

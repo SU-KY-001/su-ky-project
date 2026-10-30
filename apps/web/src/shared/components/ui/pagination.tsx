@@ -1,5 +1,7 @@
 import * as React from "react";
-import { CaretLeft, CaretRight, DotsThree } from "@phosphor-icons/react";
+import { CaretLeft } from "@phosphor-icons/react/dist/icons/CaretLeft";
+import { CaretRight } from "@phosphor-icons/react/dist/icons/CaretRight";
+import { DotsThree } from "@phosphor-icons/react/dist/icons/DotsThree";
 import type { VariantProps } from "class-variance-authority";
 import { cn } from "@/lib/utils";
 import { buttonVariants } from "@/shared/components/ui/button";

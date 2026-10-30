@@ -117,7 +117,7 @@ export const adminPaths: Paths = {
       access: "admin",
       body: { name: "AdminCreateUser", schema: AdminCreateUserSchema },
       ok: { status: 201, description: "Tài khoản đã tạo", schema: user },
-      errors: { 409: "`CONFLICT`: email đã tồn tại" },
+      errors: { 409: "`EMAIL_TAKEN`: email đã tồn tại" },
     }),
   },
   "/api/admin/users/{id}": {

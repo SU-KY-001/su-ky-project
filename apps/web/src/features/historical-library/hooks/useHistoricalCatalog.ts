@@ -9,6 +9,8 @@ import {
   type CatalogFilter,
   type HistoricalDraft,
   type HistoricalKind,
+  type SourceSortBy,
+  type SourceSortDirection,
 } from "../services/historicalCatalogService";
 import { useIdempotentMutation } from "@/lib/useIdempotentMutation";
 import { loadHistoricalBranch, type HistoricalBranch } from "../services/historicalBranchService";
@@ -81,10 +83,12 @@ export function useHistoricalSources(
   q = "",
   page = 1,
   includeArchived = false,
+  sortBy: SourceSortBy = "title",
+  sortDirection: SourceSortDirection = "asc",
 ) {
   return useQuery({
-    queryKey: [...catalogKeys.root, "sources", q, page, includeArchived],
-    queryFn: () => api.sources(q, page, includeArchived),
+    queryKey: [...catalogKeys.root, "sources", q, page, includeArchived, sortBy, sortDirection],
+    queryFn: () => api.sources(q, page, includeArchived, sortBy, sortDirection),
   });
 }
 export function useCatalogInvalidation() {

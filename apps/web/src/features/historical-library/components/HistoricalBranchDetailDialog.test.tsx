@@ -66,7 +66,7 @@ it("opens the paginated branch and edits the selected content without bypassing 
     source: { id: "88888888-8888-4888-8888-888888888888", title: "Tư liệu sự kiện cuối", tier: "TIER_1_CHINH_SU",
       author: "Tác giả", publisher: "Nhà xuất bản", publicationYear: 2020, edition: null, isbn: null,
       url: "https://example.com/source", fileAssetId: null, version: 1, verificationStatus: "VERIFIED",
-      verifiedVersion: 1, verifiedAt: null, verificationNote: null, createdById: "owner", archivedAt: null },
+      verifiedVersion: 1, verifiedAt: null, verificationNote: null, createdById: "owner", createdAt: new Date().toISOString(), archivedAt: null },
   });
   let mutationRequested = false;
   let failBranch = false;

@@ -1,0 +1,71 @@
+# =============================================================================
+# Makefile.prod — Su-Ky API (VPS operations). Run as: make -f Makefile.prod <target>
+# On the VPS, copy this file + docker-compose.prod.yml + .env.prod into one directory (copy Makefile.prod as Makefile to drop -f).
+# =============================================================================
+
+.PHONY: help setup deploy deploy-api deploy-worker start stop restart ps logs api-logs worker-logs db-logs migrate migrate-status seed prune clean
+
+.DEFAULT_GOAL := help
+
+DOCKER_COMPOSE := docker compose --env-file .env.prod -f docker-compose.prod.yml
+PRISMA_DIR := /app/packages/db
+
+help: ## Show this help
+	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-16s\033[0m %s\n", $$1, $$2}'
+
+setup: ## First time: create the proxy-net network Traefik uses
+	@docker network inspect proxy-net >/dev/null 2>&1 || docker network create proxy-net
+
+deploy: ## Pull latest image, start db, migrate, then start api + worker
+	@$(DOCKER_COMPOSE) pull
+	@$(DOCKER_COMPOSE) up -d --wait db
+	@$(MAKE) -f $(firstword $(MAKEFILE_LIST)) migrate
+	@$(DOCKER_COMPOSE) up -d
+
+deploy-api: ## Pull latest image, restart api only
+	@$(DOCKER_COMPOSE) pull api
+	@$(DOCKER_COMPOSE) up -d --no-deps api
+
+deploy-worker: ## Pull latest image, restart worker only
+	@$(DOCKER_COMPOSE) pull worker
+	@$(DOCKER_COMPOSE) up -d --no-deps worker
+
+start: ## Start all containers
+	@$(DOCKER_COMPOSE) up -d
+
+stop: ## Stop all containers
+	@$(DOCKER_COMPOSE) stop
+
+restart: ## Restart all containers
+	@$(DOCKER_COMPOSE) restart
+
+ps: ## Show containers
+	@$(DOCKER_COMPOSE) ps
+
+logs: ## Tail all logs
+	@$(DOCKER_COMPOSE) logs -f --tail=100
+
+api-logs: ## Tail api logs
+	@$(DOCKER_COMPOSE) logs -f --tail=100 api
+
+worker-logs: ## Tail worker logs
+	@$(DOCKER_COMPOSE) logs -f --tail=100 worker
+
+db-logs: ## Tail db logs
+	@$(DOCKER_COMPOSE) logs -f --tail=100 db
+
+# `run --rm` uses a fresh container, so it works while api is down or crash-looping (fresh DB has no tables yet).
+migrate: ## Apply pending Prisma migrations
+	@$(DOCKER_COMPOSE) run --rm -T -w $(PRISMA_DIR) api ./node_modules/.bin/prisma migrate deploy
+
+migrate-status: ## Show migration status
+	@$(DOCKER_COMPOSE) run --rm -T -w $(PRISMA_DIR) api ./node_modules/.bin/prisma migrate status
+
+seed: ## Load the base historical seed (run once on an empty DB)
+	@$(DOCKER_COMPOSE) run --rm -T -w $(PRISMA_DIR) api bun src/seed.ts
+
+prune: ## Remove unused Docker images/containers
+	@docker system prune -f
+
+clean: ## Stop + remove volumes (WARNING: deletes the database!)
+	@$(DOCKER_COMPOSE) down -v

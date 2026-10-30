@@ -1,4 +1,4 @@
-export type ModeratorSection = "overview" | "timeline" | "events" | "sources" | "podcast" | "assignments" | "tickets" | "pending" | "schedule" | "quizzes";
+export type ModeratorSection = "overview" | "timeline" | "events" | "sources" | "podcast" | "exhibitions" | "assignments" | "tickets" | "pending" | "schedule" | "angles" | "quizzes";
 
 export type ModeratorMetricIcon = "series" | "episode" | "milestone" | "reference";
 

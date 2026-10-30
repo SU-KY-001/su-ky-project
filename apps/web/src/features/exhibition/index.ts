@@ -1,1 +1,11 @@
 export { ExhibitionExperience } from "./ExhibitionExperience";
+export { EmbeddedExhibition } from "./EmbeddedExhibition";
+export { GalleryArchitecture } from "./components/GalleryArchitecture";
+export { GalleryCeilingLights } from "./components/GalleryCeilingLights";
+export { GalleryArtworkLights } from "./components/GalleryArtworkLights";
+export { GalleryArtwork } from "./components/GalleryArtwork";
+export { GalleryScene } from "./components/GalleryScene";
+export { initialView } from "./components/GalleryControls";
+export type { GalleryInput, GalleryView } from "./components/GalleryControls";
+export { placementToPose, resolvedArtworks } from "./resolvedLayout";
+export { galleryPalette } from "./data";
