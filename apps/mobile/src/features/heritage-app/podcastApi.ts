@@ -72,6 +72,7 @@ export interface SeriesDetail extends PodcastSeries {
 
 export interface PlaybackInfo {
   narrationId: string;
+  episodeId: string;
   assetId: string;
   url: string;
   durationMs: number;
@@ -191,13 +192,14 @@ function toDetail(data: z.infer<typeof ExtendedSeriesDetailSchema>): SeriesDetai
   const episodes = [...data.episodes]
     .sort((a, b) => a.sortOrder - b.sortOrder)
     .map<PodcastEpisode>((episode, index) => {
-      const allNarrations = episode.narrations.map<NarrationChoice>((item) => ({
-        id: item.id,
-        type: item.type,
-        durationMs: item.durationMs ?? 1696000,
-      }));
-      const availableOnly = allNarrations.filter((item, i) => episode.narrations[i]?.available);
-      const chosen = availableOnly[0] ?? allNarrations[0];
+      const availableNarrations = episode.narrations
+        .filter((item) => item.available)
+        .map<NarrationChoice>((item) => ({
+          id: item.id,
+          type: item.type,
+          durationMs: item.durationMs,
+        }));
+      const chosen = availableNarrations[0];
       const posterUrl = episode.poster?.url ?? cover ?? landscape ?? null;
       return {
         id: episode.id,
@@ -208,11 +210,11 @@ function toDetail(data: z.infer<typeof ExtendedSeriesDetailSchema>): SeriesDetai
         title: episode.title,
         description: episode.description ?? "",
         publishedAt: episode.publishedAt ?? null,
-        durationMs: chosen?.durationMs ?? 1696000,
+        durationMs: chosen?.durationMs ?? null,
         posterUrl,
         image: asImage(posterUrl, fallbackCards[(pick + index) % fallbackCards.length]),
-        narrationId: chosen?.id ?? episode.id,
-        narrations: allNarrations.length > 0 ? allNarrations : [{ id: episode.id, type: "THIRD_PERSON", durationMs: 1696000 }],
+        narrationId: chosen?.id ?? null,
+        narrations: availableNarrations,
       };
     });
   return {
@@ -253,8 +255,8 @@ export const podcastApi = {
     const { data } = await apiClient.get(`/api/episodes/${encodeURIComponent(slug)}`);
     return LibraryEpisodeSchema.parse(data);
   },
-  async latestEpisodes(limit = 6): Promise<PodcastEpisode[]> {
-    const list = await podcastApi.listSeries();
+  async latestEpisodes(limit = 6, knownSeries?: PodcastSeries[]): Promise<PodcastEpisode[]> {
+    const list = knownSeries ?? await podcastApi.listSeries();
     const details = await Promise.all(list.slice(0, 6).map((item) => podcastApi.getSeries(item.slug)));
     return details
       .flatMap((detail) => detail.episodes)
@@ -282,6 +284,7 @@ export const podcastApi = {
     const progress = parsed.progress as { positionMs?: number; playedBitmap?: string } | null;
     return {
       narrationId,
+      episodeId: parsed.episodeId,
       assetId: parsed.audio.assetId,
       url: parsed.audio.url,
       durationMs: parsed.audio.durationMs,
