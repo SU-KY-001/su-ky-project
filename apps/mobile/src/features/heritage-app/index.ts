@@ -1,0 +1,2 @@
+export { HeritageApp } from "./HeritageApp";
+

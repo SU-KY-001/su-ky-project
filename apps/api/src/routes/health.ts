@@ -1,9 +1,13 @@
 import { Hono } from "hono";
 import { prisma } from "@repo/db";
 import type { SystemHealthDto } from "@repo/shared";
+import { logger } from "../core/logger";
+import { isMaintenanceRunning } from "../core/jobs/maintenance-jobs";
+import { API_VERSION } from "../core/config/app-info";
 
 export const healthRoute = new Hono().get("/", async (c) => {
   let dbStatus: "connected" | "disconnected" = "disconnected";
+  let releaseWorker: "running" | "stale" | "stopped" = "stopped";
 
   try {
     const { promise: timeoutPromise, reject } = Promise.withResolvers<never>();
@@ -13,11 +17,33 @@ export const healthRoute = new Hono().get("/", async (c) => {
       timeoutPromise,
     ]).finally(() => clearTimeout(timer));
     dbStatus = "connected";
+    const heartbeat = await prisma.systemConfig.findUnique({
+      where: { key: "worker.release.heartbeat" },
+      select: { value: true },
+    });
+    const timestamp =
+      heartbeat?.value &&
+      typeof heartbeat.value === "object" &&
+      !Array.isArray(heartbeat.value) &&
+      "timestamp" in heartbeat.value &&
+      typeof heartbeat.value.timestamp === "string"
+        ? Date.parse(heartbeat.value.timestamp)
+        : Number.NaN;
+    releaseWorker = Number.isNaN(timestamp)
+      ? "stopped"
+      : Date.now() - timestamp <= 90_000
+        ? "running"
+        : "stale";
   } catch (error) {
-    console.warn("Healthcheck: PostgreSQL connection failed or unavailable:", (error as Error).message);
+    logger.warn(
+      { err: error },
+      `Healthcheck: PostgreSQL connection failed or unavailable: ${(error as Error).message}`
+    );
     dbStatus = "disconnected";
   }
-  const isHealthy = dbStatus === "connected";
+  const queue = isMaintenanceRunning() ? "running" : "stopped";
+  const isHealthy =
+    dbStatus === "connected" && queue === "running" && releaseWorker === "running";
   const globalObj: Record<string, unknown> = globalThis;
   let bunVersion = "1.4.0";
   const bunEntry = globalObj.Bun;
@@ -32,19 +58,15 @@ export const healthRoute = new Hono().get("/", async (c) => {
   const healthData: SystemHealthDto = {
     status: isHealthy ? "ok" : "degraded",
     service: "su-ky-api",
-    version: "1.0.0",
+    version: API_VERSION,
     runtime: "Bun",
     bunVersion,
     database: dbStatus,
+    queue,
+    releaseWorker,
     uptimeSeconds: Math.floor(process.uptime()),
     timestamp: new Date().toISOString(),
   };
 
-  return c.json(
-    {
-      success: true,
-      data: healthData,
-    },
-    isHealthy ? 200 : 503
-  );
+  return c.json(healthData, isHealthy ? 200 : 503);
 });

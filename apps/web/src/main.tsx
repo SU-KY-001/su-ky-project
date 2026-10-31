@@ -1,10 +1,16 @@
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
-import { QueryClientProvider } from "@tanstack/react-query";
-import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
-import { queryClient } from "./lib/queryClient";
+import "@fontsource/be-vietnam-pro/400.css";
+import "@fontsource/be-vietnam-pro/500.css";
+import "@fontsource/be-vietnam-pro/600.css";
+import "@fontsource/be-vietnam-pro/700.css";
+import "lenis/dist/lenis.css";
+import { QueryProvider } from "./app/providers/QueryProvider";
 import { App } from "./App";
-import "./globals.css";
+import "./styles/globals.css";
+
+window.history.scrollRestoration = "manual";
+if (!window.location.hash) window.scrollTo(0, 0);
 
 const rootElement = document.getElementById("root");
 if (!rootElement) {
@@ -13,9 +19,8 @@ if (!rootElement) {
 
 createRoot(rootElement).render(
   <StrictMode>
-    <QueryClientProvider client={queryClient}>
+    <QueryProvider>
       <App />
-      <ReactQueryDevtools initialIsOpen={false} />
-    </QueryClientProvider>
+    </QueryProvider>
   </StrictMode>
 );

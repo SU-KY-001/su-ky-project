@@ -3,7 +3,7 @@
 
 - **Tên dự án**: **Su-Ky** (Sử Ký — Historical Podcast & Interactive Chronicle)
 - **Môn học**: WDP301 (Web Development Project)
-- **Nguồn tài liệu gốc**: `E:\FPT\Semester_8\WDP301\wdp301-document\brainstorm\raw-from-kimi\260910.md`
+- **Nguồn tài liệu gốc**: `E:\FPT\Semester_8\WDP301\su-ky-document\brainstorm\raw-from-kimi\260910.md`
 - **Ngày lập**: 2026-09-11
 - **Trạng thái**: Đã phê duyệt phạm vi & định hướng
 
@@ -48,7 +48,8 @@
 
 - **Monorepo**: Turborepo 2.x + Bun v1.4.0 (Isolated workspaces).
 - **Backend (`apps/api`)**: Hono v4 chạy trên Bun runtime, Hono RPC (`hc`) xuất kiểu dữ liệu trực tiếp sang frontend, Zod validation.
-- **Frontend (`apps/web`)**: React 19 + Vite 6 + Tailwind CSS v4 + Lucide React + TanStack Query v5.
+- **Frontend Web (`apps/web`)**: React 19 + Vite 8 + Tailwind CSS v4 + shadcn/ui + Magic UI + TanStack Query v5.
+- **Frontend Mobile (`apps/mobile`)**: Expo 58 + React Native 0.88 + NativeWind 4.2.
 - **Database (`packages/db`)**: PostgreSQL 17 + Drizzle ORM + Drizzle Kit.
   - Entities: `series`, `episodes`, `timeline_periods`, `figures`, `categories`, `citations`, `episode_relations`.
 - **Shared Contracts (`packages/shared`)**: Schema Zod, DTOs và types dùng chung cho cả backend & frontend.
@@ -62,3 +63,5 @@
 | **P0 (MVP Demo Đồ Án)** | Monorepo Turborepo + Bun 1.4, Postgres DB với Drizzle, Hono API REST/RPC, Web UI với Timeline tương tác, Podcast Catalog, Audio Player, Trang chi tiết tập có Citations & Transcript, Bộ dữ liệu mẫu flagship series. |
 | **P1 (Mở rộng tính năng)** | Bản đồ quan hệ nhân vật (Interactive Entity Graph), Đồng bộ tiến độ nghe (User listening history & bookmarks), Chế độ câu hỏi ôn tập nhẹ (Mini-quiz 3 câu). |
 | **P2 (Nền tảng & Mobile)** | Mobile App (React Native/Flutter), Content Creator CMS & AI RAG pipeline hỗ trợ biên kịch và kiểm chứng chéo nguồn. |
+
+

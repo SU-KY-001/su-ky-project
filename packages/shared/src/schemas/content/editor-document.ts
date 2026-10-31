@@ -1,0 +1,191 @@
+import { z } from "zod";
+import { ScriptHashSchema } from "./ai-voice";
+
+export const SCRIPT_MAX_CHARACTERS = 60_000;
+
+export const EditorMarkSchema = z.discriminatedUnion("type", [
+  z.object({ type: z.literal("bold") }).strict(),
+  z.object({ type: z.literal("italic") }).strict(),
+  z.object({ type: z.literal("underline") }).strict(),
+  z
+    .object({
+      type: z.literal("sourceCitation"),
+      attrs: z.object({ sourceId: z.string().uuid() }).strict(),
+    })
+    .strict(),
+]);
+
+export type EditorMark = z.infer<typeof EditorMarkSchema>;
+
+export type EditorTextNode = {
+  type: "text";
+  text: string;
+  marks?: EditorMark[];
+};
+
+export type EditorHardBreakNode = { type: "hardBreak" };
+
+export type EditorNode =
+  | EditorTextNode
+  | EditorHardBreakNode
+  | {
+      type: "paragraph";
+      content?: EditorNode[];
+    }
+  | {
+      type: "heading";
+      attrs: { level: 1 | 2 | 3 };
+      content?: EditorNode[];
+    }
+  | {
+      type: "bulletList" | "listItem" | "blockquote";
+      content: EditorNode[];
+    }
+  | {
+      type: "orderedList";
+      attrs?: { start: number };
+      content: EditorNode[];
+    };
+
+export type EditorInlineNode = EditorTextNode | EditorHardBreakNode;
+export type EditorBlockNode = Exclude<EditorNode, EditorInlineNode | { type: "listItem" }>;
+
+export type EditorDocument = {
+  type: "doc";
+  content?: EditorNode[];
+};
+
+const EditorNodeSchema: z.ZodType<EditorNode> = z.lazy(() =>
+  z.discriminatedUnion("type", [
+    z
+      .object({
+        type: z.literal("text"),
+        text: z.string(),
+        marks: z.array(EditorMarkSchema).optional(),
+      })
+      .strict(),
+    z.object({ type: z.literal("hardBreak") }).strict(),
+    z
+      .object({
+        type: z.literal("paragraph"),
+        content: z.array(EditorNodeSchema).optional(),
+      })
+      .strict(),
+    z
+      .object({
+        type: z.literal("heading"),
+        attrs: z.object({ level: z.union([z.literal(1), z.literal(2), z.literal(3)]) }).strict(),
+        content: z.array(EditorNodeSchema).optional(),
+      })
+      .strict(),
+    z
+      .object({
+        type: z.literal("bulletList"),
+        content: z.array(EditorNodeSchema),
+      })
+      .strict(),
+    z
+      .object({
+        type: z.literal("orderedList"),
+        attrs: z.object({ start: z.number().int().positive() }).strict().optional(),
+        content: z.array(EditorNodeSchema),
+      })
+      .strict(),
+    z
+      .object({
+        type: z.literal("listItem"),
+        content: z.array(EditorNodeSchema),
+      })
+      .strict(),
+    z
+      .object({
+        type: z.literal("blockquote"),
+        content: z.array(EditorNodeSchema),
+      })
+      .strict(),
+  ]),
+);
+
+function validateNodeChildren(node: EditorNode, ctx: z.RefinementCtx): void {
+  if (node.type === "text" || node.type === "hardBreak") return;
+
+  const children = node.content ?? [];
+  const allowed =
+    node.type === "paragraph" || node.type === "heading"
+      ? new Set(["text", "hardBreak"])
+      : node.type === "bulletList" || node.type === "orderedList"
+        ? new Set(["listItem"])
+        : node.type === "listItem"
+          ? new Set(["paragraph", "bulletList", "orderedList"])
+          : new Set(["paragraph", "bulletList", "orderedList"]);
+
+  for (const child of children) {
+    if (!allowed.has(child.type)) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: `${child.type} is not allowed inside ${node.type}`,
+      });
+    }
+    validateNodeChildren(child, ctx);
+  }
+}
+
+export const EditorDocumentSchema: z.ZodType<EditorDocument> = z
+  .object({
+    type: z.literal("doc"),
+    content: z.array(EditorNodeSchema).optional(),
+  })
+  .strict()
+  .superRefine((document, ctx) => {
+    for (const node of document.content ?? []) {
+      if (!new Set(["paragraph", "heading", "bulletList", "orderedList", "blockquote"]).has(node.type)) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: `${node.type} is not allowed inside doc`,
+        });
+      }
+      validateNodeChildren(node, ctx);
+    }
+  });
+
+/** Where an attached recording came from, so the moderator can tell which file and which voice it is. */
+export const AudioOriginSchema = z.discriminatedUnion("kind", [
+  z.object({ kind: z.literal("UPLOAD"), fileName: z.string().min(1).max(255) }).strict(),
+  z
+    .object({
+      kind: z.literal("AI_VOICE"),
+      voice: z.string().min(1).max(60),
+      model: z.string().min(1).max(80),
+      style: z.string().max(200),
+      chars: z.number().int().nonnegative(),
+      /** Absent on AI recordings attached before script binding existed; new attachments must carry it (see AttachAudioAnalysisSchema). */
+      scriptHash: ScriptHashSchema.optional(),
+    })
+    .strict(),
+]);
+export type AudioOrigin = z.infer<typeof AudioOriginSchema>;
+
+export const AudioAnalysisSchema = z
+  .object({
+    clientDurationMs: z.number().int().nonnegative().nullable(),
+    estimatedScriptDurationMs: z.number().int().nonnegative(),
+    durationRatio: z.number().nonnegative().nullable(),
+    noiseLevelDb: z.number().finite().nullable(),
+    formatStatus: z.enum(["PASS", "WARNING", "UNKNOWN"]),
+    durationStatus: z.enum(["PASS", "WARNING", "UNKNOWN"]),
+    noiseStatus: z.enum(["PASS", "WARNING", "UNKNOWN"]),
+    checkedAt: z.string().datetime({ offset: true }),
+    /** Absent on recordings attached before origin was recorded. */
+    origin: AudioOriginSchema.optional(),
+  })
+  .strict();
+
+export type AudioAnalysis = z.infer<typeof AudioAnalysisSchema>;
+
+/** Analysis accepted when attaching a NEW recording: an AI voice must name the script it was generated from. */
+export const AttachAudioAnalysisSchema = AudioAnalysisSchema.superRefine((analysis, ctx) => {
+  if (analysis.origin?.kind === "AI_VOICE" && !analysis.origin.scriptHash) {
+    ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["origin", "scriptHash"], message: "scriptHash là bắt buộc cho giọng đọc AI" });
+  }
+});
+

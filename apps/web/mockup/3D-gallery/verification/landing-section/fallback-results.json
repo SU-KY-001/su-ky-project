@@ -1,0 +1,32 @@
+[
+  {
+    "mode": "empty",
+    "result": {
+      "text": "Triển lãm 3D\n\nChọn một triển lãm và tự do khám phá không gian bên trong.\n\nChưa có triển lãm được xuất bản. Mời bạn quay lại sau.",
+      "overflow": false
+    }
+  },
+  {
+    "mode": "error",
+    "result": {
+      "text": "Triển lãm 3D\n\nChọn một triển lãm và tự do khám phá không gian bên trong.\n\nChưa tải được danh sách triển lãm.\n\nThử lại",
+      "overflow": false
+    }
+  },
+  {
+    "mode": "scene-error",
+    "result": {
+      "text": "Triển lãm 3D\n\nChọn một triển lãm và tự do khám phá không gian bên trong.\n\nChọn triển lãm\nTriển lãm kiểm tra\n\nChưa tải được không gian triển lãm.\n\nThử lại\nBắt đầu tham quan",
+      "href": "/trien-lam/first",
+      "overflow": false
+    }
+  },
+  {
+    "mode": "webgl",
+    "result": {
+      "text": "Triển lãm 3D\n\nChọn một triển lãm và tự do khám phá không gian bên trong.\n\nChọn triển lãm\nTriển lãm kiểm tra\n\nKhông gian 3D hiện không khả dụng.\nChọn “Bắt đầu tham quan” để đọc nội dung triển lãm.\n\nBắt đầu tham quan",
+      "href": "/trien-lam/first",
+      "overflow": false
+    }
+  }
+]
