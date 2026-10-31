@@ -65,8 +65,19 @@ export function HeritageApp(): React.JSX.Element {
         if (saved) {
           try {
             const restored = restoreCachedEpisode(JSON.parse(saved) as CachedEpisodePayload);
-            setEpisode(restored);
-            setSelectedNarrationId(restored.narrationId);
+            void podcastApi
+              .getSeries(restored.seriesSlug)
+              .then((detail) => {
+                if (!active) return;
+                const current = detail.episodes.find((item) => item.slug === restored.slug) ?? restored;
+                setEpisode(current);
+                setSelectedNarrationId(current.narrationId);
+              })
+              .catch(() => {
+                if (!active) return;
+                setEpisode(restored);
+                setSelectedNarrationId(restored.narrationId);
+              });
             return;
           } catch {
             // fallback tải từ API bên dưới
@@ -134,6 +145,7 @@ export function HeritageApp(): React.JSX.Element {
   };
 
   const playEpisode = (target: PodcastEpisode, from: AppScreen): void => {
+    if (!target.narrationId) return;
     setEpisode(target);
     setSelectedNarrationId(target.narrationId);
     setAutoplayToken((v) => v + 1);

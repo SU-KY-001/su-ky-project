@@ -1,6 +1,7 @@
 import { useState } from "react";
-import { Image as NativeImage, Platform, useWindowDimensions } from "react-native";
+import { Alert, Platform, useWindowDimensions } from "react-native";
 import { useQuery } from "@tanstack/react-query";
+import { Image as ExpoImage, type ImageProps } from "expo-image";
 import { StatusBar } from "expo-status-bar";
 import { Button, ScrollView, Separator, Text, XStack, YStack, ZStack } from "tamagui";
 import { AppCard, AppIcon, AppImage, BrandMark, Chip, IconButton, PrimaryButton, ScreenScroll, SectionHeader, formatTime } from "@/shared/ui";
@@ -33,7 +34,11 @@ interface PodcastLibraryProps {
 
 export function PodcastLibraryScreen({ currentEpisode, onSeries, onPlay, onEpisodeQuiz }: PodcastLibraryProps): React.JSX.Element {
   const seriesQuery = useQuery({ queryKey: ["podcast", "series"], queryFn: () => podcastApi.listSeries() });
-  const latestQuery = useQuery({ queryKey: ["podcast", "latest"], queryFn: () => podcastApi.latestEpisodes(6) });
+  const latestQuery = useQuery({
+    queryKey: ["podcast", "latest", seriesQuery.data?.map((item) => item.id).join(",")],
+    queryFn: () => podcastApi.latestEpisodes(6, seriesQuery.data),
+    enabled: Boolean(seriesQuery.data),
+  });
   const featured = seriesQuery.data?.find((item) => item.slug === "viet-nam-thoi-phong-kien") ?? seriesQuery.data?.[0];
 
   return (
@@ -156,6 +161,7 @@ interface SeriesDetailProps {
 export function SeriesDetailScreen({ seriesSlug, currentEpisodeId, isPlaying, onBack, onPlay, onEpisodeQuiz }: SeriesDetailProps): React.JSX.Element {
   const query = useQuery({ queryKey: ["podcast", "series", seriesSlug], queryFn: () => podcastApi.getSeries(seriesSlug) });
   const detail: SeriesDetail | undefined = query.data;
+  const firstPlayable = detail?.episodes.find((episode) => episode.narrationId);
 
   return (
     <ScrollView f={1} showsVerticalScrollIndicator={false}>
@@ -184,20 +190,29 @@ export function SeriesDetailScreen({ seriesSlug, currentEpisodeId, isPlaying, on
           </Text>
           <Text color="$inkSoft" fs="$1" lh="$3">{detail.description}</Text>
 
-          {detail.episodes[0] ? (
-            <PrimaryButton label="Phát từ tập 1" icon="play" onPress={() => onPlay(detail.episodes[0])} />
+          {firstPlayable ? (
+            <PrimaryButton label="Phát tập có audio" icon="play" onPress={() => onPlay(firstPlayable)} />
           ) : null}
 
           <Text color="$ink" fs="$3" fw="$7" mt="$1">Danh sách tập</Text>
           {detail.episodes.map((episode) => {
             const active = episode.id === currentEpisodeId;
+            const available = Boolean(episode.narrationId);
+            const handlePress = (): void => {
+              if (available) {
+                onPlay(episode);
+                return;
+              }
+              Alert.alert("Chưa có audio", `Tập “${episode.title}” chưa có bản thu trên máy chủ.`);
+            };
             return (
               <YStack key={episode.id}>
                 <XStack
                   py="$1.5"
                   items="center"
                   g="$2"
-                  onPress={() => onPlay(episode)}
+                  op={available ? 1 : 0.72}
+                  onPress={handlePress}
                   pressStyle={{ op: 0.75 }}
                 >
                   <AppImage source={episode.image} w={64} h={48} resizeMode="cover" rounded={6} />
@@ -206,15 +221,21 @@ export function SeriesDetailScreen({ seriesSlug, currentEpisodeId, isPlaying, on
                       {episode.number}. {episode.title}
                     </Text>
                     <Text color="$inkSoft" fs={9}>
-                      {formatDateVi(episode.publishedAt)} · {formatDuration(episode.durationMs)}
+                      {formatDateVi(episode.publishedAt)} · {available ? formatDuration(episode.durationMs) : "Chưa có audio"}
                     </Text>
                   </YStack>
-                  <IconButton
-                    icon={active && isPlaying ? "pause" : "play"}
-                    label="Phát"
-                    onPress={() => onPlay(episode)}
-                    light
-                  />
+                  {available ? (
+                    <IconButton
+                      icon={active && isPlaying ? "pause" : "play"}
+                      label="Phát"
+                      onPress={() => onPlay(episode)}
+                      light
+                    />
+                  ) : (
+                    <Button unstyled px="$1" py="$1" onPress={handlePress} aria-label="Thông tin audio">
+                      <Text color="$inkSoft" fs={9} fw="$7">Chưa có audio</Text>
+                    </Button>
+                  )}
                 </XStack>
                 <Separator bc="$line" />
               </YStack>
@@ -296,8 +317,8 @@ export function AudioPlayerScreen({
 
       {/* Background ảnh mờ (Blurred Artwork Backdrop) thay cho background đen */}
       <YStack pos="absolute" t={0} l={0} r={0} b={0} pointerEvents="none" overflow="hidden">
-        <NativeImage
-          source={episode.image}
+        <ExpoImage
+          source={episode.image as ImageProps["source"]}
           style={{
             position: "absolute",
             top: -50,
@@ -305,8 +326,9 @@ export function AudioPlayerScreen({
             width: width + 100,
             height: height + 100,
           }}
-          resizeMode="cover"
+          contentFit="cover"
           blurRadius={Platform.OS === "android" ? 25 : 55}
+          cachePolicy="memory-disk"
         />
         {/* Lớp phủ chuyển sắc tối tạo chiều sâu sơn mài và bảo đảm độ tương phản tối ưu */}
         <YStack pos="absolute" t={0} l={0} r={0} b={0} bg="rgba(18, 14, 12, 0.78)" />

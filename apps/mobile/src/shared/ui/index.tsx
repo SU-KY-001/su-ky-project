@@ -1,6 +1,7 @@
 import type { ComponentProps, ReactNode } from "react";
-import { Image as NativeImage, type DimensionValue, type ImageResizeMode, type ImageSourcePropType } from "react-native";
+import { type DimensionValue, type ImageSourcePropType } from "react-native";
 import { Feather } from "@expo/vector-icons";
+import { Image as ExpoImage, type ImageProps } from "expo-image";
 import { Button, Input, ScrollView, Text, XStack, YStack } from "tamagui";
 import { SafeAreaView } from "react-native-safe-area-context";
 import brandImage from "../../assets/brand/brand-su-ky-viet-nam.png";
@@ -21,19 +22,22 @@ interface AppImageProps {
   source: ImageSourcePropType;
   w: DimensionValue;
   h: DimensionValue;
-  resizeMode?: ImageResizeMode;
+  resizeMode?: "cover" | "contain" | "stretch" | "center" | "repeat";
   rounded?: number;
   op?: number;
   blurRadius?: number;
 }
 
 export function AppImage({ source, w, h, resizeMode = "cover", rounded = 9, op = 1, blurRadius }: AppImageProps): React.JSX.Element {
+  const contentFit = resizeMode === "stretch" ? "fill" : resizeMode === "center" ? "none" : resizeMode === "repeat" ? "cover" : resizeMode;
   return (
-    <NativeImage
-      source={source}
-      resizeMode={resizeMode}
+    <ExpoImage
+      source={source as ImageProps["source"]}
+      contentFit={contentFit}
       blurRadius={blurRadius}
-      style={{ width: w, height: h, borderRadius: rounded, opacity: op, flexShrink: 0 }}
+      cachePolicy="memory-disk"
+      transition={120}
+      style={{ width: w, height: h, borderRadius: rounded, opacity: op, flexShrink: 0, backgroundColor: colors.cream }}
     />
   );
 }
@@ -44,10 +48,12 @@ export function AppIcon({ name, size = 20, color = colors.ink }: { name: IconNam
 
 export function BrandMark({ compact = false }: { compact?: boolean }): React.JSX.Element {
   return (
-    <NativeImage
+    <ExpoImage
       accessibilityLabel="Sử Ký"
       source={brandImage}
-      resizeMode="contain"
+      contentFit="contain"
+      cachePolicy="memory-disk"
+      priority="high"
       style={{
         width: compact ? 88 : 112,
         height: compact ? 28 : 36,
@@ -180,30 +186,21 @@ export function MiniPlayer({ artwork, title, subtitle, playback, onOpen }: MiniP
 
   return (
     <YStack bg="$paper" px="$2" pb="$1">
-      <YStack pos="relative" rounded="$6" overflow="hidden" bw="$0.25" bc="$bronzeDark" boxShadow="0 6px 18px rgba(20, 17, 15, 0.28)">
-        {/* Background ảnh mờ đồng bộ thay cho nền đen phẳng */}
-        <NativeImage
-          source={artwork}
-          style={{ position: "absolute", top: -20, left: -20, right: -20, bottom: -20, width: "120%", height: "140%" }}
-          resizeMode="cover"
-          blurRadius={25}
-        />
-        <YStack pos="absolute" t={0} l={0} r={0} b={0} bg="rgba(18, 14, 12, 0.82)" />
-
+      <YStack pos="relative" bg="$paper" rounded="$6" overflow="hidden" bw="$0.25" bc="$bronze" boxShadow="0 6px 18px rgba(28, 23, 20, 0.14)">
         <XStack h={64} items="center" px="$2" g="$2">
           <Button unstyled f={1} minW={0} fd="row" items="center" g="$2" onPress={onOpen} aria-label="Mở trình phát">
             <AppImage source={artwork} w={46} h={46} rounded={8} resizeMode="cover" />
             <YStack f={1} minW={0}>
-              <Text color="$paperSoft" fs="$1" lh={18} fw="$7" numberOfLines={1}>{title}</Text>
-              <Text color="$bronze" fs={11} lh={16} numberOfLines={1}>{subtitle}</Text>
+              <Text color="$ink" fs="$1" lh={18} fw="$7" numberOfLines={1}>{title}</Text>
+              <Text color="$bronzeDark" fs={11} lh={16} numberOfLines={1}>{subtitle}</Text>
             </YStack>
           </Button>
-          <Button unstyled w="$4" h="$4" items="center" justify="center" onPress={() => playback.seekBy(-15)} aria-label="Lùi 15 giây"><AppIcon name="rotate-ccw" size={19} color={colors.cream} /></Button>
+          <Button unstyled w="$4" h="$4" items="center" justify="center" onPress={() => playback.seekBy(-15)} aria-label="Lùi 15 giây"><AppIcon name="rotate-ccw" size={19} color={colors.ink} /></Button>
           <Button unstyled circular w="$4" h="$4" bg="$vermilion" items="center" justify="center" onPress={playback.toggle} aria-label={playback.isPlaying ? "Tạm dừng" : "Phát"} pressStyle={{ op: 0.8, scale: 0.96 }}>
             <AppIcon name={playback.isPlaying ? "pause" : "play"} size={20} color={colors.cream} />
           </Button>
         </XStack>
-        <XStack h={3} bg="$nightSoft"><YStack w={`${Math.min(100, progress)}%` as `${number}%`} h="100%" bg="$bronze" /></XStack>
+        <XStack h={3} bg="$paperDeep"><YStack w={`${Math.min(100, progress)}%` as `${number}%`} h="100%" bg="$bronze" /></XStack>
       </YStack>
     </YStack>
   );

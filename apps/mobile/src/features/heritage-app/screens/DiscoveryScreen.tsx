@@ -14,8 +14,17 @@ import {
   formatTime,
 } from "@/shared/ui";
 import { art } from "../data";
-import { podcastApi, type HistoricalPeriodDto, type PodcastEpisode } from "../podcastApi";
+import { podcastApi, type PodcastEpisode } from "../podcastApi";
 import type { LivePlaybackState } from "../usePlayback";
+
+const historyFlow = [
+  { key: "hung-vuong", periodSlug: "tien-su-so-su", name: "Hùng Vương", years: "(2879 – 258 TCN)" },
+  { key: "bac-thuoc", periodSlug: "bac-thuoc", name: "Bắc thuộc", years: "(179 TCN – 938)" },
+  { key: "ngo", periodSlug: "quan-chu", name: "Ngô", years: "(938 – 965)" },
+  { key: "dinh-tien-le", periodSlug: "quan-chu", name: "Đinh – Tiền Lê", years: "(968 – 1009)" },
+  { key: "ly", periodSlug: "quan-chu", name: "Lý", years: "(1009 – 1225)" },
+  { key: "tran", periodSlug: "quan-chu", name: "Trần", years: "(1225 – 1400)" },
+] as const;
 
 interface DiscoveryScreenProps {
   currentEpisode: PodcastEpisode | null;
@@ -170,21 +179,21 @@ export function DiscoveryScreen({
         </XStack>
       </YStack>
 
-      {periods.length > 0 ? (
-        <YStack g="$2">
-          <SectionHeader title="Dòng chảy lịch sử" action="Khám phá toàn bộ" onPress={() => onHistory()} />
-          <ZStack h={66}>
-            <YStack pos="absolute" t={5} l="8.33%" r="8.33%" h={2} bg="$bronze" />
-            <XStack pos="absolute" t={0} l={0} r={0}>
-              {periods.slice(0, 6).map((period: HistoricalPeriodDto, index: number) => {
-                const isHighlight = index === 2 || index === 0;
+      <YStack g="$2">
+        <SectionHeader title="Dòng chảy lịch sử" action="Khám phá toàn bộ" onPress={() => onHistory()} />
+        <ZStack h={78}>
+          <YStack pos="absolute" t={5} l="8.33%" r="8.33%" h={2} bg="$bronze" />
+          <XStack pos="absolute" t={0} l={0} r={0}>
+            {historyFlow.map((item, index) => {
+                const periodId = periods.find((period) => period.slug === item.periodSlug)?.id;
+                const isHighlight = index === 2;
                 return (
                   <YStack
-                    key={period.id}
+                    key={item.key}
                     f={1}
                     minW={0}
                     items="center"
-                    onPress={() => onHistory(period.id)}
+                    onPress={() => onHistory(periodId)}
                     pressStyle={{ op: 0.7 }}
                   >
                     <YStack
@@ -211,17 +220,17 @@ export function DiscoveryScreen({
                       lh={10}
                       fw={isHighlight ? "$7" : "$5"}
                       text="center"
-                      numberOfLines={1}
+                      numberOfLines={2}
                     >
-                      {period.name}
+                      {item.name}
                     </Text>
+                    <Text color="$inkSoft" fs={6.5} lh={8} text="center" numberOfLines={1}>{item.years}</Text>
                   </YStack>
                 );
               })}
-            </XStack>
-          </ZStack>
-        </YStack>
-      ) : null}
+          </XStack>
+        </ZStack>
+      </YStack>
     </ScreenScroll>
   );
 }

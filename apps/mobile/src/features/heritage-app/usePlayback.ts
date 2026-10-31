@@ -45,8 +45,6 @@ function decodeBase64(str: string): Uint8Array {
   return bytes.subarray(0, p);
 }
 
-const bundledPodcastAudio = require("@/assets/audio/bach-dang-938.mp3");
-
 const storageKey = (narrationId: string): string => `suky.playback.pos.${narrationId}`;
 
 export function usePlayback(
@@ -60,17 +58,21 @@ export function usePlayback(
   const [playRequested, setPlayRequested] = useState(false);
 
   const playbackQuery = useQuery({
-    queryKey: ["podcast", "playback", narrationId],
-    queryFn: () => (narrationId ? podcastApi.playback(narrationId) : Promise.reject(new Error("No narration"))),
-    enabled: Boolean(narrationId),
+    queryKey: ["podcast", "playback", episode?.id, narrationId],
+    queryFn: async () => {
+      if (!narrationId || !episode) throw new Error("No narration");
+      const result = await podcastApi.playback(narrationId);
+      if (result.episodeId !== episode.id) throw new Error("Playback does not belong to the selected episode");
+      return result;
+    },
+    enabled: Boolean(narrationId && episode),
     staleTime: 0,
     retry: 0,
   });
 
-  // Chỉ sử dụng audio mẫu cục bộ khi không có narrationId (chế độ demo offline);
-  // Khi có narrationId từ API, chỉ dùng URL phát trực tuyến từ Cloudinary của tập đó.
-  const audioSource = playbackQuery.data?.url ?? (narrationId ? null : (episode ? bundledPodcastAudio : null));
-  const player = useAudioPlayer(audioSource, { updateInterval: 500 });
+  // Không dùng audio dự phòng: mỗi tập chỉ được phát URL mà API cấp cho đúng narration của nó.
+  const audioSource = playbackQuery.data?.url ?? null;
+  const player = useAudioPlayer(audioSource, { updateInterval: 1_000 });
   const status = useAudioPlayerStatus(player);
 
   const restored = useRef(false);
@@ -276,10 +278,10 @@ export function usePlayback(
     player.play();
   }, [player]);
 
-  const error = playbackQuery.isError
-    ? "Không thể tải âm thanh từ máy chủ."
-    : !narrationId && !episode
-      ? "Bản thu đang được chuẩn bị"
+  const error = !narrationId
+    ? "Tập này chưa có bản thu sẵn sàng."
+    : playbackQuery.isError
+      ? "Không thể tải âm thanh từ máy chủ."
       : null;
 
   return {
