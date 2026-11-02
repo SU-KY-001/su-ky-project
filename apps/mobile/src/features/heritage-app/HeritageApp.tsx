@@ -12,18 +12,11 @@ import {
   type PodcastEpisode,
   type PublicHistoricalEventDto,
 } from "./podcastApi";
-import { quizSets, type QuizSet } from "./quizData";
 import { LoginScreen, ProfileScreen, ScheduleScreen } from "./screens/AccountScreens";
 import { DiscoveryScreen } from "./screens/DiscoveryScreen";
 import { EventDetailScreen, HistoryScreen } from "./screens/HistoryScreens";
 import { AudioPlayerScreen, PodcastLibraryScreen, SeriesDetailScreen } from "./screens/PodcastScreens";
-import {
-  EpisodeQuizScreen,
-  QuizIntroScreen,
-  QuizListScreen,
-  QuizPlayScreen,
-  QuizResultScreen,
-} from "./screens/QuizScreens";
+import { EpisodeQuizScreen, QuizListScreen, type QuizEpisodeSummary } from "./screens/QuizScreens";
 import type { AppScreen } from "./types";
 import { usePlayback } from "./usePlayback";
 
@@ -32,18 +25,13 @@ const LAST_EPISODE_KEY = "suky.playback.lastEpisode";
 export function HeritageApp(): React.JSX.Element {
   const { user, hydrate } = useAuthStore();
   const [screen, setScreen] = useState<AppScreen>("discovery");
-  const [quiz, setQuiz] = useState<QuizSet>(quizSets[0]);
-  const [questionIndex, setQuestionIndex] = useState(0);
-  const [selectedId, setSelectedId] = useState<string>();
-  const [score, setScore] = useState(0);
-
   const [seriesSlug, setSeriesSlug] = useState("viet-nam-thoi-phong-kien");
   const [episode, setEpisode] = useState<PodcastEpisode | null>(null);
   const [selectedNarrationId, setSelectedNarrationId] = useState<string | null>(null);
   const [autoplayToken, setAutoplayToken] = useState(0);
   const [playerReturn, setPlayerReturn] = useState<AppScreen>("podcasts");
 
-  const [quizEpisode, setQuizEpisode] = useState<PodcastEpisode | null>(null);
+  const [quizEpisode, setQuizEpisode] = useState<QuizEpisodeSummary | null>(null);
   const [selectedEvent, setSelectedEvent] = useState<PublicHistoricalEventDto | null>(null);
   const [historyPeriodId, setHistoryPeriodId] = useState<string | undefined>();
 
@@ -115,26 +103,12 @@ export function HeritageApp(): React.JSX.Element {
   );
 
   const activeTab = tabForScreen(screen);
-  const hideTabs = ["event", "series", "player", "quizIntro", "question", "result", "episodeQuiz", "login"].includes(screen);
+  const hideTabs = ["event", "series", "player", "episodeQuiz", "login"].includes(screen);
   const dark = screen === "player";
 
   const changeTab = (tab: MainTab): void => setScreen(screenForTab(tab));
 
-  const resetQuiz = (target: QuizSet): void => {
-    setQuiz(target);
-    setQuestionIndex(0);
-    setSelectedId(undefined);
-    setScore(0);
-  };
-
-  const openQuizSet = (target: QuizSet): void => {
-    resetQuiz(target);
-    setScreen("quizIntro");
-  };
-
-  const playQuiz = (): void => setScreen("question");
-
-  const startEpisodeQuiz = (target: PodcastEpisode): void => {
+  const startEpisodeQuiz = (target: QuizEpisodeSummary): void => {
     setQuizEpisode(target);
     setScreen("episodeQuiz");
   };
@@ -179,26 +153,6 @@ export function HeritageApp(): React.JSX.Element {
     setScreen("event");
   };
 
-  const retryQuiz = (): void => {
-    resetQuiz(quiz);
-    setScreen("question");
-  };
-
-  const chooseAnswer = (optionId: string): void => {
-    if (selectedId) return;
-    setSelectedId(optionId);
-    if (optionId === quiz.questions[questionIndex].correctOptionId) setScore((val) => val + 1);
-  };
-
-  const nextQuestion = (): void => {
-    if (questionIndex === quiz.questions.length - 1) {
-      setScreen("result");
-      return;
-    }
-    setQuestionIndex((val) => val + 1);
-    setSelectedId(undefined);
-  };
-
   const onLoginSuccess = (): void => {
     if (pendingPlay) {
       const target = pendingPlay;
@@ -232,7 +186,7 @@ export function HeritageApp(): React.JSX.Element {
           currentEpisode={episode}
           playback={playback}
           onHistory={(periodId) => {
-            setHistoryPeriodId(periodId);
+            setHistoryPeriodId(typeof periodId === "string" ? periodId : undefined);
             setScreen("history");
           }}
           onPodcast={() => setScreen("podcasts")}
@@ -249,7 +203,7 @@ export function HeritageApp(): React.JSX.Element {
         />
       ) : null}
 
-      {screen === "event" ? (
+      {screen === "event" && selectedEvent ? (
         <EventDetailScreen
           event={selectedEvent}
           onBack={() => setScreen("history")}
@@ -289,38 +243,7 @@ export function HeritageApp(): React.JSX.Element {
       ) : null}
 
       {screen === "quizzes" ? (
-        <QuizListScreen
-          onPlayQuizSet={openQuizSet}
-          onPlayEpisodeQuiz={startEpisodeQuiz}
-        />
-      ) : null}
-
-      {screen === "quizIntro" ? (
-        <QuizIntroScreen
-          quiz={quiz}
-          onBack={() => setScreen("quizzes")}
-          onStart={playQuiz}
-        />
-      ) : null}
-
-      {screen === "question" ? (
-        <QuizPlayScreen
-          quiz={quiz}
-          index={questionIndex}
-          selectedId={selectedId}
-          onSelect={chooseAnswer}
-          onNext={nextQuestion}
-          onExit={() => setScreen("quizzes")}
-        />
-      ) : null}
-
-      {screen === "result" ? (
-        <QuizResultScreen
-          quiz={quiz}
-          score={score}
-          onRetry={retryQuiz}
-          onClose={() => setScreen("quizzes")}
-        />
+        <QuizListScreen onPlayEpisodeQuiz={startEpisodeQuiz} />
       ) : null}
 
       {screen === "episodeQuiz" && quizEpisode ? (

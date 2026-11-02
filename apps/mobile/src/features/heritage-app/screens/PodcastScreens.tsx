@@ -380,7 +380,7 @@ export function AudioPlayerScreen({
             <XStack bg="$nightSoft" p="$2" rounded="$4" items="center" justify="space-between" g="$2">
               <Text f={1} color="$paperDeep" fs={11}>{playback.error}</Text>
               <Button unstyled px="$2" py="$1" bg="$vermilion" rounded="$3" onPress={playback.retry}>
-                <Text color="$paperSoft" fs={10} fw="$7">Thử lại</Text>
+                <Text color="$paperSoft" fs={10} fw="$7">{playback.requiresAuth ? "Đăng nhập" : "Thử lại"}</Text>
               </Button>
             </XStack>
           ) : null}
