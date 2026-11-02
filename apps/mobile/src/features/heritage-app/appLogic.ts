@@ -15,12 +15,8 @@ export function screenForTab(tab: MainTab): AppScreen {
 export function tabForScreen(screen: AppScreen): MainTab {
   if (["history", "event"].includes(screen)) return "history";
   if (["podcasts", "series", "player"].includes(screen)) return "podcast";
-  if (["quizzes", "quizIntro", "question", "result", "episodeQuiz"].includes(screen)) return "quiz";
+  if (["quizzes", "episodeQuiz"].includes(screen)) return "quiz";
   if (["profile", "login", "schedule"].includes(screen)) return "profile";
   return "discovery";
-}
-
-export function calculateScore(answerIds: string[], correctIds: string[]): number {
-  return correctIds.reduce((score, correctId, index) => score + (answerIds[index] === correctId ? 1 : 0), 0);
 }
 

@@ -8,6 +8,7 @@ import { podcastApi, type PodcastEpisode } from "./podcastApi";
 export interface LivePlaybackState extends PlaybackState {
   isLoading: boolean;
   error: string | null;
+  requiresAuth: boolean;
   retry: () => void;
 }
 
@@ -58,14 +59,14 @@ export function usePlayback(
   const [playRequested, setPlayRequested] = useState(false);
 
   const playbackQuery = useQuery({
-    queryKey: ["podcast", "playback", episode?.id, narrationId],
+    queryKey: ["podcast", "playback", episode?.id, narrationId, userId],
     queryFn: async () => {
       if (!narrationId || !episode) throw new Error("No narration");
       const result = await podcastApi.playback(narrationId);
       if (result.episodeId !== episode.id) throw new Error("Playback does not belong to the selected episode");
       return result;
     },
-    enabled: Boolean(narrationId && episode),
+    enabled: Boolean(narrationId && episode && userId),
     staleTime: 0,
     retry: 0,
   });
@@ -242,6 +243,10 @@ export function usePlayback(
   }, [autoplayToken, ready, status.isLoaded, player]);
 
   const toggle = useCallback((): void => {
+    if (!userId) {
+      onRequireAuth();
+      return;
+    }
     if (player.playing) {
       player.pause();
       if (userId) void syncProgressToServer();
@@ -251,7 +256,7 @@ export function usePlayback(
       void player.seekTo(0);
     }
     player.play();
-  }, [userId, player, totalDurationSeconds, syncProgressToServer]);
+  }, [userId, onRequireAuth, player, totalDurationSeconds, syncProgressToServer]);
 
   const seekBy = useCallback(
     (seconds: number): void => {
@@ -280,6 +285,8 @@ export function usePlayback(
 
   const error = !narrationId
     ? "Tập này chưa có bản thu sẵn sàng."
+    : !userId
+      ? "Đăng nhập để nghe podcast và lưu tiến trình."
     : playbackQuery.isError
       ? "Không thể tải âm thanh từ máy chủ."
       : null;
@@ -292,8 +299,15 @@ export function usePlayback(
     seekBy,
     seekToRatio,
     restart,
-    isLoading: playbackQuery.isPending || (playRequested && !status.isLoaded),
+    isLoading: playbackQuery.isFetching || (Boolean(userId) && playRequested && !status.isLoaded),
     error,
-    retry: () => void playbackQuery.refetch(),
+    requiresAuth: Boolean(narrationId && !userId),
+    retry: () => {
+      if (!userId) {
+        onRequireAuth();
+        return;
+      }
+      void playbackQuery.refetch();
+    },
   };
 }

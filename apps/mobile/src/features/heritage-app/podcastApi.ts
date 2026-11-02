@@ -11,6 +11,7 @@ import {
   PlaybackSchema,
   PublicHistoricalEventSchema,
   PublicQuizSchema,
+  PublicQuizCatalogSchema,
   PublicReleasesSchema,
   QuizAttemptResultSchema,
   paginatedSchema,
@@ -23,6 +24,7 @@ import { art } from "./data";
 
 export type { HistoricalPeriodDto, PublicHistoricalEventDto };
 export type PublicQuiz = z.infer<typeof PublicQuizSchema>;
+export type PublicQuizCard = z.infer<typeof PublicQuizCatalogSchema>["items"][number];
 export type QuizAttemptResult = z.infer<typeof QuizAttemptResultSchema>;
 export type MyWeeklyMissions = z.infer<typeof MyWeeklyMissionsSchema>;
 export type ListeningProgressResult = z.infer<typeof ListeningProgressUpdateResultSchema>;
@@ -264,19 +266,11 @@ export const podcastApi = {
       .sort((a, b) => (b.publishedAt?.getTime() ?? 0) - (a.publishedAt?.getTime() ?? 0))
       .slice(0, limit);
   },
-  async listEpisodeQuizzes(): Promise<PodcastEpisode[]> {
-    const episodes = await podcastApi.latestEpisodes(20);
-    const checks = await Promise.all(
-      episodes.map(async (episode) => {
-        try {
-          const detail = await podcastApi.getEpisode(episode.slug);
-          return detail.hasQuiz ? episode : null;
-        } catch {
-          return null;
-        }
-      }),
-    );
-    return checks.filter((item): item is PodcastEpisode => item !== null);
+  async quizzes(filter?: { topicId?: string; page?: number }): Promise<PublicQuizCard[]> {
+    const { data } = await apiClient.get("/api/quizzes", {
+      params: { page: filter?.page ?? 1, limit: 50, topicId: filter?.topicId },
+    });
+    return PublicQuizCatalogSchema.parse(data).items;
   },
   async playback(narrationId: string): Promise<PlaybackInfo> {
     const { data } = await apiClient.get(`/api/narrations/${narrationId}/playback`);
@@ -341,7 +335,7 @@ export const podcastApi = {
     const { data } = await apiClient.get(`/api/episodes/${encodeURIComponent(episodeSlug)}/quiz`);
     return PublicQuizSchema.parse(data);
   },
-  async attempt(quizId: string, answers: { questionId: string; optionId: string }[], idempotencyKey: string): Promise<QuizAttemptResult> {
+  async attempt(quizId: string, answers: { questionId: string; optionId: string | null }[], idempotencyKey: string): Promise<QuizAttemptResult> {
     const { data } = await apiClient.post(`/api/quizzes/${quizId}/attempts`, { answers }, { headers: { "Idempotency-Key": idempotencyKey } });
     return QuizAttemptResultSchema.parse(data);
   },

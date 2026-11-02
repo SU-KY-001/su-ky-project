@@ -14,17 +14,13 @@ import {
   formatTime,
 } from "@/shared/ui";
 import { art } from "../data";
-import { podcastApi, type PodcastEpisode } from "../podcastApi";
+import { fallbackEventImage, podcastApi, type PodcastEpisode } from "../podcastApi";
 import type { LivePlaybackState } from "../usePlayback";
 
-const historyFlow = [
-  { key: "hung-vuong", periodSlug: "tien-su-so-su", name: "Hùng Vương", years: "(2879 – 258 TCN)" },
-  { key: "bac-thuoc", periodSlug: "bac-thuoc", name: "Bắc thuộc", years: "(179 TCN – 938)" },
-  { key: "ngo", periodSlug: "quan-chu", name: "Ngô", years: "(938 – 965)" },
-  { key: "dinh-tien-le", periodSlug: "quan-chu", name: "Đinh – Tiền Lê", years: "(968 – 1009)" },
-  { key: "ly", periodSlug: "quan-chu", name: "Lý", years: "(1009 – 1225)" },
-  { key: "tran", periodSlug: "quan-chu", name: "Trần", years: "(1225 – 1400)" },
-] as const;
+const formatYear = (year: number | null): string => {
+  if (year === null) return "nay";
+  return year < 0 ? `${Math.abs(year)} TCN` : String(year);
+};
 
 interface DiscoveryScreenProps {
   currentEpisode: PodcastEpisode | null;
@@ -50,11 +46,7 @@ export function DiscoveryScreen({
 
   const periods = periodsQuery.data ?? [];
 
-  const topics = [
-    { title: "Thời Hùng Vương", subtitle: "Cội nguồn dân tộc", image: art.haiBaTrungCard },
-    { title: "Các cuộc kháng chiến", subtitle: "Giữ nước, dựng nước", image: art.dienBienPhuCard },
-    { title: "Việt Nam hiện đại", subtitle: "Đất nước chuyển mình", image: art.doiMoiCard },
-  ];
+  const topics = periods.slice(0, 3);
 
   const ratio = playback.duration > 0 ? (playback.position / playback.duration) * 100 : 0;
 
@@ -66,13 +58,13 @@ export function DiscoveryScreen({
         <IconButton icon="user" label="Tài khoản" onPress={onSchedule} light />
       </XStack>
 
-      <AppCard dark onPress={onHistory}>
+      <AppCard dark onPress={() => onHistory()}>
         <ZStack h="$16">
           <AppImage source={art.bachDangHero} w="100%" h="100%" resizeMode="cover" op={0.68} rounded={0} />
           <YStack pos="absolute" l="$3" r="$3" b="$3" g="$1.5">
             <Text color="$paperSoft" fs="$5" lh="$5" fw="$7">Mỗi trang sử, một câu chuyện</Text>
             <Text color="$paperDeep" fs="$1" lh="$2" maxW="$16">Khám phá con người, sự kiện và dấu mốc làm nên hồn Việt.</Text>
-            <YStack self="flex-start" mt="$1"><PrimaryButton label="Khám phá ngay" onPress={onHistory} /></YStack>
+            <YStack self="flex-start" mt="$1"><PrimaryButton label="Khám phá ngay" onPress={() => onHistory()} /></YStack>
           </YStack>
         </ZStack>
       </AppCard>
@@ -161,16 +153,18 @@ export function DiscoveryScreen({
       ) : null}
 
       <YStack g="$2">
-        <SectionHeader title="Chủ đề nổi bật" onPress={onHistory} />
+        <SectionHeader title="Chủ đề nổi bật" onPress={() => onHistory()} />
         <XStack g="$2" w="100%">
           {topics.map((topic) => (
-            <YStack key={topic.title} f={1} minW={0}>
-              <AppCard onPress={onHistory}>
+            <YStack key={topic.id} f={1} minW={0}>
+              <AppCard onPress={() => onHistory(topic.id)}>
                 <ZStack w="100%" h={152}>
-                  <AppImage source={topic.image} w="100%" h="100%" rounded={0} resizeMode="cover" op={0.72} />
+                  <AppImage source={fallbackEventImage(topic.slug)} w="100%" h="100%" rounded={0} resizeMode="cover" op={0.72} />
                   <YStack pos="absolute" l="$2" r="$2" b="$2">
-                    <Text color="$paperSoft" fs="$2" lh="$2" fw="$7">{topic.title}</Text>
-                    <Text color="$paperDeep" fs={9} lh={12} numberOfLines={2}>{topic.subtitle}</Text>
+                    <Text color="$paperSoft" fs="$2" lh="$2" fw="$7">{topic.name}</Text>
+                    <Text color="$paperDeep" fs={9} lh={12} numberOfLines={2}>
+                      {formatYear(topic.startYear)} – {formatYear(topic.endYear)}
+                    </Text>
                   </YStack>
                 </ZStack>
               </AppCard>
@@ -184,16 +178,15 @@ export function DiscoveryScreen({
         <ZStack h={78}>
           <YStack pos="absolute" t={5} l="8.33%" r="8.33%" h={2} bg="$bronze" />
           <XStack pos="absolute" t={0} l={0} r={0}>
-            {historyFlow.map((item, index) => {
-                const periodId = periods.find((period) => period.slug === item.periodSlug)?.id;
-                const isHighlight = index === 2;
+            {periods.map((item, index) => {
+                const isHighlight = index === 0;
                 return (
                   <YStack
-                    key={item.key}
+                    key={item.id}
                     f={1}
                     minW={0}
                     items="center"
-                    onPress={() => onHistory(periodId)}
+                    onPress={() => onHistory(item.id)}
                     pressStyle={{ op: 0.7 }}
                   >
                     <YStack
@@ -224,7 +217,9 @@ export function DiscoveryScreen({
                     >
                       {item.name}
                     </Text>
-                    <Text color="$inkSoft" fs={6.5} lh={8} text="center" numberOfLines={1}>{item.years}</Text>
+                    <Text color="$inkSoft" fs={6.5} lh={8} text="center" numberOfLines={1}>
+                      {formatYear(item.startYear)} – {formatYear(item.endYear)}
+                    </Text>
                   </YStack>
                 );
               })}

@@ -26,77 +26,6 @@ export function HistoryScreen({
 
   const events = eventsQuery.data ?? [];
 
-  const fallbackMilestones: PublicHistoricalEventDto[] = [
-    {
-      id: "dong-son",
-      slug: "landing-demo-van-hoa-dong-son",
-      name: "Văn hóa Đông Sơn",
-      summary: "Khám phá đời sống cư dân Việt cổ qua đồ đồng và hoa văn, với các di tích tập trung ở lưu vực sông Hồng, sông Mã và sông Cả.",
-      time: { kind: "RANGE", start: { year: -500, precision: "YEAR", approximate: true }, end: { year: -111, precision: "YEAR", approximate: true }, endState: "KNOWN" },
-      timeLabel: "500 TCN – 111 TCN",
-      parent: { period: { id: "p1", name: "Tiền sử & Sơ sử" }, phase: { id: "ph1", name: "Văn hóa Đông Sơn" } },
-      reviewedAt: new Date(),
-      citations: [],
-    },
-    {
-      id: "938-bd",
-      slug: "landing-demo-chien-thang-bach-dang-938",
-      name: "Chiến thắng Bạch Đằng năm 938",
-      summary: "Theo dấu kế sách của Ngô Quyền: phối hợp bãi cọc, thủy triều và thế trận trên sông để đánh bại quân Nam Hán năm 938.",
-      time: { kind: "POINT", at: { year: 938, precision: "YEAR", approximate: false } },
-      timeLabel: "938",
-      parent: { period: { id: "p2", name: "Bắc thuộc" }, phase: { id: "ph2", name: "Bước ngoặt giành độc lập" } },
-      reviewedAt: new Date(),
-      citations: [],
-    },
-    {
-      id: "1258-mong-nguyen",
-      slug: "landing-demo-khang-chien-mong-nguyen",
-      name: "Ba cuộc kháng chiến chống Mông - Nguyên",
-      summary: "Nhìn lại các cuộc kháng chiến năm 1258, 1285 và 1288, từ những chiến thắng trên bộ đến trận quyết chiến Bạch Đằng.",
-      time: { kind: "RANGE", start: { year: 1258, precision: "YEAR", approximate: false }, end: { year: 1288, precision: "YEAR", approximate: false }, endState: "KNOWN" },
-      timeLabel: "1258 – 1288",
-      parent: { period: { id: "p3", name: "Quân chủ" }, phase: { id: "ph3", name: "Đại Việt thời Trần" } },
-      reviewedAt: new Date(),
-      citations: [],
-    },
-    {
-      id: "1418-lam-son",
-      slug: "landing-demo-khoi-nghia-lam-son",
-      name: "Khởi nghĩa Lam Sơn",
-      summary: "Từ cuộc khởi nghĩa năm 1418 đến thắng lợi năm 1427, tìm hiểu vai trò của Lê Lợi, Nguyễn Trãi và sự kết hợp quân sự với ngoại giao.",
-      time: { kind: "RANGE", start: { year: 1418, precision: "YEAR", approximate: false }, end: { year: 1427, precision: "YEAR", approximate: false }, endState: "KNOWN" },
-      timeLabel: "1418 – 1427",
-      parent: { period: { id: "p3", name: "Quân chủ" }, phase: { id: "ph4", name: "Kháng Minh và khởi nghĩa Lam Sơn" } },
-      reviewedAt: new Date(),
-      citations: [],
-    },
-    {
-      id: "1945-cm8",
-      slug: "landing-demo-cach-mang-thang-tam-doc-lap",
-      name: "Cách mạng tháng Tám năm 1945",
-      summary: "Khám phá cuộc tổng khởi nghĩa tháng Tám năm 1945 qua dấu mốc giành chính quyền ở Hà Nội và không khí đấu tranh giành độc lập.",
-      time: { kind: "POINT", at: { year: 1945, precision: "YEAR", approximate: false } },
-      timeLabel: "1945",
-      parent: { period: { id: "p5", name: "Hiện đại" }, phase: { id: "ph5", name: "Cách mạng tháng Tám và giành độc lập" } },
-      reviewedAt: new Date(),
-      citations: [],
-    },
-    {
-      id: "1986-doi-moi",
-      slug: "landing-demo-dai-hoi-dang-toan-quoc-lan-thu-vi-doi-moi",
-      name: "Đại hội VI khởi xướng công cuộc Đổi mới",
-      summary: "Đại hội VI diễn ra tại Hà Nội từ ngày 15 đến 18 tháng 12 năm 1986, mở đầu đường lối Đổi mới trong bối cảnh đất nước cần những thay đổi sâu rộng.",
-      time: { kind: "POINT", at: { year: 1986, precision: "YEAR", approximate: false } },
-      timeLabel: "1986",
-      parent: { period: { id: "p5", name: "Hiện đại" }, phase: { id: "ph6", name: "Khởi đầu công cuộc Đổi mới" } },
-      reviewedAt: new Date(),
-      citations: [],
-    },
-  ];
-
-  const displayedEvents = eventsQuery.isError && events.length === 0 ? fallbackMilestones : events;
-
   return (
     <ScreenScroll>
       <AppHeader rightIcon="search" onRight={() => undefined} />
@@ -129,16 +58,22 @@ export function HistoryScreen({
 
       {eventsQuery.isPending ? (
         <YStack py="$6" items="center"><Text color="$inkSoft" fs="$1">Đang tải các sự kiện…</Text></YStack>
-      ) : displayedEvents.length === 0 ? (
+      ) : eventsQuery.isError ? (
+        <YStack py="$6" items="center" g="$2">
+          <Text color="$ink" fs="$2" fw="$6">Không thể tải dòng thời gian</Text>
+          <Text color="$inkSoft" fs="$1" text="center">Vui lòng kiểm tra kết nối rồi thử lại.</Text>
+          <PrimaryButton label="Thử lại" secondary onPress={() => void eventsQuery.refetch()} />
+        </YStack>
+      ) : events.length === 0 ? (
         <YStack py="$8" items="center" g="$1">
           <Text color="$ink" fs="$2" fw="$6">Chưa có sự kiện trong thời kỳ này</Text>
           <Text color="$inkSoft" fs="$1" text="center">Vui lòng chọn thời kỳ khác hoặc chọn "Tất cả" để xem toàn bộ dòng chảy lịch sử.</Text>
         </YStack>
       ) : (
         <YStack mt="$1">
-          {displayedEvents.map((item: PublicHistoricalEventDto, index: number) => {
+          {events.map((item: PublicHistoricalEventDto, index: number) => {
             const first = index === 0;
-            const last = index === displayedEvents.length - 1;
+            const last = index === events.length - 1;
             const image = fallbackEventImage(item.slug);
             const cleanTimeLabel = item.timeLabel.replace(/Khoảng /g, "");
 
@@ -193,20 +128,16 @@ export function EventDetailScreen({
   onBack,
   onPodcast,
 }: {
-  event: PublicHistoricalEventDto | null;
+  event: PublicHistoricalEventDto;
   onBack: () => void;
   onPodcast: () => void;
 }): React.JSX.Element {
-  const heroImage = event ? fallbackEventImage(event.slug, true) : fallbackEventImage("bach-dang", true);
-  const title = event?.name ?? "Chiến thắng Bạch Đằng năm 938";
-  const timeLabel = event?.timeLabel ?? "Năm 938";
-  const parentLabel = event
-    ? `${event.parent.period.name} / ${event.parent.phase.name}`
-    : "Thời Bắc thuộc / Nhà Ngô";
-  const summary =
-    event?.summary ??
-    "Ngô Quyền đã chỉ huy quân dân ta đánh tan quân Nam Hán trên sông Bạch Đằng, chấm dứt hơn một nghìn năm Bắc thuộc, mở ra thời kỳ độc lập, tự chủ lâu dài của dân tộc Việt Nam.";
-  const citations = event?.citations ?? [];
+  const heroImage = fallbackEventImage(event.slug, true);
+  const title = event.name;
+  const timeLabel = event.timeLabel;
+  const parentLabel = `${event.parent.period.name} / ${event.parent.phase.name}`;
+  const summary = event.summary;
+  const citations = event.citations;
 
   return (
     <ScrollView f={1} showsVerticalScrollIndicator={false} bg="$paper">

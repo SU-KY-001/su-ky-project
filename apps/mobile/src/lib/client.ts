@@ -1,13 +1,12 @@
 import axios from "axios";
-import Constants from "expo-constants";
 import { getToken } from "./session";
+
+const DEPLOYED_API_URL = "https://suky-api.the1struleoffightclub.top";
 
 function resolveApiUrl(): string {
   const configured = process.env.EXPO_PUBLIC_API_URL?.trim();
   if (configured) return configured.replace(/\/$/, "");
-  const host = Constants.expoConfig?.hostUri?.split(":")[0];
-  if (host) return `http://${host}:3005`;
-  return "http://localhost:3005";
+  return DEPLOYED_API_URL;
 }
 
 export const apiUrl = resolveApiUrl();
