@@ -8,7 +8,8 @@ import { prisma } from "@repo/db";
 import { VIETNAM_PODCAST_SEED } from "./vietnam-podcast-seed-data";
 
 const repositoryRoot = fileURLToPath(new URL("../../../../", import.meta.url));
-const audioPath = resolve(repositoryRoot, process.env.SEED_AUDIO_FILE ?? "data-seed/podcast_bb6ad694-ca94-4fdb-99e3-a2347af19d12.mp3");
+const audioPath = resolve(repositoryRoot, process.env.SEED_AUDIO_FILE ?? "apps/mobile/src/assets/audio/bach-dang-938.mp3");
+const audioEpisodeSlug = process.env.SEED_AUDIO_EPISODE_SLUG?.trim() || "chien-thang-bach-dang-938";
 const checkOnly = process.argv.includes("--check");
 const resourceSchema = z.object({ public_id: z.string(), version: z.number().int().positive(), bytes: z.number().int().positive(), format: z.literal("mp3"), duration: z.number().positive() });
 
@@ -37,6 +38,15 @@ async function audioResource(publicId: string, expectedBytes: number): Promise<z
 }
 
 async function main(): Promise<void> {
+  let audioEpisode: { slug: string; title: string } | undefined;
+  for (const series of VIETNAM_PODCAST_SEED) {
+    const match = series.episodes.find((episode) => episode.slug === audioEpisodeSlug);
+    if (match) {
+      audioEpisode = match;
+      break;
+    }
+  }
+  if (!audioEpisode) throw new Error(`SEED_AUDIO_EPISODE_SLUG không thuộc bộ dữ liệu seed: ${audioEpisodeSlug}.`);
   const file = await stat(audioPath).catch(() => null);
   if (!file?.isFile() || file.size === 0 || !audioPath.toLowerCase().endsWith(".mp3")) throw new Error("Không tìm thấy MP3 hợp lệ. Kiểm tra file trong data-seed hoặc đặt SEED_AUDIO_FILE.");
   const ownerEmail = process.env.SEED_OWNER_EMAIL?.trim() || process.env.SEED_MOD_EMAIL?.trim();
@@ -59,7 +69,7 @@ async function main(): Promise<void> {
     }
   }
 
-  console.log(`Moderator: ${owner.name}. MP3: ${file.size.toLocaleString("vi-VN")} byte. ${checkOnly ? "Kiểm tra, không thay đổi dữ liệu." : "Seed bản nháp; giữ nguyên nội dung đã có."}`);
+  console.log(`Moderator: ${owner.name}. MP3 cho “${audioEpisode.title}”: ${file.size.toLocaleString("vi-VN")} byte. ${checkOnly ? "Kiểm tra, không thay đổi dữ liệu." : "Seed bản nháp; giữ nguyên nội dung đã có."}`);
   if (checkOnly) {
     for (const series of VIETNAM_PODCAST_SEED) console.log(`${series.title}: ${series.episodes.map((episode) => episode.title).join(" | ")}`);
     return;
@@ -67,7 +77,7 @@ async function main(): Promise<void> {
   cloudinary.config({ cloud_name: requiredEnv("CLOUDINARY_CLOUD_NAME"), api_key: requiredEnv("CLOUDINARY_API_KEY"), api_secret: requiredEnv("CLOUDINARY_API_SECRET"), secure: true });
   const checksum = createHash("sha256").update(await readFile(audioPath)).digest("hex").slice(0, 16);
   const folder = process.env.CLOUDINARY_FOLDER?.trim() || "su-ky";
-  let createdSeries = 0, createdEpisodes = 0, attachedAudio = 0, keptAudio = 0;
+  let createdSeries = 0, createdEpisodes = 0, attachedAudio = 0, keptAudio = 0, skippedAudio = 0;
 
   for (const entry of VIETNAM_PODCAST_SEED) {
     let series = await prisma.series.findFirst({ where: { title: entry.title, ownerId: owner.id, deletedAt: null } });
@@ -80,10 +90,14 @@ async function main(): Promise<void> {
       let episode = await prisma.episode.findFirst({ where: { seriesId: series.id, title: item.title, deletedAt: null } });
       if (!episode) {
         const highest = await prisma.episode.aggregate({ where: { seriesId: series.id }, _max: { sortOrder: true } });
-        episode = await prisma.episode.create({ data: { seriesId: series.id, title: item.title, slug: item.slug, sortOrder: (highest._max.sortOrder ?? 0) + 1, status: "DRAFT", description: `Podcast về ${item.title}. Bản thu mẫu dùng chung để kiểm tra phát audio.` } });
+        episode = await prisma.episode.create({ data: { seriesId: series.id, title: item.title, slug: item.slug, sortOrder: (highest._max.sortOrder ?? 0) + 1, status: "DRAFT", description: `Podcast về ${item.title}.` } });
         createdEpisodes++;
       }
       if (episode.adminLockedAt) throw new Error(`Tập “${item.title}” đang bị khóa; seed không chỉnh sửa nội dung bị khóa.`);
+      if (item.slug !== audioEpisodeSlug) {
+        skippedAudio++;
+        continue;
+      }
       const existingNarration = await prisma.episodeNarration.findUnique({ where: { episodeId_narrationType: { episodeId: episode.id, narrationType: "THIRD_PERSON" } } });
       if (episode.status !== "DRAFT" && !existingNarration?.audioAssetId) throw new Error(`Tập “${item.title}” không còn là bản nháp; seed không bổ sung bản thu vào nội dung đã phát hành hoặc ẩn.`);
       const narration = await prisma.episodeNarration.upsert({ where: { episodeId_narrationType: { episodeId: episode.id, narrationType: "THIRD_PERSON" } }, create: { episodeId: episode.id, narrationType: "THIRD_PERSON" }, update: {}, include: { audioAsset: true } });
@@ -113,7 +127,7 @@ async function main(): Promise<void> {
       console.log(`Đã gắn MP3 mẫu: ${item.title}`);
     }
   }
-  console.log(JSON.stringify({ createdSeries, createdEpisodes, attachedAudio, keptAudio, expectedSeries: 4, expectedEpisodes: 9 }));
+  console.log(JSON.stringify({ createdSeries, createdEpisodes, attachedAudio, keptAudio, skippedAudio, expectedSeries: 4, expectedEpisodes: 9 }));
 }
 
 try { await main(); }
