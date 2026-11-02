@@ -1,6 +1,6 @@
 import { useDeferredValue, useEffect, useMemo, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import type { ReleaseScheduleRecord, ReleaseScheduleStatus } from "@repo/shared";
+import type { ReleaseScheduleRecord, ReleaseStatusGroup } from "@repo/shared";
 import { notify } from "@/shared/lib/notifications";
 import { useConfirmationDialog } from "@/shared/hooks/useConfirmationDialog";
 import {
@@ -40,7 +40,7 @@ export function useReleaseWorkspace({
   const [search, setSearch] = useState("");
   const deferredSearch = useDeferredValue(search);
   const [moderatorId, setModeratorId] = useState("");
-  const [status, setStatus] = useState<ReleaseScheduleStatus | "">("");
+  const [status, setStatus] = useState<ReleaseStatusGroup | "">("");
   const [from, setFrom] = useState("");
   const [to, setTo] = useState("");
   const [tablePage, setTablePage] = useState(1);
@@ -70,7 +70,7 @@ export function useReleaseWorkspace({
   }), [deferredSearch, moderatorId, from, to]);
   const tableFilter = useMemo<ReleaseScheduleFilter>(() => ({
     ...baseFilter,
-    status: status || undefined,
+    statusGroup: status || undefined,
     page: tablePage,
   }), [baseFilter, status, tablePage]);
 
@@ -92,7 +92,14 @@ export function useReleaseWorkspace({
   const progress = useReleaseProgress(selectedSchedule?.id ?? null, service);
   const actions = useAdminReleaseActions(service);
 
-  const setView = (next: ReleaseWorkspaceViewMode) => setViewState(next);
+  const setView = (next: ReleaseWorkspaceViewMode) => {
+    if (next === "kanban") setStatus("");
+    setViewState(next);
+  };
+  const setStatusFilter = (next: ReleaseStatusGroup | "") => {
+    setStatus(next);
+    if (next) setViewState("table");
+  };
   const markPending = (id: string, pending: boolean) =>
     setPendingIds((current) => {
       const next = new Set(current);
@@ -207,7 +214,7 @@ export function useReleaseWorkspace({
     moderatorId,
     setModeratorId,
     status,
-    setStatus,
+    setStatus: setStatusFilter,
     from,
     setFrom,
     to,

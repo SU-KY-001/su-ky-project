@@ -5,7 +5,7 @@ import { SurfaceText } from "./SurfaceText";
 import { artworkLayout, CANVAS_DEPTH, LABEL_HEIGHT } from "../artworkLayout";
 import { makeCanvasShadow } from "../materials";
 
-export function GalleryArtwork({ artwork }: { artwork: Artwork }): ReactElement {
+export function GalleryArtwork({ artwork, onSettled }: { artwork: Artwork; onSettled?: (id: string) => void }): ReactElement {
   const [texture, setTexture] = useState<Texture | null>(null);
   const [failed, setFailed] = useState(false);
   useEffect(() => {
@@ -13,10 +13,10 @@ export function GalleryArtwork({ artwork }: { artwork: Artwork }): ReactElement 
     const loaded = new TextureLoader().load(artwork.image, value => {
       value.colorSpace = SRGBColorSpace;
       value.anisotropy = 4;
-      if (alive) setTexture(value);
-    }, undefined, () => { if (alive) setFailed(true); });
+      if (alive) { setTexture(value); onSettled?.(artwork.id); }
+    }, undefined, () => { if (alive) { setFailed(true); onSettled?.(artwork.id); } });
     return () => { alive = false; loaded.dispose(); };
-  }, [artwork.image]);
+  }, [artwork.id, artwork.image, onSettled]);
   const { width, height, centerY, labelCenterY, labelWidth } = artworkLayout(artwork.width, artwork.aspect, artwork.widthMode);
   const shadow = useMemo(makeCanvasShadow, []);
   useEffect(() => () => shadow.dispose(), [shadow]);

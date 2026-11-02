@@ -1,9 +1,5 @@
 import { MagnifyingGlass } from "@phosphor-icons/react/dist/icons/MagnifyingGlass";
-import { PencilSimple } from "@phosphor-icons/react/dist/icons/PencilSimple";
 import { Plus } from "@phosphor-icons/react/dist/icons/Plus";
-import { Trash } from "@phosphor-icons/react/dist/icons/Trash";
-import { Lock } from "@phosphor-icons/react/dist/icons/Lock";
-import { LockOpen } from "@phosphor-icons/react/dist/icons/LockOpen";
 import { DashboardRowActions } from "@/shared/components/dashboard/DashboardRowActions";
 import type { AdminUserRecord } from "../services/adminUserService";
 import { DashboardHeader } from "@/shared/components/dashboard/DashboardOverview";
@@ -46,9 +42,7 @@ export function AdminUsersView({
   onRoleChange,
   onPageChange,
   onCreate,
-  onEdit,
-  onToggleBan,
-  onDelete,
+  onDetail,
 }: {
   users: AdminUserRecord[];
   page: number;
@@ -63,9 +57,7 @@ export function AdminUsersView({
   onRoleChange: (value: "" | AdminUserRecord["role"]) => void;
   onPageChange: (page: number) => void;
   onCreate: () => void;
-  onEdit: (user: AdminUserRecord) => void;
-  onToggleBan: (user: AdminUserRecord) => void;
-  onDelete: (user: AdminUserRecord) => void;
+  onDetail: (user: AdminUserRecord) => void;
 }) {
   const toolbar = (
     <div className="grid gap-3 lg:grid-cols-[minmax(280px,1fr)_180px_200px]">
@@ -103,11 +95,7 @@ export function AdminUsersView({
               <TableCell className={dashboardTableCell}><CardBadge type="status" tone={user.emailVerified ? "success" : "warning"}>{user.emailVerified ? "Đã xác minh" : "Chưa xác minh"}</CardBadge></TableCell>
               <TableCell className={cn(dashboardTableCell, "whitespace-nowrap tabular-nums text-mod-text-secondary")}>{formatDate(user.createdAt)}</TableCell>
               <TableCell className={dashboardTableCell}>
-                <DashboardRowActions label={user.name} disabled={busy} actions={[
-                  { id: "edit", label: "Chỉnh sửa", icon: PencilSimple, onSelect: () => onEdit(user) },
-                  { id: "ban", label: user.banned ? "Mở khóa" : "Khóa tài khoản", icon: user.banned ? LockOpen : Lock, onSelect: () => onToggleBan(user) },
-                  { id: "delete", label: "Xóa tài khoản", icon: Trash, destructive: true, onSelect: () => onDelete(user) },
-                ]} />
+                <DashboardRowActions label={user.name} disabled={busy} actions={[{ id: "detail", label: "Xem chi tiết", onSelect: () => onDetail(user) }]} />
               </TableCell>
             </TableRow>
           )) : <DashboardEmptyTableRow columns={6}>Không tìm thấy người dùng phù hợp.</DashboardEmptyTableRow>}

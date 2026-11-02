@@ -156,13 +156,12 @@ export function ReleaseObservationView({
     <div className="flex flex-col gap-6">
       <DashboardHeader eyebrow="KIỂM DUYỆT" title="Hàng chờ kiểm duyệt" description="Xem nội dung podcast, nghe bản thu và phê duyệt phiên bản được gửi." />
       <DashboardTableCard title="Podcast đang chờ duyệt" description="Mở chi tiết để kiểm tra kịch bản, bản thu và gửi quyết định kiểm duyệt." summary={`${total} podcast`} toolbar={toolbar} footer={<DashboardPagination page={page} limit={limit} total={total} itemLabel="podcast" onPageChange={onPageChange} />}>
-        <DashboardDataTable embedded caption="Hàng chờ kiểm duyệt" columns={["Podcast", "Phiên bản", "Người sản xuất", "Ngày gửi duyệt", "Thời gian phát hành", "Trạng thái", "Thao tác"]} columnWidths={["23%", "7%", "14%", "14%", "14%", "14%", "14%"]} minWidth={1120}>
-          {loadFailed ? <DashboardEmptyTableRow columns={7}><Button variant="outline" onClick={onRetry}>Tải lại hàng chờ</Button></DashboardEmptyTableRow> : schedules.length ? schedules.map((schedule) => {
+        <DashboardDataTable embedded caption="Hàng chờ kiểm duyệt" columns={["Podcast", "Người sản xuất", "Ngày gửi duyệt", "Thời gian phát hành", "Trạng thái", "Thao tác"]} columnWidths={["28%", "14%", "15%", "15%", "14%", "14%"]} minWidth={1040}>
+          {loadFailed ? <DashboardEmptyTableRow columns={6}><Button variant="outline" onClick={onRetry}>Tải lại hàng chờ</Button></DashboardEmptyTableRow> : schedules.length ? schedules.map((schedule) => {
             const review = schedule.reviews.find(({ status }) => status === "IN_REVIEW") ?? schedule.reviews[0];
             return (
               <TableRow key={schedule.id} className="border-mod-border">
                 <TableCell className={cn(dashboardTableCell, "font-semibold")}><div>{schedule.title}</div>{schedule.episode ? <div className="mt-1 text-xs font-normal text-mod-text-secondary">{schedule.episode.title}</div> : null}</TableCell>
-                <TableCell className={cn(dashboardTableCell, "tabular-nums")}>{review ? `v${review.revision}` : "—"}</TableCell>
                 <TableCell className={dashboardTableCell}><div className="flex flex-wrap gap-1.5">{schedule.assignments.length ? schedule.assignments.map(({ moderatorId: id, moderator }) => <CardBadge key={id} type="name">{moderator.name}</CardBadge>) : <CardBadge type="name">Chưa phân công</CardBadge>}</div></TableCell>
                 <TableCell className={cn(dashboardTableCell, "whitespace-nowrap tabular-nums text-mod-text-secondary")}>{formatDateTime(review?.submittedAt)}</TableCell>
                 <TableCell className={cn(dashboardTableCell, "whitespace-nowrap tabular-nums text-mod-text-secondary")}>{formatDateTime(schedule.scheduledAt)}</TableCell>
@@ -170,7 +169,7 @@ export function ReleaseObservationView({
                 <TableCell className={dashboardTableCell}><DashboardRowActions label={schedule.title} actions={[{ id: "detail", label: "Xem chi tiết", icon: Eye, onSelect: () => onView(schedule) }]} /></TableCell>
               </TableRow>
             );
-          }) : <DashboardEmptyTableRow columns={7}>Không có podcast đang chờ duyệt.</DashboardEmptyTableRow>}
+          }) : <DashboardEmptyTableRow columns={6}>Không có podcast đang chờ duyệt.</DashboardEmptyTableRow>}
         </DashboardDataTable>
       </DashboardTableCard>
     </div>

@@ -1,9 +1,11 @@
 import type { ReactElement } from "react";
 import { ArrowRight } from "@phosphor-icons/react/dist/icons/ArrowRight";
+import { ArrowLeft } from "@phosphor-icons/react/dist/icons/ArrowLeft";
 import { BookOpen } from "@phosphor-icons/react/dist/icons/BookOpen";
 import { Image } from "@phosphor-icons/react/dist/icons/Image";
 import { MouseSimple } from "@phosphor-icons/react/dist/icons/MouseSimple";
 import { Button } from "@/shared/components/ui/button";
+import { APP_PATHS } from "@/shared/constants/routes";
 import brandLogo from "@/public/brand-su-ky-viet-nam.png";
 
 export function ExhibitionEntrance({ title, subtitle, description, artworkCount, chapterCount, ready, available, loading = false, onEnter, onCancel }: {
@@ -24,6 +26,7 @@ export function ExhibitionEntrance({ title, subtitle, description, artworkCount,
   const accent = words.slice(split).join(" ");
   return <section className="exhibition-entrance" aria-label="Giới thiệu triển lãm">
     <div className="exhibition-cover-panel">
+      <Button asChild variant="ghost" className="-ml-3 mb-4 h-10 w-fit shrink-0 bg-transparent text-ink hover:bg-transparent hover:text-vermilion"><a href={APP_PATHS.home}><ArrowLeft size={18} aria-hidden="true" /> Về trang chủ</a></Button>
       <header className="exhibition-cover-brand"><img src={brandLogo} alt="Sử Ký Việt Nam" /><span>Không gian tư liệu</span></header>
       <div className="exhibition-cover-copy">
         <p className="exhibition-cover-eyebrow">Triển lãm 3D <span aria-hidden="true" /> Ảnh tư liệu</p>

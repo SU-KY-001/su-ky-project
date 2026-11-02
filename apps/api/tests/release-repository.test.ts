@@ -165,6 +165,11 @@ suite("release repository", () => {
     });
     expect(byModerator.items.map(({ title }) => title)).toEqual(["Dòng chảy biển đảo"]);
 
+    const inProgress = await repository.listSchedules({ q: "Biên niên Trường Sơn", statusGroup: "IN_PROGRESS", page: 1, limit: 20 });
+    expect(inProgress.items.map(({ title }) => title)).toEqual(["Biên niên Trường Sơn"]);
+    const releasedGroup = await repository.listSchedules({ q: "Trường Sơn", statusGroup: "RELEASED", page: 1, limit: 20 });
+    expect(releasedGroup.items.map(({ title }) => title)).toEqual(["Trường Sơn đã phát"]);
+
     const history = await repository.listSchedules({
       scope: "HISTORY",
       page: 1,
@@ -172,6 +177,7 @@ suite("release repository", () => {
     });
     expect(history.items.map(({ title }) => title)).toEqual(["Trường Sơn đã phát"]);
 
+    await prisma.releaseSchedule.update({ where: { id: scheduleId }, data: { status: "BLOCKED" } });
     const reviewQueue = await repository.listSchedules({
       scope: "REVIEW_QUEUE",
       page: 1,
@@ -225,5 +231,24 @@ suite("release repository", () => {
       `Sort ${suffix} newer`,
       `Sort ${suffix} older`,
     ]);
+  });
+
+  it("lists cancelled schedules only for the moderator currently assigned", async () => {
+    const fixtures = await Promise.all([firstModeratorId, secondModeratorId].map((moderatorId) => prisma.releaseSchedule.create({
+      data: {
+        title: `Cancelled ${moderatorId}`,
+        productionDeadline: new Date("2026-10-19T10:00:00.000Z"),
+        scheduledAt: new Date("2026-10-20T13:00:00.000Z"),
+        status: "CANCELLED",
+        createdById: adminId,
+        assignments: { create: { moderatorId, assignedById: adminId } },
+      },
+    })));
+    scheduleIds.push(...fixtures.map(({ id }) => id));
+    const repository = new PrismaReleaseRepository();
+    const schedules = await repository.listAssignedSchedules(firstModeratorId, ["SCHEDULED", "READY_TO_PUBLISH", "RELEASED", "CANCELLED"]);
+    expect(schedules.some(({ id }) => id === fixtures[0]!.id)).toBe(true);
+    expect(schedules.some(({ id }) => id === fixtures[1]!.id)).toBe(false);
+    expect((await repository.listAssignedSchedules(firstModeratorId)).some(({ id }) => id === fixtures[0]!.id)).toBe(false);
   });
 });

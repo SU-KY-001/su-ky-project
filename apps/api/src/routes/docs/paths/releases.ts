@@ -56,7 +56,7 @@ export const releasePaths: Paths = {
       id: "adminReviewEpisodeRelease",
       tag: TAG,
       summary: "Admin kiểm duyệt podcast",
-      description: "Duyệt hoặc yêu cầu chỉnh sửa đúng phiên bản đã gửi, trong một transaction khoá tập: chỉ một quyết định thành công cho mỗi phiên bản. APPROVE bắt buộc `assessment` (kết luận nội dung/quyền/âm thanh, hạn quyền, công khai AI, chấp nhận cảnh báo) và ghi approval cho đúng revision; yêu cầu chỉnh sửa phải có nhận xét. Kèm snapshot readiness tại thời điểm quyết định (`readinessSnapshot`).",
+      description: "Duyệt hoặc yêu cầu chỉnh sửa đúng `reviewId` và phiên bản đã gửi. Thu hồi và duyệt cùng lúc chỉ có một thao tác thành công. APPROVE ghi assessment và approval cho revision; yêu cầu chỉnh sửa phải có nhận xét. Kèm snapshot readiness tại thời điểm quyết định (`readinessSnapshot`).",
       access: "admin",
       ...idParams,
       body: { name: "ReviewEpisodeRelease", schema: ReviewEpisodeSchema },
@@ -87,7 +87,8 @@ export const releasePaths: Paths = {
       id: "listReleaseSchedules",
       tag: TAG,
       summary: "Danh sách lịch phát hành",
-      description: "Lọc lịch theo trạng thái và khoảng thời gian phát hành.",
+      description: "Lọc lịch theo trạng thái, nhóm trạng thái và khoảng thời gian phát hành.",
+      queryDocs: { statusGroup: "IN_PROGRESS: đã lên lịch, sẵn sàng hoặc đang phát hành; NEEDS_ATTENTION: bị chặn hoặc thất bại; RELEASED: đã phát hành; CANCELLED: đã hủy." },
       access: "admin",
       query: ReleaseScheduleQuerySchema,
       ok: {
@@ -333,6 +334,16 @@ export const releasePaths: Paths = {
       },
     }),
   },
+  [`${STUDIO}/schedules`]: {
+    get: operation({
+      id: "listMyReleaseSchedules",
+      tag: TAG,
+      summary: "Danh sách lịch phát hành được phân công",
+      description: "Chỉ trả lịch đang phân công cho Moderator với trạng thái đã lên lịch, đủ điều kiện, đã phát hành hoặc đã hủy.",
+      access: "moderator",
+      ok: { status: 200, description: "Lịch phát hành được phân công", schema: { name: "ModeratorReleaseScheduleList", schema: ItemsOf(ReleaseScheduleDocSchema) } },
+    }),
+  },
   [`${STUDIO}/assignable-episodes`]: {
     get: operation({
       id: "listAssignableReleaseEpisodes",
@@ -454,6 +465,20 @@ export const releasePaths: Paths = {
       },
     }),
   },
+  [`${STUDIO}/{id}/reviews/{reviewId}/withdraw`]: {
+    post: operation({
+      id: "withdrawEpisodeReleaseReview",
+      tag: TAG,
+      summary: "Thu hồi bản gửi kiểm duyệt",
+      description: "Moderator đang được phân công có thể thu hồi lượt duyệt còn IN_REVIEW. Podcast được gỡ khỏi lịch, lịch trở về SCHEDULED; lượt cũ được giữ trong lịch sử. Moderator phải gắn lại podcast trước khi gửi duyệt.",
+      access: "moderator",
+      pathParams: UuidParamSchema.extend({ reviewId: UuidParamSchema.shape.id }),
+      pathParamDocs: { id: "ID lịch phát hành", reviewId: "ID lượt gửi duyệt" },
+      ok: { status: 200, description: "Lượt duyệt đã được thu hồi", schema: review },
+      rate: "write",
+      errors: { 403: "`FORBIDDEN`: không được phân công", 404: "`NOT_FOUND`: lịch không tồn tại", 409: "`INVALID_REVIEW_STATE`: lượt duyệt không còn chờ hoặc không còn thuộc podcast đang gắn" },
+    }),
+  },
   [`${STUDIO}/{id}/link-episode`]: {
     post: operation({
       id: "linkEpisodeToReleaseSchedule",
@@ -475,6 +500,7 @@ export const releasePaths: Paths = {
       id: "reviewEpisodeRelease",
       tag: TAG,
       summary: "Kiểm duyệt podcast",
+      description: "Gửi `reviewId` của lượt chờ duyệt và phiên bản tương ứng; lượt đã thu hồi không thể được duyệt.",
       access: "moderator",
       ...idParams,
       body: { name: "ReviewEpisodeRelease", schema: ReviewEpisodeSchema },

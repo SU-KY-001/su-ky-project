@@ -27,6 +27,7 @@ async function renderAt(entry: string): Promise<HTMLDivElement> {
   client = new QueryClient({ defaultOptions: { queries: { retry: false, staleTime: Infinity } } });
   client.setQueryData(currentUserQueryKey, { id: "moderator-1", name: "Điều hành Sử Ký", email: "moderator@example.org", emailVerified: true, role: "moderator" });
   client.setQueryData(["moderator-release-assignments"], { items: [] });
+  client.setQueryData(["moderator-release-schedules"], { items: [] });
   client.setQueryData(["moderator-assignable-episodes"], { items: [] });
   client.setQueryData(["moderator-release-reminders"], { items: [] });
   client.setQueryData(["moderator-release-tickets", "list"], { items: [], total: 0, page: 1, limit: 20 });
@@ -55,11 +56,11 @@ it("gives assignments, tickets and release schedule their own URLs", async () =>
   const host = await renderAt("/moderator");
 
   await act(async () => host.querySelector<HTMLAnchorElement>('a[href="/moderator/schedule"]')!.click());
-  for (let attempt = 0; attempt < LAZY_LOAD_ATTEMPTS && !host.textContent?.includes("Thời khóa biểu"); attempt++) {
+  for (let attempt = 0; attempt < LAZY_LOAD_ATTEMPTS && !host.textContent?.includes("Danh sách lịch phát hành"); attempt++) {
     await act(async () => { await Bun.sleep(LAZY_LOAD_POLL_MS); });
   }
   expect(location(host)).toBe("/moderator/schedule");
-  expect(host.textContent).toContain("Thời khóa biểu");
+  expect(host.textContent).toContain("Danh sách lịch phát hành");
 
   await act(async () => host.querySelector<HTMLAnchorElement>('a[href="/moderator/assignments"]')!.click());
   for (let attempt = 0; attempt < LAZY_LOAD_ATTEMPTS && location(host) !== "/moderator/assignments"; attempt++) {
@@ -108,6 +109,10 @@ it("restores the series creation dialog from its URL and keeps list filters when
     await act(async () => { await Bun.sleep(LAZY_LOAD_POLL_MS); });
   }
   expect(document.body.querySelector('[role="dialog"]')).not.toBeNull();
+  const language = document.body.querySelector<HTMLInputElement>("#series-language");
+  expect(language?.value).toBe("Tiếng Việt");
+  expect(language?.disabled).toBe(true);
+  expect(document.body.textContent).not.toContain("Mã ngôn ngữ BCP 47");
   await act(async () => [...document.body.querySelectorAll<HTMLButtonElement>('[role="dialog"] button')].find((button) => button.textContent?.trim() === "Hủy")!.click());
   expect(location(host)).toBe("/moderator/podcast?status=DRAFT");
 });

@@ -58,3 +58,49 @@ it("shows reminders and submit results as toasts without page banners", async ()
   expect(useNotificationStore.getState().notifications.at(-1)).toMatchObject({ status: "error", description: "Podcast chưa có bản thu âm" });
   expect(host.querySelector('[role="alert"]')).toBeNull();
 });
+
+it("refreshes the task and reports when approval wins before withdrawal", async () => {
+  const { schedule } = releaseReviewFixture();
+  const withdraw = mock(async () => {
+    schedule.reviews[0] = { ...schedule.reviews[0]!, status: "APPROVED" };
+    throw new Error("Bản gửi không còn chờ duyệt.");
+  });
+  const service = { ...moderatorReleaseService, assignments: async () => ({ items: [{ ...schedule, reviews: [...schedule.reviews] }] }), assignableEpisodes: async () => ({ items: [] }), reminders: async () => ({ items: [] }), withdrawReview: withdraw };
+  queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+  const host = document.createElement("div"); document.body.append(host); root = createRoot(host);
+  await act(async () => { root?.render(<QueryClientProvider client={queryClient!}><ModeratorAssignments service={service} /></QueryClientProvider>); await new Promise((resolve) => setTimeout(resolve, 30)); });
+  await act(async () => { await new Promise((resolve) => setTimeout(resolve, 30)); });
+  await selectDashboardAction(schedule.title, "Xem chi tiết", host);
+  const click = async (text: string) => act(async () => [...document.body.querySelectorAll<HTMLButtonElement>("button")].find((button) => button.textContent?.trim() === text)?.click());
+  await click("Thu hồi bản gửi");
+  await click("Xác nhận thu hồi");
+  await act(async () => { await new Promise((resolve) => setTimeout(resolve, 50)); });
+  expect(withdraw).toHaveBeenCalledWith(schedule.id, schedule.reviews[0]!.id);
+  expect(useNotificationStore.getState().notifications.at(-1)).toMatchObject({ status: "error", title: "Không thể thu hồi bản gửi" });
+  expect(document.body.textContent).toContain("Hoàn thành");
+  expect(document.body.textContent).not.toContain("Thu hồi bản gửi");
+});
+
+it("links the selected podcast before submitting it for review", async () => {
+  const { schedule } = releaseReviewFixture();
+  schedule.episode = null;
+  schedule.episodeId = null;
+  const calls: string[] = [];
+  const service = { ...moderatorReleaseService, assignments: async () => ({ items: [schedule] }), reminders: async () => ({ items: [] }),
+    assignableEpisodes: async () => ({ items: [{ id: "podcast-new", title: "Podcast mới", seriesTitle: "Series", contentRevision: 2, updatedAt: new Date() }] }),
+    linkEpisode: async () => { calls.push("link"); return schedule; },
+    submitReview: async () => { calls.push("submit"); return releaseReviewFixture().schedule.reviews[0]!; },
+  };
+  queryClient = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+  const host = document.createElement("div"); document.body.append(host); root = createRoot(host);
+  await act(async () => { root?.render(<QueryClientProvider client={queryClient!}><ModeratorAssignments service={service} /></QueryClientProvider>); await new Promise((resolve) => setTimeout(resolve, 30)); });
+  await act(async () => { await new Promise((resolve) => setTimeout(resolve, 30)); });
+  await selectDashboardAction(schedule.title, "Xem chi tiết", host);
+  const trigger = document.body.querySelector<HTMLButtonElement>('[aria-label="Podcast nháp của bạn"]')!;
+  await act(async () => { trigger.focus(); trigger.dispatchEvent(new KeyboardEvent("keydown", { bubbles: true, key: "ArrowDown" })); await new Promise((resolve) => setTimeout(resolve, 0)); });
+  const option = document.body.querySelector<HTMLElement>('[data-slot="select-item"][data-value="podcast-new"]')!;
+  await act(async () => { option.dispatchEvent(new PointerEvent("pointerup", { bubbles: true, button: 0 })); option.click(); });
+  await act(async () => { [...document.body.querySelectorAll<HTMLButtonElement>("button")].find((button) => button.textContent?.includes("Gửi duyệt"))?.click(); await new Promise((resolve) => setTimeout(resolve, 30)); });
+  expect(calls).toEqual(["link", "submit"]);
+  expect(document.body.textContent).not.toContain("Gắn podcast");
+});

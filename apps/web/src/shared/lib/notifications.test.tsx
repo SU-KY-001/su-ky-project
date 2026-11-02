@@ -20,7 +20,7 @@ async function mount(): Promise<void> {
 }
 
 describe("shared notifications", () => {
-  it("pauses both timeout and its indicator while the notification is hovered", async () => {
+  it("pauses the timeout while the notification is hovered", async () => {
     await mount();
     await act(async () => {
       notify.success({ title: "Đã lưu." });
@@ -28,11 +28,10 @@ describe("shared notifications", () => {
     });
     const viewport = document.querySelector("ol");
     await act(async () => { viewport?.dispatchEvent(new PointerEvent("pointermove", { bubbles: true })); });
-    expect(document.querySelector<HTMLElement>(".toast-timeout")?.style.animationPlayState).toBe("paused");
+    expect(document.querySelector(".toast-timeout")).toBeNull();
     await act(async () => { await new Promise((resolve) => setTimeout(resolve, 180)); });
     expect(useNotificationStore.getState().notifications[0]?.open).toBe(true);
     await act(async () => { viewport?.parentElement?.dispatchEvent(new PointerEvent("pointerleave")); });
-    expect(document.querySelector<HTMLElement>(".toast-timeout")?.style.animationPlayState).toBe("running");
     await act(async () => { await new Promise((resolve) => setTimeout(resolve, 170)); });
     expect(useNotificationStore.getState().notifications[0]?.open).toBe(false);
   });
@@ -50,7 +49,7 @@ describe("shared notifications", () => {
     await mount();
     await act(async () => { notify.success({ title: "Đã lưu sự kiện." }); });
     expect(Boolean(document.querySelector('[data-toast-status="success"]'))).toBe(true);
-    await act(async () => { await new Promise((resolve) => setTimeout(resolve, 4700)); });
+    await act(async () => { await new Promise((resolve) => setTimeout(resolve, 3300)); });
     expect(Boolean(document.querySelector('[data-slot="toast"]'))).toBe(false);
   }, 6000);
 
@@ -67,7 +66,7 @@ describe("shared notifications", () => {
     expect(document.querySelector('[data-toast-status="error"]')?.textContent).toContain("Bản nháp chưa được lưu");
     await act(async () => { document.querySelector<HTMLButtonElement>('button[aria-label="Đóng thông báo"]')?.click(); });
     expect(document.querySelector('[data-slot="toast"]')?.getAttribute("data-state")).toBe("closed");
-    await act(async () => { await new Promise((resolve) => setTimeout(resolve, 220)); });
+    await act(async () => { await new Promise((resolve) => setTimeout(resolve, 300)); });
     expect(useNotificationStore.getState().notifications.length).toBe(0);
   });
 

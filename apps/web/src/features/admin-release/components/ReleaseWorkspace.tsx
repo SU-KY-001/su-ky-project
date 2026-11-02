@@ -53,13 +53,6 @@ export function ReleaseWorkspaceView({
         description="Lập lịch, phân công Moderator và theo dõi toàn bộ luồng sản xuất đến khi podcast được phát hành."
       />
 
-      <ReleaseWorkerStatus
-        health={workspace.worker?.data}
-        healthError={workspace.worker?.isError ?? false}
-        syncError={workspace.view === "kanban" ? workspace.board.isError : Boolean(workspace.table.error)}
-        updatedAt={(workspace.view === "kanban" ? workspace.board.dataUpdatedAt : workspace.table.dataUpdatedAt) ?? 0}
-      />
-
       {workspace.view === "kanban" ? (
         <>
           {toolbar}

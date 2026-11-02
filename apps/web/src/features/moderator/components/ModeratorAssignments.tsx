@@ -15,7 +15,7 @@ export interface ModeratorAssignmentSummary {
   scheduledAt: Date;
   productionDeadline: Date;
   episode: { id: string; title?: string; contentRevision: number } | null;
-  reviews: StoredReview[];
+  reviews: Array<StoredReview & { id: string; episodeId: string }>;
   reassignmentTicket?: {
     id: string;
     status: "PENDING" | "APPROVED" | "REJECTED" | "CANCELLED";
@@ -37,7 +37,7 @@ export interface AssignableEpisodeSummary {
 export function ModeratorAssignments({ service = moderatorReleaseService }: { service?: typeof moderatorReleaseService }) {
   const queryClient = useQueryClient();
   const shownReminders = useRef(new Set<string>());
-  const assignments = useQuery({ queryKey: ["moderator-release-assignments"], queryFn: service.assignments });
+  const assignments = useQuery({ queryKey: ["moderator-release-assignments"], queryFn: service.assignments, refetchInterval: 2_000 });
   const episodes = useQuery({ queryKey: ["moderator-assignable-episodes"], queryFn: service.assignableEpisodes });
   const reminders = useQuery({ queryKey: ["moderator-release-reminders"], queryFn: service.reminders });
 
@@ -75,12 +75,29 @@ export function ModeratorAssignments({ service = moderatorReleaseService }: { se
     onError: (error) => notify.error({ title: "Không thể gắn podcast", description: errorMessage(error) }),
   });
   const submit = useMutation({
-    mutationFn: ({ scheduleId, revision }: { scheduleId: string; revision: number }) => service.submitReview(scheduleId, revision),
+    mutationFn: async ({ scheduleId, revision, episodeId }: { scheduleId: string; revision: number; episodeId?: string }) => {
+      if (episodeId) await service.linkEpisode(scheduleId, episodeId);
+      return service.submitReview(scheduleId, revision);
+    },
     onSuccess: () => {
       notify.success({ title: "Đã gửi podcast chờ kiểm duyệt" });
       return invalidate();
     },
-    onError: (error) => notify.error({ title: "Không thể gửi duyệt", description: errorMessage(error) }),
+    onError: (error) => {
+      notify.error({ title: "Không thể gửi duyệt", description: errorMessage(error) });
+      return invalidate();
+    },
+  });
+  const withdraw = useMutation({
+    mutationFn: ({ scheduleId, reviewId }: { scheduleId: string; reviewId: string }) => service.withdrawReview(scheduleId, reviewId),
+    onSuccess: () => {
+      notify.success({ title: "Đã thu hồi bản gửi" });
+      return invalidate();
+    },
+    onError: (error) => {
+      notify.error({ title: "Không thể thu hồi bản gửi", description: errorMessage(error) });
+      return invalidate();
+    },
   });
   if (assignments.isPending || episodes.isPending)
     return <div className="ui-skeleton min-h-[360px] rounded-xl" aria-label="Đang tải nhiệm vụ" />;
@@ -91,7 +108,9 @@ export function ModeratorAssignments({ service = moderatorReleaseService }: { se
     onRetry={() => { void assignments.refetch(); void episodes.refetch(); void reminders.refetch(); }}
     linkingId={link.isPending ? link.variables?.scheduleId : null}
     submittingId={submit.isPending ? submit.variables?.scheduleId : null}
+    withdrawingId={withdraw.isPending ? withdraw.variables?.scheduleId : null}
     onLinkEpisode={(scheduleId, episodeId) => link.mutate({ scheduleId, episodeId })}
-    onSubmitReview={(scheduleId, revision) => submit.mutate({ scheduleId, revision })}
+    onSubmitReview={(scheduleId, revision, episodeId) => submit.mutate({ scheduleId, revision, episodeId })}
+    onWithdrawReview={(scheduleId, reviewId) => withdraw.mutate({ scheduleId, reviewId })}
   />;
 }

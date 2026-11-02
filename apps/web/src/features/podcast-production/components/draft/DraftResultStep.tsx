@@ -2,6 +2,7 @@ import { useEffect, useRef, useState, type ReactElement } from "react";
 import { ArrowDown, Check, Circle, LoaderCircle, Pencil, RotateCcw, Undo2 } from "lucide-react";
 import { SCRIPT_MAX_CHARACTERS, type OutlineSection } from "@repo/shared";
 import { Button } from "@/shared/components/ui/button";
+import { notify } from "@/shared/lib/notifications";
 import { Textarea } from "@/shared/components/ui/textarea";
 import { cn } from "@/lib/utils";
 import type { DraftInsertItem, EditResult } from "../../aiCheck/editorBlocks";
@@ -56,8 +57,14 @@ export function DraftResultStep({ params, sections, onBack, onInsert, onInserted
 
   const insert = (): void => {
     const result = onInsert(kept.map(({ draft, index }) => ({ heading: sections[index]!.title, paragraphs: draftParagraphs(draft) })), at);
-    if (result.ok) return onInserted();
-    setInsertError(result.reason === "TOO_LONG" ? `Không đủ chỗ: kịch bản tối đa ${SCRIPT_MAX_CHARACTERS.toLocaleString("vi-VN")} ký tự. Chưa chèn gì vào kịch bản.` : "Không chèn được vào kịch bản. Thử lại.");
+    if (result.ok) {
+      notify.success({ title: "Đã chèn nội dung vào kịch bản", description: "Kịch bản sẽ được tự động lưu." });
+      onInserted();
+      return;
+    }
+    const message = result.reason === "TOO_LONG" ? `Không đủ chỗ: kịch bản tối đa ${SCRIPT_MAX_CHARACTERS.toLocaleString("vi-VN")} ký tự. Chưa chèn gì vào kịch bản.` : "Không chèn được vào kịch bản. Thử lại.";
+    setInsertError(message);
+    notify.error({ title: "Không thể chèn nội dung", description: message });
   };
 
   return (
