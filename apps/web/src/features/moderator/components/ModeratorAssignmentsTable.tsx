@@ -54,7 +54,8 @@ export function ModeratorAssignmentsView({ assignments, assignableEpisodes = [],
   const [selectedEpisodeId, setSelectedEpisodeId] = useState("");
   const selected = assignments.find((item) => item.id === selectedId);
   const filtered = assignments.filter((item) => item.title.toLocaleLowerCase("vi").includes(search.trim().toLocaleLowerCase("vi")) &&
-    (status === "all" || assignmentStatus(item) === status));
+    (status === "all" || assignmentStatus(item) === status))
+    .sort((a, b) => b.productionDeadline.getTime() - a.productionDeadline.getTime());
   const limit = 10;
   const currentPage = Math.min(page, Math.max(1, Math.ceil(filtered.length / limit)));
   const items = filtered.slice((currentPage - 1) * limit, currentPage * limit);

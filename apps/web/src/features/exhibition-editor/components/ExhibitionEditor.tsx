@@ -14,6 +14,7 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/shared/component
 import { AudioUploadDropzone } from "@/shared/components/common/AudioUploadDropzone";
 import { ImageUploadDropzone } from "@/shared/components/common/ImageUploadDropzone";
 import { ConfirmationDialog } from "@/shared/components/common/ConfirmationDialog";
+import { ErrorState } from "@/shared/components/common/ErrorState";
 import { useConfirmationDialog } from "@/shared/hooks/useConfirmationDialog";
 import { notify } from "@/shared/lib/notifications";
 import { editDocument, undoDocument } from "../editorState";
@@ -42,7 +43,7 @@ export function ExhibitionEditor({ id }: { id: string }): ReactElement {
   const previous = returnStateSchema.safeParse(location.state);
   const query = useQuery({ queryKey: ["exhibition", id], queryFn: () => exhibitionService.get(id) });
   if (query.isPending) return <p role="status">Đang tải triển lãm…</p>;
-  if (query.isError) return <div role="alert"><p>{query.error.message}</p><Button onClick={() => void query.refetch()}>Thử lại</Button></div>;
+  if (query.isError) return <ErrorState title="Không thể tải triển lãm" description={query.error.message} onRetry={() => { void query.refetch(); }} className="min-h-[60vh] bg-mod-canvas font-moderator" />;
   const initial = previous.success && previous.data.workspace.id === id ? previous.data.workspace : query.data;
   return <Editor key={id} initial={initial} initialDirty={previous.success && initial === previous.data.workspace && previous.data.dirty} initialSaved={previous.success && initial === previous.data.workspace ? previous.data.savedDocument ?? initial.document : query.data.document} />;
 }

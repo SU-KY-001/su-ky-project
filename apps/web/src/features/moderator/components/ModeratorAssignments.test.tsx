@@ -11,6 +11,15 @@ afterEach(() => {
   document.body.innerHTML = "";
 });
 
+it("shows the most recent production deadlines first", async () => {
+  const host = document.createElement("div"); document.body.append(host); root = createRoot(host);
+  const assignment = (id: string, deadline: string) => ({ id, title: id, status: "SCHEDULED" as const, scheduledAt: new Date("2026-12-01T00:00:00Z"), productionDeadline: new Date(deadline), episode: null, reviews: [] });
+  const items = [assignment("Cũ", "2026-10-01T00:00:00Z"), assignment("Mới", "2026-11-01T00:00:00Z"), assignment("Giữa", "2026-10-15T00:00:00Z")];
+  await act(async () => { root?.render(<ModeratorAssignmentsView assignments={items} onSubmitReview={() => undefined} />); });
+  expect([...host.querySelectorAll("tbody tr")].map(row => row.cells[0]?.textContent)).toEqual(["Mới", "Giữa", "Cũ"]);
+  expect(items.map(item => item.title)).toEqual(["Cũ", "Mới", "Giữa"]);
+});
+
 it("shows assigned production work and submits its current revision", async () => {
   const submit = mock(() => undefined);
   const host = document.createElement("div");

@@ -1,4 +1,5 @@
 import { PgBoss } from "pg-boss";
+import { z } from "zod";
 import { prisma, type Prisma } from "@repo/db";
 import { getSystemConfig } from "../config/system-config";
 import { logger } from "../logger";
@@ -17,11 +18,32 @@ const RATE_LIMIT_RETENTION_MS = 24 * 60 * 60 * 1000;
 
 let maintenanceBoss: PgBoss | null = null;
 
+const exhibitionMediaSchema = z.object({
+  metadata: z.object({ coverAssetId: z.string().nullable().optional() }),
+  audioAssetId: z.string().nullable().optional(),
+  items: z.array(z.object({ imageAssetId: z.string() })),
+});
+
+export function exhibitionMediaIds(exhibitions: { draftDocument: unknown; publishedDocument: unknown }[]): string[] {
+  const ids = new Set<string>();
+  for (const exhibition of exhibitions) {
+    for (const value of [exhibition.draftDocument, exhibition.publishedDocument]) {
+      if (value === null) continue;
+      const document = exhibitionMediaSchema.parse(value);
+      if (document.metadata.coverAssetId) ids.add(document.metadata.coverAssetId);
+      if (document.audioAssetId) ids.add(document.audioAssetId);
+      for (const item of document.items) ids.add(item.imageAssetId);
+    }
+  }
+  return [...ids];
+}
+
 export async function cleanupDetachedMedia(storage: MediaStorageGateway): Promise<void> {
   const graceHours = await getSystemConfig("media.cleanup_grace_hours");
   const batchSize = await getSystemConfig("media.cleanup_batch_size");
   const cutoff = new Date(Date.now() - graceHours * 60 * 60 * 1000);
-  const assets = await prisma.mediaAsset.findMany({ where: detachedMediaWhere(cutoff), take: batchSize, orderBy: { createdAt: "asc" } });
+  const exhibitions = await prisma.exhibition.findMany({ select: { draftDocument: true, publishedDocument: true } });
+  const assets = await prisma.mediaAsset.findMany({ where: { ...detachedMediaWhere(cutoff), id: { notIn: exhibitionMediaIds(exhibitions) } }, take: batchSize, orderBy: { createdAt: "asc" } });
   for (const asset of assets) {
     try {
       await storage.destroy(asset.publicId, asset.kind);

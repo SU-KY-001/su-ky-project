@@ -10,7 +10,7 @@ export interface AppNotification extends NotificationMessage {
   open: boolean;
 }
 export const notificationDurations: Record<NotificationStatus, number> = {
-  success: 4500, error: 8000, warning: 6000, info: 4500, loading: Infinity,
+  success: 3000, error: 3000, warning: 3000, info: 3000, loading: Infinity,
 };
 interface NotificationState {
   notifications: AppNotification[];

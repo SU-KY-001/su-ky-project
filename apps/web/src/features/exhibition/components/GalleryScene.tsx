@@ -1,5 +1,5 @@
 import { Canvas } from "@react-three/fiber";
-import { useEffect, useRef, type ReactElement } from "react";
+import { useCallback, useEffect, useRef, useState, type ReactElement } from "react";
 import { useFrame, useThree } from "@react-three/fiber";
 import { galleryPalette, type Artwork } from "../data";
 import { GalleryArchitecture } from "./GalleryArchitecture";
@@ -9,11 +9,11 @@ import { GalleryArtworkLights } from "./GalleryArtworkLights";
 import { GalleryControls, initialView, type ControlsProps } from "./GalleryControls";
 import { NoToneMapping } from "three";
 
-function ContextEvents({ onUnavailable, onReady }: { onUnavailable: () => void; onReady?: () => void }): null {
+function ContextEvents({ onUnavailable, onReady, assetsReady }: { onUnavailable: () => void; onReady?: () => void; assetsReady: boolean }): null {
   const { gl } = useThree();
   const reported = useRef(false);
   useFrame(() => {
-    if (!reported.current) { reported.current = true; onReady?.(); }
+    if (assetsReady && !reported.current) { reported.current = true; onReady?.(); }
   });
   useEffect(() => {
     const lost = (event: Event): void => { event.preventDefault(); onUnavailable(); };
@@ -24,6 +24,10 @@ function ContextEvents({ onUnavailable, onReady }: { onUnavailable: () => void; 
 }
 
 export function GalleryScene(props: ControlsProps & { onUnavailable: () => void; onReady?: () => void; items: Artwork[]; chapterText: { title: string; period: string; description: string }[] }): ReactElement {
+  const [settled, setSettled] = useState<Set<string>>(() => new Set());
+  const onArtworkSettled = useCallback((id: string): void => {
+    setSettled(current => current.has(id) ? current : new Set([...current, id]));
+  }, []);
   return <Canvas
     camera={{ position: initialView.position, fov: 66, near: 0.08, far: 90 }}
     dpr={[1, 1.5]} frameloop={props.active ? "always" : "demand"}
@@ -38,8 +42,8 @@ export function GalleryScene(props: ControlsProps & { onUnavailable: () => void;
     <GalleryArchitecture chapterText={props.chapterText} artworks={props.items} />
     <GalleryCeilingLights />
     <GalleryArtworkLights artworks={props.items} />
-    {props.items.map(artwork => <GalleryArtwork key={artwork.id} artwork={artwork} />)}
+    {props.items.map(artwork => <GalleryArtwork key={artwork.id} artwork={artwork} onSettled={onArtworkSettled} />)}
     <GalleryControls {...props} roomCount={props.chapterText.length} />
-    <ContextEvents onUnavailable={props.onUnavailable} onReady={props.onReady} />
+    <ContextEvents onUnavailable={props.onUnavailable} onReady={props.onReady} assetsReady={props.items.every(item => settled.has(item.id))} />
   </Canvas>;
 }
