@@ -78,9 +78,19 @@ function asTicket(
   return { ...ticket, schedule: asSchedule(schedule) };
 }
 
+async function lockReleaseEpisode(tx: Prisma.TransactionClient, episodeId: string): Promise<void> {
+  const episode = await tx.episode.findUnique({ where: { id: episodeId }, select: { seriesId: true } });
+  if (!episode) throw new DomainError(404, "NOT_FOUND", "Không tìm thấy tập podcast.");
+  await tx.$queryRaw`SELECT id FROM series WHERE id=${episode.seriesId}::uuid FOR UPDATE`;
+  await tx.$queryRaw`SELECT id FROM episodes WHERE id=${episodeId}::uuid FOR UPDATE`;
+  const active = await tx.episode.findFirst({ where: { id: episodeId, deletedAt: null, series: { deletedAt: null } }, select: { id: true } });
+  if (!active) throw new DomainError(409, "CONTENT_IN_TRASH", "Tập podcast hoặc series đã được chuyển vào thùng rác.");
+}
+
 export class PrismaReleaseRepository implements ReleaseRepository {
   async createSchedule(input: CreateReleaseScheduleRecord): Promise<ReleaseScheduleEntity> {
     const created = await prisma.$transaction(async (tx) => {
+      if (input.episodeId) await lockReleaseEpisode(tx, input.episodeId);
       const schedule = await tx.releaseSchedule.create({
         data: {
           title: input.title,
@@ -150,6 +160,8 @@ export class PrismaReleaseRepository implements ReleaseRepository {
       const current = await tx.releaseSchedule.findUnique({ where: { id } });
       if (!current || current.updatedAt.getTime() !== input.expectedUpdatedAt.getTime())
         return false;
+
+      if (input.episodeId) await lockReleaseEpisode(tx, input.episodeId);
 
       const isReschedule =
         input.scheduledAt !== undefined &&
@@ -642,8 +654,14 @@ export class PrismaReleaseRepository implements ReleaseRepository {
   }
 
   async listSchedules(filter: ReleaseScheduleListFilter) {
+    const groupedStatuses: Record<NonNullable<ReleaseScheduleListFilter["statusGroup"]>, NonNullable<ReleaseScheduleListFilter["status"]>[]> = {
+      IN_PROGRESS: ["SCHEDULED", "READY_TO_PUBLISH", "PUBLISHING"],
+      NEEDS_ATTENTION: ["BLOCKED", "FAILED"],
+      RELEASED: ["RELEASED"],
+      CANCELLED: ["CANCELLED"],
+    };
     const where: Prisma.ReleaseScheduleWhereInput = {
-      status: filter.status ?? (filter.scope === "HISTORY"
+      status: filter.status ?? (filter.statusGroup ? { in: groupedStatuses[filter.statusGroup] } : filter.scope === "HISTORY"
         ? { in: ["RELEASED", "CANCELLED"] }
         : filter.scope === "REVIEW_QUEUE"
           ? { in: ["SCHEDULED", "BLOCKED"] }
@@ -679,11 +697,11 @@ export class PrismaReleaseRepository implements ReleaseRepository {
     return { items: items.map(asSchedule), total };
   }
 
-  async listAssignedSchedules(moderatorId: string) {
+  async listAssignedSchedules(moderatorId: string, statuses?: ReleaseScheduleStatus[]) {
     const items = await prisma.releaseSchedule.findMany({
       where: {
         assignments: { some: { moderatorId, removedAt: null } },
-        status: { notIn: ["CANCELLED"] },
+        status: statuses ? { in: statuses } : { notIn: ["CANCELLED"] },
       },
       include: scheduleInclude,
       orderBy: [{ productionDeadline: "asc" }, { scheduledAt: "asc" }],
@@ -780,6 +798,7 @@ export class PrismaReleaseRepository implements ReleaseRepository {
         },
       });
       if (!assignment) return false;
+      await lockReleaseEpisode(tx, input.episodeId);
       const episode = await tx.episode.findFirst({
         where: {
           id: input.episodeId,

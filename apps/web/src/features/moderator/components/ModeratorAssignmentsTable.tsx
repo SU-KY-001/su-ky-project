@@ -4,7 +4,7 @@ import { LinkSimple } from "@phosphor-icons/react/dist/icons/LinkSimple";
 import { MagnifyingGlass } from "@phosphor-icons/react/dist/icons/MagnifyingGlass";
 import { PaperPlaneTilt } from "@phosphor-icons/react/dist/icons/PaperPlaneTilt";
 import { cn } from "@/lib/utils";
-import { CardBadge, cardBadgeToneForStatus } from "@/shared/components/dashboard/CardBadge";
+import { CardBadge, type CardBadgeTone } from "@/shared/components/dashboard/CardBadge";
 import { DashboardHeader } from "@/shared/components/dashboard/DashboardOverview";
 import { DashboardTableCard } from "@/shared/components/dashboard/DashboardTableCard";
 import { DashboardDataTable, DashboardEmptyTableRow, dashboardTableCell } from "@/shared/components/dashboard/DashboardDataTable";
@@ -18,19 +18,31 @@ import { TableCell, TableRow } from "@/shared/components/ui/table";
 import { ReviewHistory } from "@/features/release-review/ReviewHistory";
 import type { AssignableEpisodeSummary, ModeratorAssignmentSummary } from "./ModeratorAssignments";
 
-const labels: Record<string, string> = {
-  SCHEDULED: "Đang sản xuất", READY_TO_PUBLISH: "Đã duyệt, chờ phát hành",
-  PUBLISHING: "Đang phát hành", RELEASED: "Đã hoàn thành", BLOCKED: "Cần xử lý",
-  FAILED: "Phát hành thất bại", CANCELLED: "Đã hủy", IN_REVIEW: "Chờ kiểm duyệt",
+type AssignmentStatus = "NOT_STARTED" | "IN_PROGRESS" | "IN_REVIEW" | "CHANGES_REQUESTED" | "COMPLETED";
+
+const labels: Record<AssignmentStatus, string> = {
+  NOT_STARTED: "Chưa bắt đầu",
+  IN_PROGRESS: "Đang thực hiện",
+  IN_REVIEW: "Chờ duyệt",
   CHANGES_REQUESTED: "Cần chỉnh sửa",
+  COMPLETED: "Hoàn thành",
 };
 
-function assignmentStatus(item: ModeratorAssignmentSummary): string {
-  if (["SCHEDULED", "BLOCKED", "FAILED"].includes(item.status)) {
-    const review = item.reviews[0];
-    if (review && review.revision === item.episode?.contentRevision && ["IN_REVIEW", "CHANGES_REQUESTED"].includes(review.status)) return review.status;
-  }
-  return item.status;
+const tones: Record<AssignmentStatus, CardBadgeTone> = {
+  NOT_STARTED: "neutral", IN_PROGRESS: "info", IN_REVIEW: "info", CHANGES_REQUESTED: "warning", COMPLETED: "success",
+};
+
+function currentReview(item: ModeratorAssignmentSummary) {
+  const episode = item.episode;
+  return episode ? item.reviews.find((review) => review.episodeId === episode.id && review.revision === episode.contentRevision) : undefined;
+}
+
+function assignmentStatus(item: ModeratorAssignmentSummary): AssignmentStatus {
+  if (!item.episode) return "NOT_STARTED";
+  const review = currentReview(item);
+  if (review?.status === "IN_REVIEW" || review?.status === "CHANGES_REQUESTED") return review.status;
+  if (review?.status === "APPROVED") return "COMPLETED";
+  return "IN_PROGRESS";
 }
 
 const dateFormat = new Intl.DateTimeFormat("vi-VN", { dateStyle: "short", timeStyle: "short", timeZone: "Asia/Ho_Chi_Minh" });
@@ -52,18 +64,19 @@ export function ModeratorAssignmentsView({ assignments, assignableEpisodes = [],
   const [page, setPage] = useState(1);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [selectedEpisodeId, setSelectedEpisodeId] = useState("");
-  const selected = assignments.find((item) => item.id === selectedId);
-  const filtered = assignments.filter((item) => item.title.toLocaleLowerCase("vi").includes(search.trim().toLocaleLowerCase("vi")) &&
+  const relevant = assignments.filter((item) => item.status !== "CANCELLED");
+  const selected = relevant.find((item) => item.id === selectedId);
+  const filtered = relevant.filter((item) => item.title.toLocaleLowerCase("vi").includes(search.trim().toLocaleLowerCase("vi")) &&
     (status === "all" || assignmentStatus(item) === status))
     .sort((a, b) => b.productionDeadline.getTime() - a.productionDeadline.getTime());
   const limit = 10;
   const currentPage = Math.min(page, Math.max(1, Math.ceil(filtered.length / limit)));
   const items = filtered.slice((currentPage - 1) * limit, currentPage * limit);
   const canSubmit = (item: ModeratorAssignmentSummary): boolean => Boolean(item.episode) &&
-    ["SCHEDULED", "BLOCKED", "FAILED"].includes(item.status) && item.reviews[0]?.status !== "IN_REVIEW";
+    !["RELEASED", "CANCELLED", "PUBLISHING"].includes(item.status) && !currentReview(item);
   const showStatus = (item: ModeratorAssignmentSummary) => {
     const key = assignmentStatus(item);
-    return <CardBadge type="status" tone={cardBadgeToneForStatus(key)}>{labels[key] ?? key}</CardBadge>;
+    return <CardBadge type="status" tone={tones[key]}>{labels[key]}</CardBadge>;
   };
   const submitButton = (item: ModeratorAssignmentSummary) => canSubmit(item) && item.episode ? (
     <Button type="button" size="sm" disabled={submittingId === item.id} onClick={() => onSubmitReview(item.id, item.episode!.contentRevision)}>
@@ -74,7 +87,7 @@ export function ModeratorAssignmentsView({ assignments, assignableEpisodes = [],
   return <div className="flex min-w-0 flex-col gap-6 font-moderator">
     <DashboardHeader eyebrow="SẢN XUẤT PODCAST" title="Nhiệm vụ của tôi" description="Quản lý nội dung được phân công, hạn sản xuất và tiến độ kiểm duyệt." />
     <DashboardTableCard title="Nhiệm vụ được phân công" description="Hoàn thiện podcast và gửi phiên bản hiện tại để kiểm duyệt."
-      summary={`${assignments.length} nhiệm vụ`}
+      summary={`${relevant.length} nhiệm vụ`}
       toolbar={<div className="grid gap-3 md:grid-cols-[minmax(0,1fr)_240px]">
         <label className="relative"><span className="sr-only">Tìm nhiệm vụ</span><MagnifyingGlass size={17} className="absolute left-3 top-1/2 -translate-y-1/2 text-mod-text-muted" />
           <Input value={search} onChange={(event) => { setSearch(event.target.value); setPage(1); }} placeholder="Tìm nhiệm vụ" className="border-mod-border bg-mod-surface pl-9" />
@@ -97,7 +110,7 @@ export function ModeratorAssignmentsView({ assignments, assignableEpisodes = [],
               <DashboardRowActions label={item.title} actions={[{ id: "detail", label: "Xem chi tiết", icon: Eye, onSelect: () => { setSelectedId(item.id); setSelectedEpisodeId(""); } }]} />
             </TableCell>
           </TableRow>
-        )) : <DashboardEmptyTableRow columns={6}>{assignments.length ? "Không có nhiệm vụ phù hợp với bộ lọc." : "Chưa có nhiệm vụ đang mở. Các lịch được Admin phân công sẽ xuất hiện tại đây."}</DashboardEmptyTableRow>}
+        )) : <DashboardEmptyTableRow columns={6}>{relevant.length ? "Không có nhiệm vụ phù hợp với bộ lọc." : "Chưa có nhiệm vụ đang mở. Các lịch được Admin phân công sẽ xuất hiện tại đây."}</DashboardEmptyTableRow>}
       </DashboardDataTable>
     </DashboardTableCard>
     <Dialog open={Boolean(selected)} onOpenChange={(open) => { if (!open) setSelectedId(null); }}>

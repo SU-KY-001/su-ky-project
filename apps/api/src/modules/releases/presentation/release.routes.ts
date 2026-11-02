@@ -217,6 +217,9 @@ export function createReleaseRoutes(
 
   const studio = new Hono<AppEnv>()
     .use("*", guards.studio)
+    .get("/schedules", async (c) =>
+      c.json({ items: await service.assignedSchedules(c.get("session")!) }),
+    )
     .get("/assignments", async (c) =>
       c.json({ items: await service.assignedWork(c.get("session")!) }),
     )

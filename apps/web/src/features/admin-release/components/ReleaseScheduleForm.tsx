@@ -29,6 +29,7 @@ export function ReleaseScheduleForm({
   initialValuesKey = mode,
   formId = "release-schedule-form",
   showSubmitAction = true,
+  readOnly = false,
 }: {
   moderators: ReleaseModeratorOption[];
   onSubmit: (input: ReleaseScheduleDraft) => Promise<unknown> | unknown;
@@ -38,6 +39,7 @@ export function ReleaseScheduleForm({
   initialValuesKey?: string;
   formId?: string;
   showSubmitAction?: boolean;
+  readOnly?: boolean;
 }) {
   const [title, setTitle] = useState(initialValues?.title ?? "");
   const [productionDeadline, setProductionDeadline] = useState(initialValues?.productionDeadline ?? "");
@@ -57,8 +59,13 @@ export function ReleaseScheduleForm({
 
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (readOnly) return;
     if (!title.trim() || !productionDeadline || !scheduledAt || !moderatorId) {
       setError("Điền đủ tên kế hoạch, hai mốc thời gian và chọn một Moderator phụ trách.");
+      return;
+    }
+    if (mode === "create" && (new Date(productionDeadline).getTime() <= Date.now() || new Date(scheduledAt).getTime() <= Date.now())) {
+      setError("Hạn hoàn thành và thời gian phát hành phải sau thời gian hiện tại.");
       return;
     }
     if (new Date(productionDeadline) >= new Date(scheduledAt)) {
@@ -77,11 +84,13 @@ export function ReleaseScheduleForm({
 
   return (
     <form id={formId} onSubmit={submit} className="flex flex-col gap-5" aria-label={mode === "edit" ? "Cập nhật lịch phát hành" : "Tạo lịch phát hành"}>
+      <fieldset disabled={readOnly} className="flex min-w-0 flex-col gap-5">
       <div className="grid gap-4 lg:grid-cols-2">
         <div className="flex flex-col gap-2 lg:col-span-2">
           <Label htmlFor="release-title">Tên kế hoạch hoặc podcast</Label>
           <Input
             id="release-title"
+            disabled={readOnly}
             value={title}
             onChange={(event) => setTitle(event.target.value)}
             placeholder="Ví dụ: Dấu chân Trường Sơn"
@@ -92,9 +101,11 @@ export function ReleaseScheduleForm({
           <Label htmlFor="production-deadline">Hạn hoàn thành sản xuất</Label>
           <DateTimePicker
             id="production-deadline"
+            disabled={readOnly}
             value={productionDeadline}
             onChange={setProductionDeadline}
             ariaLabel="Chọn hạn hoàn thành sản xuất"
+            disablePast={mode === "create"}
             placeholder="Chọn ngày hoàn thành"
           />
         </div>
@@ -102,9 +113,11 @@ export function ReleaseScheduleForm({
           <Label htmlFor="scheduled-at">Thời gian phát hành</Label>
           <DateTimePicker
             id="scheduled-at"
+            disabled={readOnly}
             value={scheduledAt}
             onChange={setScheduledAt}
             ariaLabel="Chọn ngày phát hành"
+            disablePast={mode === "create"}
             placeholder="Chọn ngày phát hành"
           />
         </div>
@@ -112,7 +125,7 @@ export function ReleaseScheduleForm({
       <div className="flex flex-col gap-2">
         <Label htmlFor="release-moderator">Moderator phụ trách</Label>
         {moderators.length ? (
-          <Select value={moderatorId} onValueChange={setModeratorId}>
+          <Select value={moderatorId} onValueChange={setModeratorId} disabled={readOnly}>
             <SelectTrigger
               id="release-moderator"
               aria-label="Moderator phụ trách"
@@ -138,6 +151,7 @@ export function ReleaseScheduleForm({
         )}
       </div>
       {error ? <p role="alert" className="text-sm font-medium text-vermilion">{error}</p> : null}
+      </fieldset>
       {showSubmitAction ? (
         <Button
           type="submit"

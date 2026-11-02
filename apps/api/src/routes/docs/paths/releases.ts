@@ -87,7 +87,8 @@ export const releasePaths: Paths = {
       id: "listReleaseSchedules",
       tag: TAG,
       summary: "Danh sách lịch phát hành",
-      description: "Lọc lịch theo trạng thái và khoảng thời gian phát hành.",
+      description: "Lọc lịch theo trạng thái, nhóm trạng thái và khoảng thời gian phát hành.",
+      queryDocs: { statusGroup: "IN_PROGRESS: đã lên lịch, sẵn sàng hoặc đang phát hành; NEEDS_ATTENTION: bị chặn hoặc thất bại; RELEASED: đã phát hành; CANCELLED: đã hủy." },
       access: "admin",
       query: ReleaseScheduleQuerySchema,
       ok: {
@@ -331,6 +332,16 @@ export const releasePaths: Paths = {
         description: "Các lịch Moderator đang được phân công",
         schema: { name: "AssignedReleaseList", schema: ItemsOf(ReleaseScheduleDocSchema) },
       },
+    }),
+  },
+  [`${STUDIO}/schedules`]: {
+    get: operation({
+      id: "listMyReleaseSchedules",
+      tag: TAG,
+      summary: "Danh sách lịch phát hành được phân công",
+      description: "Chỉ trả lịch đang phân công cho Moderator với trạng thái đã lên lịch, đủ điều kiện, đã phát hành hoặc đã hủy.",
+      access: "moderator",
+      ok: { status: 200, description: "Lịch phát hành được phân công", schema: { name: "ModeratorReleaseScheduleList", schema: ItemsOf(ReleaseScheduleDocSchema) } },
     }),
   },
   [`${STUDIO}/assignable-episodes`]: {

@@ -10,7 +10,8 @@ afterEach(() => {
   document.body.innerHTML = "";
 });
 
-it("groups row actions into one accessible menu", async () => {
+it("opens the selected user directly from the shared detail button", async () => {
+  const onDetail = mock((_user: { id: string }) => undefined);
   const host = document.createElement("div");
   document.body.append(host);
   root = createRoot(host);
@@ -42,9 +43,7 @@ it("groups row actions into one accessible menu", async () => {
         onRoleChange={mock(() => undefined)}
         onPageChange={mock(() => undefined)}
         onCreate={mock(() => undefined)}
-        onEdit={mock(() => undefined)}
-        onToggleBan={mock(() => undefined)}
-        onDelete={mock(() => undefined)}
+        onDetail={onDetail}
       />,
     );
   });
@@ -56,16 +55,10 @@ it("groups row actions into one accessible menu", async () => {
   expect(host.textContent).toContain("Moderator");
   expect(host.textContent).toContain("Đang hoạt động");
   expect(host.textContent).toContain("Thao tác");
-  expect(host.querySelector('button[aria-label="Mở thao tác cho Nguyễn Minh Anh"]')).not.toBeNull();
-  expect(host.querySelectorAll('button[aria-label*="Nguyễn Minh Anh"]')).toHaveLength(1);
-  const actionTrigger = host.querySelector<HTMLButtonElement>('button[aria-label="Mở thao tác cho Nguyễn Minh Anh"]')!;
-  await act(async () => {
-    actionTrigger.focus();
-    actionTrigger.dispatchEvent(new KeyboardEvent("keydown", { bubbles: true, key: "ArrowDown" }));
-    await new Promise((resolve) => setTimeout(resolve, 0));
-  });
-  expect(document.body.textContent).toContain("Chỉnh sửa");
-  expect(document.body.textContent).toContain("Khóa tài khoản");
-  expect(document.body.textContent).toContain("Xóa tài khoản");
+  const detail = host.querySelector<HTMLButtonElement>('button[aria-label="Xem chi tiết Nguyễn Minh Anh"]');
+  expect(detail).not.toBeNull();
+  await act(async () => detail?.click());
+  expect(onDetail).toHaveBeenCalledTimes(1);
+  expect(onDetail.mock.calls[0]?.[0]?.id).toBe("user-1");
   expect(host.querySelector('nav[aria-label="Phân trang"]')).not.toBeNull();
 });

@@ -15,7 +15,7 @@ export interface ModeratorAssignmentSummary {
   scheduledAt: Date;
   productionDeadline: Date;
   episode: { id: string; title?: string; contentRevision: number } | null;
-  reviews: StoredReview[];
+  reviews: Array<StoredReview & { episodeId: string }>;
   reassignmentTicket?: {
     id: string;
     status: "PENDING" | "APPROVED" | "REJECTED" | "CANCELLED";

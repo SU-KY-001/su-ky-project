@@ -122,6 +122,15 @@ it("preserves filters across temporary view changes without persisting the table
   expect(result.service.list.mock.calls.some(([filter]) => filter?.q === "Trường Sơn" && filter.moderatorId === "mod-1")).toBe(true);
 });
 
+it("opens the paginated list when filtering a status group", async () => {
+  const result = await renderController();
+  await act(async () => { result.workspace.setStatus("NEEDS_ATTENTION"); });
+  expect(result.workspace.view).toBe("table");
+  expect(result.service.list.mock.calls.some(([filter]) => filter?.statusGroup === "NEEDS_ATTENTION" && filter.page === 1)).toBe(true);
+  act(() => result.workspace.setView("kanban"));
+  expect(result.workspace.status).toBe("");
+});
+
 it("refetches and reports a transition error while direct selection opens edit", async () => {
   const result = await renderController(fakeService({ transitionFails: true }));
   const callsBefore = result.service.list.mock.calls.length;

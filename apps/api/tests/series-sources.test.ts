@@ -83,6 +83,13 @@ describe("series checklist (no database)", () => {
     expect(checklist({ sources: [] }).ready).toBe(true);
   });
 
+  it("does not require a cover to publish a series", () => {
+    const result = checklist({ coverImageAsset: null, coverLandscapeAsset: null });
+    expect(result.ready).toBe(true);
+    expect(result.items.map((item) => item.key)).not.toContain("COVER");
+    expect(checklist({ coverImageAsset: null, description: null }).ready).toBe(false);
+  });
+
   it("no longer asks episodes for a source", () => {
     const episode = {
       title: "Tập 1",
@@ -338,7 +345,7 @@ describe.skipIf(!RUN_INTEGRATION)(
         expect(published.publicationEvidence).toMatchObject({ sources: [] });
       });
 
-      it("blocks series publishing without a description, a READY cover or a language", async () => {
+      it("blocks series publishing without a description or a language", async () => {
         const bare = await makeSeries("Bare", { bare: true });
         await publishedEpisode(bare.id);
         await content.addSource(session, bare.id, {
@@ -354,7 +361,15 @@ describe.skipIf(!RUN_INTEGRATION)(
           seriesChecklist(detail)
             .items.filter((item) => !item.ok)
             .map((item) => item.key),
-        ).toEqual(["DESCRIPTION", "COVER"]);
+        ).toEqual(["DESCRIPTION"]);
+      });
+
+      it("publishes a ready series with no cover", async () => {
+        const series = await makeSeries("No cover");
+        await prisma.series.update({ where: { id: series.id }, data: { coverImageAssetId: null, coverLandscapeAssetId: null } });
+        await publishedEpisode(series.id);
+        const published = await content.publishSeries(session, series.id);
+        expect(published.status).toBe("PUBLISHED");
       });
 
       it("publishes once a phase and a source exist", async () => {

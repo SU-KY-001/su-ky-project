@@ -141,7 +141,13 @@ class FakeReleaseRepository {
   decisions: Array<{ status: string; reviewer: string; actorType: string }> = [];
   snapshots: Array<{ expectedRevision: number; readinessSnapshot: ReviewReadinessSnapshot }> = [];
   workloadArgs: Array<{ now: Date; nearDeadlineBefore: Date }> = [];
+  assignedScheduleArgs: Array<{ moderatorId: string; statuses?: string[] }> = [];
   ticket: ReleaseReassignmentTicketEntity | null = null;
+
+  async listAssignedSchedules(moderatorId: string, statuses?: string[]) {
+    this.assignedScheduleArgs.push({ moderatorId, statuses });
+    return [];
+  }
 
   async createSchedule(input: Parameters<ReleaseRepository["createSchedule"]>[0]) {
     this.current = schedule({
@@ -294,6 +300,12 @@ function service(
 }
 
 describe("release service", () => {
+  it("limits the moderator schedule list to their assignments and four statuses", async () => {
+    const { releaseService, repository } = service();
+    await releaseService.assignedSchedules(session("mod-author", "moderator"));
+    expect(repository.assignedScheduleArgs).toEqual([{ moderatorId: "mod-author", statuses: ["SCHEDULED", "READY_TO_PUBLISH", "RELEASED", "CANCELLED"] }]);
+    await expect(releaseService.assignedSchedules(session("admin", "admin"))).rejects.toMatchObject({ status: 403 });
+  });
   it("allows only Admin to create a release schedule", async () => {
     const { releaseService } = service();
     await expect(releaseService.createSchedule(session("mod", "moderator"), {
@@ -303,6 +315,13 @@ describe("release service", () => {
       scheduledAt: new Date("2026-10-20T13:00:00.000Z"),
       moderatorId: "mod-author",
     }, "correlation-1")).rejects.toMatchObject({ status: 403 });
+  });
+
+  it("rejects creation when either time is in the past", async () => {
+    const { releaseService } = service();
+    const input = { title: "Lịch", moderatorId: "mod-author", productionDeadline: new Date(now.getTime() - 60_000), scheduledAt: new Date(now.getTime() + 60_000) };
+    await expect(releaseService.createSchedule(session("admin", "admin"), input, "test")).rejects.toMatchObject({ status: 400 });
+    await expect(releaseService.createSchedule(session("admin", "admin"), { ...input, productionDeadline: new Date(now.getTime() + 60_000), scheduledAt: new Date(now.getTime() - 60_000) }, "test")).rejects.toMatchObject({ status: 400 });
   });
 
   it("returns Admin workload for the next 24 hours", async () => {

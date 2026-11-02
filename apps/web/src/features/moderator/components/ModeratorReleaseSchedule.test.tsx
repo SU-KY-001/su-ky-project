@@ -1,119 +1,59 @@
-import { afterEach, describe, expect, it } from "bun:test";
-import { act } from "react";
+import { afterEach, expect, it, mock } from "bun:test";
+import { act, useState } from "react";
 import { createRoot, type Root } from "react-dom/client";
-import type { ModeratorAssignmentSummary } from "./ModeratorAssignments";
+import type { ReleaseScheduleRecord } from "@repo/shared";
 import { ModeratorReleaseScheduleView } from "./ModeratorReleaseSchedule";
 
 let root: Root | undefined;
+afterEach(() => { act(() => root?.unmount()); document.body.innerHTML = ""; });
 
-afterEach(() => {
-  act(() => root?.unmount());
-  root = undefined;
-  document.body.innerHTML = "";
+function schedule(id: string, status: ReleaseScheduleRecord["status"], linked = true): ReleaseScheduleRecord {
+  return {
+    id, title: `Lịch ${id}`, status,
+    productionDeadline: new Date("2026-10-19T13:00:00Z"),
+    scheduledAt: new Date("2026-10-20T13:00:00Z"), updatedAt: new Date("2026-10-15T08:00:00Z"),
+    episodeId: linked ? "episode-1" : null,
+    episode: linked ? { id: "episode-1", title: `Podcast ${id}`, contentRevision: 4 } : null,
+    assignments: [{ moderatorId: "mod-1", moderator: { id: "mod-1", name: "Nguyễn An", email: "an@example.org" } }],
+    reviews: [],
+  } as unknown as ReleaseScheduleRecord;
+}
+
+it("shows four schedule statuses, assigned podcast details and a read-only dialog", async () => {
+  const schedules = [schedule("1", "SCHEDULED"), schedule("2", "READY_TO_PUBLISH"), schedule("3", "RELEASED", false), schedule("4", "CANCELLED"), schedule("5", "FAILED")];
+  function Probe() {
+    const [selectedId, setSelectedId] = useState<string | null>(null);
+    return <ModeratorReleaseScheduleView schedules={schedules} selectedId={selectedId} onSelect={setSelectedId} onClose={() => setSelectedId(null)} />;
+  }
+  const host = document.createElement("div"); document.body.append(host); root = createRoot(host);
+  await act(async () => root?.render(<Probe />));
+  expect(host.querySelectorAll("tbody tr")).toHaveLength(4);
+  expect(host.textContent).toContain("Podcast 1");
+  expect(host.textContent).toContain("Chưa gắn podcast");
+  expect(host.textContent).toContain("Đủ điều kiện");
+  expect(host.textContent).not.toContain("Lịch 5");
+  expect(host.textContent).not.toContain("Thời khóa biểu");
+  const trigger = host.querySelector<HTMLButtonElement>('[aria-label="Lọc trạng thái lịch phát hành"]')!;
+  await act(async () => { trigger.focus(); trigger.dispatchEvent(new KeyboardEvent("keydown", { bubbles: true, key: "ArrowDown" })); await new Promise(resolve => setTimeout(resolve, 0)); });
+  const option = document.body.querySelector<HTMLElement>('[data-slot="select-item"][data-value="CANCELLED"]')!;
+  await act(async () => { option.dispatchEvent(new PointerEvent("pointerup", { bubbles: true, button: 0 })); option.click(); });
+  expect(host.querySelectorAll("tbody tr")).toHaveLength(1);
+  expect(host.textContent).toContain("Lịch 4");
+  const detail = host.querySelector<HTMLButtonElement>('[aria-label="Xem chi tiết Lịch 4"]')!;
+  await act(async () => detail.click());
+  const dialog = document.body.querySelector('[role="dialog"]')!;
+  expect(dialog.textContent).toContain("Chi tiết lịch phát hành");
+  expect(dialog.textContent).toContain("Podcast 4");
+  expect(dialog.querySelector<HTMLInputElement>("#release-title")?.disabled).toBe(true);
+  expect(dialog.querySelector<HTMLButtonElement>('[aria-label="Moderator phụ trách"]')?.disabled).toBe(true);
+  expect(dialog.textContent).not.toContain("Lưu thay đổi");
+  expect(dialog.textContent).not.toContain("Hủy lịch");
 });
 
-function assignment(
-  overrides: Partial<ModeratorAssignmentSummary> = {},
-): ModeratorAssignmentSummary {
-  return {
-    id: "schedule-1",
-    title: "Dấu chân Trường Sơn",
-    status: "SCHEDULED",
-    scheduledAt: new Date("2026-10-16T03:30:00.000Z"),
-    productionDeadline: new Date("2026-10-17T03:30:00.000Z"),
-    episode: { id: "episode-1", contentRevision: 3 },
-    reviews: [],
-    ...overrides,
-  };
-}
-
-async function renderSchedule(assignments: ModeratorAssignmentSummary[]): Promise<HTMLElement> {
-  const host = document.createElement("div");
-  document.body.append(host);
-  root = createRoot(host);
-  await act(async () => {
-    root?.render(
-      <ModeratorReleaseScheduleView
-        assignments={assignments}
-        now={new Date("2026-10-16T02:00:00.000Z")}
-      />,
-    );
-  });
-  return host;
-}
-
-describe("ModeratorReleaseScheduleView", () => {
-  it("renders seven weekdays, three sessions and places a release in its local session", async () => {
-    const host = await renderSchedule([assignment()]);
-
-    expect(host.querySelector('[data-week-scroll="true"]')?.getAttribute("data-scrollbar-hidden")).toBe("true");
-    expect(host.querySelectorAll("[data-day-key]")).toHaveLength(7);
-    expect(host.querySelectorAll("[data-session-row]")).toHaveLength(3);
-    expect(host.querySelector('[data-session="morning"]')?.getAttribute("aria-label")).toBe("Buổi sáng, 00:00 - 11:59");
-    expect(host.querySelector('[data-session="morning"] [data-schedule-id="schedule-1"]')?.textContent).toContain("Dấu chân Trường Sơn");
-    expect(host.textContent).toContain("Podcast nháp v3");
-    expect(host.textContent).toContain("12/10 - 18/10/2026");
-  });
-
-  it("shows visible semantic status labels and tone attributes", async () => {
-    const host = await renderSchedule([
-      assignment({ id: "approved", status: "READY_TO_PUBLISH", title: "Đã duyệt", scheduledAt: new Date("2026-10-15T03:00:00.000Z") }),
-      assignment({ id: "failed", status: "FAILED", title: "Lỗi phát hành", scheduledAt: new Date("2026-10-16T12:00:00.000Z") }),
-    ]);
-
-    expect(host.querySelector('[data-schedule-id="approved"]')?.getAttribute("data-tone")).toBe("success");
-    expect(host.querySelector('[data-schedule-id="approved"]')?.textContent).toContain("Đã duyệt");
-    expect(host.querySelector('[data-schedule-id="failed"]')?.getAttribute("data-tone")).toBe("danger");
-    expect(host.querySelector('[data-schedule-id="failed"]')?.textContent).toContain("Phát hành thất bại");
-  });
-
-  it("marks a schedule that has a pending reassignment ticket", async () => {
-    const host = await renderSchedule([
-      assignment({
-        reassignmentTicket: {
-          id: "ticket-1",
-          status: "PENDING",
-          reason: "Không thể tiếp tục vì lịch công tác đột xuất.",
-          decisionReason: null,
-          createdAt: new Date("2026-10-15T02:00:00.000Z"),
-          updatedAt: new Date("2026-10-15T02:00:00.000Z"),
-        },
-      }),
-    ]);
-
-    expect(host.querySelector('[data-schedule-id="schedule-1"]')?.textContent).toContain("Chờ chuyển giao");
-  });
-
-  it("switches to the monthly calendar and lists releases for the selected day", async () => {
-    const host = await renderSchedule([
-      assignment({
-        id: "schedule-20",
-        title: "Ký ức đường số 4",
-        scheduledAt: new Date("2026-10-20T08:00:00.000Z"),
-      }),
-    ]);
-    const monthButton = [...host.querySelectorAll("button")].find((button) => button.textContent?.includes("Lịch tiến độ"));
-
-    await act(async () => monthButton?.click());
-    const taskDay = host.querySelector<HTMLButtonElement>('[data-has-schedules="true"]');
-
-    expect(taskDay).not.toBeNull();
-    expect(taskDay?.textContent).toContain("1 lịch");
-    expect(taskDay?.getAttribute("aria-label")).toContain("1 lịch phát hành");
-
-    const dayButton = [...host.querySelectorAll<HTMLButtonElement>('[data-slot="calendar"] button')].find((button) => button.textContent?.includes("20"));
-    await act(async () => dayButton?.click());
-
-    expect(host.querySelector("[data-selected-day-agenda]")?.textContent).toContain("Ký ức đường số 4");
-  });
-
-  it("keeps the timetable visible for an empty schedule and exposes navigation labels", async () => {
-    const host = await renderSchedule([]);
-
-    expect(host.textContent).toContain("Chưa có lịch phát hành trong tuần này");
-    expect(host.querySelector('button[aria-label="Tuần trước"]')).not.toBeNull();
-    expect(host.querySelector('button[aria-label="Tuần sau"]')).not.toBeNull();
-    expect(host.querySelector('button[aria-pressed="true"]')?.textContent).toContain("Thời khóa biểu");
-    expect(host.querySelector('[role="group"][aria-label="Chế độ xem lịch"]')).not.toBeNull();
-  });
+it("paginates assigned schedules", async () => {
+  const schedules = Array.from({ length: 11 }, (_, i) => schedule(String(i + 1), "SCHEDULED"));
+  const host = document.createElement("div"); document.body.append(host); root = createRoot(host);
+  await act(async () => root?.render(<ModeratorReleaseScheduleView schedules={schedules} selectedId={null} onSelect={mock(() => undefined)} onClose={mock(() => undefined)} />));
+  expect(host.querySelectorAll("tbody tr")).toHaveLength(10);
+  expect(host.textContent).toContain("11 lịch");
 });

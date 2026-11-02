@@ -41,6 +41,14 @@ function createTestApp(service: Record<string, (...args: any[]) => any>) {
 }
 
 describe("release HTTP routes", () => {
+  it("lists schedules assigned to the current moderator", async () => {
+    const calls: unknown[][] = [];
+    const app = createTestApp({ assignedSchedules: (...args: unknown[]) => { calls.push(args); return []; } });
+    const response = await app.request("/api/studio/releases/schedules");
+    expect(response.status).toBe(200);
+    expect(await response.json()).toEqual({ items: [] });
+    expect(calls[0]?.[0]).toMatchObject({ user: { id: "moderator-1", role: "moderator" } });
+  });
   it("exposes Admin review decisions and requires a note for requested changes", async () => {
     const calls: unknown[][] = [];
     const app = createTestApp({ reviewEpisode: (...args: unknown[]) => {
@@ -109,6 +117,15 @@ describe("release HTTP routes", () => {
     });
     expect(() => ReleaseScheduleQuerySchema.parse({ q: "x".repeat(256) })).toThrow();
     expect(() => ReleaseScheduleQuerySchema.parse({ scope: "UNKNOWN" })).toThrow();
+  });
+
+  it("accepts and forwards a release status group", async () => {
+    const calls: unknown[][] = [];
+    const app = createTestApp({ listSchedules: (...args: unknown[]) => { calls.push(args); return { items: [], page: 1, limit: 10, total: 0 }; } });
+    const response = await app.request("/api/admin/releases?statusGroup=NEEDS_ATTENTION&page=1&limit=10");
+    expect(response.status).toBe(200);
+    expect(calls[0]?.[1]).toMatchObject({ statusGroup: "NEEDS_ATTENTION", page: 1, limit: 10 });
+    expect(() => ReleaseScheduleQuerySchema.parse({ statusGroup: "UNKNOWN" })).toThrow();
   });
 
   it("validates and creates an Admin release schedule", async () => {

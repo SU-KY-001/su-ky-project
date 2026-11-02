@@ -12,6 +12,8 @@ export const ReleaseScheduleStatusSchema = z.enum([
   "CANCELLED",
 ]);
 
+export const ReleaseStatusGroupSchema = z.enum(["IN_PROGRESS", "NEEDS_ATTENTION", "RELEASED", "CANCELLED"]);
+
 export const EpisodeReviewStatusSchema = z.enum([
   "DRAFT",
   "IN_REVIEW",
@@ -92,6 +94,7 @@ export const ReviewEpisodeSchema = z.discriminatedUnion("decision", [
 
 export const ReleaseScheduleQuerySchema = PaginationQuerySchema.extend({
   status: ReleaseScheduleStatusSchema.optional(),
+  statusGroup: ReleaseStatusGroupSchema.optional(),
   scope: ReleaseScheduleScopeSchema.optional(),
   from: z.coerce.date().optional(),
   to: z.coerce.date().optional(),
@@ -272,6 +275,7 @@ export const ReleaseReminderListSchema = z.object({
   })),
 });
 
+export type ReleaseStatusGroup = z.infer<typeof ReleaseStatusGroupSchema>;
 export type ReleaseScheduleStatus = z.infer<typeof ReleaseScheduleStatusSchema>;
 export type ReleaseScheduleScope = z.infer<typeof ReleaseScheduleScopeSchema>;
 export type EpisodeReviewStatus = z.infer<typeof EpisodeReviewStatusSchema>;

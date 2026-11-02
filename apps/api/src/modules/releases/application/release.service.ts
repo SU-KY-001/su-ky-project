@@ -69,6 +69,10 @@ export class ReleaseService {
     correlationId: string,
   ) {
     assertAdmin(session);
+    const now = this.clock().getTime();
+    if (input.productionDeadline.getTime() <= now || input.scheduledAt.getTime() <= now) {
+      throw new DomainError(400, "VALIDATION_ERROR", "Hạn hoàn thành và thời gian phát hành phải sau thời gian hiện tại.");
+    }
     return this.repository.createSchedule({
       ...input,
       episodeId: input.episodeId ?? null,
@@ -611,6 +615,7 @@ export class ReleaseService {
     session: Session,
     filter: {
       status?: Parameters<ReleaseRepository["listSchedules"]>[0]["status"];
+      statusGroup?: Parameters<ReleaseRepository["listSchedules"]>[0]["statusGroup"];
       scope?: Parameters<ReleaseRepository["listSchedules"]>[0]["scope"];
       from?: Date;
       to?: Date;
@@ -670,6 +675,11 @@ export class ReleaseService {
   async assignedWork(session: Session) {
     assertModerator(session);
     return this.repository.listAssignedSchedules(session.user.id);
+  }
+
+  async assignedSchedules(session: Session) {
+    assertModerator(session);
+    return this.repository.listAssignedSchedules(session.user.id, ["SCHEDULED", "READY_TO_PUBLISH", "RELEASED", "CANCELLED"]);
   }
 
   async assignableEpisodes(session: Session) {

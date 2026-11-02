@@ -26,6 +26,7 @@ const releases = client.api.studio.releases;
 
 export const moderatorReleaseService = {
   assignments: () => parse(releases.assignments.$get(), AssignedReleaseListSchema),
+  schedules: () => parse(releases.schedules.$get(), AssignedReleaseListSchema),
   assignableEpisodes: () => parse(releases["assignable-episodes"].$get(), AssignableEpisodeListSchema),
   reviewQueue: () => parse(releases["review-queue"].$get(), AssignedReleaseListSchema),
   reviewContent: (id: string) => parse(releases[":id"]["review-content"].$get({ param: { id } }), ReviewContentSchema),
