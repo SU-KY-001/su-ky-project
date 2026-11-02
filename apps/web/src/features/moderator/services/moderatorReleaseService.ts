@@ -32,6 +32,7 @@ export const moderatorReleaseService = {
   reviewContent: (id: string) => parse(releases[":id"]["review-content"].$get({ param: { id } }), ReviewContentSchema),
   reminders: () => parse(releases.reminders.$get(), ReleaseReminderListSchema),
   progress: (id: string) => parse(releases[":id"].progress.$get({ param: { id } }), ReleaseProgressListSchema),
+  withdrawReview: (id: string, reviewId: string) => parse(releases[":id"].reviews[":reviewId"].withdraw.$post({ param: { id, reviewId } }), EpisodeReviewRecordSchema),
   linkEpisode: (id: string, episodeId: string) =>
     parse(
       releases[":id"]["link-episode"].$post({

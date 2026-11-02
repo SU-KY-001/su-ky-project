@@ -197,6 +197,7 @@ export interface ReleaseRepository {
   isModeratorAssigned(scheduleId: string, moderatorId: string): Promise<boolean>;
   createReview(input: CreateEpisodeReviewRecord): Promise<EpisodeReviewEntity>;
   decideReview(input: DecideEpisodeReviewRecord): Promise<EpisodeReviewEntity>;
+  withdrawReview(input: { scheduleId: string; reviewId: string; moderatorId: string; correlationId: string }): Promise<EpisodeReviewEntity>;
   findLatestReview(scheduleId: string): Promise<EpisodeReviewEntity | null>;
   setStatus(input: {
     scheduleId: string;

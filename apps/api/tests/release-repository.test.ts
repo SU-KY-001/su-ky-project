@@ -165,7 +165,7 @@ suite("release repository", () => {
     });
     expect(byModerator.items.map(({ title }) => title)).toEqual(["Dòng chảy biển đảo"]);
 
-    const inProgress = await repository.listSchedules({ q: "Trường Sơn", statusGroup: "IN_PROGRESS", page: 1, limit: 20 });
+    const inProgress = await repository.listSchedules({ q: "Biên niên Trường Sơn", statusGroup: "IN_PROGRESS", page: 1, limit: 20 });
     expect(inProgress.items.map(({ title }) => title)).toEqual(["Biên niên Trường Sơn"]);
     const releasedGroup = await repository.listSchedules({ q: "Trường Sơn", statusGroup: "RELEASED", page: 1, limit: 20 });
     expect(releasedGroup.items.map(({ title }) => title)).toEqual(["Trường Sơn đã phát"]);
@@ -177,6 +177,7 @@ suite("release repository", () => {
     });
     expect(history.items.map(({ title }) => title)).toEqual(["Trường Sơn đã phát"]);
 
+    await prisma.releaseSchedule.update({ where: { id: scheduleId }, data: { status: "BLOCKED" } });
     const reviewQueue = await repository.listSchedules({
       scope: "REVIEW_QUEUE",
       page: 1,

@@ -68,7 +68,9 @@ export function PodcastReviewStep({
       await episode.refetch();
       notify.success({ title: existingStatus ? "Đã lưu thay đổi." : "Đã lưu bản nháp." });
     } catch (caught) {
-      setError(caught instanceof Error ? caught.message : "Không lưu được bản nháp.");
+      const message = caught instanceof Error ? caught.message : "Không lưu được bản nháp.";
+      setError(message);
+      notify.error({ title: "Không thể lưu podcast", description: message });
     } finally {
       setBusy(null);
     }
@@ -88,7 +90,9 @@ export function PodcastReviewStep({
       notify.success({ title: "Đã xuất bản tập podcast (Admin, đã ghi nhật ký)." });
       onPublished(wizard.state.seriesId);
     } catch (caught) {
-      setError(errorMessage(caught));
+      const message = errorMessage(caught);
+      setError(message);
+      notify.error({ title: "Không thể xuất bản podcast", description: message });
     } finally {
       setBusy(null);
     }

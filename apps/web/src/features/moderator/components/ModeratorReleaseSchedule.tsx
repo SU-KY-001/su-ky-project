@@ -2,10 +2,10 @@ import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import type { ReleaseScheduleRecord, ReleaseScheduleStatus } from "@repo/shared";
 import { DashboardHeader } from "@/shared/components/dashboard/DashboardOverview";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/shared/components/ui/select";
 import { ReleaseScheduleTable } from "@/features/admin-release/components/ReleaseScheduleTable";
 import { ReleaseScheduleDialog } from "@/features/admin-release/components/ReleaseScheduleDialog";
 import { moderatorReleaseService } from "../services/moderatorReleaseService";
+import { matchesVietnamDate, ModeratorDeadlineToolbar } from "./ModeratorDeadlineToolbar";
 
 const statuses: Array<{ value: ReleaseScheduleStatus; label: string }> = [
   { value: "SCHEDULED", label: "Đã lên lịch" },
@@ -32,17 +32,19 @@ export function ModeratorReleaseScheduleView({
   onClose: () => void;
 }) {
   const [status, setStatus] = useState("all");
+  const [search, setSearch] = useState("");
+  const [deadlineDate, setDeadlineDate] = useState("");
+  const [releaseDate, setReleaseDate] = useState("");
   const [page, setPage] = useState(1);
-  const filtered = schedules.filter((schedule) => allowedStatuses.has(schedule.status) && (status === "all" || schedule.status === status));
+  const filtered = schedules.filter((schedule) => allowedStatuses.has(schedule.status) && (status === "all" || schedule.status === status) &&
+    schedule.title.toLocaleLowerCase("vi").includes(search.trim().toLocaleLowerCase("vi")) &&
+    matchesVietnamDate(schedule.productionDeadline, deadlineDate) &&
+    matchesVietnamDate(schedule.scheduledAt, releaseDate))
+    .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime() || b.id.localeCompare(a.id));
   const currentPage = Math.min(page, Math.max(1, Math.ceil(filtered.length / PAGE_SIZE)));
   const selected = schedules.find((schedule) => schedule.id === selectedId) ?? null;
   const moderators = selected?.assignments.map(({ moderatorId, moderator }) => ({ id: moderatorId, name: moderator.name, email: moderator.email })) ?? [];
-  const toolbar = <div className="max-w-72"><label className="grid gap-1 text-xs font-semibold text-mod-text-secondary">Trạng thái
-    <Select value={status} onValueChange={(value) => { setStatus(value); setPage(1); }}>
-      <SelectTrigger aria-label="Lọc trạng thái lịch phát hành"><SelectValue /></SelectTrigger>
-      <SelectContent><SelectItem value="all">Tất cả trạng thái</SelectItem>{statuses.map((item) => <SelectItem key={item.value} value={item.value}>{item.label}</SelectItem>)}</SelectContent>
-    </Select>
-  </label></div>;
+  const toolbar = <ModeratorDeadlineToolbar search={search} onSearchChange={(value) => { setSearch(value); setPage(1); }} searchLabel="Tìm lịch phát hành" status={status} onStatusChange={(value) => { setStatus(value); setPage(1); }} statusLabel="Lọc trạng thái lịch phát hành" statusOptions={statuses} deadlineDate={deadlineDate} onDeadlineChange={(value) => { setDeadlineDate(value); setPage(1); }} releaseDate={releaseDate} onReleaseChange={(value) => { setReleaseDate(value); setPage(1); }} />;
 
   return <div className="flex min-w-0 flex-col gap-6 font-moderator">
     <DashboardHeader eyebrow="XUẤT BẢN" title="Lịch phát hành" description="Theo dõi các lịch phát hành được phân công." />

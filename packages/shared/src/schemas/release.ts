@@ -19,6 +19,7 @@ export const EpisodeReviewStatusSchema = z.enum([
   "IN_REVIEW",
   "CHANGES_REQUESTED",
   "APPROVED",
+  "WITHDRAWN",
 ]);
 
 export const ReleaseScheduleScopeSchema = z.enum([
@@ -88,8 +89,8 @@ export const LinkReleaseEpisodeSchema = z.object({
 });
 
 export const ReviewEpisodeSchema = z.discriminatedUnion("decision", [
-  z.object({ decision: z.literal("APPROVE"), contentRevision: z.number().int().positive(), reviewNote: z.string().trim().max(5000).nullish(), assessment: PublicationAssessmentSchema.default({}) }),
-  z.object({ decision: z.literal("REQUEST_CHANGES"), contentRevision: z.number().int().positive(), reviewNote: z.string().trim().min(1).max(5000) }),
+  z.object({ decision: z.literal("APPROVE"), reviewId: z.string().uuid(), contentRevision: z.number().int().positive(), reviewNote: z.string().trim().max(5000).nullish(), assessment: PublicationAssessmentSchema.default({}) }),
+  z.object({ decision: z.literal("REQUEST_CHANGES"), reviewId: z.string().uuid(), contentRevision: z.number().int().positive(), reviewNote: z.string().trim().min(1).max(5000) }),
 ]);
 
 export const ReleaseScheduleQuerySchema = PaginationQuerySchema.extend({

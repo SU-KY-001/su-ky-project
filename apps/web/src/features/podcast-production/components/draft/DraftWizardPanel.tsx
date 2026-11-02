@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState, type ReactElement, type RefObject
 import { ArrowRight, Pencil, RefreshCw } from "lucide-react";
 import { SCRIPT_MAX_CHARACTERS, type OutlineSection } from "@repo/shared";
 import { Button } from "@/shared/components/ui/button";
+import { notify } from "@/shared/lib/notifications";
 import { useAiRunLog } from "../../ai/aiRunLog";
 import { AI_RUN_TEXT } from "../../ai/aiRunMessages";
 import { cn } from "@/lib/utils";
@@ -90,11 +91,13 @@ export function DraftWizardPanel({ onClose, editorRef, episodeId, ensureEpisode,
       fetched.current = response.sections;
       setSections(response.sections);
       runLog.push("done", AI_RUN_TEXT.outlineDone(response.sections.length));
+      notify.success({ title: "Đã tạo dàn ý" });
     } catch (error) {
       if (isAbort(error)) return;
       const message = describeComposeError(error, "Không tạo được dàn ý.");
       setOutlineError(message);
       runLog.push("error", message);
+      notify.error({ title: "Không thể tạo dàn ý", description: message });
       if (!sections) setStep(0);
     } finally {
       if (controller.current === current) setOutlineLoading(false);

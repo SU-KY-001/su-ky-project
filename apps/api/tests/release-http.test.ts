@@ -9,6 +9,7 @@ import { errorHandler } from "../src/core/middleware";
 import { ReleaseScheduleQuerySchema } from "@repo/shared";
 
 const scheduleId = "00000000-0000-4000-8000-000000000001";
+const reviewId = "00000000-0000-4000-8000-000000000003";
 const assessment = {
   editorialNote: "Đã đối chiếu nguồn chung của series.",
   rightsNote: "Tài sản thuộc quyền nhóm sản xuất.",
@@ -57,18 +58,18 @@ describe("release HTTP routes", () => {
     } });
     const response = await app.request(`/api/admin/releases/${scheduleId}/review`, {
       method: "POST", headers: { "content-type": "application/json" },
-      body: JSON.stringify({ decision: "APPROVE", contentRevision: 3, assessment }),
+      body: JSON.stringify({ decision: "APPROVE", reviewId, contentRevision: 3, assessment }),
     });
     expect(response.status).toBe(200);
     expect(calls[0]?.[0]).toMatchObject({ user: { role: "admin" } });
-    expect(calls[0]?.[2]).toMatchObject({ decision: "APPROVE", contentRevision: 3, assessment: { editorialNote: assessment.editorialNote, credits: null, rightsExpiresAt: null } });
+    expect(calls[0]?.[2]).toMatchObject({ decision: "APPROVE", reviewId, contentRevision: 3, assessment: { editorialNote: assessment.editorialNote, credits: null, rightsExpiresAt: null } });
     const invalid = await app.request(`/api/admin/releases/${scheduleId}/review`, {
       method: "POST", headers: { "content-type": "application/json" },
-      body: JSON.stringify({ decision: "REQUEST_CHANGES", contentRevision: 3 }),
+      body: JSON.stringify({ decision: "REQUEST_CHANGES", reviewId, contentRevision: 3 }),
     });
     expect(invalid.status).toBe(400);
     for (const body of [
-      { decision: "APPROVE", contentRevision: 3, assessment: { ...assessment, rightsExpiresAt: "2026-02-30" } },
+      { decision: "APPROVE", reviewId, contentRevision: 3, assessment: { ...assessment, rightsExpiresAt: "2026-02-30" } },
     ]) {
       const rejected = await app.request(`/api/admin/releases/${scheduleId}/review`, {
         method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body),
@@ -77,7 +78,7 @@ describe("release HTTP routes", () => {
     }
     const bare = await app.request(`/api/admin/releases/${scheduleId}/review`, {
       method: "POST", headers: { "content-type": "application/json" },
-      body: JSON.stringify({ decision: "APPROVE", contentRevision: 3 }),
+      body: JSON.stringify({ decision: "APPROVE", reviewId, contentRevision: 3 }),
     });
     expect(bare.status).toBe(200);
     expect(calls[1]?.[2]).toMatchObject({ decision: "APPROVE", assessment: { editorialNote: null, credits: null } });
@@ -245,6 +246,15 @@ describe("release HTTP routes", () => {
     });
     expect(submit.status).toBe(200);
     expect(calls[0]?.[2]).toBe(3);
+  });
+
+  it("forwards a moderator's withdrawal for the specified review", async () => {
+    const reviewId = "00000000-0000-4000-8000-000000000003";
+    const calls: unknown[][] = [];
+    const app = createTestApp({ withdrawReview: (...args: unknown[]) => { calls.push(args); return { id: reviewId, status: "WITHDRAWN" }; } });
+    const response = await app.request(`/api/studio/releases/${scheduleId}/reviews/${reviewId}/withdraw`, { method: "POST" });
+    expect(response.status).toBe(200);
+    expect(calls[0]).toMatchObject([{ user: { id: "moderator-1", role: "moderator" } }, scheduleId, reviewId, "request-1"]);
   });
 
   it("exposes assignable episodes, review queue, reminders and episode linking", async () => {

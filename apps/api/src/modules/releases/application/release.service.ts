@@ -302,6 +302,7 @@ export class ReleaseService {
     const review = await this.repository.findLatestReview(scheduleId);
     if (
       !review ||
+      review.id !== input.reviewId ||
       review.status !== "IN_REVIEW" ||
       review.revision !== input.contentRevision
     )
@@ -364,6 +365,11 @@ export class ReleaseService {
       });
     }
     return decided;
+  }
+
+  async withdrawReview(session: Session, scheduleId: string, reviewId: string, correlationId: string): Promise<EpisodeReviewEntity> {
+    assertModerator(session);
+    return this.repository.withdrawReview({ scheduleId, reviewId, moderatorId: session.user.id, correlationId });
   }
 
   /** Read-only content for the reviewer: full episode + readiness + AI counts. Never for the assigned producer. */

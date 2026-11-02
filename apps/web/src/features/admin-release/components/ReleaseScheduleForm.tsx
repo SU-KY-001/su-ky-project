@@ -84,7 +84,7 @@ export function ReleaseScheduleForm({
 
   return (
     <form id={formId} onSubmit={submit} className="flex flex-col gap-5" aria-label={mode === "edit" ? "Cập nhật lịch phát hành" : "Tạo lịch phát hành"}>
-      <fieldset disabled={readOnly} className="flex min-w-0 flex-col gap-5">
+      <fieldset disabled={readOnly} className={`flex min-w-0 flex-col gap-5 ${readOnly ? "[&_input:disabled]:bg-mod-canvas-accent! [&_input:disabled]:text-mod-text! [&_[data-slot=select-trigger]:disabled]:bg-mod-canvas-accent! [&_[data-slot=select-trigger]:disabled]:text-mod-text!" : ""}`}>
       <div className="grid gap-4 lg:grid-cols-2">
         <div className="flex flex-col gap-2 lg:col-span-2">
           <Label htmlFor="release-title">Tên kế hoạch hoặc podcast</Label>

@@ -20,6 +20,8 @@ import type { AppEnv } from "../../../types";
 import { requireRole } from "../../auth";
 import type { ReleaseService } from "../application/release.service";
 
+const reviewPathParams = UuidParamSchema.extend({ reviewId: UuidParamSchema.shape.id });
+
 interface ReleaseRouteGuards {
   admin: MiddlewareHandler<AppEnv>;
   studio: MiddlewareHandler<AppEnv>;
@@ -308,6 +310,12 @@ export function createReleaseRoutes(
             c.get("requestId"),
           ),
         ),
+    )
+    .post(
+      "/:id/reviews/:reviewId/withdraw",
+      guards.write,
+      zValidator("param", reviewPathParams, throwOnInvalid),
+      async (c) => c.json(await service.withdrawReview(c.get("session")!, c.req.valid("param").id, c.req.valid("param").reviewId, c.get("requestId"))),
     )
     .post(
       "/:id/submit-review",

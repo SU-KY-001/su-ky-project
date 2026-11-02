@@ -11,7 +11,7 @@ function schedule(id: string, status: ReleaseScheduleRecord["status"], linked = 
   return {
     id, title: `Lịch ${id}`, status,
     productionDeadline: new Date("2026-10-19T13:00:00Z"),
-    scheduledAt: new Date("2026-10-20T13:00:00Z"), updatedAt: new Date("2026-10-15T08:00:00Z"),
+    scheduledAt: new Date("2026-10-20T13:00:00Z"), createdAt: new Date("2026-10-15T08:00:00Z"), updatedAt: new Date("2026-10-15T08:00:00Z"),
     episodeId: linked ? "episode-1" : null,
     episode: linked ? { id: "episode-1", title: `Podcast ${id}`, contentRevision: 4 } : null,
     assignments: [{ moderatorId: "mod-1", moderator: { id: "mod-1", name: "Nguyễn An", email: "an@example.org" } }],
@@ -56,4 +56,39 @@ it("paginates assigned schedules", async () => {
   await act(async () => root?.render(<ModeratorReleaseScheduleView schedules={schedules} selectedId={null} onSelect={mock(() => undefined)} onClose={mock(() => undefined)} />));
   expect(host.querySelectorAll("tbody tr")).toHaveLength(10);
   expect(host.textContent).toContain("11 lịch");
+});
+
+it("sorts schedules by creation date and combines search with release date filters", async () => {
+  const older = { ...schedule("cũ", "SCHEDULED"), createdAt: new Date("2026-10-01T00:00:00Z"), scheduledAt: new Date("2026-11-02T16:59:00Z") };
+  const newer = { ...schedule("mới", "SCHEDULED"), createdAt: new Date("2026-10-03T00:00:00Z"), scheduledAt: new Date("2026-11-02T17:00:00Z") };
+  const host = document.createElement("div"); document.body.append(host); root = createRoot(host);
+  await act(async () => root?.render(<ModeratorReleaseScheduleView schedules={[older, newer]} selectedId={null} onSelect={mock(() => undefined)} onClose={mock(() => undefined)} />));
+  const rowNames = () => [...host.querySelectorAll<HTMLTableRowElement>("tbody tr")].map((row) => row.cells[0]?.textContent);
+  expect(rowNames()).toEqual(["Lịch mới", "Lịch cũ"]);
+  const input = host.querySelector<HTMLInputElement>('input[aria-label="Ngày phát hành - nhập ngày"]')!;
+  const setter = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value")?.set;
+  await act(async () => { setter?.call(input, "03/11/2026"); input.dispatchEvent(new Event("input", { bubbles: true })); });
+  await act(async () => input.dispatchEvent(new KeyboardEvent("keydown", { key: "Enter", bubbles: true })));
+  expect(rowNames()).toEqual(["Lịch mới"]);
+  const search = host.querySelector<HTMLInputElement>('input[placeholder="Tìm lịch phát hành"]')!;
+  await act(async () => { setter?.call(search, "không có"); search.dispatchEvent(new Event("input", { bubbles: true })); });
+  expect(host.textContent).toContain("Không có lịch phù hợp");
+});
+
+it("filters the release date independently from the production deadline", async () => {
+  const early = { ...schedule("sớm", "SCHEDULED"), scheduledAt: new Date("2026-11-02T16:59:00Z") };
+  const late = { ...schedule("muộn", "SCHEDULED"), scheduledAt: new Date("2026-11-02T17:00:00Z") };
+  const host = document.createElement("div"); document.body.append(host); root = createRoot(host);
+  await act(async () => root?.render(<ModeratorReleaseScheduleView schedules={[early, late]} selectedId={null} onSelect={mock(() => undefined)} onClose={mock(() => undefined)} />));
+  const input = host.querySelector<HTMLInputElement>('input[aria-label="Ngày phát hành - nhập ngày"]');
+  expect(input).not.toBeNull();
+  const setter = Object.getOwnPropertyDescriptor(HTMLInputElement.prototype, "value")?.set;
+  await act(async () => { setter?.call(input, "03/11/2026"); input?.dispatchEvent(new Event("input", { bubbles: true })); });
+  await act(async () => input?.dispatchEvent(new KeyboardEvent("keydown", { key: "Enter", bubbles: true })));
+  expect([...host.querySelectorAll<HTMLTableRowElement>("tbody tr")].map((row) => row.cells[0]?.textContent)).toEqual(["Lịch muộn"]);
+  const deadline = host.querySelector<HTMLInputElement>('input[aria-label="Hạn sản xuất - nhập ngày"]')!;
+  await act(async () => { setter?.call(deadline, "03/11/2026"); deadline.dispatchEvent(new Event("input", { bubbles: true })); });
+  await act(async () => deadline.dispatchEvent(new KeyboardEvent("keydown", { key: "Enter", bubbles: true })));
+  expect(host.textContent).toContain("Không có lịch phù hợp");
+  expect(input?.value).toBe("03/11/2026");
 });

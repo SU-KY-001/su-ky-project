@@ -16,10 +16,11 @@ interface Props {
   title: string;
   /** Revision the queue says is waiting; the panel locks if the content has moved on. */
   reviewRevision: number;
+  reviewId: string;
   onClose: () => void;
 }
 
-export function ModeratorReviewDialog({ scheduleId, title, reviewRevision, onClose }: Props) {
+export function ModeratorReviewDialog({ scheduleId, title, reviewRevision, reviewId, onClose }: Props) {
   const queryClient = useQueryClient();
   const contentKey = ["moderator-review-content", scheduleId] as const;
   const content = useQuery({ queryKey: contentKey, queryFn: () => moderatorReleaseService.reviewContent(scheduleId) });
@@ -49,13 +50,12 @@ export function ModeratorReviewDialog({ scheduleId, title, reviewRevision, onClo
           {content.isPending ? <div className="ui-skeleton min-h-60 rounded-xl" aria-label="Đang tải nội dung kiểm duyệt" />
             : content.isError ? <div className="flex min-h-40 items-center justify-center"><Button variant="outline" onClick={() => void content.refetch()}>Tải lại nội dung</Button></div>
             : <div className="space-y-5">
-                <div className="flex flex-wrap items-center gap-2"><CardBadge type="status" tone="info">Chờ kiểm duyệt</CardBadge><span className="text-xs text-mod-text-secondary">Phiên bản {reviewRevision}</span></div>
+                <div className="flex flex-wrap items-center gap-2"><CardBadge type="status" tone="info">Chờ kiểm duyệt</CardBadge></div>
                 <ReleaseReviewPanel content={content.data} validRevision={canDecide} pending={decide.isPending} noteId="mod-review-note" note={note} onNoteChange={setNote} />
               </div>}
         </div>
         <DialogFooter className="shrink-0 border-t border-mod-border px-5 py-4 sm:px-6">
-          {content.data ? <ReviewDecisionButtons ready={content.data.readiness.ready} validRevision={canDecide} reviewRevision={reviewRevision} pending={decide.isPending} note={note} onDecide={(input) => decide.mutate(input)} /> : null}
-          <Button variant="outline" disabled={decide.isPending} onClick={onClose}>Đóng</Button>
+          {content.data ? <ReviewDecisionButtons ready={content.data.readiness.ready} validRevision={canDecide} reviewId={reviewId} reviewRevision={reviewRevision} pending={decide.isPending} note={note} onDecide={(input) => decide.mutate(input)} /> : null}
         </DialogFooter>
       </DialogContent>
     </Dialog>

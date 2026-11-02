@@ -382,7 +382,7 @@ describe("release service", () => {
       releaseService.reviewEpisode(
         session("mod-reviewer", "moderator"),
         "schedule-1",
-        { decision: "APPROVE", contentRevision: 3, reviewNote: null, assessment },
+        { decision: "APPROVE", reviewId: "review-1", contentRevision: 3, reviewNote: null, assessment },
         "correlation-checklist-approve",
       ),
     ).rejects.toMatchObject({ status: 422, code: "CHECKLIST_INCOMPLETE" });
@@ -395,7 +395,7 @@ describe("release service", () => {
     await expect(releaseService.reviewEpisode(
       session("mod-author", "moderator"),
       "schedule-1",
-      { decision: "APPROVE", contentRevision: 3, reviewNote: null, assessment },
+      { decision: "APPROVE", reviewId: "review-1", contentRevision: 3, reviewNote: null, assessment },
       "correlation-4",
     )).rejects.toMatchObject({ status: 403 });
   });
@@ -407,7 +407,7 @@ describe("release service", () => {
     await releaseService.reviewEpisode(
       session("mod-reviewer", "moderator"),
       "schedule-1",
-      { decision: "APPROVE", contentRevision: 3, reviewNote: null, assessment },
+      { decision: "APPROVE", reviewId: "review-1", contentRevision: 3, reviewNote: null, assessment },
       "correlation-5",
     );
     expect(repository.statusTransitions.at(-1)).toEqual({
@@ -422,10 +422,20 @@ describe("release service", () => {
     repository.current = schedule({ status: "SCHEDULED" });
     repository.latestReview = { ...approvedReview(), status: "IN_REVIEW" };
     await releaseService.reviewEpisode(session("admin-1", "admin"), "schedule-1", {
-      decision: "APPROVE", contentRevision: 3, assessment,
+      decision: "APPROVE", reviewId: "review-1", contentRevision: 3, assessment,
     }, "admin-review");
     expect(repository.decisions).toEqual([{ status: "APPROVED", reviewer: "admin-1", actorType: "ADMIN" }]);
     expect(repository.current.status).toBe("READY_TO_PUBLISH");
+  });
+
+  it("rejects a decision for a withdrawn submission even after the same revision is resubmitted", async () => {
+    const { releaseService, repository } = service();
+    repository.current = schedule({ status: "SCHEDULED" });
+    repository.latestReview = { ...approvedReview(), id: "review-new", status: "IN_REVIEW" };
+    await expect(releaseService.reviewEpisode(session("admin-1", "admin"), "schedule-1", {
+      decision: "APPROVE", reviewId: "review-old", contentRevision: 3, assessment,
+    }, "stale-submission")).rejects.toMatchObject({ status: 409, code: "INVALID_REVIEW_STATE" });
+    expect(repository.decisions).toHaveLength(0);
   });
 
   it("rejects an Admin decision for content changed after submission", async () => {
@@ -433,7 +443,7 @@ describe("release service", () => {
     repository.current = schedule({ status: "SCHEDULED" });
     repository.latestReview = { ...approvedReview(2), status: "IN_REVIEW" };
     await expect(releaseService.reviewEpisode(session("admin-1", "admin"), "schedule-1", {
-      decision: "APPROVE", contentRevision: 2, assessment,
+      decision: "APPROVE", reviewId: "review-1", contentRevision: 2, assessment,
     }, "stale-admin-review")).rejects.toMatchObject({ status: 409, code: "STALE_WRITE" });
     expect(repository.decisions).toHaveLength(0);
   });
@@ -443,7 +453,7 @@ describe("release service", () => {
     repository.current = schedule({ status: "SCHEDULED" });
     repository.latestReview = { ...approvedReview(), status: "IN_REVIEW" };
     await releaseService.reviewEpisode(session("admin-1", "admin"), "schedule-1", {
-      decision: "APPROVE", contentRevision: 3, assessment,
+      decision: "APPROVE", reviewId: "review-1", contentRevision: 3, assessment,
     }, "snapshot");
     expect(repository.snapshots).toHaveLength(1);
     expect(repository.snapshots[0]).toMatchObject({ expectedRevision: 3, readinessSnapshot: { assessment, readiness: { contentRevision: 3 } } });
@@ -454,7 +464,7 @@ describe("release service", () => {
     repository.current = schedule({ status: "SCHEDULED" });
     repository.latestReview = { ...approvedReview(), status: "IN_REVIEW" };
     await releaseService.reviewEpisode(session("admin-1", "admin"), "schedule-1", {
-      decision: "REQUEST_CHANGES", contentRevision: 3, reviewNote: "Cần sửa phần mở đầu",
+      decision: "REQUEST_CHANGES", reviewId: "review-1", contentRevision: 3, reviewNote: "Cần sửa phần mở đầu",
     }, "changes");
     expect(repository.snapshots[0]?.readinessSnapshot.assessment).toBeNull();
     expect(repository.snapshots[0]?.readinessSnapshot.readiness.contentRevision).toBe(3);
@@ -465,7 +475,7 @@ describe("release service", () => {
     repository.current = schedule({ status: "SCHEDULED" });
     repository.latestReview = { ...approvedReview(), status: "IN_REVIEW" };
     await releaseService.reviewEpisode(session("admin-1", "admin"), "schedule-1", {
-      decision: "APPROVE", contentRevision: 3, assessment: { ...assessment, aiDisclosure: null },
+      decision: "APPROVE", reviewId: "review-1", contentRevision: 3, assessment: { ...assessment, aiDisclosure: null },
     }, "ai-disclosure");
     expect(repository.snapshots[0]?.readinessSnapshot.assessment?.aiDisclosure).toContain("AI");
   });
@@ -475,7 +485,7 @@ describe("release service", () => {
     repository.current = schedule({ status: "SCHEDULED" });
     repository.latestReview = { ...approvedReview(), status: "IN_REVIEW" };
     await releaseService.reviewEpisode(session("admin-1", "admin"), "schedule-1", {
-      decision: "APPROVE", contentRevision: 3, assessment,
+      decision: "APPROVE", reviewId: "review-1", contentRevision: 3, assessment,
     }, "warning");
     expect(repository.snapshots[0]?.readinessSnapshot.assessment?.warningAcceptance).toContain("cảnh báo");
   });
@@ -485,10 +495,10 @@ describe("release service", () => {
     repository.current = schedule({ status: "SCHEDULED" });
     repository.latestReview = { ...approvedReview(), status: "IN_REVIEW" };
     await expect(releaseService.reviewEpisode(session("admin-1", "admin"), "schedule-1", {
-      decision: "APPROVE", contentRevision: 3, assessment: { ...assessment, rightsExpiresAt: "2026-10-19" },
+      decision: "APPROVE", reviewId: "review-1", contentRevision: 3, assessment: { ...assessment, rightsExpiresAt: "2026-10-19" },
     }, "expired")).rejects.toMatchObject({ status: 422, code: "RIGHTS_EXPIRED" });
     await releaseService.reviewEpisode(session("admin-1", "admin"), "schedule-1", {
-      decision: "APPROVE", contentRevision: 3, assessment: { ...assessment, rightsExpiresAt: "2026-10-20" },
+      decision: "APPROVE", reviewId: "review-1", contentRevision: 3, assessment: { ...assessment, rightsExpiresAt: "2026-10-20" },
     }, "valid-through-today");
     expect(repository.decisions).toHaveLength(1);
   });
@@ -500,7 +510,7 @@ describe("release service", () => {
       .rejects.toMatchObject({ status: 409, code: "STALE_WRITE" });
     repository.latestReview = { ...approvedReview(), status: "IN_REVIEW" };
     await expect(releaseService.reviewEpisode(session("admin-1", "admin"), "schedule-1", {
-      decision: "APPROVE", contentRevision: 3, assessment,
+      decision: "APPROVE", reviewId: "review-1", contentRevision: 3, assessment,
     }, "stale-approve")).rejects.toMatchObject({ status: 409, code: "STALE_WRITE" });
     expect(repository.decisions).toHaveLength(0);
   });
