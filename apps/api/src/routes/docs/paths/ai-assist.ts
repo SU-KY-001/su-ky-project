@@ -252,7 +252,7 @@ export const aiAssistPaths: Paths = {
       body: { name: "CreateVoiceJob", schema: CreateVoiceJobSchema },
       ok: { status: 202, description: "Lượt tạo giọng", schema: { name: "VoiceJob", schema: VoiceJobSchema } },
       rate: "ai_generate",
-      errors: { 404: NOT_FOUND, 422: "`VALIDATION_ERROR`: kịch bản đã lưu không có nội dung đọc; tập hội thoại mà gửi `voice`; tập một người kể mà thiếu `voice`" },
+      errors: { 404: NOT_FOUND, 422: "`VALIDATION_ERROR`: tập hội thoại không được gửi `voice`; tập một người kể phải có `voice`; tập chưa có kịch bản đã lưu để đọc" },
     }),
   },
   [`${COMPOSE}/voice/{jobId}`]: {
@@ -264,14 +264,14 @@ export const aiAssistPaths: Paths = {
     delete: operation({
       id: "cancelVoiceJob", tag: TAG, summary: "Hủy tạo giọng", access: "studio", ...voiceParams,
       ok: { status: 204, description: "Đã yêu cầu hủy" },
-      errors: { 404: "Job không tồn tại hoặc không thuộc người dùng" },
+      errors: { 404: "`NOT_FOUND`: job không tồn tại, hết hạn, thuộc tập khác hoặc không thuộc người dùng (Admin được hủy)" },
     }),
   },
   [`${COMPOSE}/voice/{jobId}/audio`]: {
     get: operation({
       id: "getVoiceAudio", tag: TAG, summary: "Tải MP3 đã tạo", access: "studio", ...voiceParams,
       ok: { status: 200, description: "File MP3, Cache-Control: no-store", contentType: "audio/mpeg", contentSchema: { type: "string", format: "binary" } },
-      errors: { 404: "Job không tồn tại hoặc không thuộc người dùng", 409: "`INVALID_STATE_TRANSITION`: job chưa DONE hoặc không có file" },
+      errors: { 404: "`NOT_FOUND`: job không tồn tại, hết hạn, thuộc tập khác hoặc không thuộc người dùng (Admin được tải)", 409: "`INVALID_STATE_TRANSITION`: job chưa DONE hoặc không có file" },
     }),
   },
 };

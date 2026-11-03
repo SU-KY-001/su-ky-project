@@ -2,11 +2,8 @@ import { BaseVersionSchema } from "@repo/shared";
 import { z } from "zod";
 import {
   CreateSourceSchema,
-  HistoricalEntityInputSchema,
-  HistoricalEntityQuerySchema,
   HistoricalEntityTypeSchema,
   HistoricalPeriodSchema,
-  PatchHistoricalEntitySchema,
   PatchSourceSchema,
   SourceQuerySchema,
   UuidParamSchema,
@@ -41,10 +38,6 @@ const sourceParams = {
   pathParams: UuidParamSchema,
   pathParamDocs: { id: "ID nguồn (UUID)" },
 } as const;
-const entityParams = {
-  pathParams: UuidParamSchema,
-  pathParamDocs: { id: "ID thực thể lịch sử (UUID)" },
-} as const;
 const periodList = {
   name: "HistoricalPeriodList",
   schema: ItemsOf(HistoricalPeriodSchema),
@@ -52,7 +45,6 @@ const periodList = {
 const PERIOD_TREE_DESCRIPTION =
   "Chỉ Thời kỳ/Giai đoạn đang hoạt động, sắp xếp theo thứ tự thời gian. Khoảng năm nửa kín `[startYear, endYear)`: `endYear` loại trừ (năm 43 thuộc Giai đoạn bắt đầu ở 43, không thuộc Giai đoạn kết thúc ở 43); `endYear = null` là còn tiếp diễn, `startYear = null` là không xác định. Năm trước Công nguyên là số âm, không có năm 0.";
 const SOURCE_NOT_FOUND = "`NOT_FOUND`: nguồn không tồn tại";
-const ENTITY_NOT_FOUND = "`NOT_FOUND`: thực thể không tồn tại";
 
 export const catalogPaths: Paths = {
   "/api/topics": {
@@ -84,20 +76,6 @@ export const catalogPaths: Paths = {
       },
     }),
   },
-  "/api/studio/historical-periods": {
-    get: operation({
-      id: "listStudioHistoricalPeriods",
-      tag: TAG,
-      summary: "Cây Thời kỳ → Giai đoạn (studio)",
-      description: PERIOD_TREE_DESCRIPTION,
-      access: "studio",
-      ok: {
-        status: 200,
-        description: "Danh sách Thời kỳ, mỗi Thời kỳ kèm các Giai đoạn",
-        schema: periodList,
-      },
-    }),
-  },
 
   [SOURCES]: {
     get: operation({
@@ -111,6 +89,7 @@ export const catalogPaths: Paths = {
       queryDocs: {
         q: "Từ khoá: tiêu đề, tác giả hoặc ISBN",
         tier: "Lọc theo bậc độ tin cậy",
+        verificationStatus: "Lọc theo trạng thái xác minh: `PENDING`, `VERIFIED` hoặc `REJECTED`",
         includeArchived: "Gồm cả nguồn đã lưu trữ",
         sortBy: "Cột sắp xếp: title hoặc createdAt",
         sortDirection: "Hướng sắp xếp: asc hoặc desc",
@@ -210,8 +189,11 @@ export const catalogPaths: Paths = {
       },
       rate: "write",
       errors: {
+        403: "`FORBIDDEN`: Moderator chỉ được sửa nguồn do mình tạo (Admin: mọi nguồn)",
         404: SOURCE_NOT_FOUND,
-        409: "`SOURCE_ISBN_TAKEN`: ISBN trùng nguồn khác",
+        409: "`SOURCE_ISBN_TAKEN`: ISBN trùng nguồn khác; `ASSET_IN_USE`: PDF đã gắn cho nguồn khác; `STALE_WRITE`: `baseVersion` không khớp phiên bản hiện tại",
+        422: "`VALIDATION_ERROR`: xoá cả `url` lẫn `fileAssetId` hoặc asset không hợp lệ; `MEDIA_INVALID`: PDF hỏng/mã hóa; `MEDIA_TOO_LARGE`: vượt dung lượng",
+        503: "`MEDIA_PROVIDER_UNAVAILABLE`: không tải được PDF; có thể thử lại",
       },
     }),
   },
@@ -231,7 +213,11 @@ export const catalogPaths: Paths = {
         schema: { name: "Source", schema: SourceDocSchema },
       },
       rate: "write",
-      errors: { 404: SOURCE_NOT_FOUND },
+      errors: {
+        403: "`FORBIDDEN`: Moderator chỉ được lưu trữ nguồn do mình tạo (Admin: mọi nguồn)",
+        404: SOURCE_NOT_FOUND,
+        409: "`STALE_WRITE`: `baseVersion` không khớp phiên bản hiện tại",
+      },
     }),
   },
   [`${SOURCES}/{id}/unarchive`]: {
@@ -248,62 +234,14 @@ export const catalogPaths: Paths = {
         schema: { name: "Source", schema: SourceDocSchema },
       },
       rate: "write",
-      errors: { 404: SOURCE_NOT_FOUND },
+      errors: {
+        403: "`FORBIDDEN`: Moderator chỉ được bỏ lưu trữ nguồn do mình tạo (Admin: mọi nguồn)",
+        404: SOURCE_NOT_FOUND,
+        409: "`STALE_WRITE`: `baseVersion` không khớp phiên bản hiện tại",
+      },
     }),
   },
 
-  [ENTITIES]: {
-    get: operation({
-      id: "listHistoricalEntities",
-      tag: TAG,
-      summary: "Tìm thực thể lịch sử",
-      description:
-        "Nhân vật hoặc sự kiện lịch sử. Tìm chứa chuỗi trong tên hoặc khớp đúng một tên khác (`aliases`).",
-      access: "studio",
-      query: HistoricalEntityQuerySchema,
-      queryDocs: {
-        q: "Từ khoá trong tên, hoặc đúng một tên khác",
-        type: "`FIGURE` (nhân vật) hoặc `EVENT` (sự kiện)",
-        page: "Trang, bắt đầu từ 1",
-        limit: "Số dòng mỗi trang (tối đa 50)",
-      },
-      ok: {
-        status: 200,
-        description: "Danh sách phân trang",
-        schema: {
-          name: "HistoricalEntityList",
-          schema: PagedOf(HistoricalEntityDocSchema),
-        },
-      },
-    }),
-    post: operation({
-      id: "createHistoricalEntity",
-      tag: TAG,
-      summary: "Tạo thực thể lịch sử",
-      description:
-        "Slug tự sinh từ tên. Nên gọi `similar` trước để tránh tạo trùng.",
-      access: "studio",
-      body: {
-        name: "HistoricalEntityInput",
-        schema: HistoricalEntityInputSchema,
-        example: {
-          entityType: "FIGURE",
-          name: "Trần Hưng Đạo",
-          aliases: ["Trần Quốc Tuấn"],
-          startYear: 1228,
-          endYear: 1300,
-        },
-      },
-      ok: {
-        status: 201,
-        description: "Thực thể đã tạo",
-        schema: { name: "HistoricalEntity", schema: HistoricalEntityDocSchema },
-        location: `${ENTITIES}/{id}`,
-      },
-      idempotent: true,
-      rate: "write",
-    }),
-  },
   [`${ENTITIES}/similar`]: {
     get: operation({
       id: "findSimilarHistoricalEntities",
@@ -325,40 +263,6 @@ export const catalogPaths: Paths = {
           schema: ItemsOf(HistoricalEntityDocSchema),
         },
       },
-    }),
-  },
-  [`${ENTITIES}/{id}`]: {
-    get: operation({
-      id: "getHistoricalEntity",
-      tag: TAG,
-      summary: "Chi tiết thực thể",
-      access: "studio",
-      ...entityParams,
-      ok: {
-        status: 200,
-        description: "Thực thể",
-        schema: { name: "HistoricalEntity", schema: HistoricalEntityDocSchema },
-      },
-      errors: { 404: ENTITY_NOT_FOUND },
-    }),
-    patch: operation({
-      id: "updateHistoricalEntity",
-      tag: TAG,
-      summary: "Sửa thực thể",
-      access: "studio",
-      ...entityParams,
-      body: {
-        name: "PatchHistoricalEntity",
-        schema: PatchHistoricalEntitySchema,
-        example: { summary: "Quốc công tiết chế" },
-      },
-      ok: {
-        status: 200,
-        description: "Thực thể đã sửa",
-        schema: { name: "HistoricalEntity", schema: HistoricalEntityDocSchema },
-      },
-      rate: "write",
-      errors: { 404: ENTITY_NOT_FOUND },
     }),
   },
 };

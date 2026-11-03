@@ -25,6 +25,8 @@ import { mergePlayedRanges } from "./listeningBitmap";
 const compactSlider = "h-[18px] min-w-0 [&_[data-slot=slider-track]]:h-[3px] [&_[data-slot=slider-track]]:bg-ink/20 [&_[data-slot=slider-range]]:bg-ink-soft [&_[data-slot=slider-thumb]]:size-[9px] [&_[data-slot=slider-thumb]]:border-0 [&_[data-slot=slider-thumb]]:bg-ink-soft [&_[data-slot=slider-thumb]]:shadow-none hover:[&_[data-slot=slider-range]]:bg-vermilion hover:[&_[data-slot=slider-thumb]]:bg-vermilion focus-within:[&_[data-slot=slider-range]]:bg-vermilion focus-within:[&_[data-slot=slider-thumb]]:bg-vermilion";
 
 interface AudioPlaybackProps {
+  autoPlayOnReady?: boolean;
+  appearance?: "default" | "exhibition";
   narrationId: string;
   userId: string;
   playlist?: boolean;
@@ -40,16 +42,22 @@ interface AudioPlaybackProps {
   onNext?: () => void;
 }
 
-export function AudioPlayback({ narrationId, userId, playlist = false, controlsHidden = false, playRequest = 0, onPlayingChange, onFinished, shuffle = false, repeat = "off", onShuffle, onRepeat, onPrevious, onNext }: AudioPlaybackProps): ReactElement {
+export function AudioPlayback({ narrationId, userId, playlist = false, controlsHidden = false, playRequest = 0, autoPlayOnReady = false, appearance = "default", onPlayingChange, onFinished, shuffle = false, repeat = "off", onShuffle, onRepeat, onPrevious, onNext }: AudioPlaybackProps): ReactElement {
   const speedControlId = useId();
   const playback = useQuery({ queryKey: ["library-playback", userId, narrationId], queryFn: ({ signal }) => libraryService.playback(narrationId, signal), staleTime: 0, refetchOnWindowFocus: false });
   const audio = useRef<HTMLAudioElement>(null);
+  const autoPlayRequested = useRef(autoPlayOnReady);
   const queryClient = useQueryClient();
   const [audioError, setAudioError] = useState(false);
   const [speed, setSpeed] = useState("1");
   const [playing, setPlaying] = useState(false);
   const [position, setPosition] = useState(0);
   const [volume, setVolume] = useState(1);
+  useEffect(() => {
+    const pauseWhenHidden = (): void => { if (document.hidden) audio.current?.pause(); };
+    document.addEventListener("visibilitychange", pauseWhenHidden);
+    return () => document.removeEventListener("visibilitychange", pauseWhenHidden);
+  }, []);
   function toggle(): void {
     if (!audio.current) return;
     if (audio.current.paused) void audio.current.play().catch(() => { setPlaying(false); onPlayingChange?.(false); });
@@ -117,11 +125,11 @@ export function AudioPlayback({ narrationId, userId, playlist = false, controlsH
   if (playback.isPending) return playlist ? <p role="status" className="py-3 text-xs text-ink-soft">Đang mở bản thu…</p> : <LibraryState loading />;
   if (playback.isError) return playlist ? <div role="alert" className="flex flex-wrap items-center gap-3 text-xs"><p>Chưa mở được bản thu. Vui lòng thử lại.</p><Button size="sm" variant="outline" onClick={() => { void playback.refetch(); }}>Thử lại</Button></div> : <LibraryState error title="Chưa mở được bản thu" description="Kiểm tra kết nối hoặc đăng nhập lại để tiếp tục nghe." retry={() => { void playback.refetch(); }} />;
   return <div className={playlist ? "contents" : "space-y-4"}>
-    <audio ref={audio} controls={!playlist} preload="metadata" className={playlist ? "hidden" : "w-full"} src={playback.data.audio.url} onPlay={event => { progress.current.previous = event.currentTarget.currentTime; setPlaying(true); onPlayingChange?.(true); }} onPause={() => { setPlaying(false); onPlayingChange?.(false); }} onEnded={async event => { const element = event.currentTarget; setPlaying(false); onPlayingChange?.(false); await flushProgress.current(); if (repeat === "one") { element.currentTime = 0; progress.current.previous = -1; void element.play().catch(() => {}); } else onFinished?.(); }} onLoadedMetadata={(event) => { event.currentTarget.currentTime = (playback.data.progress?.positionMs ?? 0) / 1000; setPosition(event.currentTarget.currentTime); event.currentTarget.playbackRate = Number(speed); if (playlist) void event.currentTarget.play().catch(() => { setPlaying(false); onPlayingChange?.(false); }); }} onSeeking={() => { progress.current.previous = -1; }} onSeeked={(event) => { progress.current.previous = event.currentTarget.currentTime; progress.current.positionMs = Math.min(Math.round(event.currentTarget.currentTime * 1000), playback.data.audio.durationMs); progress.current.dirty = true; }} onError={() => setAudioError(true)} onTimeUpdate={(event) => {
+    <audio ref={audio} controls={!playlist && appearance !== "exhibition"} preload="metadata" className={playlist || appearance === "exhibition" ? "hidden" : "w-full"} src={playback.data.audio.url} onPlay={event => { progress.current.previous = event.currentTarget.currentTime; setPlaying(true); onPlayingChange?.(true); }} onPause={() => { setPlaying(false); onPlayingChange?.(false); }} onEnded={async event => { const element = event.currentTarget; setPlaying(false); onPlayingChange?.(false); await flushProgress.current(); if (repeat === "one") { element.currentTime = 0; progress.current.previous = -1; void element.play().catch(() => {}); } else onFinished?.(); }} onLoadedMetadata={(event) => { event.currentTarget.currentTime = (playback.data.progress?.positionMs ?? 0) / 1000; setPosition(event.currentTarget.currentTime); event.currentTarget.playbackRate = Number(speed); const shouldPlay = playlist || autoPlayRequested.current; autoPlayRequested.current = false; if (shouldPlay && !document.hidden) void event.currentTarget.play().catch(() => { setPlaying(false); onPlayingChange?.(false); }); }} onSeeking={() => { progress.current.previous = -1; }} onSeeked={(event) => { progress.current.previous = event.currentTarget.currentTime; progress.current.positionMs = Math.min(Math.round(event.currentTarget.currentTime * 1000), playback.data.audio.durationMs); progress.current.dirty = true; }} onError={() => setAudioError(true)} onTimeUpdate={(event) => {
       const element = event.currentTarget;
       const state = progress.current;
       const now = element.currentTime;
-      if (playlist) setPosition(now);
+      if (playlist || appearance === "exhibition") setPosition(now);
       const delta = now - state.previous;
       if (delta > 0 && !element.seeking) {
         mergePlayedRanges(state.bits, element.played, playback.data.audio.durationMs);
@@ -135,7 +143,7 @@ export function AudioPlayback({ narrationId, userId, playlist = false, controlsH
         queryClient.setQueriesData<Awaited<ReturnType<typeof libraryService.history>>>({ queryKey: ["listening-history", userId] }, old => old ? { ...old, items: old.items.map(item => item.lastNarrationId === narrationId ? { ...item, percent: Math.max(item.percent, percent), lastPositionMs: state.positionMs } : item) } : old);
       }
     }} />
-    {controlsHidden ? null : playlist ? <div className="contents">
+    {controlsHidden ? null : appearance === "exhibition" ? <div className="mt-4 flex items-center gap-4"><Button type="button" size="icon" className="size-14 shrink-0 rounded-full bg-vermilion text-white hover:bg-vermilion-dark" aria-label={playing ? "Tạm dừng podcast" : "Phát podcast"} onClick={toggle}>{playing ? <Pause weight="fill" /> : <Play weight="fill" />}</Button><div className="min-w-0 flex-1"><p className="mb-3 text-sm font-semibold">{playing ? "Đang phát podcast" : "Nghe podcast"}</p><div className="flex items-center gap-2"><Slider aria-label="Vị trí phát podcast" className={compactSlider} min={0} max={playback.data.audio.durationMs / 1000} step={0.1} value={[position]} onValueChange={([value]) => { setPosition(value); if (audio.current) { progress.current.previous = -1; audio.current.currentTime = value; } }} /><span className="shrink-0 text-xs tabular-nums">{audioTime(position)} / {audioTime(playback.data.audio.durationMs / 1000)}</span></div></div></div> : playlist ? <div className="contents">
       <div className="col-span-2 row-start-2 flex items-center justify-center gap-3.5 min-[761px]:col-span-1 min-[761px]:col-start-2 min-[761px]:row-start-1 [&>button]:size-7 [&>button]:text-ink-soft">
         <Button variant="ghost" size="icon-sm" className="aria-pressed:text-mod-success" aria-label="Phát ngẫu nhiên" aria-pressed={shuffle} onClick={onShuffle}><Shuffle /></Button>
         <Button variant="ghost" size="icon-sm" aria-label="Tập trước" disabled={!onPrevious} onClick={onPrevious}><SkipBack weight="fill" /></Button>

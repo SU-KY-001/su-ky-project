@@ -75,6 +75,7 @@ export async function appendEpisodes(
   const primary = await db.series.findUniqueOrThrow({
     where: { id: seriesId },
   });
+  if (primary.deletedAt) throw new DomainError(409, "CONTENT_IN_TRASH", "Series đã được chuyển vào thùng rác.");
   const aggregate = await db.episode.aggregate({
     where: { seriesId, deletedAt: null },
     _max: { sortOrder: true },
@@ -509,10 +510,19 @@ export class PrismaSeriesRepository implements SeriesRepository {
   async trashSeries(
     id: string,
     statusBeforeDelete: ContentStatus,
+    moderatorId?: string,
   ): Promise<void> {
-    await prisma.series.update({
-      where: { id },
-      data: { deletedAt: new Date(), statusBeforeDelete },
+    await prisma.$transaction(async (tx) => {
+      await tx.$queryRaw`SELECT id FROM series WHERE id=${id}::uuid FOR UPDATE`;
+      if (moderatorId) {
+        const series = await tx.series.findUnique({ where: { id }, select: { ownerId: true, status: true, deletedAt: true, adminLockedAt: true } });
+        if (!series || series.ownerId !== moderatorId) throw new DomainError(403, "FORBIDDEN", "Chỉ chủ sở hữu được xóa series.");
+        if (series.adminLockedAt) throw new DomainError(403, "CONTENT_LOCKED", "Series đã bị khóa.");
+        if (series.deletedAt || series.status !== "DRAFT") throw new DomainError(409, "INVALID_STATE_TRANSITION", "Chỉ có thể xóa series nháp.");
+        const protectedEpisode = await tx.episode.findFirst({ where: { seriesId: id, OR: [{ status: { not: "DRAFT" } }, { publishedAt: { not: null } }, { releaseSchedules: { some: { status: { not: "CANCELLED" } } } }] }, select: { id: true } });
+        if (protectedEpisode) throw new DomainError(409, "INVALID_STATE_TRANSITION", "Không thể xóa series có tập đã phát hành hoặc đang được dùng trong lịch phát hành.");
+      }
+      await tx.series.update({ where: { id }, data: { deletedAt: new Date(), statusBeforeDelete } });
     });
   }
 
@@ -700,10 +710,6 @@ export class PrismaSeriesRepository implements SeriesRepository {
     });
   }
 
-  async countSeriesSources(seriesId: string): Promise<number> {
-    return prisma.seriesSource.count({ where: { seriesId } });
-  }
-
   async deleteSeriesSource(seriesId: string, childId: string): Promise<void> {
     await prisma.$transaction(async (tx) => {
       await tx.$queryRaw`SELECT id FROM series WHERE id=${seriesId}::uuid FOR UPDATE`;
@@ -831,10 +837,20 @@ export class PrismaEpisodeRepository implements EpisodeRepository {
   async trashEpisode(
     id: string,
     statusBeforeDelete: ContentStatus,
+    moderatorId?: string,
   ): Promise<void> {
-    await prisma.episode.update({
-      where: { id },
-      data: { deletedAt: new Date(), statusBeforeDelete },
+    await prisma.$transaction(async (tx) => {
+      const found = await tx.episode.findUnique({ where: { id }, select: { seriesId: true } });
+      if (!found) throw new DomainError(404, "NOT_FOUND", "Không tìm thấy tập.");
+      await tx.$queryRaw`SELECT id FROM series WHERE id=${found.seriesId}::uuid FOR UPDATE`;
+      await tx.$queryRaw`SELECT id FROM episodes WHERE id=${id}::uuid FOR UPDATE`;
+      if (moderatorId) {
+        const episode = await tx.episode.findUniqueOrThrow({ where: { id }, select: { status: true, deletedAt: true, adminLockedAt: true, series: { select: { ownerId: true, deletedAt: true, adminLockedAt: true } }, releaseSchedules: { where: { status: { not: "CANCELLED" } }, select: { id: true }, take: 1 } } });
+        if (episode.series.ownerId !== moderatorId) throw new DomainError(403, "FORBIDDEN", "Chỉ chủ sở hữu series được xóa tập.");
+        if (episode.adminLockedAt || episode.series.adminLockedAt) throw new DomainError(403, "CONTENT_LOCKED", "Nội dung đã bị khóa.");
+        if (episode.deletedAt || episode.series.deletedAt || episode.status !== "DRAFT" || episode.releaseSchedules.length) throw new DomainError(409, "INVALID_STATE_TRANSITION", "Chỉ có thể xóa tập nháp không được dùng trong lịch phát hành.");
+      }
+      await tx.episode.update({ where: { id }, data: { deletedAt: new Date(), statusBeforeDelete } });
     });
   }
 

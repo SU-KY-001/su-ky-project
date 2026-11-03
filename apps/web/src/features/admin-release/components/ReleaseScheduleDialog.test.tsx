@@ -1,4 +1,4 @@
-import { afterEach, expect, it, mock } from "bun:test";
+import { afterEach, expect, it, mock, setSystemTime } from "bun:test";
 import { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import type { ReleaseScheduleRecord } from "@repo/shared";
@@ -10,6 +10,7 @@ let root: Root | undefined;
 afterEach(() => {
   act(() => root?.unmount());
   document.body.innerHTML = "";
+  setSystemTime();
 });
 
 const moderators = [
@@ -86,6 +87,7 @@ async function chooseTime(ariaLabel: string, hour: string, minute: string) {
 }
 
 it("validates create values and closes only after a successful create", async () => {
+  setSystemTime(new Date(2026, 9, 1, 10, 0));
   const onCreate = mock(() => Promise.resolve());
   const onOpenChange = mock(() => undefined);
   renderDialog({ onCreate, onOpenChange });
@@ -193,4 +195,22 @@ it("keeps edit values on stale writes and separates exception actions", async ()
       .find((button) => button.textContent?.trim() === label)!;
     expect(action.closest('[data-slot="dialog-footer"]')).toBe(footer);
   }
+});
+
+it("shows the admin schedule details read-only to moderators", async () => {
+  const { props } = renderDialog({ mode: "view", schedule: schedule(), open: true });
+  const dialog = document.body.querySelector('[role="dialog"]')!;
+  expect(dialog.textContent).toContain("Chi tiết lịch phát hành");
+  expect(dialog.textContent).toContain("Podcast Trường Sơn");
+  const title = dialog.querySelector<HTMLInputElement>("#release-title")!;
+  expect(title.matches(":disabled")).toBe(true);
+  expect(dialog.querySelector<HTMLButtonElement>('[aria-label="Chọn ngày phát hành"]')?.matches(":disabled")).toBe(true);
+  expect(dialog.querySelector<HTMLButtonElement>('[aria-label="Moderator phụ trách"]')?.matches(":disabled")).toBe(true);
+  expect(dialog.textContent).not.toContain("Lưu thay đổi");
+  expect(dialog.textContent).not.toContain("Hủy lịch");
+  await submit(dialog.querySelector("form")!);
+  expect(props.onUpdate).not.toHaveBeenCalled();
+  const updated = { ...schedule(), title: "Lịch đã cập nhật", updatedAt: new Date("2026-10-16T08:00:00Z") };
+  await act(async () => root?.render(<ReleaseScheduleDialog {...props} schedule={updated} />));
+  expect(dialog.querySelector<HTMLInputElement>("#release-title")?.value).toBe("Lịch đã cập nhật");
 });

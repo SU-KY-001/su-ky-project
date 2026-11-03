@@ -29,7 +29,7 @@ PostgreSQL 17 ──> Prisma ORM ──> Hono v4 (Bun) ──[hc RPC]──> Rea
 graph TD
     subgraph Client ["Frontend Layer (Browser)"]
         UI["React 19 SPA (apps/web)<br/>Vite 8 + Tailwind CSS v4 + shadcn/ui + Magic UI"]
-        MOBILE["Expo 57 + React Native (apps/mobile)<br/>Tamagui + Metro"]
+        MOBILE["Expo 58 + React Native (apps/mobile)<br/>NativeWind + Metro"]
         TQ["TanStack Query v5<br/>Query Cache & Status"]
         RPC_CLIENT["Hono Client (hc)<br/>Typed via AppType"]
     end
@@ -192,7 +192,7 @@ sequenceDiagram
   - shadcn/ui and selected Magic UI components are source-owned in the web app; they do not add a styling runtime shared with mobile.
   - Be Vietnam Pro is global; Manrope is scoped to the moderator dashboard.
 - **Mobile Styling (`apps/mobile`):**
-  - Tamagui remains the native UI and styling system, configured through the root Tamagui config and Expo/Metro integration.
+  - NativeWind provides native Tailwind utility styling, configured in `apps/mobile` and integrated through Expo/Metro.
 
 ---
 
@@ -225,7 +225,7 @@ Client Browser                  Hono API Service (Bun)                 PostgreSQ
 - **Database:** Managed via `docker compose up -d` running PostgreSQL 17 Alpine on port `5432`.
 - **Backend API:** Managed via `bun --watch src/index.ts` in `apps/api` with instant process reloads.
 - **Frontend Web:** Managed via Vite 8 in `apps/web` with Hot Module Replacement (HMR), React, and the Tailwind CSS v4 Vite plugin.
-- **Frontend Mobile:** Managed via Expo 57 / React Native 0.86 in `apps/mobile`, with Tamagui configured through Metro.
+- **Frontend Mobile:** Managed via Expo 58 / React Native 0.88 in `apps/mobile`, with NativeWind configured through Metro.
 - **Orchestration:** Single root command `bun run dev` boots all workspaces concurrently via Turborepo.
 
 ### 6.2 Production Build Strategy
@@ -233,3 +233,5 @@ Client Browser                  Hono API Service (Bun)                 PostgreSQ
 - **Backend Compilation:** `bun build src/index.ts --outdir dist --target bun` packages `apps/api` into a standalone production executable.
 - **Frontend Compilation:** `tsc -b && vite build` in `apps/web` generates optimized static assets into `apps/web/dist`.
 - **Docker Production Image:** Can be packaged into minimal multi-stage Docker containers with distroless or Alpine bases.
+
+

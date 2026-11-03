@@ -28,10 +28,11 @@ function uploadFailure(error: unknown): { status: "error" | "invalid-format"; me
   return { status: "error", message: "Chưa hoàn tất tải và xác minh ảnh trên kho lưu trữ. Kiểm tra kết nối rồi bấm Thử tải lại hoặc chọn ảnh khác.", retry: true };
 }
 
-export function ImageUploadDropzone({ label, value, policy, disabled = false, readOnly = false, onUpload, onChange, onBusyChange }: {
+export function ImageUploadDropzone({ label, value, policy, disabled = false, readOnly = false, onUpload, onChange, onBusyChange, successMessage = "Ảnh đã được tải lên và xác minh. Lưu bản nháp hoặc lưu thay đổi để gắn poster vào tập." }: {
   label: string; value: UploadedImage | null; policy?: ImageUploadPolicy; disabled?: boolean; readOnly?: boolean;
   onUpload: (file: File, signal: AbortSignal) => Promise<UploadedImage>;
   onChange: (image: UploadedImage | null) => void; onBusyChange: (busy: boolean) => void;
+  successMessage?: string;
 }): ReactElement {
   const id = useId();
   const input = useRef<HTMLInputElement>(null);
@@ -110,7 +111,7 @@ export function ImageUploadDropzone({ label, value, policy, disabled = false, re
 
   function choose(files: File[]): void {
     if (unavailable || readOnly || !files.length) return;
-    if (files.length !== 1) { setStatus("error"); setRetry(false); setMessage("Mỗi tập chỉ dùng một ảnh poster. Chọn hoặc kéo thả một ảnh duy nhất."); return; }
+    if (files.length !== 1) { setStatus("error"); setRetry(false); setMessage("Chọn hoặc kéo thả một ảnh duy nhất."); return; }
     void upload(files[0]);
   }
 
@@ -126,7 +127,7 @@ export function ImageUploadDropzone({ label, value, policy, disabled = false, re
       onDrop={(event) => { event.preventDefault(); setDragging(false); choose(Array.from(event.dataTransfer.files)); }}>
       <input ref={input} id={id} className="sr-only" tabIndex={-1} type="file" accept={policy ? [...policy.mimeTypes, ...policy.formats.map((format) => `.${format}`)].join(",") : undefined} disabled={unavailable || readOnly} aria-describedby={`${id}-conditions ${id}-status`} onChange={(event) => { const files = Array.from(event.target.files ?? []); event.target.value = ""; choose(files); }} />
       <div className={cn("flex flex-col items-center gap-3 text-center", (candidate || value) && "sm:flex-row sm:gap-5 sm:text-left")}>
-        {candidate || value ? <div className="grid h-32 w-40 shrink-0 place-items-center overflow-hidden rounded-lg border border-mod-border bg-mod-canvas-accent/30">{previewUrl && !previewFailed ? <img src={previewUrl} alt={`Xem trước ${label.toLowerCase()}`} className="size-full object-contain" onError={() => setPreviewFailed(true)} /> : <ImageIcon size={30} className="text-mod-text-low" aria-hidden="true" />}</div> : <span className="grid size-10 place-items-center rounded-lg border border-mod-border bg-mod-surface text-mod-text-secondary shadow-xs"><UploadSimple size={22} aria-hidden="true" /></span>}
+        {candidate || value ? <div className="flex h-40 w-40 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-mod-border bg-mod-canvas-accent">{previewUrl && !previewFailed ? <img src={previewUrl} alt={`Xem trước ${label.toLowerCase()}`} className="block h-auto w-auto max-h-full max-w-full object-contain" onError={() => setPreviewFailed(true)} /> : <ImageIcon size={30} className="text-mod-text-low" aria-hidden="true" />}</div> : <span className="grid size-10 place-items-center rounded-lg border border-mod-border bg-mod-surface text-mod-text-secondary shadow-xs"><UploadSimple size={22} aria-hidden="true" /></span>}
         <div className="min-w-0"><p className="text-sm font-semibold text-mod-text">{readOnly ? value?.fileName ?? "Chưa có poster" : dragging ? "Thả ảnh tại đây" : "Kéo thả ảnh vào đây"}</p>
           {!readOnly && <p id={`${id}-conditions`} className="mt-2 text-xs leading-5 text-mod-text-secondary">{policy ? `${formats} (tối đa ${sizeLabel(policy.maxBytes)}) · Chỉ một ảnh` : "Đang lấy điều kiện tải ảnh…"}</p>}
           {(candidate || value) && !readOnly && <p className="mt-2 break-words text-xs leading-5 text-mod-text-secondary">{candidate?.name ?? value?.fileName}{(candidate?.size ?? value?.sizeBytes) ? ` · ${sizeLabel(candidate?.size ?? value?.sizeBytes ?? 0)}` : ""}</p>}
@@ -139,6 +140,6 @@ export function ImageUploadDropzone({ label, value, policy, disabled = false, re
     </div>
     {message && <p role="alert" className="text-xs leading-6 text-mod-danger">{message}</p>}
     {previewFailed && <p role="alert" className="text-xs leading-6 text-mod-danger">Không mở được ảnh xem trước. Tải lại trang hoặc chọn ảnh khác.</p>}
-    {!readOnly && status === "success" && <p className="text-xs leading-6 text-mod-text-secondary">Ảnh đã được tải lên và xác minh. Lưu bản nháp hoặc lưu thay đổi để gắn poster vào tập.</p>}
+    {!readOnly && status === "success" && <p className="text-xs leading-6 text-mod-text-secondary">{successMessage}</p>}
   </div>;
 }

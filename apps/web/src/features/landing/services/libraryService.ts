@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { client } from "@/lib/client";
 import { ApiError } from "@/lib/apiError";
+import { PublicExhibitionListSchema, ResolvedExhibitionSchema } from "@repo/shared";
 import { HistoricalPeriodSchema, PublicHistoricalEventSchema, LibrarySeriesSchema, LibrarySeriesDetailSchema, LibraryEpisodeSchema, MyWeeklyMissionsSchema, PublicHonorsSchema, PublicReleasesSchema, PlaybackSchema, ListeningProgressSchema, ListeningProgressUpdateResultSchema, ListeningHistoryResponseSchema, PublicQuizSchema, PublicQuizCatalogSchema, QuizAttemptResultSchema, paginatedSchema } from "@repo/shared";
 
 async function read<S extends z.ZodTypeAny>(request: Promise<Pick<Response, "ok" | "json" | "status" | "headers">>, schema: S): Promise<z.infer<S>> {
@@ -13,6 +14,8 @@ export interface LibraryFilter { periodId?: string; phaseId?: string; eventId?: 
 const options = (signal?: AbortSignal) => ({ init: { signal: signal ? AbortSignal.any([signal, AbortSignal.timeout(15000)]) : AbortSignal.timeout(15000) } });
 
 export const libraryService = {
+  exhibitions: (signal?: AbortSignal) => read(client.api.exhibitions.$get({}, options(signal)), PublicExhibitionListSchema),
+  exhibition: (slug: string, signal?: AbortSignal) => read(client.api.exhibitions[":slug"].$get({ param: { slug } }, options(signal)), ResolvedExhibitionSchema),
   periods: (signal?: AbortSignal) => read(client.api["historical-periods"].$get({}, options(signal)), z.object({ items: z.array(HistoricalPeriodSchema) })),
   events: (filter: LibraryFilter, signal?: AbortSignal) => read(client.api["historical-events"].$get({ query: { page: String(filter.page ?? 1), limit: "6", periodId: filter.periodId, phaseId: filter.phaseId } }, options(signal)), paginatedSchema(PublicHistoricalEventSchema)),
   series: (filter: LibraryFilter, signal?: AbortSignal) => read(client.api.series.$get({ query: { page: String(filter.page ?? 1), limit: "8", periodId: filter.periodId, historicalPhaseId: filter.phaseId, eventId: filter.eventId } }, options(signal)), paginatedSchema(LibrarySeriesSchema)),

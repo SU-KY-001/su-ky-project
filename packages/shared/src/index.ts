@@ -1,4 +1,7 @@
 export * from "./historical-range";
+export * from "./exhibition-layout";
+export * from "./exhibition-template";
+export * from "./schemas/exhibition";
 export * from "./historical-time";
 export * from "./historical-permissions";
 export * from "./schemas/historical-time";

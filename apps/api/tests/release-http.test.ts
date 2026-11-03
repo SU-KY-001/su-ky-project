@@ -9,6 +9,7 @@ import { errorHandler } from "../src/core/middleware";
 import { ReleaseScheduleQuerySchema } from "@repo/shared";
 
 const scheduleId = "00000000-0000-4000-8000-000000000001";
+const reviewId = "00000000-0000-4000-8000-000000000003";
 const assessment = {
   editorialNote: "Đã đối chiếu nguồn chung của series.",
   rightsNote: "Tài sản thuộc quyền nhóm sản xuất.",
@@ -41,6 +42,14 @@ function createTestApp(service: Record<string, (...args: any[]) => any>) {
 }
 
 describe("release HTTP routes", () => {
+  it("lists schedules assigned to the current moderator", async () => {
+    const calls: unknown[][] = [];
+    const app = createTestApp({ assignedSchedules: (...args: unknown[]) => { calls.push(args); return []; } });
+    const response = await app.request("/api/studio/releases/schedules");
+    expect(response.status).toBe(200);
+    expect(await response.json()).toEqual({ items: [] });
+    expect(calls[0]?.[0]).toMatchObject({ user: { id: "moderator-1", role: "moderator" } });
+  });
   it("exposes Admin review decisions and requires a note for requested changes", async () => {
     const calls: unknown[][] = [];
     const app = createTestApp({ reviewEpisode: (...args: unknown[]) => {
@@ -49,27 +58,31 @@ describe("release HTTP routes", () => {
     } });
     const response = await app.request(`/api/admin/releases/${scheduleId}/review`, {
       method: "POST", headers: { "content-type": "application/json" },
-      body: JSON.stringify({ decision: "APPROVE", contentRevision: 3, assessment }),
+      body: JSON.stringify({ decision: "APPROVE", reviewId, contentRevision: 3, assessment }),
     });
     expect(response.status).toBe(200);
     expect(calls[0]?.[0]).toMatchObject({ user: { role: "admin" } });
-    expect(calls[0]?.[2]).toMatchObject({ decision: "APPROVE", contentRevision: 3, assessment: { editorialNote: assessment.editorialNote, credits: null, rightsExpiresAt: null } });
+    expect(calls[0]?.[2]).toMatchObject({ decision: "APPROVE", reviewId, contentRevision: 3, assessment: { editorialNote: assessment.editorialNote, credits: null, rightsExpiresAt: null } });
     const invalid = await app.request(`/api/admin/releases/${scheduleId}/review`, {
       method: "POST", headers: { "content-type": "application/json" },
-      body: JSON.stringify({ decision: "REQUEST_CHANGES", contentRevision: 3 }),
+      body: JSON.stringify({ decision: "REQUEST_CHANGES", reviewId, contentRevision: 3 }),
     });
     expect(invalid.status).toBe(400);
     for (const body of [
-      { decision: "APPROVE", contentRevision: 3 },
-      { decision: "APPROVE", contentRevision: 3, assessment: { ...assessment, audioNote: "ngắn" } },
-      { decision: "APPROVE", contentRevision: 3, assessment: { ...assessment, rightsExpiresAt: "2026-02-30" } },
+      { decision: "APPROVE", reviewId, contentRevision: 3, assessment: { ...assessment, rightsExpiresAt: "2026-02-30" } },
     ]) {
       const rejected = await app.request(`/api/admin/releases/${scheduleId}/review`, {
         method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify(body),
       });
       expect(rejected.status).toBe(400);
     }
-    expect(calls).toHaveLength(1);
+    const bare = await app.request(`/api/admin/releases/${scheduleId}/review`, {
+      method: "POST", headers: { "content-type": "application/json" },
+      body: JSON.stringify({ decision: "APPROVE", reviewId, contentRevision: 3 }),
+    });
+    expect(bare.status).toBe(200);
+    expect(calls[1]?.[2]).toMatchObject({ decision: "APPROVE", assessment: { editorialNote: null, credits: null } });
+    expect(calls).toHaveLength(2);
   });
 
   it("serves review content through both Admin and Moderator routes", async () => {
@@ -105,6 +118,15 @@ describe("release HTTP routes", () => {
     });
     expect(() => ReleaseScheduleQuerySchema.parse({ q: "x".repeat(256) })).toThrow();
     expect(() => ReleaseScheduleQuerySchema.parse({ scope: "UNKNOWN" })).toThrow();
+  });
+
+  it("accepts and forwards a release status group", async () => {
+    const calls: unknown[][] = [];
+    const app = createTestApp({ listSchedules: (...args: unknown[]) => { calls.push(args); return { items: [], page: 1, limit: 10, total: 0 }; } });
+    const response = await app.request("/api/admin/releases?statusGroup=NEEDS_ATTENTION&page=1&limit=10");
+    expect(response.status).toBe(200);
+    expect(calls[0]?.[1]).toMatchObject({ statusGroup: "NEEDS_ATTENTION", page: 1, limit: 10 });
+    expect(() => ReleaseScheduleQuerySchema.parse({ statusGroup: "UNKNOWN" })).toThrow();
   });
 
   it("validates and creates an Admin release schedule", async () => {
@@ -224,6 +246,15 @@ describe("release HTTP routes", () => {
     });
     expect(submit.status).toBe(200);
     expect(calls[0]?.[2]).toBe(3);
+  });
+
+  it("forwards a moderator's withdrawal for the specified review", async () => {
+    const reviewId = "00000000-0000-4000-8000-000000000003";
+    const calls: unknown[][] = [];
+    const app = createTestApp({ withdrawReview: (...args: unknown[]) => { calls.push(args); return { id: reviewId, status: "WITHDRAWN" }; } });
+    const response = await app.request(`/api/studio/releases/${scheduleId}/reviews/${reviewId}/withdraw`, { method: "POST" });
+    expect(response.status).toBe(200);
+    expect(calls[0]).toMatchObject([{ user: { id: "moderator-1", role: "moderator" } }, scheduleId, reviewId, "request-1"]);
   });
 
   it("exposes assignable episodes, review queue, reminders and episode linking", async () => {

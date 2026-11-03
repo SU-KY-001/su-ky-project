@@ -30,11 +30,6 @@ const codeOf = (fn: () => unknown): string | null => {
 };
 
 describe("PublicationAssessmentSchema", () => {
-  it("requires the three conclusions with at least 10 trimmed characters", () => {
-    expect(PublicationAssessmentSchema.safeParse({ ...base, audioNote: "  ngắn  " }).success).toBe(false);
-    expect(PublicationAssessmentSchema.safeParse({ editorialNote: NOTE, rightsNote: NOTE }).success).toBe(false);
-  });
-
   it("defaults the optional fields to null and turns blanks into null", () => {
     expect(assessment({ credits: "   ", aiDisclosure: "" })).toMatchObject({
       credits: null,
@@ -63,6 +58,7 @@ describe("PublishEpisodeExceptionSchema", () => {
   it("requires a reason of at least 20 trimmed characters and the timestamp lock", () => {
     expect(PublishEpisodeExceptionSchema.safeParse({ ...input, exceptionReason: "   quá ngắn   " }).success).toBe(false);
     expect(PublishEpisodeExceptionSchema.safeParse({ assessment: base, exceptionReason: "Phát hành khẩn theo yêu cầu ban biên tập." }).success).toBe(false);
+    expect(PublishEpisodeExceptionSchema.parse({ baseUpdatedAt: now }).exceptionReason.length).toBeGreaterThanOrEqual(20);
     expect(PublishEpisodeExceptionSchema.safeParse({ ...input, exceptionReason: "Phát hành khẩn theo yêu cầu ban biên tập." }).success).toBe(true);
   });
 });

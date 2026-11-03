@@ -48,8 +48,16 @@ async function main(): Promise<void> {
         const metadata = VIETNAM_PUBLICATION_DATA[cursor++]!;
         const episode = series.episodes.find(row => row.slug === item.slug)!;
         await tx.$queryRaw`SELECT id FROM episodes WHERE id=${episode.id}::uuid FOR UPDATE`;
-        let period = await tx.historicalPeriod.findFirst({ where: { name: metadata.period, deletedAt: null, isActive: true } });
-        if (!period) throw new Error(`Không tìm thấy thời kỳ ${metadata.period}`);
+        const periodNameMap: Record<string, string> = {
+          "Thời tiền sử": "Tiền sử & Sơ sử",
+          "Thời kỳ Bắc thuộc": "Bắc thuộc",
+          "Thời kỳ phong kiến": "Quân chủ",
+          "Thời kỳ Pháp thuộc": "Cận đại",
+          "Thời kỳ hiện đại": "Hiện đại",
+        };
+        const targetPeriodName = periodNameMap[metadata.period] ?? metadata.period;
+        let period = await tx.historicalPeriod.findFirst({ where: { name: targetPeriodName, deletedAt: null, isActive: true } });
+        if (!period) throw new Error(`Không tìm thấy thời kỳ ${metadata.period} (đã map thành ${targetPeriodName})`);
         const phase = await tx.historicalPhase.upsert({ where: { slug: `landing-demo-phase-${item.slug}` }, update: {}, create: { periodId: period.id, name: metadata.phase, slug: `landing-demo-phase-${item.slug}`, startYear: metadata.phaseStart, endYear: metadata.phaseEnd, isActive: true, createdById: series.ownerId, summary: metadata.summary, time: jsonSnapshot(HistoricalTimeSchema.parse({ kind: "RANGE", start: { year: metadata.phaseStart, precision: "YEAR" }, end: { year: metadata.phaseEnd - 1, precision: "YEAR" }, endState: "KNOWN" })) } });
         const approximate = "approximate" in metadata && metadata.approximate;
         const time = HistoricalTimeSchema.parse(metadata.start === metadata.end ? { kind: "POINT", at: { year: metadata.start, precision: "YEAR" } } : { kind: "RANGE", start: { year: metadata.start, precision: "YEAR", approximate }, end: { year: metadata.end, precision: "YEAR", approximate }, endState: "KNOWN", ...(approximate ? { note: "Niên đại quy ước để hiển thị dữ liệu demo; các giai đoạn văn hóa cổ đại có tính ước định." } : {}) });

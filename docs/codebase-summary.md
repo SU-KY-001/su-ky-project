@@ -228,7 +228,7 @@ Lightweight, zero-cold-start web service built natively on Bun using Hono v4.
 ---
 
 ### 3.6 `@repo/web` (`apps/web`)
-React 19 single-page application bundled with Vite 8 and styled with Tailwind CSS v4, source-owned shadcn/ui components, and selected Magic UI components. The root Tamagui config remains for the Expo mobile app through Metro.
+React 19 single-page application bundled with Vite 8 and styled with Tailwind CSS v4, source-owned shadcn/ui components, and selected Magic UI components. The Expo mobile app uses NativeWind 4.2 with Tailwind CSS 3.4 through Metro.
 
 - **RPC Client (`src/lib/api.ts`)**:
   - Creates type-safe client: `client = hc<AppType>(import.meta.env.VITE_API_URL || "http://localhost:3005")`.
@@ -265,3 +265,4 @@ The matrix below illustrates dependencies and consumption boundaries:
 | `CORS_ORIGIN` | `apps/api` | `http://localhost:5173` | Allowed origin header for cross-origin browser requests. |
 | `VITE_API_URL` | `apps/web` | `http://localhost:3005` | Base URL used by `hc<AppType>` RPC client. |
 | `NODE_ENV` | Global | `development` | Dictates logging verbosity, Prisma client pooling, and stack traces. |
+

@@ -9,16 +9,7 @@ import { PublicRoute } from "@/shared/components/common/PublicRoute";
 import { LandingLoadingPage } from "@/pages/landing/LandingLoadingPage";
 
 export const appRoutes: RouteObject[] = [
-  {
-    id: "exhibition-1975",
-    path: "/trien-lam-1975",
-    ErrorBoundary: RouteErrorFallback,
-    HydrateFallback: AppLoadingFallback,
-    lazy: async () => {
-      const { Exhibition1975Page } = await import("../pages/exhibition/Exhibition1975Page");
-      return { Component: Exhibition1975Page };
-    },
-  },
+  { id: "public-exhibition", path: "/trien-lam/:slug", ErrorBoundary: RouteErrorFallback, HydrateFallback: AppLoadingFallback, lazy: async () => { const { ExhibitionPage } = await import("../pages/exhibition/ExhibitionPage"); return { Component: ExhibitionPage }; } },
   {
     id: "app",
     path: APP_PATHS.home,
@@ -90,7 +81,13 @@ export const appRoutes: RouteObject[] = [
             // Child routes only declare valid URLs (unknown ones fall through to 404); the page renders the screen itself.
             children: [
               { id: "moderator-overview", index: true },
-              ...MODERATOR_SECTION_SEGMENTS.filter((section) => section !== "podcast").map((section) => ({ id: `moderator-${section}`, path: section })),
+              ...MODERATOR_SECTION_SEGMENTS.filter((section) => section !== "podcast" && section !== "exhibitions").map((section) => ({ id: `moderator-${section}`, path: section })),
+              { id: "moderator-exhibitions", path: "exhibitions", children: [
+                { id: "moderator-exhibitions-list", index: true, element: <></> },
+                { id: "moderator-exhibitions-new", path: "new", element: <></> },
+                { id: "moderator-exhibitions-edit", path: ":id/edit", element: <></> },
+                { id: "moderator-exhibitions-preview", path: ":id/preview", element: <></> },
+              ] },
               {
                 id: "moderator-podcast",
                 path: "podcast",

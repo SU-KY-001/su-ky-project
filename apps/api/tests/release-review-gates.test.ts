@@ -145,6 +145,66 @@ suite("review and publication gates", () => {
   });
 
   describe("review submission and decision", () => {
+    it("allows withdrawal, keeps the audit history, and permits resubmitting the same revision", async () => {
+      const { episode, schedule, review } = await submitted();
+      const withdrawn = await releases.withdrawReview({ scheduleId: schedule.id, reviewId: review.id, moderatorId: authorId, correlationId: `withdraw-${suffix}` });
+      expect(withdrawn.status).toBe("WITHDRAWN");
+      expect((await releases.findSchedule(schedule.id))?.episodeId).toBeNull();
+      expect((await releases.listSchedules({ scope: "REVIEW_QUEUE", page: 1, limit: 100 })).items.some((item) => item.id === schedule.id)).toBe(false);
+      const audit = await prisma.auditLog.findFirst({ where: { action: "episode.review_withdrawn", resourceId: schedule.id, actorId: authorId, toStatus: "WITHDRAWN" } });
+      expect(audit?.createdAt).toBeInstanceOf(Date);
+      expect(audit?.changes).toMatchObject({ reviewId: review.id, withdrawnAt: expect.any(String) });
+      await releases.linkEpisode({ scheduleId: schedule.id, episodeId: episode.id, moderatorId: authorId, correlationId: `relink-${suffix}` });
+      const next = await releases.createReview({ scheduleId: schedule.id, episodeId: episode.id, revision: REVISION, submittedById: authorId, correlationId: `resubmit-${suffix}` });
+      expect(next.id).not.toBe(review.id);
+      expect(next.status).toBe("IN_REVIEW");
+      expect(await prisma.episodeReview.count({ where: { scheduleId: schedule.id } })).toBe(2);
+      expect((await releases.listSchedules({ scope: "REVIEW_QUEUE", page: 1, limit: 100 })).items.some((item) => item.id === schedule.id)).toBe(true);
+    });
+
+    it("prevents changing the podcast while a review is open, then permits it after withdrawal", async () => {
+      const { review, schedule } = await submitted();
+      const replacement = await createEpisode();
+      const input = { scheduleId: schedule.id, episodeId: replacement.id, moderatorId: authorId, correlationId: `replace-${suffix}` };
+      await expect(releases.linkEpisode(input)).rejects.toMatchObject({ status: 409, code: "INVALID_REVIEW_STATE" });
+      await releases.withdrawReview({ scheduleId: schedule.id, reviewId: review.id, moderatorId: authorId, correlationId: `withdraw-replace-${suffix}` });
+      const updated = await releases.linkEpisode(input);
+      expect(updated?.episodeId).toBe(replacement.id);
+      expect((await prisma.episodeReview.findUniqueOrThrow({ where: { id: review.id } })).status).toBe("WITHDRAWN");
+      const newReview = await releases.createReview({ scheduleId: schedule.id, episodeId: replacement.id, revision: replacement.contentRevision, submittedById: authorId, correlationId: `new-episode-${suffix}` });
+      expect(newReview.status).toBe("IN_REVIEW");
+    });
+
+    it("allows replacing a withdrawn submission even when the schedule was marked ready", async () => {
+      const { review, schedule } = await submitted();
+      await prisma.releaseSchedule.update({ where: { id: schedule.id }, data: { status: "READY_TO_PUBLISH" } });
+      const replacement = await createEpisode();
+      await releases.withdrawReview({ scheduleId: schedule.id, reviewId: review.id, moderatorId: authorId, correlationId: `withdraw-ready-${suffix}` });
+      const updated = await releases.linkEpisode({ scheduleId: schedule.id, episodeId: replacement.id, moderatorId: authorId, correlationId: `replace-ready-${suffix}` });
+      expect(updated?.episodeId).toBe(replacement.id);
+      expect(updated?.status).toBe("SCHEDULED");
+    });
+
+    it("allows only one winner when a moderator withdraws while an admin approves", async () => {
+      const { review, schedule, episode } = await submitted();
+      const results = await Promise.allSettled([
+        releases.withdrawReview({ scheduleId: schedule.id, reviewId: review.id, moderatorId: authorId, correlationId: `withdraw-race-${suffix}` }),
+        decision(review.id, "APPROVED", adminId, validAssessment()),
+      ]);
+      expect(results.filter((result) => result.status === "fulfilled")).toHaveLength(1);
+      expect(results.filter((result) => result.status === "rejected")).toHaveLength(1);
+      const stored = await prisma.episodeReview.findUniqueOrThrow({ where: { id: review.id } });
+      expect(["APPROVED", "WITHDRAWN"]).toContain(stored.status);
+      const withdrawnCount = await prisma.auditLog.count({ where: { action: "episode.review_withdrawn", resourceId: schedule.id } });
+      expect(withdrawnCount).toBe(stored.status === "WITHDRAWN" ? 1 : 0);
+      expect((await prisma.episode.findUniqueOrThrow({ where: { id: episode.id } })).publicationApproval !== null).toBe(stored.status === "APPROVED");
+    });
+
+    it("rejects withdrawal by an unassigned moderator", async () => {
+      const { review, schedule } = await submitted();
+      await expect(releases.withdrawReview({ scheduleId: schedule.id, reviewId: review.id, moderatorId: reviewerAId, correlationId: `forbidden-${suffix}` })).rejects.toMatchObject({ status: 403 });
+      expect((await prisma.episodeReview.findUniqueOrThrow({ where: { id: review.id } })).status).toBe("IN_REVIEW");
+    });
     it("lets only one of two simultaneous reviewers decide", async () => {
       const { episode, review } = await submitted();
       const assessment = validAssessment();

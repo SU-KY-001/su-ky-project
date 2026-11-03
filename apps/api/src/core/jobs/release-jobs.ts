@@ -11,8 +11,19 @@ export const RELEASE_QUEUE = "podcast.release";
 const OUTBOX_QUEUE = "release.outbox-dispatch";
 const RECONCILIATION_QUEUE = "release.reconciliation";
 const EVERY_MINUTE = "* * * * *";
-const RETRY_DELAYS_MS = [60_000, 5 * 60_000, 15 * 60_000] as const;
-const STUCK_AFTER_MS = 10 * 60_000;
+const MS_PER_MINUTE = 60_000;
+const RETRY_DELAYS_MS = [1 * MS_PER_MINUTE, 5 * MS_PER_MINUTE, 15 * MS_PER_MINUTE] as const;
+const STUCK_AFTER_MS = 10 * MS_PER_MINUTE;
+// Slack after the last retry delay so the final attempt can finish before reconcile may take over.
+const RETRY_CHAIN_GRACE_MS = 5 * MS_PER_MINUTE;
+// Why: a transient failure leaves the schedule READY_TO_PUBLISH while its delayed retry chain owns the attempt count;
+// reconcile must stay out until the chain has had time to finish, or it restarts the count at 1 and FAILED is never reached.
+const RETRY_CHAIN_IDLE_MS = RETRY_DELAYS_MS[RETRY_DELAYS_MS.length - 1]! + RETRY_CHAIN_GRACE_MS;
+
+// Why: audit_logs.correlation_id is VarChar(64); an ISO timestamp pushes "reconcile:<uuid>:<iso>" to 71 chars and every audit insert (hence the status change) fails.
+export function reconcileCorrelationId(scheduleId: string, now: Date): string {
+  return `reconcile:${scheduleId}:${now.getTime()}`;
+}
 
 const ReleaseJobDataSchema = z.object({
   scheduleId: z.string().min(1),
@@ -124,14 +135,18 @@ export async function reconcileReleaseSchedules(
     now,
     new Date(now.getTime() + 24 * 60 * 60 * 1000),
   );
-  const due = await repository.listDueScheduleIds(now, 100);
+  const due = await repository.listDueScheduleIds(
+    now,
+    new Date(now.getTime() - RETRY_CHAIN_IDLE_MS),
+    100,
+  );
   for (const schedule of due) {
     await queue.send(
       RELEASE_QUEUE,
       {
         scheduleId: schedule.id,
         scheduleVersion: schedule.version,
-        correlationId: `reconcile:${schedule.id}:${now.toISOString()}`,
+        correlationId: reconcileCorrelationId(schedule.id, now),
         attempt: 1,
       },
       {
@@ -157,7 +172,7 @@ export async function reconcileReleaseSchedules(
       actorId: null,
       actorType: "SYSTEM",
       action: wasPublished ? "release.published" : "release.failed",
-      correlationId: `reconcile:${schedule.id}:${now.toISOString()}`,
+      correlationId: reconcileCorrelationId(schedule.id, now),
       failureCode: wasPublished ? null : "WORKER_STUCK",
       failureMessage: wasPublished
         ? null

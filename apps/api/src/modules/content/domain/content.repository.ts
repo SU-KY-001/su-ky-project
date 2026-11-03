@@ -154,7 +154,7 @@ export interface SeriesRepository {
   }>;
   publishSeries(id: string, publishedAt: Date): Promise<void>;
   hideSeries(id: string): Promise<void>;
-  trashSeries(id: string, statusBeforeDelete: ContentStatus): Promise<void>;
+  trashSeries(id: string, statusBeforeDelete: ContentStatus, moderatorId?: string): Promise<void>;
   restoreSeries(id: string, restoredStatus: ContentStatus): Promise<void>;
 
   listSeriesSources(seriesId: string): Promise<SeriesSourceWithSourceEntity[]>;
@@ -183,7 +183,6 @@ export interface SeriesRepository {
     childId: string,
     patch: { locator?: string; excerpt?: string | null },
   ): Promise<SeriesSourceWithSourceEntity>;
-  countSeriesSources(seriesId: string): Promise<number>;
   deleteSeriesSource(seriesId: string, childId: string): Promise<void>;
   listSeriesSourceIds(seriesId: string): Promise<string[]>;
   /** Transactional unit: one sortOrder update per source id. */
@@ -214,7 +213,7 @@ export interface EpisodeRepository {
   ): Promise<void>;
   publishEpisode(id: string, publishedAt: Date): Promise<void>;
   hideEpisode(id: string): Promise<void>;
-  trashEpisode(id: string, statusBeforeDelete: ContentStatus): Promise<void>;
+  trashEpisode(id: string, statusBeforeDelete: ContentStatus, moderatorId?: string): Promise<void>;
   restoreEpisode(id: string, restoredStatus: ContentStatus): Promise<void>;
 
   listEpisodeAttachments(episodeId: string): Promise<EpisodeAttachmentEntity[]>;

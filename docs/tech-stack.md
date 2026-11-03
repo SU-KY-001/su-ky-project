@@ -35,8 +35,8 @@
 | :--- | :--- | :--- | :--- |
 | **UI Library** | React | `^19.0.0` | Modern React with Server Actions / Client hooks, concurrent features. |
 | **Web styling** | Tailwind CSS + shadcn/ui + Magic UI | Tailwind `^4.1.14`; source-owned components | Tailwind v4 CSS-first styling, shadcn/ui source components, and selected Magic UI registry components in `apps/web`. |
-| **Mobile UI & Styling** | Tamagui | `^2.7.7` | Native component and styling system for mobile; root tokens and Metro configuration remain for Expo. |
-| **Mobile Runtime** | Expo + React Native | Expo `~57.0.0`, RN `0.86.0` | Expo Router navigation and native runtime, styled through Tamagui and configured with Metro. |
+| **Mobile UI & Styling** | NativeWind + Tailwind CSS | NativeWind `4.2.7`, Tailwind CSS `3.4` | Tailwind utility styling for React Native, integrated with Expo Metro. |
+| **Mobile Runtime** | Expo + React Native | Expo `~58.0.0`, RN `0.88.0` | Expo Router navigation and native runtime, styled through NativeWind and configured with Metro. |
 | **Icons** | Lucide React | `^0.475.0` | Consistent, accessible icon set. |
 | **Data Fetching** | TanStack Query | `^5.66.0` | Asynchronous cache management, deduplication, optimistic updates, query status management. |
 | **API Client** | Hono Client (`hc<AppType>`) | `^4.7.0` | End-to-end typed fetch client connected to backend `AppType`. |
@@ -63,7 +63,7 @@ su-ky-project/
 │   │   │   └── index.ts        # Bun server entrypoint
 │   │   └── package.json        # Exports "./types": "./src/app.ts"
 │   ├── web/                    # React 19 + Vite + Tailwind CSS + shadcn/ui + Magic UI
-│   └── mobile/                 # Expo + React Native + Tamagui frontend
+│   └── mobile/                 # Expo + React Native + NativeWind frontend
 │       ├── src/
 │       │   ├── lib/            # Hono RPC client (`api`) & Query client
 │       │   ├── components/     # Reusable UI components
@@ -91,3 +91,5 @@ su-ky-project/
 ├── turbo.json                  # Turborepo 2.x pipeline
 └── package.json                # Monorepo root scripts & dev dependencies
 ```
+
+

@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import type { AiVoice, VoiceJob } from "@repo/shared";
 import { ApiError, errorMessage } from "@/lib/apiError";
 import { voiceService } from "./voiceService";
+import { notify } from "@/shared/lib/notifications";
 
 const POLL_INTERVAL_MS = 2000;
 const HTTP_NOT_FOUND = 404;
@@ -75,8 +76,11 @@ export function useVoiceJob(episodeId: string | null): VoiceJobState {
       const created = await voiceService.start(episodeId, voice ? { voice } : {});
       sessionStorage.setItem(storageKey(episodeId), created.id);
       setJob(created);
+      notify.info({ title: "Đã bắt đầu tạo giọng đọc" });
     } catch (caught) {
-      setError(errorMessage(caught));
+      const message = errorMessage(caught);
+      setError(message);
+      notify.error({ title: "Không thể tạo giọng đọc", description: message });
     } finally {
       setStarting(false);
     }
@@ -87,8 +91,11 @@ export function useVoiceJob(episodeId: string | null): VoiceJobState {
     try {
       await voiceService.cancel(episodeId, job.id);
       setJob({ ...job, status: "CANCELLED" });
+      notify.info({ title: "Đã hủy tạo giọng đọc" });
     } catch (caught) {
-      setError(errorMessage(caught));
+      const message = errorMessage(caught);
+      setError(message);
+      notify.error({ title: "Không thể hủy tạo giọng đọc", description: message });
     }
   }, [episodeId, job]);
 

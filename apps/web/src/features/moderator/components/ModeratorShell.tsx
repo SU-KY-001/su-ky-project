@@ -13,9 +13,10 @@ type ModeratorShellProps = {
   breadcrumb?: string;
   subtitle?: string;
   children: ReactNode;
+  compact?: boolean;
 };
 
-export function ModeratorShell({ nav, children }: ModeratorShellProps) {
+export function ModeratorShell({ nav, children, compact }: ModeratorShellProps) {
   return (
     <WorkspaceShell
       navigationLabel="Điều hướng moderator"
@@ -23,6 +24,7 @@ export function ModeratorShell({ nav, children }: ModeratorShellProps) {
       brandCaption="KHÔNG GIAN BIÊN TẬP"
       nav={nav}
       profile={<AccountProfile variant="moderator" />}
+      compact={compact}
     >
       {children}
     </WorkspaceShell>

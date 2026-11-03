@@ -174,18 +174,11 @@ export function seriesChecklist(series: SeriesDetailEntity) {
         series.endYear != null &&
         series.startYear <= series.endYear,
     },
-    { key: "HAS_SOURCE", ok: series.sources.length > 0 },
     {
       key: "HAS_PUBLISHED_EPISODE",
       ok: series.episodes.some((episode) => episode.status === "PUBLISHED"),
     },
     { key: "DESCRIPTION", ok: Boolean(series.description?.trim()) },
-    {
-      key: "COVER",
-      ok:
-        series.coverImageAsset?.status === "READY" ||
-        series.coverLandscapeAsset?.status === "READY",
-    },
     { key: "LANGUAGE", ok: Boolean(series.language.trim()) },
   ];
   return { ready: items.every((item) => item.ok), items };

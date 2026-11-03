@@ -3,6 +3,7 @@ import type {
   ReleaseModeratorWorkload,
   ReleaseReassignmentTicketStatus,
   ReleaseScheduleScope,
+  ReleaseStatusGroup,
   ReleaseScheduleStatus,
   ReviewReadinessSnapshot,
 } from "@repo/shared";
@@ -173,6 +174,7 @@ export interface ReleaseDashboardCounts {
 
 export interface ReleaseScheduleListFilter {
   status?: ReleaseScheduleStatus;
+  statusGroup?: ReleaseStatusGroup;
   scope?: ReleaseScheduleScope;
   from?: Date;
   to?: Date;
@@ -195,6 +197,7 @@ export interface ReleaseRepository {
   isModeratorAssigned(scheduleId: string, moderatorId: string): Promise<boolean>;
   createReview(input: CreateEpisodeReviewRecord): Promise<EpisodeReviewEntity>;
   decideReview(input: DecideEpisodeReviewRecord): Promise<EpisodeReviewEntity>;
+  withdrawReview(input: { scheduleId: string; reviewId: string; moderatorId: string; correlationId: string }): Promise<EpisodeReviewEntity>;
   findLatestReview(scheduleId: string): Promise<EpisodeReviewEntity | null>;
   setStatus(input: {
     scheduleId: string;
@@ -216,7 +219,8 @@ export interface ReleaseRepository {
   listPendingOutbox(limit?: number): Promise<PendingOutboxEvent[]>;
   markOutboxDispatched(id: string, dispatchedAt: Date): Promise<void>;
   markOutboxFailed(id: string, error: string): Promise<void>;
-  listDueScheduleIds(now: Date, limit?: number): Promise<Array<{ id: string; version: number }>>;
+  /** Schedules with a failed attempt are returned only once untouched since `retryIdleBefore` (their retry chain has ended or been lost). */
+  listDueScheduleIds(now: Date, retryIdleBefore: Date, limit?: number): Promise<Array<{ id: string; version: number }>>;
   listStuckPublishingIds(before: Date, limit?: number): Promise<Array<{ id: string; version: number }>>;
   dashboardCounts(now: Date, atRiskAfter: Date): Promise<ReleaseDashboardCounts>;
   listModeratorWorkload(
@@ -227,7 +231,7 @@ export interface ReleaseRepository {
     items: ReleaseScheduleEntity[];
     total: number;
   }>;
-  listAssignedSchedules(moderatorId: string): Promise<ReleaseScheduleEntity[]>;
+  listAssignedSchedules(moderatorId: string, statuses?: ReleaseScheduleStatus[]): Promise<ReleaseScheduleEntity[]>;
   retrySchedule(input: {
     scheduleId: string;
     actorId: string;

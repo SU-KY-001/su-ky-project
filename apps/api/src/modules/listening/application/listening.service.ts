@@ -112,7 +112,7 @@ export class ListeningService {
     };
   }
 
-  async playback(narrationId: string, userId: string) {
+  async playback(narrationId: string, userId: string | null) {
     const narration = await this.repo.findPublicNarration(narrationId);
     if (!narration?.audioAsset?.durationMs)
       throw new DomainError(
@@ -120,7 +120,7 @@ export class ListeningService {
         "CONTENT_UNAVAILABLE",
         "Narration audio is not available",
       );
-    const saved = await this.repo.findProgress(userId, narrationId);
+    const saved = userId ? await this.repo.findProgress(userId, narrationId) : null;
     const progress = saved
       ? {
           assetId: narration.audioAsset.id,

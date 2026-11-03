@@ -134,7 +134,9 @@ function PodcastWizardPage({
       notify.success({ title: existingEpisode ? "Đã lưu thay đổi." : "Đã lưu bản nháp." });
       if (!existingEpisode) openSavedDraft(id, activeStep);
     } catch (caught) {
-      setError(caught instanceof Error ? caught.message : "Không lưu được bản nháp.");
+      const message = caught instanceof Error ? caught.message : "Không lưu được bản nháp.";
+      setError(message);
+      notify.error({ title: "Không thể lưu podcast", description: message });
     } finally {
       setBusy(false);
     }
@@ -152,9 +154,13 @@ function PodcastWizardPage({
       setBusy(true);
       setError("");
       try {
-        openSavedDraft(await wizard.saveInformation(), step);
+        const id = await wizard.saveInformation();
+        notify.success({ title: "Đã lưu bản nháp podcast" });
+        openSavedDraft(id, step);
       } catch (caught) {
-        setError(caught instanceof Error ? caught.message : "Không lưu được bản nháp.");
+        const message = caught instanceof Error ? caught.message : "Không lưu được bản nháp.";
+        setError(message);
+        notify.error({ title: "Không thể lưu podcast", description: message });
       } finally {
         setBusy(false);
       }

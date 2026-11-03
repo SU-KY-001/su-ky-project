@@ -7,7 +7,7 @@ import {
   ReleaseReassignmentTicketSchema,
   ReleaseReminderListSchema,
   ReviewContentSchema,
-  type ReviewEpisodeInput,
+  type ReviewEpisodeRequest,
 } from "@repo/shared";
 import { client } from "@/lib/client";
 import { ApiError } from "@/lib/apiError";
@@ -26,11 +26,13 @@ const releases = client.api.studio.releases;
 
 export const moderatorReleaseService = {
   assignments: () => parse(releases.assignments.$get(), AssignedReleaseListSchema),
+  schedules: () => parse(releases.schedules.$get(), AssignedReleaseListSchema),
   assignableEpisodes: () => parse(releases["assignable-episodes"].$get(), AssignableEpisodeListSchema),
   reviewQueue: () => parse(releases["review-queue"].$get(), AssignedReleaseListSchema),
   reviewContent: (id: string) => parse(releases[":id"]["review-content"].$get({ param: { id } }), ReviewContentSchema),
   reminders: () => parse(releases.reminders.$get(), ReleaseReminderListSchema),
   progress: (id: string) => parse(releases[":id"].progress.$get({ param: { id } }), ReleaseProgressListSchema),
+  withdrawReview: (id: string, reviewId: string) => parse(releases[":id"].reviews[":reviewId"].withdraw.$post({ param: { id, reviewId } }), EpisodeReviewRecordSchema),
   linkEpisode: (id: string, episodeId: string) =>
     parse(
       releases[":id"]["link-episode"].$post({
@@ -47,7 +49,7 @@ export const moderatorReleaseService = {
       }),
       EpisodeReviewRecordSchema,
     ),
-  review: (id: string, input: ReviewEpisodeInput) =>
+  review: (id: string, input: ReviewEpisodeRequest) =>
     parse(
       releases[":id"].review.$post({ param: { id }, json: input }),
       EpisodeReviewRecordSchema,

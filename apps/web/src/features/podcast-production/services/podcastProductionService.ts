@@ -16,7 +16,7 @@ import {
   EpisodePosterSchema,
   ScriptConfigSchema,
   ImageUploadPolicySchema,
-  type PublishEpisodeExceptionInput,
+  type PublishEpisodeExceptionRequest,
 } from "@repo/shared";
 import { client } from "@/lib/client";
 import { ApiError } from "@/lib/apiError";
@@ -48,6 +48,8 @@ export const podcastProductionService = {
     ),
   detail: (id: string) =>
     parse(studio.series[":id"].$get({ param: { id } }), SeriesDetailSchema),
+  deleteSeries: (id: string) => parse(studio.series[":id"].$delete({ param: { id } }), z.void()),
+  deleteEpisode: (id: string) => parse(studio.episodes[":id"].$delete({ param: { id } }), z.void()),
   create: (json: z.input<typeof CreateSeriesSchema>, key: string) =>
     parse(studio.series.$post({ json }, headers(key)), SeriesDetailSchema),
   patch: (id: string, json: z.input<typeof PatchSeriesSchema>) =>
@@ -140,7 +142,7 @@ export const podcastProductionService = {
       SeriesDetailSchema,
     ),
   /** Admin-only exception publish: the server rejects without a substantial reason and a full assessment. */
-  publishEpisode: (id: string, json: PublishEpisodeExceptionInput) =>
+  publishEpisode: (id: string, json: PublishEpisodeExceptionRequest) =>
     parse(
       studio.episodes[":id"].publish.$post({
         param: { id },

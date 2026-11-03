@@ -32,6 +32,7 @@ enum EpisodeReviewStatus {
   IN_REVIEW
   CHANGES_REQUESTED
   APPROVED
+  WITHDRAWN
 
   @@map("episode_review_status")
 }
@@ -136,6 +137,7 @@ model User {
   historicalEntities      HistoricalEntity[]     @relation("HistoricalEntityCreator")
   sources                 Source[]               @relation("SourceCreator")
   ownedSeries             Series[]               @relation("SeriesOwner")
+  exhibitions             Exhibition[]
   lockedSeries            Series[]               @relation("SeriesLocker")
   lockedEpisodes          Episode[]              @relation("EpisodeLocker")
   uploadedMediaAssets     MediaAsset[]           @relation("MediaUploader")
@@ -160,6 +162,24 @@ model User {
   resolvedReleaseReassignments ReleaseReassignmentTicket[] @relation("ReleaseReassignmentResolver")
 
   @@map("users")
+}
+
+model Exhibition {
+  id                String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  ownerId           String   @map("owner_id") @db.VarChar(36)
+  slug              String   @unique @db.VarChar(280)
+  title             String   @db.VarChar(255)
+  draftRevision     Int      @default(1) @map("draft_revision")
+  draftDocument     Json     @map("draft_document")
+  publishedDocument Json?    @map("published_document")
+  publishedRevision Int?     @map("published_revision")
+  publishedAt       DateTime? @map("published_at") @db.Timestamptz(3)
+  createdAt         DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt         DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+  owner             User     @relation(fields: [ownerId], references: [id], onDelete: Restrict)
+
+  @@index([ownerId, updatedAt])
+  @@map("exhibitions")
 }
 
 model Session {
@@ -516,7 +536,6 @@ model EpisodeReview {
   submittedBy   User                @relation("EpisodeReviewSubmitter", fields: [submittedById], references: [id], onDelete: Restrict)
   reviewedBy    User?               @relation("EpisodeReviewer", fields: [reviewedById], references: [id], onDelete: SetNull)
 
-  @@unique([episodeId, revision], map: "episode_reviews_episode_revision_key")
   @@index([scheduleId, status], map: "episode_reviews_schedule_status_idx")
   @@map("episode_reviews")
 }

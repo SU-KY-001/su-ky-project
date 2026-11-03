@@ -11,13 +11,13 @@ This skill enforces **feature-based architecture** with modern design patterns, 
 
 ---
 
-## UI and Styling System: Tamagui
+## UI and Styling System: NativeWind
 
-Tamagui is the single UI component and styling system for both `apps/web` and `apps/mobile`.
+`apps/mobile` uses NativeWind with Tailwind CSS for styling React Native components. `apps/web` has its own web styling system.
 
-- Build app UI with Tamagui components and style it with Tamagui props, tokens, themes, and responsive/media query props.
-- Share Tamagui tokens and components through shared packages when both platforms use them. Platform-specific components are fine when behavior differs, while keeping Tamagui as their UI and styling foundation.
-- Do not use Tailwind or introduce another UI component or styling system.
+- Build mobile UI with React Native components and NativeWind `className` utilities.
+- Use React Native compatible component libraries when they add needed behavior; web-only shadcn/ui components cannot run in the native app.
+- Keep mobile styling and its Tailwind configuration in `apps/mobile`; share design values through platform-neutral tokens where useful.
 
 ---
 
@@ -570,3 +570,4 @@ const DocumentList: React.FC = () => {
 - Ignore TypeScript types
 - Leave error states unhandled
 - Forget loading and empty states
+

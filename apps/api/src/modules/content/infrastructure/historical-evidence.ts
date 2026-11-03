@@ -10,6 +10,7 @@ import {
   currentPublicationApproval,
   hasAiVoiceAudio,
   parseAdminException,
+  withGateStatements,
   type EpisodePublishGate,
 } from "../application/publication-gate";
 import { DomainError } from "../../../core/errors/domain-error";
@@ -122,12 +123,6 @@ export async function collectHistoricalEvidence(
       "CONTENT_NOT_READY",
       "Sự kiện hoặc phiên bản đã chọn chưa sẵn sàng; hãy chọn lại sự kiện hiện tại",
     );
-  if (!sourceRows.length)
-    throw new DomainError(
-      422,
-      "CONTENT_NOT_READY",
-      "Chọn ít nhất một trích dẫn cho podcast",
-    );
   const rows = await tx.seriesSource.findMany({
     where: { seriesId },
     orderBy: { sortOrder: "asc" },
@@ -228,8 +223,6 @@ export async function publishWithHistoricalEvidence(
       where: { id: seriesId },
       include: {
         episodes: { where: { deletedAt: null } },
-        coverImageAsset: { select: { status: true } },
-        coverLandscapeAsset: { select: { status: true } },
       },
     });
     const episode =
@@ -283,10 +276,11 @@ export async function publishWithHistoricalEvidence(
         if (actor?.role !== "admin" || actor.banned)
           throw new DomainError(403, "FORBIDDEN", "Chỉ Admin được phát hành ngoại lệ");
         const parsed = parseAdminException(gate);
-        assertAssessmentGate(parsed.assessment, facts);
+        const assessment = withGateStatements(parsed.assessment, facts);
+        assertAssessmentGate(assessment, facts);
         exception = {
           contentRevision: episode.contentRevision,
-          assessment: parsed.assessment,
+          assessment,
           approvedById: actorId!,
           approvedAt: facts.now,
           exceptionReason: parsed.exceptionReason,
@@ -310,16 +304,12 @@ export async function publishWithHistoricalEvidence(
       series.endYear == null ||
       !series.episodes.some((e) => e.status === "PUBLISHED") ||
       !series.description?.trim() ||
-      !series.language.trim() ||
-      !(
-        series.coverImageAsset?.status === "READY" ||
-        series.coverLandscapeAsset?.status === "READY"
-      )
+      !series.language.trim()
     )
       throw new DomainError(
         422,
         "SERIES_NOT_PUBLISHABLE",
-        "Series chưa đủ thông tin phát hành (chủ đề, khoảng năm, mô tả, ảnh bìa, ngôn ngữ và ít nhất một tập đã phát hành)",
+        "Series chưa đủ thông tin phát hành (chủ đề, khoảng năm, mô tả, ngôn ngữ và ít nhất một tập đã phát hành)",
       );
     const evidence = await collectHistoricalEvidence(tx, seriesId);
     const preservePublished =

@@ -20,29 +20,10 @@ const IN_TRASH = "`CONTENT_IN_TRASH`: tập hoặc Series đang ở thùng rác"
 const EpisodeIdParam = z.object({ episodeId: z.string().uuid() });
 const QuizIdParam = z.object({ quizId: z.string().uuid() });
 const SlugParam = z.object({ slug: z.string().min(1) });
-const studioQuiz = PublicQuizSchema.extend({
-  questions: z.array(
-    z.object({
-      id: z.string().uuid(),
-      text: z.string(),
-      explanation: z.string().nullable(),
-      sortOrder: z.number().int(),
-      timeLimit: z.number().int().positive().nullable(),
-      options: z.array(
-        z.object({
-          id: z.string().uuid(),
-          label: z.string(),
-          text: z.string(),
-          isCorrect: z.boolean(),
-        }),
-      ),
-    }),
-  ),
-});
-
 export const gamificationPaths: Paths = {
   "/api/quizzes": {
     get: operation({ id: "listPublishedQuizzes", tag: QUIZ_TAG, summary: "Danh sách quiz của các tập công khai", access: "optional", query: PublicQuizCatalogQuerySchema,
+      queryDocs: { page: "Số trang (từ 1)", limit: "Số quiz mỗi trang (1-50, mặc định 12)", topicId: "Lọc theo ID chủ đề (UUID) của Series", episodeSlug: "Lọc theo slug tập công khai" },
       ok: { status: 200, description: "Danh sách quiz phân trang", schema: { name: "PublicQuizCatalog", schema: PublicQuizCatalogSchema } } }),
   },
   "/api/studio/quiz-workspaces": {
@@ -52,7 +33,7 @@ export const gamificationPaths: Paths = {
   "/api/studio/episodes/{episodeId}/quiz-workspace": {
     get: operation({ id: "getQuizWorkspace", tag: QUIZ_TAG, summary: "Đọc bản nháp và kịch bản quiz độc lập", access: "moderator", pathParams: EpisodeIdParam,
       ok: { status: 200, description: "Nội dung referenceText là kịch bản riêng của quiz, không lấy từ podcast. Bản nháp cũ chưa có trường này dùng nội dung trống.", schema: { name: "QuizWorkspace", schema: QuizWorkspaceSchema } },
-      errors: { 403: LOCKED, 404: "`NOT_FOUND`: tập không thuộc Moderator", 409: IN_TRASH } }),
+      errors: { 403: LOCKED, 404: "`NOT_FOUND`: tập không thuộc Moderator", 409: `${IN_TRASH}; \`CONFLICT\`: quiz cũ (chưa có bản nháp) có câu vượt quá bốn đáp án, không mở được trong trình soạn` } }),
     put: operation({ id: "saveQuizWorkspace", tag: QUIZ_TAG, summary: "Lưu câu hỏi và kịch bản quiz referenceText cùng bản nháp", access: "moderator", pathParams: EpisodeIdParam,
       body: { name: "SaveQuizDraft", schema: SaveQuizDraftSchema }, rate: "write",
       ok: { status: 200, description: "Bản nháp đã lưu với revision mới", schema: { name: "QuizWorkspace", schema: QuizWorkspaceSchema } },
@@ -96,8 +77,8 @@ export const gamificationPaths: Paths = {
       rate: "write",
       ok: {
         status: 200,
-        description: "Quiz đã lưu (không lộ đáp án đúng trong response này)",
-        schema: { name: "PublicQuiz", schema: PublicQuizSchema },
+        description: "Quiz đã lưu, kèm đáp án đúng và giải thích",
+        schema: { name: "StudioQuiz", schema: StudioQuizSchema },
       },
       errors: {
         403: LOCKED,

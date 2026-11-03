@@ -2,9 +2,13 @@ import { describe, expect, it } from "bun:test";
 import {
   dispatchReleaseOutbox,
   handleReleaseJob,
+  reconcileCorrelationId,
   reconcileReleaseSchedules,
   type ReleaseJobQueue,
 } from "../src/core/jobs/release-jobs";
+
+// audit_logs.correlation_id is VarChar(64) in packages/db/prisma/schema.prisma
+const AUDIT_CORRELATION_ID_MAX = 64;
 
 class FakeQueue implements ReleaseJobQueue {
   sent: Array<{ name: string; data: unknown; options: Record<string, unknown> }> = [];
@@ -164,5 +168,10 @@ describe("release jobs", () => {
     const now = new Date("2026-10-18T13:00:00.000Z");
     await reconcileReleaseSchedules(repository, queue, now);
     expect(calls).toEqual([{ from: now, to: new Date("2026-10-19T13:00:00.000Z") }]);
+  });
+
+  it("builds reconcile correlation ids that fit the audit column for a real schedule id", () => {
+    const id = reconcileCorrelationId(crypto.randomUUID(), new Date("2026-10-18T13:00:00.000Z"));
+    expect(id.length).toBeLessThanOrEqual(AUDIT_CORRELATION_ID_MAX);
   });
 });

@@ -419,7 +419,11 @@ export class ContentService {
     const current = await this.loadSeriesForRead(session, id);
     if (current.deletedAt) return;
     assertWritable(session, current);
-    await this.series.trashSeries(id, current.status);
+    if (session.user.role !== "admin") {
+      if (current.ownerId !== session.user.id) throw new DomainError(403, "FORBIDDEN", "Chỉ chủ sở hữu được xóa series.");
+      if (current.status !== "DRAFT") throw new DomainError(409, "INVALID_STATE_TRANSITION", "Chỉ có thể xóa series nháp.");
+    }
+    await this.series.trashSeries(id, current.status, session.user.role === "admin" ? undefined : session.user.id);
   }
 
   async restoreSeries(
@@ -510,16 +514,6 @@ export class ContentService {
     assertWritable(session, series);
     const existing = await this.series.findSeriesSource(seriesId, childId);
     if (!existing) return;
-    if (
-      series.status === "PUBLISHED" &&
-      (await this.series.countSeriesSources(seriesId)) <= 1
-    ) {
-      throw new DomainError(
-        409,
-        "REQUIRED_FOR_PUBLISHED",
-        "Published series require a source",
-      );
-    }
     await this.series.deleteSeriesSource(seriesId, childId);
   }
 
@@ -691,7 +685,11 @@ export class ContentService {
     const current = await this.loadEpisodeForRead(session, id);
     if (current.deletedAt) return;
     assertWritable(session, current.series, current);
-    await this.episodes.trashEpisode(id, current.status);
+    if (session.user.role !== "admin") {
+      if (current.series.ownerId !== session.user.id) throw new DomainError(403, "FORBIDDEN", "Chỉ chủ sở hữu series được xóa tập.");
+      if (current.status !== "DRAFT") throw new DomainError(409, "INVALID_STATE_TRANSITION", "Chỉ có thể xóa tập nháp.");
+    }
+    await this.episodes.trashEpisode(id, current.status, session.user.role === "admin" ? undefined : session.user.id);
   }
 
   async restoreEpisode(

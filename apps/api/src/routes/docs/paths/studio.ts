@@ -245,7 +245,7 @@ export const studioPaths: Paths = {
       tag: SERIES_TAG,
       summary: "Chi tiết Series",
       description:
-        "Kèm danh sách tập và poster riêng của từng tập (`episodes[].poster`, null nếu chưa có), nguồn (`sources`), Giai đoạn kèm Thời kỳ (`historicalPhase`) và `publishChecklist` (điều kiện xuất bản: chủ đề, Giai đoạn, khoảng năm, ít nhất một nguồn, ít nhất một tập đã xuất bản).",
+        "Kèm danh sách tập và poster riêng của từng tập (`episodes[].poster`, null nếu chưa có), nguồn (`sources`), Giai đoạn kèm Thời kỳ (`historicalPhase`) và `publishChecklist` (điều kiện xuất bản: chủ đề, Giai đoạn, khoảng năm, ít nhất một tập đã xuất bản).",
       access: "studio",
       ...seriesParams,
       ok: { status: 200, description: "Series", schema: seriesDetail },
@@ -279,19 +279,19 @@ export const studioPaths: Paths = {
       tag: SERIES_TAG,
       summary: "Đưa Series vào thùng rác",
       description:
-        "Xoá mềm, ghi nhớ trạng thái trước đó. Gọi lại trên Series đã ở thùng rác vẫn trả 204. Khôi phục bằng `POST .../restore`.",
+        "Xoá mềm, ghi nhớ trạng thái trước đó. Moderator chỉ được xóa series nháp do mình sở hữu khi không có tập đã phát hành hoặc được dùng trong lịch phát hành chưa hủy. Gọi lại trên Series đã ở thùng rác vẫn trả 204. Khôi phục bằng `POST .../restore`.",
       access: "studio",
       ...seriesParams,
       ok: NO_CONTENT,
       rate: "write",
-      errors: writeErrors("Series"),
+      errors: writeErrors("Series", { 403: "`FORBIDDEN`: chỉ chủ sở hữu được xóa", 409: "`INVALID_STATE_TRANSITION`: series không phải bản nháp hoặc có tập được bảo vệ" }),
     }),
   },
   [`${SERIES}/{id}/publish`]: {
     post: seriesAction(
       "publishSeries",
       "Xuất bản Series",
-      "Chỉ thành công khi `publishChecklist.ready = true` (gồm chủ đề, Giai đoạn, khoảng năm, nguồn, tập đã xuất bản, mô tả, ít nhất một ảnh bìa READY, ngôn ngữ). Phải có primary event đã duyệt, revision nguồn VERIFIED hiện tại. Publish kiểm baseUpdatedAt và lưu snapshot bằng chứng trong transaction. Owner là người chịu trách nhiệm nội dung.",
+      "Chỉ thành công khi `publishChecklist.ready = true` (gồm chủ đề, Giai đoạn, khoảng năm, tập đã xuất bản, mô tả, ngôn ngữ). Series không bắt buộc có ảnh bìa hoặc nguồn. Phải có primary event đã duyệt, revision nguồn VERIFIED hiện tại. Publish kiểm baseUpdatedAt và lưu snapshot bằng chứng trong transaction. Owner là người chịu trách nhiệm nội dung.",
       writeErrors("Series", {
         409: "`STALE_WRITE`: baseUpdatedAt đã cũ",
         422: "`SERIES_NOT_PUBLISHABLE`: checklist chưa đạt (kiểm lại trong transaction); `CONTENT_NOT_READY`: sự kiện/nguồn chưa duyệt hoặc revision đã cũ",
@@ -369,7 +369,9 @@ export const studioPaths: Paths = {
       },
       idempotent: true,
       rate: "write",
-      errors: writeErrors("Series"),
+      errors: writeErrors("Series", {
+        403: "`FORBIDDEN`: chỉ chủ sở hữu Series (hoặc Admin) được thêm tập; cộng tác viên lịch phát hành chỉ đọc",
+      }),
     }),
   },
 
@@ -416,12 +418,12 @@ export const studioPaths: Paths = {
       tag: EPISODE_TAG,
       summary: "Đưa tập vào thùng rác",
       description:
-        "Xoá mềm. Gọi lại trên tập đã ở thùng rác vẫn trả 204. Khôi phục bằng `POST .../restore`.",
+        "Xoá mềm. Moderator chỉ được xóa tập nháp thuộc series của mình và không được dùng trong lịch phát hành chưa hủy. Gọi lại trên tập đã ở thùng rác vẫn trả 204. Khôi phục bằng `POST .../restore`.",
       access: "studio",
       ...episodeParams,
       ok: NO_CONTENT,
       rate: "write",
-      errors: writeErrors("tập"),
+      errors: writeErrors("tập", { 403: "`FORBIDDEN`: chỉ chủ sở hữu series được xóa", 409: "`INVALID_STATE_TRANSITION`: tập không phải bản nháp hoặc đang được dùng trong lịch phát hành" }),
     }),
   },
   [`${EPISODES}/{id}/publish`]: {
@@ -491,7 +493,7 @@ export const studioPaths: Paths = {
       rate: "write",
       errors: writeErrors("tập", {
         409: `${STALE}; \`REQUIRED_FOR_PUBLISHED\`: không được để trống kịch bản ngôi thứ ba của tập đã xuất bản`,
-        422: "`VALIDATION_ERROR`: kịch bản chứa HTML hoặc quá dài; bản ngôi thứ nhất thiếu `narratorEntityId` hoặc nhân vật dẫn không phải `FIGURE`",
+        422: "`VALIDATION_ERROR`: kịch bản chứa HTML hoặc quá dài; bản ngôi thứ nhất thiếu `narratorEntityId` hoặc nhân vật dẫn không phải `FIGURE`; `dialogue` chỉ dùng cho ngôi thứ ba và không đi cùng `scriptDocument`, hoặc không hợp lệ; `scriptDocument` có nội dung không hỗ trợ hoặc trích nguồn chưa gắn vào Series",
       }),
     }),
   },
@@ -651,6 +653,7 @@ export const studioPaths: Paths = {
       rate: "write",
       errors: writeErrors("Series", {
         409: "`SERIES_SOURCE_DUPLICATE`: nguồn đã gắn ở cùng `locator`",
+        422: "`VALIDATION_ERROR`: nguồn đã lưu trữ hoặc không khả dụng; trích dẫn lịch sử không thuộc sự kiện chính của Series",
       }),
     }),
   },
@@ -697,7 +700,10 @@ export const studioPaths: Paths = {
         schema: seriesSource,
       },
       rate: "write",
-      errors: writeErrors("Series hoặc trích dẫn"),
+      errors: {
+        ...writeErrors("Series hoặc trích dẫn"),
+        422: "`VALIDATION_ERROR`: trích dẫn lấy từ sự kiện lịch sử không sửa được vị trí, hãy gỡ và chọn lại",
+      },
     }),
     delete: operation({
       id: "deleteSeriesSource",
@@ -707,9 +713,7 @@ export const studioPaths: Paths = {
       ...seriesChildParams,
       ok: NO_CONTENT,
       rate: "write",
-      errors: writeErrors("Series", {
-        409: "`REQUIRED_FOR_PUBLISHED`: Series đã xuất bản phải còn ít nhất một nguồn",
-      }),
+      errors: writeErrors("Series"),
     }),
   },
 

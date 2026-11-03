@@ -4,7 +4,7 @@ import type { PublicationAssessment, ReleaseScheduleRecord } from "@repo/shared"
 export type StoredReview = Pick<ReleaseScheduleRecord["reviews"][number], "status" | "revision"> &
   Partial<Pick<ReleaseScheduleRecord["reviews"][number], "reviewNote" | "readinessSnapshot" | "reviewedAt">>;
 
-const DECISION_LABEL: Record<string, string> = { APPROVED: "Đã duyệt", CHANGES_REQUESTED: "Yêu cầu chỉnh sửa" };
+const DECISION_LABEL: Record<string, string> = { APPROVED: "Đã duyệt", CHANGES_REQUESTED: "Yêu cầu chỉnh sửa", WITHDRAWN: "Đã thu hồi" };
 const dateTime = new Intl.DateTimeFormat("vi-VN", { dateStyle: "short", timeStyle: "short" });
 
 function Field({ label, value }: { label: string; value: string | null }): ReactElement | null {
@@ -27,7 +27,7 @@ export function AssessmentSummary({ assessment }: { assessment: PublicationAsses
 }
 
 /** Decisions already recorded for a schedule, with the notes and readiness stored at decision time. */
-export function ReviewHistory({ reviews }: { reviews: StoredReview[] }): ReactElement | null {
+export function ReviewHistory({ reviews, showRevision = true }: { reviews: StoredReview[]; showRevision?: boolean }): ReactElement | null {
   const decided = reviews.filter((review) => review.status in DECISION_LABEL);
   if (!decided.length) return null;
   return (
@@ -39,7 +39,7 @@ export function ReviewHistory({ reviews }: { reviews: StoredReview[] }): ReactEl
           const warnings = snapshot?.readiness.items.filter((item) => item.state === "WARN").length ?? 0;
           return (
             <li key={`${review.revision}-${index}`} className="space-y-2 rounded-lg border border-mod-border p-3 text-sm">
-              <p className="font-semibold">{DECISION_LABEL[review.status]} · Phiên bản {review.revision}{review.reviewedAt ? ` · ${dateTime.format(review.reviewedAt)}` : ""}</p>
+              <p className="font-semibold">{DECISION_LABEL[review.status]}{showRevision ? ` · Phiên bản ${review.revision}` : ""}{review.reviewedAt ? ` · ${dateTime.format(review.reviewedAt)}` : ""}</p>
               {review.reviewNote ? <p className="whitespace-pre-wrap break-words text-xs leading-5">Ghi chú: {review.reviewNote}</p> : null}
               {snapshot ? <p className="text-xs text-mod-text-secondary">Lúc quyết định: {snapshot.readiness.ready ? "đủ điều kiện" : "chưa đủ điều kiện"}, {warnings} cảnh báo.</p> : null}
               {snapshot?.assessment ? <AssessmentSummary assessment={snapshot.assessment} /> : null}

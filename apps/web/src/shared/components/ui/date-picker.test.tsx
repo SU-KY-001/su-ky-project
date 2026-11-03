@@ -1,4 +1,4 @@
-import { afterEach, expect, it } from "bun:test";
+import { afterEach, expect, it, setSystemTime } from "bun:test";
 import { act, useState } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { DateTimePicker } from "./date-picker";
@@ -8,6 +8,7 @@ let root: Root | undefined;
 afterEach(() => {
   act(() => root?.unmount());
   document.body.innerHTML = "";
+  setSystemTime();
 });
 
 function TimePickerProbe() {
@@ -87,4 +88,27 @@ it("restores the last valid values after invalid typed dates or times", async ()
   expect(dateInput!.value).toBe("15/10/2026");
   expect(timeInput!.value).toBe("14:21");
   expect(host.querySelector("output")?.textContent).toBe("2026-10-15T14:21");
+});
+
+it("disables past dates and times when requested", async () => {
+  setSystemTime(new Date(2026, 9, 20, 14, 21, 30));
+  function Probe() {
+    const [value, setValue] = useState("2026-10-20T15:00");
+    return <><DateTimePicker value={value} onChange={setValue} ariaLabel="Thời gian" placeholder="Chọn ngày" disablePast /><output>{value}</output></>;
+  }
+  const host = document.createElement("div");
+  document.body.append(host);
+  root = createRoot(host);
+  await act(async () => root?.render(<Probe />));
+  const date = host.querySelector<HTMLInputElement>('input[aria-label="Thời gian - nhập ngày"]')!;
+  await setInput(date, "19/10/2026");
+  await act(async () => date.dispatchEvent(new KeyboardEvent("keydown", { key: "Enter", bubbles: true })));
+  expect(date.value).toBe("20/10/2026");
+  const time = host.querySelector<HTMLInputElement>('input[aria-label="Thời gian - giờ"]')!;
+  await setInput(time, "14:21");
+  await act(async () => time.dispatchEvent(new KeyboardEvent("keydown", { key: "Enter", bubbles: true })));
+  expect(time.value).toBe("15:00");
+  await act(async () => host.querySelector<HTMLButtonElement>('[data-slot="time-picker-trigger"]')?.click());
+  expect(document.body.querySelector<HTMLButtonElement>('[aria-label="Chọn giờ 13"]')?.disabled).toBe(true);
+  expect(host.querySelector("output")?.textContent).toBe("2026-10-20T15:00");
 });

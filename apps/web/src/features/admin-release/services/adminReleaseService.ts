@@ -8,8 +8,9 @@ import {
   SystemHealthSchema,
   ReviewContentSchema,
   EpisodeReviewRecordSchema,
-  type ReviewEpisodeInput,
+  type ReviewEpisodeRequest,
   type ReleaseScheduleStatus,
+  type ReleaseStatusGroup,
   type ReleaseScheduleScope,
 } from "@repo/shared";
 import { client } from "@/lib/client";
@@ -35,6 +36,7 @@ export interface ReleaseScheduleDraft {
 
 export interface ReleaseScheduleFilter {
   status?: ReleaseScheduleStatus;
+  statusGroup?: ReleaseStatusGroup;
   scope?: ReleaseScheduleScope;
   from?: string;
   to?: string;
@@ -55,7 +57,7 @@ export const adminReleaseService = {
   },
   get: (id: string) => parse(admin[":id"].$get({ param: { id } }), ReleaseScheduleRecordSchema),
   reviewContent: (id: string) => parse(admin[":id"]["review-content"].$get({ param: { id } }), ReviewContentSchema),
-  review: (id: string, input: ReviewEpisodeInput) => parse(
+  review: (id: string, input: ReviewEpisodeRequest) => parse(
     admin[":id"].review.$post({ param: { id }, json: input }), EpisodeReviewRecordSchema,
   ),
   dashboard: () => parse(admin.dashboard.$get(), ReleaseDashboardSchema),
@@ -65,6 +67,7 @@ export const adminReleaseService = {
       admin.$get({
         query: {
           status: filter.status,
+          statusGroup: filter.statusGroup,
           scope: filter.scope,
           from: filter.from,
           to: filter.to,

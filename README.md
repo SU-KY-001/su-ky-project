@@ -7,7 +7,7 @@ Nền tảng Podcast Kể Chuyện Lịch Sử Việt Nam (Đồ án WDP301).
 - **Monorepo Engine**: [Turborepo](https://turbo.build) `2.x`
 - **Backend API**: [Hono](https://hono.dev) `v4` with end-to-end typed RPC Client
 - **Frontend Web**: [React](https://react.dev) `19` + [Vite](https://vite.dev) `8` + [Tailwind CSS](https://tailwindcss.com) `4` + [shadcn/ui](https://ui.shadcn.com) + [Magic UI](https://magicui.design) + [TanStack Query](https://tanstack.com/query) `v5`
-- **Frontend Mobile**: [Expo](https://expo.dev) `57` + React Native `0.86` + Tamagui `2`
+- **Frontend Mobile**: [Expo](https://expo.dev) `58` + React Native `0.88` + NativeWind `4.2` + Tailwind CSS `3.4`
 - **Database & ORM**: PostgreSQL 18 ([Docker Compose](./compose.yaml) image `postgres:18-alpine`) + [Prisma ORM](https://www.prisma.io) `v6`
 - **Contracts**: [Zod](https://zod.dev) schemas in `@repo/shared`
 - **AI engine** (`apps/api/src/modules/ai-engine`): Pi SDK, chưa nối vào logic chính, khởi tạo lười, khoá AI trong `.env` là tùy chọn. Pipeline workflow AI-first cũ nằm ở [archive/script-workflow](./archive/script-workflow/README.md)
@@ -21,7 +21,7 @@ su-ky-project/
 ├── apps/
 │   ├── api/          # Hono v4 backend (Bun runtime; exports type AppType)
 │   ├── web/          # React 19 + Vite 8 + Tailwind CSS + shadcn/ui + Magic UI
-│   └── mobile/       # Expo 57 + React Native + Tamagui
+│   └── mobile/       # Expo 58 + React Native + NativeWind
 ├── packages/
 │   ├── db/           # Prisma schema, client, migrations & seed
 │   ├── shared/       # Zod schemas, domain types, contracts
@@ -119,3 +119,5 @@ Xem trong thư mục [`docs/`](./docs/):
 - [`docs/code-standards.md`](./docs/code-standards.md) — Quy chuẩn code & type safety
 - [`docs/design-guidelines.md`](./docs/design-guidelines.md) — Hướng dẫn giao diện cho Frontend Team
 - [`docs/wireframe/index.html`](./docs/wireframe/index.html) — Wireframe tương tác mẫu
+
+

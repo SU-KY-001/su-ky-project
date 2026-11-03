@@ -290,6 +290,23 @@ Tokens are design system values that can be referenced using the `$` prefix.
 - `ink`: #1C1714
 - `inkSoft`: #5B4E44
 - `line`: #CCB991
+- `modAccentBlue`: #2563EB
+- `modAttention`: #C2410C
+- `modBorder`: #E2E8F0
+- `modCanvas`: #F8FAFC
+- `modCanvasAccent`: #EDF4F8
+- `modChartEmerald`: #059669
+- `modChartSky`: #0284C7
+- `modChartViolet`: #7C3AED
+- `modPrimary`: #0284C7
+- `modPrimaryHover`: #0369A1
+- `modSuccess`: #15803D
+- `modSurface`: #FFFFFF
+- `modSurfaceGlass`: rgba(255, 255, 255, 0.82)
+- `modText`: #0F172A
+- `modTextLow`: #94A3B8
+- `modTextMuted`: #475569
+- `modTextSecondary`: #64748B
 - `night`: #14110F
 - `nightSoft`: #211B17
 - `overlay`: rgba(20, 17, 15, 0.72)
@@ -299,23 +316,6 @@ Tokens are design system values that can be referenced using the `$` prefix.
 - `paperSoft`: #FAF6ED
 - `vermilion`: #B8322A
 - `vermilionDark`: #92251F
-- `modCanvas`: #F8FAFC
-- `modCanvasAccent`: #EDF4F8
-- `modSurface`: #FFFFFF
-- `modSurfaceGlass`: rgba(255, 255, 255, 0.82)
-- `modPrimary`: #0284C7
-- `modPrimaryHover`: #0369A1
-- `modAccentBlue`: #2563EB
-- `modText`: #0F172A
-- `modTextMuted`: #475569
-- `modTextSecondary`: #64748B
-- `modTextLow`: #94A3B8
-- `modBorder`: #E2E8F0
-- `modSuccess`: #15803D
-- `modAttention`: #C2410C
-- `modChartSky`: #0284C7
-- `modChartViolet`: #7C3AED
-- `modChartEmerald`: #059669
 
 ### Token Usage
 
@@ -364,8 +364,8 @@ Available responsive breakpoints:
 - **max-xxxs**: {"maxWidth":259.98}
 - **md**: {"minWidth":768}
 - **modDesktop**: {"minWidth":981}
-- **modTablet**: {"minWidth":621,"maxWidth":980}
 - **modMobile**: {"maxWidth":620}
+- **modTablet**: {"minWidth":621,"maxWidth":980}
 - **sm**: {"minWidth":640}
 - **touchable**: {"pointer":"coarse"}
 - **xl**: {"minWidth":1280}
@@ -395,13 +395,17 @@ Available font families:
 
 - body
 - heading
-- moderator (Manrope weights 400, 500, 600, 700, 800)
+- moderator
 
 ## Animations
 
 Available animation presets:
 
-
+- instant
+- quick
+- reveal
+- settle
+- smooth
 
 ## Components
 
@@ -518,3 +522,4 @@ The following components are available:
 - YGroup
 - YStack
 - ZStack
+

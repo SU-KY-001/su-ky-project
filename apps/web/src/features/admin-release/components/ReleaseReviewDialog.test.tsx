@@ -34,7 +34,7 @@ async function renderReview(options: { stale?: boolean; fail?: boolean; notReady
       { key: "THIRD_PERSON_AUDIO" as const, level: "REQUIRED" as const, state: options.notReady ? ("MISSING" as const) : ("OK" as const) },
     ],
   };
-  const service = { ...adminReleaseService, get: async () => schedule, reviewContent: async () => ({ episode, readiness, aiSummary: null }), review };
+  const service = { ...adminReleaseService, progress: async () => ({ items: [] }), get: async () => schedule, reviewContent: async () => ({ episode, readiness, aiSummary: null }), review };
   queryClient = new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } });
   const host = document.createElement("div"); document.body.append(host); root = createRoot(host);
   await act(async () => {
@@ -49,65 +49,23 @@ async function renderReview(options: { stale?: boolean; fail?: boolean; notReady
 
 const button = (text: string) => [...document.body.querySelectorAll<HTMLButtonElement>("button")].find((item) => item.textContent?.trim() === text);
 
-const ASSESSMENT_TEXT = {
-  editorialNote: "Đã đối chiếu kịch bản với nguồn chính sử.",
-  rightsNote: "Ảnh và tư liệu thuộc phạm vi công cộng.",
-  audioNote: "Đã nghe toàn bộ bản thu, khớp kịch bản.",
-};
-
-async function setField(selector: string, value: string) {
-  const element = document.body.querySelector<HTMLTextAreaElement | HTMLInputElement>(selector)!;
-  const prototype = element instanceof window.HTMLInputElement ? window.HTMLInputElement.prototype : window.HTMLTextAreaElement.prototype;
-  await act(async () => {
-    Object.getOwnPropertyDescriptor(prototype, "value")!.set!.call(element, value);
-    element.dispatchEvent(new Event("input", { bubbles: true }));
-  });
-}
-
-async function fillAssessment() {
-  await setField("#admin-review-note-editorialNote", ASSESSMENT_TEXT.editorialNote);
-  await setField("#admin-review-note-rightsNote", ASSESSMENT_TEXT.rightsNote);
-  await setField("#admin-review-note-audioNote", ASSESSMENT_TEXT.audioNote);
-}
-
 it("loads script, playable audio and documents before submitting the exact revision", async () => {
   const { schedule, review, onClose } = await renderReview();
   expect(document.body.textContent).toContain("Nội dung kịch bản cần kiểm duyệt.");
   expect(document.body.querySelector("script")).toBeNull();
   expect(document.body.querySelector("audio")?.getAttribute("src")).toBe("https://example.org/recording.mp3");
   expect(document.body.querySelector('a[href="https://example.org/document.pdf"]')?.textContent).toContain("Tài liệu chiến dịch.pdf");
-  await fillAssessment();
   await act(async () => {
     button("Duyệt nội dung")?.click();
     await new Promise((resolve) => setTimeout(resolve, 30));
   });
-  expect(review).toHaveBeenCalledWith(schedule.id, {
-    decision: "APPROVE",
-    contentRevision: 3,
-    reviewNote: null,
-    assessment: { ...ASSESSMENT_TEXT, credits: null, rightsExpiresAt: null, aiDisclosure: null, warningAcceptance: null },
-  });
+  expect(review).toHaveBeenCalledWith(schedule.id, { decision: "APPROVE", reviewId: schedule.reviews[0]!.id, contentRevision: 3, reviewNote: null });
   expect(onClose).toHaveBeenCalled();
   expect(useNotificationStore.getState().notifications.at(-1)?.status).toBe("success");
 });
 
-it("keeps approval locked and lists what is missing until every required note has 10 characters", async () => {
-  const { review } = await renderReview();
-  expect(button("Duyệt nội dung")?.disabled).toBe(true);
-  expect(document.body.textContent).toContain("Kết luận nội dung và nguồn");
-  await setField("#admin-review-note-editorialNote", "quá ngắn");
-  expect(button("Duyệt nội dung")?.disabled).toBe(true);
-  expect(document.body.querySelector('input[type="checkbox"]')).toBeNull();
-  await fillAssessment();
-  expect(button("Duyệt nội dung")?.disabled).toBe(false);
-  await setField("#admin-review-note-rightsExpiresAt", "2000-01-01");
-  expect(button("Duyệt nội dung")?.disabled).toBe(true);
-  expect(document.body.textContent).toContain("Quyền đã hết hạn");
-  expect(review).not.toHaveBeenCalled();
-});
-
 it("locks 'Yêu cầu chỉnh sửa' until a note is written", async () => {
-  const { review } = await renderReview();
+  const { review, schedule } = await renderReview();
   expect(button("Yêu cầu chỉnh sửa")?.disabled).toBe(true);
   const note = document.body.querySelector<HTMLTextAreaElement>("#admin-review-note")!;
   await act(async () => {
@@ -115,13 +73,12 @@ it("locks 'Yêu cầu chỉnh sửa' until a note is written", async () => {
     note.dispatchEvent(new Event("input", { bubbles: true }));
   });
   await act(async () => button("Yêu cầu chỉnh sửa")?.click());
-  expect(review).toHaveBeenCalledWith(expect.any(String), { decision: "REQUEST_CHANGES", contentRevision: 3, reviewNote: "Bổ sung nguồn tư liệu cho đoạn kết." });
+  expect(review).toHaveBeenCalledWith(expect.any(String), { decision: "REQUEST_CHANGES", reviewId: schedule.reviews[0]!.id, contentRevision: 3, reviewNote: "Bổ sung nguồn tư liệu cho đoạn kết." });
 });
 
-it("locks approval and names the first missing required item when the episode is not ready", async () => {
+it("locks approval when the episode is not ready", async () => {
   const { review } = await renderReview({ notReady: true });
   expect(button("Duyệt nội dung")?.disabled).toBe(true);
-  expect(document.body.textContent).toContain("Chưa thể Duyệt: Chưa có âm thanh ngôi thứ ba sẵn sàng");
   expect(review).not.toHaveBeenCalled();
 });
 
@@ -132,15 +89,12 @@ it("does not offer approval of a stale submitted revision", async () => {
   expect(review).not.toHaveBeenCalled();
 });
 
-it("keeps detail open, reports a failed decision through toast and keeps the typed assessment", async () => {
+it("keeps detail open and reports a failed decision through toast", async () => {
   const { onClose } = await renderReview({ fail: true });
-  await fillAssessment();
   await act(async () => button("Duyệt nội dung")?.click());
   expect(onClose).not.toHaveBeenCalled();
   expect(useNotificationStore.getState().notifications.at(-1)?.description).toBe("Phiên bản đã được người khác xử lý");
   expect(document.body.querySelector('[role="alert"]')).toBeNull();
-  await act(async () => { await new Promise((resolve) => setTimeout(resolve, 30)); });
-  expect(document.body.querySelector<HTMLTextAreaElement>("#admin-review-note-editorialNote")?.value).toBe(ASSESSMENT_TEXT.editorialNote);
 });
 
 it("collapses the script by default and expands it on demand", async () => {
@@ -149,12 +103,20 @@ it("collapses the script by default and expands it on demand", async () => {
   await act(async () => button("Xem hết 1 đoạn")?.click());
   expect(document.body.querySelector('[data-testid="script-body"]')?.className).toContain("max-h-[360px]");
   expect(button("Thu gọn")).toBeDefined();
-  expect(document.body.textContent).toContain("Có thể Duyệt.");
+  expect(button("Duyệt nội dung")?.disabled).toBe(false);
 });
 
-it("lets an Admin open the explicit exception form without entering the moderator workspace", async () => {
+it("keeps the review surface concise and shows release progress", async () => {
   await renderReview();
-  await act(async () => button("Xuất bản ngoại lệ…")?.click());
-  expect(document.body.querySelector("#exception-reason")).not.toBeNull();
-  expect(button("Xuất bản ngoại lệ")?.disabled).toBe(true);
+  const text = document.body.textContent ?? "";
+  expect(text).not.toContain("Tình trạng tập");
+  expect(text).not.toContain("Phiên bản 3");
+  expect(text).not.toContain("không phải người sản xuất");
+  expect(text).not.toContain("Hệ thống không biết");
+  expect(text).not.toContain("Lời kể ngôi thứ ba");
+  expect(text).not.toContain("Tải lên từ máy");
+  expect(text).not.toContain("Lịch sử kiểm duyệt");
+  expect(text).toContain("Tiến độ phát hành");
+  expect(text).toContain("Bản thu âm podcast");
+  expect([...document.body.querySelectorAll('[data-slot="dialog-footer"] button')].some((item) => item.textContent?.trim() === "Đóng")).toBe(false);
 });

@@ -10,6 +10,7 @@ export const moderatorSectionPath = {
   events: `${BASE}/events`,
   sources: `${BASE}/sources`,
   podcast: `${BASE}/podcast`,
+  exhibitions: `${BASE}/exhibitions`,
   assignments: `${BASE}/assignments`,
   tickets: `${BASE}/tickets`,
   pending: `${BASE}/pending`,
@@ -34,6 +35,13 @@ export const moderatorPodcastPath = {
   newEpisode: `${moderatorSectionPath.podcast}/episodes/new`,
   series: (id: string) => `${moderatorSectionPath.podcast}/series/${encodeURIComponent(id)}`,
   episode: (id: string) => `${moderatorSectionPath.podcast}/episodes/${encodeURIComponent(id)}`,
+} as const;
+
+export const moderatorExhibitionPath = {
+  list: moderatorSectionPath.exhibitions,
+  create: `${moderatorSectionPath.exhibitions}/new`,
+  edit: (id: string) => `${moderatorSectionPath.exhibitions}/${encodeURIComponent(id)}/edit`,
+  preview: (id: string) => `${moderatorSectionPath.exhibitions}/${encodeURIComponent(id)}/preview`,
 } as const;
 
 /** Router patterns for the podcast sub-routes; kept next to the builders above so they cannot drift. */

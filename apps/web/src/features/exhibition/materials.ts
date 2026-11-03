@@ -18,11 +18,11 @@ export function makeConcreteMaps(): { color: CanvasTexture; roughness: CanvasTex
         const mottling = Math.sin(x * 0.032 + y * 0.019) * Math.cos(y * 0.028) * 0.9;
         // The atlas covers the full building; hairline joints stay quiet at this scale.
         const joint = x % 44 < 0.8 || y % 34 < 0.8;
-        const shade = 150 + broad * 2.2 + mottling + (seed % 7) * 0.15 - (joint ? 3 : 0);
+        const shade = 142 + broad * 9 + mottling * 4 + (seed % 11) * 0.45 - (joint ? 8 : 0);
         const i = (y * 1024 + x) * 4;
         pixels.data[i] = shade;
-        pixels.data[i + 1] = shade + 3;
-        pixels.data[i + 2] = shade + 7;
+        pixels.data[i + 1] = shade - 1;
+        pixels.data[i + 2] = shade - 3;
         pixels.data[i + 3] = 255;
         const roughness = Math.round((0.48 + broad * 0.045) * 255);
         roughPixels.data[i] = roughPixels.data[i + 1] = roughPixels.data[i + 2] = roughness;
