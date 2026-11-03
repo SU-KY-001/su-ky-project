@@ -593,11 +593,12 @@ export class PrismaReleaseRepository implements ReleaseRepository {
     });
   }
 
-  listDueScheduleIds(now: Date, limit = 100) {
+  listDueScheduleIds(now: Date, retryIdleBefore: Date, limit = 100) {
     return prisma.releaseSchedule.findMany({
       where: {
         scheduledAt: { lte: now },
         status: { in: ["SCHEDULED", "READY_TO_PUBLISH"] },
+        OR: [{ failureCode: null }, { updatedAt: { lte: retryIdleBefore } }],
       },
       orderBy: { scheduledAt: "asc" },
       take: limit,

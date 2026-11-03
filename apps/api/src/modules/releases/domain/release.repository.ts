@@ -219,7 +219,8 @@ export interface ReleaseRepository {
   listPendingOutbox(limit?: number): Promise<PendingOutboxEvent[]>;
   markOutboxDispatched(id: string, dispatchedAt: Date): Promise<void>;
   markOutboxFailed(id: string, error: string): Promise<void>;
-  listDueScheduleIds(now: Date, limit?: number): Promise<Array<{ id: string; version: number }>>;
+  /** Schedules with a failed attempt are returned only once untouched since `retryIdleBefore` (their retry chain has ended or been lost). */
+  listDueScheduleIds(now: Date, retryIdleBefore: Date, limit?: number): Promise<Array<{ id: string; version: number }>>;
   listStuckPublishingIds(before: Date, limit?: number): Promise<Array<{ id: string; version: number }>>;
   dashboardCounts(now: Date, atRiskAfter: Date): Promise<ReleaseDashboardCounts>;
   listModeratorWorkload(
