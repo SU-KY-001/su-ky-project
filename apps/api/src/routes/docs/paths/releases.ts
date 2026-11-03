@@ -66,7 +66,7 @@ export const releasePaths: Paths = {
         403: "`SELF_REVIEW_FORBIDDEN`: người sản xuất không được tự duyệt",
         404: "`NOT_FOUND`: lịch không tồn tại",
         409: "`INVALID_REVIEW_STATE` (đã có quyết định hoặc không còn chờ duyệt) hoặc `STALE_WRITE`",
-        422: "`CHECKLIST_INCOMPLETE`, `RIGHTS_EXPIRED`, `AI_DISCLOSURE_REQUIRED`, `WARNING_ACCEPTANCE_REQUIRED`",
+        422: "`CHECKLIST_INCOMPLETE`, `RIGHTS_EXPIRED`, `AI_DISCLOSURE_REQUIRED`, `WARNING_ACCEPTANCE_REQUIRED`; `CONTENT_NOT_READY`: lịch chưa liên kết tập podcast; `VALIDATION_ERROR`: APPROVE thiếu kết luận phát hành",
       },
     }),
   },
@@ -101,7 +101,7 @@ export const releasePaths: Paths = {
       id: "createReleaseSchedule",
       tag: TAG,
       summary: "Tạo lịch và phân công sản xuất",
-      description: "Tạo lịch tự động phát hành và phân công đúng một Moderator.",
+      description: "Tạo lịch tự động phát hành và phân công đúng một Moderator. Hạn sản xuất và giờ phát hành phải sau thời điểm hiện tại, nếu không trả `400 VALIDATION_ERROR`.",
       access: "admin",
       body: { name: "CreateReleaseSchedule", schema: CreateReleaseScheduleSchema },
       ok: {
@@ -111,7 +111,10 @@ export const releasePaths: Paths = {
         location: `${ADMIN}/{id}`,
       },
       rate: "write",
-      errors: { 422: "Hạn sản xuất phải trước thời gian phát hành" },
+      errors: {
+        404: "`NOT_FOUND`: `episodeId` không tồn tại",
+        409: "`CONTENT_IN_TRASH`: tập hoặc series của `episodeId` đã vào thùng rác",
+      },
     }),
   },
   [`${ADMIN}/dashboard`]: {
@@ -221,7 +224,10 @@ export const releasePaths: Paths = {
       body: { name: "UpdateReleaseSchedule", schema: UpdateReleaseScheduleSchema },
       ok: { status: 200, description: "Lịch sau cập nhật", schema: schedule },
       rate: "write",
-      errors: { 409: "`STALE_WRITE`: lịch đã được cập nhật bởi request khác" },
+      errors: {
+        404: "`NOT_FOUND`: `episodeId` không tồn tại",
+        409: "`STALE_WRITE`: lịch đã được cập nhật bởi request khác; `INVALID_REVIEW_STATE`: đang có lượt duyệt chờ nên không đổi podcast; `CONTENT_IN_TRASH`: tập hoặc series mới đã vào thùng rác",
+      },
     }),
   },
   [`${ADMIN}/{id}/assignees`]: {
@@ -277,7 +283,7 @@ export const releasePaths: Paths = {
       id: "publishReleaseNow",
       tag: TAG,
       summary: "Phát hành ngay",
-      description: "Thao tác cứu hộ; dùng cùng publication use case với worker.",
+      description: "Thao tác cứu hộ; dùng cùng publication use case với worker. Lịch đang `BLOCKED` hoặc `FAILED` được đưa về sẵn sàng trước. Trạng thái lịch không phù hợp không trả lỗi: kết quả nằm ở `result` (`IGNORED`, `WAITING`, `BLOCKED`, `RELEASED`, `RETRY`, `FAILED`).",
       access: "admin",
       ...idParams,
       ok: {
@@ -286,7 +292,7 @@ export const releasePaths: Paths = {
         schema: { name: "ReleaseActionResult", schema: ReleaseActionResultDocSchema },
       },
       rate: "write",
-      errors: { 409: "`INVALID_STATE_TRANSITION`: trạng thái không cho phép" },
+      errors: { 404: "`NOT_FOUND`: lịch không tồn tại" },
     }),
   },
   [`${ADMIN}/{id}/retry`]: {
@@ -434,7 +440,7 @@ export const releasePaths: Paths = {
       body: { name: "CreateReleaseReassignmentTicket", schema: CreateReleaseReassignmentTicketSchema },
       ok: { status: 201, description: "Ticket đang chờ duyệt", schema: ticket },
       rate: "write",
-      errors: { 403: "`FORBIDDEN`: không được phân công", 409: "`CONFLICT` hoặc `INVALID_STATE_TRANSITION`" },
+      errors: { 403: "`FORBIDDEN`: không được phân công", 404: "`NOT_FOUND`: lịch không tồn tại", 409: "`CONFLICT` (đã có ticket chờ duyệt) hoặc `INVALID_STATE_TRANSITION` (lịch đã phát hành, hủy hoặc đang phát hành)" },
     }),
   },
   [`${STUDIO}/{id}/progress`]: {
@@ -460,7 +466,8 @@ export const releasePaths: Paths = {
       rate: "write",
       errors: {
         403: "`FORBIDDEN`: không được phân công",
-        409: "`STALE_WRITE`",
+        404: "`NOT_FOUND`: lịch không tồn tại",
+        409: "`STALE_WRITE` (nội dung đã đổi), `INVALID_STATE_TRANSITION` (lịch đã phát hành, hủy hoặc đang phát hành) hoặc `INVALID_REVIEW_STATE` (phiên bản này đã gửi duyệt)",
         422: "`CHECKLIST_INCOMPLETE`: tập thiếu tên tập, kịch bản hoặc âm thanh ngôi thứ ba; `CONTENT_NOT_READY`: lịch chưa liên kết tập podcast",
       },
     }),
@@ -491,6 +498,8 @@ export const releasePaths: Paths = {
       rate: "write",
       errors: {
         403: "`FORBIDDEN`: không được phân công",
+        404: "`NOT_FOUND`: tập podcast không tồn tại",
+        409: "`INVALID_REVIEW_STATE` (đang có lượt duyệt chờ, hãy thu hồi trước) hoặc `CONTENT_IN_TRASH` (tập hoặc series đã vào thùng rác)",
         422: "`CONTENT_NOT_READY`: podcast không thuộc Moderator hoặc không còn là bản nháp",
       },
     }),
@@ -508,8 +517,9 @@ export const releasePaths: Paths = {
       rate: "write",
       errors: {
         403: "`SELF_REVIEW_FORBIDDEN`: người sản xuất không được tự duyệt",
+        404: "`NOT_FOUND`: lịch không tồn tại",
         409: "`INVALID_REVIEW_STATE` (đã có quyết định hoặc không còn chờ duyệt) hoặc `STALE_WRITE`",
-        422: "`CHECKLIST_INCOMPLETE`, `RIGHTS_EXPIRED`, `AI_DISCLOSURE_REQUIRED`, `WARNING_ACCEPTANCE_REQUIRED`",
+        422: "`CHECKLIST_INCOMPLETE`, `RIGHTS_EXPIRED`, `AI_DISCLOSURE_REQUIRED`, `WARNING_ACCEPTANCE_REQUIRED`; `CONTENT_NOT_READY`: lịch chưa liên kết tập podcast; `VALIDATION_ERROR`: APPROVE thiếu kết luận phát hành",
       },
     }),
   },

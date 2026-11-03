@@ -6,13 +6,11 @@ import {
   CurrentUserResponseSchema,
   GetSessionResponseSchema,
   HealthResponseSchema,
-  MessageResponseSchema,
   TimelineResponseSchema,
 } from "../schemas";
 
 const SYSTEM = "System";
 const AUTH = "Authentication";
-const ADMIN = "Admin";
 
 const AUTH_NOTE =
   "Endpoint do Better Auth quản lý (`/api/auth/*`); đây chỉ là phần thường dùng. Danh sách đầy đủ do thư viện cung cấp.";
@@ -129,20 +127,5 @@ export const systemAuthPaths: Paths = {
   },
   "/api/timeline": {
     get: { ...timelineOperation, deprecated: true },
-  },
-  "/api/admin": {
-    get: operation({
-      id: "getAdminAccess",
-      tag: ADMIN,
-      summary: "Kiểm tra quyền Admin",
-      description: "Endpoint chỉ để xác nhận quyền quản trị.",
-      access: "admin",
-      ok: {
-        status: 200,
-        description: "Có quyền Admin",
-        schema: { name: "MessageResponse", schema: MessageResponseSchema },
-        example: { message: "Admin access granted" },
-      },
-    }),
   },
 };
