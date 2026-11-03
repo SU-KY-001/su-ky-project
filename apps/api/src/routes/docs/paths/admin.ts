@@ -68,6 +68,7 @@ export const adminPaths: Paths = {
       id: "adminAccess",
       tag: TAG,
       summary: "Kiểm tra quyền Admin",
+      description: "Endpoint chỉ để xác nhận quyền quản trị.",
       access: "admin",
       ok: {
         status: 200,
@@ -76,6 +77,7 @@ export const adminPaths: Paths = {
           name: "AdminAccess",
           schema: z.object({ message: z.string() }),
         },
+        example: { message: "Admin access granted" },
       },
     }),
   },

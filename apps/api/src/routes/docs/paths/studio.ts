@@ -369,7 +369,9 @@ export const studioPaths: Paths = {
       },
       idempotent: true,
       rate: "write",
-      errors: writeErrors("Series"),
+      errors: writeErrors("Series", {
+        403: "`FORBIDDEN`: chỉ chủ sở hữu Series (hoặc Admin) được thêm tập; cộng tác viên lịch phát hành chỉ đọc",
+      }),
     }),
   },
 
@@ -491,7 +493,7 @@ export const studioPaths: Paths = {
       rate: "write",
       errors: writeErrors("tập", {
         409: `${STALE}; \`REQUIRED_FOR_PUBLISHED\`: không được để trống kịch bản ngôi thứ ba của tập đã xuất bản`,
-        422: "`VALIDATION_ERROR`: kịch bản chứa HTML hoặc quá dài; bản ngôi thứ nhất thiếu `narratorEntityId` hoặc nhân vật dẫn không phải `FIGURE`",
+        422: "`VALIDATION_ERROR`: kịch bản chứa HTML hoặc quá dài; bản ngôi thứ nhất thiếu `narratorEntityId` hoặc nhân vật dẫn không phải `FIGURE`; `dialogue` chỉ dùng cho ngôi thứ ba và không đi cùng `scriptDocument`, hoặc không hợp lệ; `scriptDocument` có nội dung không hỗ trợ hoặc trích nguồn chưa gắn vào Series",
       }),
     }),
   },
@@ -651,6 +653,7 @@ export const studioPaths: Paths = {
       rate: "write",
       errors: writeErrors("Series", {
         409: "`SERIES_SOURCE_DUPLICATE`: nguồn đã gắn ở cùng `locator`",
+        422: "`VALIDATION_ERROR`: nguồn đã lưu trữ hoặc không khả dụng; trích dẫn lịch sử không thuộc sự kiện chính của Series",
       }),
     }),
   },
@@ -697,7 +700,10 @@ export const studioPaths: Paths = {
         schema: seriesSource,
       },
       rate: "write",
-      errors: writeErrors("Series hoặc trích dẫn"),
+      errors: {
+        ...writeErrors("Series hoặc trích dẫn"),
+        422: "`VALIDATION_ERROR`: trích dẫn lấy từ sự kiện lịch sử không sửa được vị trí, hãy gỡ và chọn lại",
+      },
     }),
     delete: operation({
       id: "deleteSeriesSource",

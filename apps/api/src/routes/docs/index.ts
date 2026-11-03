@@ -83,12 +83,13 @@ const TAGS = [
   { name: "Studio Catalog", description: "Kho nguồn tham khảo và thực thể lịch sử dùng chung" },
   { name: "Studio Media", description: "Upload và xác minh audio, ảnh, PDF qua Cloudinary" },
   { name: "Studio AI", description: "Trợ lý AI cho moderator: rà kịch bản đối chiếu nguồn đã xác minh (cảnh báo mềm, không tự sửa)" },
+  { name: "Exhibitions", description: "Triển lãm 3D đã công khai cho người nghe" },
   { name: "Studio Exhibitions", description: "Moderator quản lý triển lãm 3D" },
 ] as const;
 
 const TAG_GROUPS = [
   { name: "Hệ thống và tài khoản", tags: ["System", "Authentication", "Admin", "Release Coordination"] },
-  { name: "Người nghe", tags: ["Catalog", "Listening", "Quiz", "Missions"] },
+  { name: "Người nghe", tags: ["Catalog", "Listening", "Quiz", "Missions", "Exhibitions"] },
   { name: "Studio (Moderator)", tags: ["Studio Series", "Studio Episodes", "Studio Catalog", "Studio Media", "Studio AI", "Studio Exhibitions"] },
 ] as const;
 
