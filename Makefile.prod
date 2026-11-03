@@ -56,10 +56,10 @@ db-logs: ## Tail db logs
 
 # `run --rm` uses a fresh container, so it works while api is down or crash-looping (fresh DB has no tables yet).
 migrate: ## Apply pending Prisma migrations
-	@$(DOCKER_COMPOSE) run --rm -T -w $(PRISMA_DIR) api ./node_modules/.bin/prisma migrate deploy
+	@$(DOCKER_COMPOSE) run --rm -T -w $(PRISMA_DIR) api bun run prisma migrate deploy
 
 migrate-status: ## Show migration status
-	@$(DOCKER_COMPOSE) run --rm -T -w $(PRISMA_DIR) api ./node_modules/.bin/prisma migrate status
+	@$(DOCKER_COMPOSE) run --rm -T -w $(PRISMA_DIR) api bun run prisma migrate status
 
 seed: ## Load the base historical seed (run once on an empty DB)
 	@$(DOCKER_COMPOSE) run --rm -T -w $(PRISMA_DIR) api bun src/seed.ts

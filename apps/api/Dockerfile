@@ -17,7 +17,7 @@ COPY --from=prune /app/out/bun.lock ./bun.lock
 RUN bun install --frozen-lockfile --filter @repo/api
 COPY --from=prune /app/out/full/ ./
 # Prisma Client is generated from schema.prisma; migrate needs the schema engine too, so fetch both now (no download at deploy time).
-RUN cd packages/db && bun run db:generate && ./node_modules/.bin/prisma version
+RUN cd packages/db && bun run db:generate && bun run prisma version
 
 FROM oven/bun:${BUN_VERSION}-slim AS runner
 RUN apt-get update && apt-get install -y --no-install-recommends openssl ca-certificates ffmpeg \
