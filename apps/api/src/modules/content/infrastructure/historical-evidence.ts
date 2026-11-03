@@ -223,8 +223,6 @@ export async function publishWithHistoricalEvidence(
       where: { id: seriesId },
       include: {
         episodes: { where: { deletedAt: null } },
-        coverImageAsset: { select: { status: true } },
-        coverLandscapeAsset: { select: { status: true } },
       },
     });
     const episode =
@@ -306,16 +304,12 @@ export async function publishWithHistoricalEvidence(
       series.endYear == null ||
       !series.episodes.some((e) => e.status === "PUBLISHED") ||
       !series.description?.trim() ||
-      !series.language.trim() ||
-      !(
-        series.coverImageAsset?.status === "READY" ||
-        series.coverLandscapeAsset?.status === "READY"
-      )
+      !series.language.trim()
     )
       throw new DomainError(
         422,
         "SERIES_NOT_PUBLISHABLE",
-        "Series chưa đủ thông tin phát hành (chủ đề, khoảng năm, mô tả, ảnh bìa, ngôn ngữ và ít nhất một tập đã phát hành)",
+        "Series chưa đủ thông tin phát hành (chủ đề, khoảng năm, mô tả, ngôn ngữ và ít nhất một tập đã phát hành)",
       );
     const evidence = await collectHistoricalEvidence(tx, seriesId);
     const preservePublished =

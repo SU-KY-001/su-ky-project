@@ -5,6 +5,7 @@ import { ArrowRight } from "@phosphor-icons/react/dist/icons/ArrowRight";
 import { ArrowUp } from "@phosphor-icons/react/dist/icons/ArrowUp";
 import { Compass } from "@phosphor-icons/react/dist/icons/Compass";
 import { Button } from "@/shared/components/ui/button";
+import { APP_PATHS } from "@/shared/constants/routes";
 import { exhibitionTemplate } from "@repo/shared";
 import { resolvedArtworks } from "./resolvedLayout";
 import type { ResolvedExhibition } from "@repo/shared";
@@ -24,13 +25,13 @@ class SceneBoundary extends Component<{ children: ReactNode; onUnavailable: () =
   render(): ReactNode { return this.state.failed ? null : this.props.children; }
 }
 
-export function ExhibitionExperience({ exhibition, startInGallery = false }: { exhibition: ResolvedExhibition; startInGallery?: boolean }): ReactElement {
+export function ExhibitionExperience({ exhibition, preview = false }: { exhibition: ResolvedExhibition; preview?: boolean }): ReactElement {
   const artworks = resolvedArtworks(exhibition);
   const chapters = exhibition.chapters.map((chapter) => ({ ...chapter, spawn: exhibitionTemplate.spawns.find(item => item.roomKey === chapter.roomKey)!.position, yaw: exhibitionTemplate.spawns.find(item => item.roomKey === chapter.roomKey)!.yaw }));
   const title = exhibition.metadata.title;
-  const [phase, setPhase] = useState<Phase>(startInGallery ? "loading" : "intro");
+  const [phase, setPhase] = useState<Phase>("intro");
   const [sceneReady, setSceneReady] = useState(false);
-  const [sceneRequested, setSceneRequested] = useState(startInGallery);
+  const [sceneRequested, setSceneRequested] = useState(false);
   const [ready, setReady] = useState(false);
   const [available, setAvailable] = useState(true);
   const [locked, setLocked] = useState(false);
@@ -42,6 +43,7 @@ export function ExhibitionExperience({ exhibition, startInGallery = false }: { e
   const container = useRef<HTMLElement>(null);
   const audio = useRef<HTMLAudioElement>(null);
   const audioStarted = useRef(false);
+  const resumeAudio = useRef(false);
   const resumeButton = useRef<HTMLButtonElement>(null);
   const input = useRef<GalleryInput>({ keys: new Set() });
   const overlayUnlock = useRef(false);
@@ -51,11 +53,17 @@ export function ExhibitionExperience({ exhibition, startInGallery = false }: { e
   const selectedArtwork = artworks.find(item => item.id === selected);
 
   useEffect(() => {
-    if (startInGallery && audio.current) {
+    const element = audio.current;
+    if (!element) return;
+    if (phase === "paused") {
+      if (!element.paused) resumeAudio.current = true;
+      element.pause();
+    } else if (phase === "walking" && (!audioStarted.current || resumeAudio.current)) {
       audioStarted.current = true;
-      void audio.current.play().catch(() => { audioStarted.current = false; });
+      resumeAudio.current = false;
+      void element.play().catch(() => { audioStarted.current = false; });
     }
-  }, [startInGallery, exhibition.audio?.url]);
+  }, [phase]);
 
   useEffect(() => {
     const previousTitle = document.title;
@@ -76,7 +84,7 @@ export function ExhibitionExperience({ exhibition, startInGallery = false }: { e
       document.removeEventListener("pointerlockchange", lockChanged);
       if (document.pointerLockElement) document.exitPointerLock();
     };
-  }, [title, startInGallery]);
+  }, [title]);
 
   useEffect(() => { if (phase === "paused") resumeButton.current?.focus(); }, [phase]);
   useEffect(() => {
@@ -106,10 +114,6 @@ export function ExhibitionExperience({ exhibition, startInGallery = false }: { e
   }, [phase, releasePointer]);
   const unavailable = useCallback((): void => { setAvailable(false); menuReturnPhase.current = "intro"; setPhase("menu"); releasePointer(); }, [releasePointer]);
   const enter = (): void => {
-    if (!audioStarted.current && audio.current) {
-      audioStarted.current = true;
-      void audio.current.play().catch(() => { audioStarted.current = false; });
-    }
     if (!available) { navigate(); return; }
     setSceneRequested(true);
     setPhase(sceneReady ? "walking" : "loading");
@@ -136,16 +140,16 @@ export function ExhibitionExperience({ exhibition, startInGallery = false }: { e
     else setPhase("menu");
   };
 
-  return <main ref={container} className={`exhibition${startInGallery ? " exhibition-preview" : ""}`} aria-label={`Triển lãm ảnh tư liệu: ${title}`}>
+  return <main ref={container} className={`exhibition${preview ? " exhibition-preview" : ""}`} aria-label={`Triển lãm ảnh tư liệu: ${title}`}>
     {(phase === "intro" || phase === "loading" || !sceneRequested) && exhibition.items[0] && <img src={exhibition.items[0].image.url} alt="" decoding="async" className="exhibition-stage-cover absolute inset-0 h-full w-full object-cover" />}
-    {exhibition.audio && <audio ref={audio} src={exhibition.audio.url} controls preload="none" aria-label="Âm thanh kể chuyện triển lãm" className={phase === "intro" || phase === "loading" ? "exhibition-cover-audio" : "absolute bottom-4 right-4 z-20 w-64 max-w-[calc(100%-2rem)]"} />}
+    {exhibition.audio && <audio ref={audio} src={exhibition.audio.url} controls preload="none" aria-label="Âm thanh kể chuyện triển lãm" className={phase === "intro" || phase === "loading" || phase === "paused" || (phase === "menu" && menuReturnPhase.current === "paused") ? "hidden" : "absolute bottom-4 right-4 z-20 w-64 max-w-[calc(100%-2rem)]"} />}
     <div className={`exhibition-stage absolute inset-0 touch-none [&_canvas]:block [&_canvas]:outline-none${phase === "intro" || phase === "loading" ? " exhibition-stage-cover" : ""}`} aria-hidden={phase === "intro" || phase === "loading" || phase === "menu" || phase === "artwork"}>
       {sceneRequested && phase !== "intro" && ready && available && <SceneBoundary onUnavailable={unavailable}><Suspense fallback={null}>
         <GalleryScene active={phase === "walking"} pointerLockOnClick input={input} view={view} onPause={pause} onNavigate={navigate} onInspect={inspect} onTarget={setTarget} onChapter={setChapter} onUnavailable={unavailable} onReady={() => { setSceneReady(true); setPhase(value => value === "loading" ? "walking" : value); container.current?.querySelector("canvas")?.focus({ preventScroll: true }); }} items={artworks} chapterText={chapters} />
       </Suspense></SceneBoundary>}
     </div>
 
-    {(phase === "intro" || phase === "loading" || !sceneRequested) && <ExhibitionEntrance title={title} subtitle={exhibition.metadata.subtitle} description={exhibition.metadata.description} artworkCount={artworks.length} chapterCount={chapters.length} ready={ready} available={available} loading={phase === "loading"} onEnter={navigate} onCancel={() => { setPhase("intro"); setSceneReady(false); setSceneRequested(false); input.current.keys.clear(); audio.current?.pause(); audioStarted.current = false; }} />}
+    {(phase === "intro" || phase === "loading" || !sceneRequested) && <ExhibitionEntrance title={title} subtitle={exhibition.metadata.subtitle} description={exhibition.metadata.description} artworkCount={artworks.length} chapterCount={chapters.length} ready={ready} available={available} loading={phase === "loading"} onEnter={preview ? enter : navigate} onCancel={() => { setPhase("intro"); setSceneReady(false); setSceneRequested(false); input.current.keys.clear(); audio.current?.pause(); audioStarted.current = false; resumeAudio.current = false; }} />}
 
     {phase === "walking" && <>
       <div className="exhibition-room-label pointer-events-none absolute left-9 top-[30px] flex items-center gap-[19px] bg-[color:var(--exhibit-paper)]/10 px-2.5 py-1 backdrop-blur-[6px]"><span>0{chapter + 1}</span><div>{chapters[chapter]?.title}<small>{chapters[chapter]?.period}</small></div></div>
@@ -157,7 +161,8 @@ export function ExhibitionExperience({ exhibition, startInGallery = false }: { e
       </div>
     </>}
 
-    {phase === "paused" && available && <section className="exhibition-pause absolute inset-0 z-[2] flex flex-col items-center overflow-y-auto bg-night/45 p-4 backdrop-blur-[5px] sm:p-7" aria-labelledby="exhibition-pause-title">
+    {phase === "paused" && available && <section className="exhibition-pause absolute inset-0 z-[2] flex flex-col items-center overflow-y-auto bg-night/45 p-4 pt-20 backdrop-blur-[5px] sm:p-7 sm:pt-20" aria-labelledby="exhibition-pause-title">
+      <Button asChild variant="ghost" className="absolute left-4 top-4 h-10 gap-2 bg-transparent text-paper-soft hover:bg-transparent hover:text-white sm:left-7 sm:top-7"><a href={APP_PATHS.home}><ArrowLeft size={19} aria-hidden="true" />Về trang chủ</a></Button>
       <div className="my-auto shrink-0 rounded-2xl border border-line bg-paper p-6 text-ink sm:p-10">
         <header className="mb-8 flex flex-wrap items-center justify-between gap-4"><img src={brandLogo} alt="Sử Ký Việt Nam" className="h-auto w-36" /><span className="text-xs font-medium text-bronze-dark">Đang tạm dừng</span></header>
         <h2 id="exhibition-pause-title">Một khoảng lặng.</h2>

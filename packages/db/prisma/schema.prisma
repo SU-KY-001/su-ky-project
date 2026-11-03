@@ -32,6 +32,7 @@ enum EpisodeReviewStatus {
   IN_REVIEW
   CHANGES_REQUESTED
   APPROVED
+  WITHDRAWN
 
   @@map("episode_review_status")
 }
@@ -535,7 +536,6 @@ model EpisodeReview {
   submittedBy   User                @relation("EpisodeReviewSubmitter", fields: [submittedById], references: [id], onDelete: Restrict)
   reviewedBy    User?               @relation("EpisodeReviewer", fields: [reviewedById], references: [id], onDelete: SetNull)
 
-  @@unique([episodeId, revision], map: "episode_reviews_episode_revision_key")
   @@index([scheduleId, status], map: "episode_reviews_schedule_status_idx")
   @@map("episode_reviews")
 }

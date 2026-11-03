@@ -9,6 +9,7 @@ import type { AudioAnalysis, AudioOrigin } from "@repo/shared";
 import { CheckCircle2, LoaderCircle, Upload, Volume2 } from "lucide-react";
 import { uploadCatalogMedia } from "@/features/historical-library/services/catalogMediaService";
 import { Button } from "@/shared/components/ui/button";
+import { notify } from "@/shared/lib/notifications";
 import { Checkbox } from "@/shared/components/ui/checkbox";
 import type { PodcastCreationWizard } from "../hooks/usePodcastCreationWizard";
 import {
@@ -101,8 +102,11 @@ export function UploadedAudioPanel({
       setLocalPreview(null);
       setFile(null);
       setConfirmReplace(false);
+      notify.success({ title: "Đã lưu âm thanh cho podcast" });
     } catch (caught) {
-      setError(caught instanceof Error ? caught.message : "Không tải được file thu âm.");
+      const message = caught instanceof Error ? caught.message : "Không tải được file thu âm.";
+      setError(message);
+      notify.error({ title: "Không thể lưu âm thanh", description: message });
     } finally {
       setUploading(false);
     }

@@ -5,6 +5,7 @@ import { FormField } from "@/features/moderator/components/CreationPage";
 import { ModeratorSelect } from "@/features/moderator/components/ModeratorSelect";
 import { cn } from "@/lib/utils";
 import { Button } from "@/shared/components/ui/button";
+import { notify } from "@/shared/lib/notifications";
 import { Input } from "@/shared/components/ui/input";
 import { Popover, PopoverContent, PopoverTrigger } from "@/shared/components/ui/popover";
 import { Textarea } from "@/shared/components/ui/textarea";
@@ -34,14 +35,17 @@ export function DialogueScriptStep({ wizard, readOnly }: { wizard: PodcastCreati
     wizard.dispatch({ type: "setDialogue", value: next });
   };
 
-  const persist = async (): Promise<void> => {
+  const persist = async (manual = false): Promise<void> => {
     setSaving(true);
     setError("");
     try {
       await wizard.saveScript(null);
       setSavedAt(new Date());
+      if (manual) notify.success({ title: "Đã lưu kịch bản" });
     } catch (caught) {
-      setError(caught instanceof Error ? caught.message : "Không lưu được kịch bản.");
+      const message = caught instanceof Error ? caught.message : "Không lưu được kịch bản.";
+      setError(message);
+      if (manual) notify.error({ title: "Không thể lưu kịch bản", description: message });
     } finally {
       setSaving(false);
     }
@@ -163,7 +167,7 @@ export function DialogueScriptStep({ wizard, readOnly }: { wizard: PodcastCreati
               <Button type="button" variant="outline" onClick={addTurn}>
                 <Plus aria-hidden="true" /> Thêm khối hội thoại
               </Button>
-              <Button type="button" variant="outline" className="justify-self-end" disabled={saving || issues.length > 0} onClick={() => void persist()}>
+              <Button type="button" variant="outline" className="justify-self-end" disabled={saving || issues.length > 0} onClick={() => void persist(true)}>
                 {saving ? <LoaderCircle className="animate-spin" aria-hidden="true" /> : <Save aria-hidden="true" />} Lưu kịch bản
               </Button>
             </div>

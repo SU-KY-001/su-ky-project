@@ -25,8 +25,8 @@ it("creates a schedule with a release time, production deadline and moderator", 
         moderators={[{ id: "mod-1", name: "Nguyễn An", email: "an@example.org" }]}
         initialValues={{
           title: "",
-          productionDeadline: "2026-10-19T20:00",
-          scheduledAt: "2026-10-20T20:00",
+          productionDeadline: "2099-10-19T20:00",
+          scheduledAt: "2099-10-20T20:00",
           moderatorId: "",
         }}
         onSubmit={submit}
@@ -71,6 +71,17 @@ it("creates a schedule with a release time, production deadline and moderator", 
   expect(submitted?.moderatorId).toBe("mod-1");
   expect(new Date(submitted?.productionDeadline ?? "").getTime())
     .toBeLessThan(new Date(submitted?.scheduledAt ?? "").getTime());
+});
+
+it("prevents creating schedules with past dates", async () => {
+  const submit = mock(() => Promise.resolve());
+  const host = document.createElement("div");
+  document.body.append(host);
+  root = createRoot(host);
+  await act(async () => root?.render(<ReleaseScheduleForm moderators={[{ id: "mod-1", name: "An", email: "an@example.org" }]} initialValues={{ title: "Lịch", productionDeadline: "2000-01-01T10:00", scheduledAt: "2000-01-02T10:00", moderatorId: "mod-1" }} onSubmit={submit} />));
+  await act(async () => host.querySelector("form")?.dispatchEvent(new Event("submit", { bubbles: true, cancelable: true })));
+  expect(submit).not.toHaveBeenCalled();
+  expect(host.querySelector('[role="alert"]')?.textContent).toContain("thời gian hiện tại");
 });
 
 it("translates technical progress events into release language", async () => {

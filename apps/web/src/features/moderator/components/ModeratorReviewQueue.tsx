@@ -15,13 +15,14 @@ interface ReviewQueueSchedule {
   productionDeadline: Date;
   scheduledAt: Date;
   episode: { id: string; title: string; contentRevision: number } | null;
-  reviews: Array<{ status: string; revision: number }>;
+  reviews: Array<{ id: string; status: string; revision: number }>;
 }
 
 interface ReviewTarget {
   scheduleId: string;
   title: string;
   revision: number;
+  reviewId: string;
 }
 
 function dateTime(value: Date) {
@@ -52,8 +53,9 @@ export function ModeratorReviewQueueView({
       {schedules.length ? (
         <div className="grid gap-4 xl:grid-cols-2">
           {schedules.map((schedule) => {
-            const revision = schedule.reviews[0]?.revision ?? schedule.episode?.contentRevision;
-            if (!schedule.episode || !revision) return null;
+            const review = schedule.reviews.find((item) => item.status === "IN_REVIEW");
+            if (!schedule.episode || !review) return null;
+            const revision = review.revision;
             return (
               <article key={schedule.id} className="rounded-[16px] border border-mod-border bg-mod-surface p-5 shadow-[0_8px_22px_rgba(15,23,42,.03)]">
                 <div className="flex items-start justify-between gap-3">
@@ -72,7 +74,7 @@ export function ModeratorReviewQueueView({
                   <div><dt className="text-xs text-mod-text-secondary">Lịch phát hành</dt><dd className="mt-1 font-semibold tabular-nums text-mod-text">{dateTime(schedule.scheduledAt)}</dd></div>
                 </dl>
                 <div className="mt-5 flex justify-end">
-                  <Button type="button" onClick={() => onReview({ scheduleId: schedule.id, title: schedule.title, revision })} className="gap-2 bg-mod-primary text-white hover:bg-mod-primary/90">
+                  <Button type="button" onClick={() => onReview({ scheduleId: schedule.id, title: schedule.title, revision, reviewId: review.id })} className="gap-2 bg-mod-primary text-white hover:bg-mod-primary/90">
                     <Eye size={17} /> Xem và kiểm duyệt
                   </Button>
                 </div>
@@ -97,7 +99,7 @@ export function ModeratorReviewQueue() {
   return (
     <>
       <ModeratorReviewQueueView schedules={queue.data.items} onReview={setOpen} />
-      {open ? <ModeratorReviewDialog scheduleId={open.scheduleId} title={open.title} reviewRevision={open.revision} onClose={() => setOpen(null)} /> : null}
+      {open ? <ModeratorReviewDialog scheduleId={open.scheduleId} title={open.title} reviewRevision={open.revision} reviewId={open.reviewId} onClose={() => setOpen(null)} /> : null}
     </>
   );
 }

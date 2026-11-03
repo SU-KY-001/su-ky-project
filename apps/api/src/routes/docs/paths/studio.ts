@@ -279,19 +279,19 @@ export const studioPaths: Paths = {
       tag: SERIES_TAG,
       summary: "Đưa Series vào thùng rác",
       description:
-        "Xoá mềm, ghi nhớ trạng thái trước đó. Gọi lại trên Series đã ở thùng rác vẫn trả 204. Khôi phục bằng `POST .../restore`.",
+        "Xoá mềm, ghi nhớ trạng thái trước đó. Moderator chỉ được xóa series nháp do mình sở hữu khi không có tập đã phát hành hoặc được dùng trong lịch phát hành chưa hủy. Gọi lại trên Series đã ở thùng rác vẫn trả 204. Khôi phục bằng `POST .../restore`.",
       access: "studio",
       ...seriesParams,
       ok: NO_CONTENT,
       rate: "write",
-      errors: writeErrors("Series"),
+      errors: writeErrors("Series", { 403: "`FORBIDDEN`: chỉ chủ sở hữu được xóa", 409: "`INVALID_STATE_TRANSITION`: series không phải bản nháp hoặc có tập được bảo vệ" }),
     }),
   },
   [`${SERIES}/{id}/publish`]: {
     post: seriesAction(
       "publishSeries",
       "Xuất bản Series",
-      "Chỉ thành công khi `publishChecklist.ready = true` (gồm chủ đề, Giai đoạn, khoảng năm, tập đã xuất bản, mô tả, ít nhất một ảnh bìa READY, ngôn ngữ). Series không bắt buộc có nguồn. Phải có primary event đã duyệt, revision nguồn VERIFIED hiện tại. Publish kiểm baseUpdatedAt và lưu snapshot bằng chứng trong transaction. Owner là người chịu trách nhiệm nội dung.",
+      "Chỉ thành công khi `publishChecklist.ready = true` (gồm chủ đề, Giai đoạn, khoảng năm, tập đã xuất bản, mô tả, ngôn ngữ). Series không bắt buộc có ảnh bìa hoặc nguồn. Phải có primary event đã duyệt, revision nguồn VERIFIED hiện tại. Publish kiểm baseUpdatedAt và lưu snapshot bằng chứng trong transaction. Owner là người chịu trách nhiệm nội dung.",
       writeErrors("Series", {
         409: "`STALE_WRITE`: baseUpdatedAt đã cũ",
         422: "`SERIES_NOT_PUBLISHABLE`: checklist chưa đạt (kiểm lại trong transaction); `CONTENT_NOT_READY`: sự kiện/nguồn chưa duyệt hoặc revision đã cũ",
@@ -416,12 +416,12 @@ export const studioPaths: Paths = {
       tag: EPISODE_TAG,
       summary: "Đưa tập vào thùng rác",
       description:
-        "Xoá mềm. Gọi lại trên tập đã ở thùng rác vẫn trả 204. Khôi phục bằng `POST .../restore`.",
+        "Xoá mềm. Moderator chỉ được xóa tập nháp thuộc series của mình và không được dùng trong lịch phát hành chưa hủy. Gọi lại trên tập đã ở thùng rác vẫn trả 204. Khôi phục bằng `POST .../restore`.",
       access: "studio",
       ...episodeParams,
       ok: NO_CONTENT,
       rate: "write",
-      errors: writeErrors("tập"),
+      errors: writeErrors("tập", { 403: "`FORBIDDEN`: chỉ chủ sở hữu series được xóa", 409: "`INVALID_STATE_TRANSITION`: tập không phải bản nháp hoặc đang được dùng trong lịch phát hành" }),
     }),
   },
   [`${EPISODES}/{id}/publish`]: {

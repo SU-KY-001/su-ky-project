@@ -7,7 +7,7 @@ import { CardBadge } from "@/shared/components/dashboard/CardBadge";
 import { Button } from "@/shared/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/shared/components/ui/dialog";
 import { ReleaseReviewPanel, ReviewDecisionButtons } from "@/features/release-review/ReleaseReviewPanel";
-import { ReviewHistory } from "@/features/release-review/ReviewHistory";
+import { ReleaseProgressTimeline } from "./ReleaseProgressTimeline";
 import { adminReleaseService } from "../services/adminReleaseService";
 import { adminReleaseKeys } from "../hooks/useAdminReleases";
 
@@ -20,6 +20,7 @@ export function ReleaseReviewDialog({ schedule, onClose, service = adminReleaseS
   const detailKey = [...adminReleaseKeys.root, "review-detail", schedule.id];
   const latest = useQuery({ queryKey: detailKey, queryFn: () => service.get(schedule.id) });
   const current = latest.data;
+  const progress = useQuery({ queryKey: adminReleaseKeys.progress(schedule.id), queryFn: () => service.progress(schedule.id), refetchInterval: 2_000 });
   const episodeId = current?.episode?.id;
   const contentKey = [...adminReleaseKeys.root, "review-content", schedule.id, current?.episode?.contentRevision];
   const content = useQuery({ queryKey: contentKey, queryFn: () => service.reviewContent(schedule.id), enabled: Boolean(episodeId) });
@@ -51,14 +52,16 @@ export function ReleaseReviewDialog({ schedule, onClose, service = adminReleaseS
       <DialogHeader className="shrink-0 border-b border-mod-border px-5 py-5 sm:px-6"><DialogTitle>Chi tiết nội dung kiểm duyệt</DialogTitle><DialogDescription>{schedule.title}</DialogDescription></DialogHeader>
       <div className="mod-scrollbar-hidden min-h-0 flex-1 space-y-5 overflow-y-auto overscroll-contain p-5 sm:p-6">
         {latest.isPending || (episodeId && content.isPending) ? <div className="ui-skeleton min-h-60 rounded-xl" aria-label="Đang tải nội dung kiểm duyệt" /> : latest.isError || content.isError ? <div className="flex min-h-40 items-center justify-center"><Button variant="outline" onClick={() => { void latest.refetch(); void content.refetch(); }}>Tải lại nội dung</Button></div> : content.data ? <>
-          <div className="flex flex-wrap items-center gap-2"><CardBadge type="status" tone={validRevision ? "info" : "neutral"}>{validRevision ? "Chờ kiểm duyệt" : "Không có phiên bản hợp lệ để duyệt"}</CardBadge>{review ? <span className="text-xs text-mod-text-secondary">Phiên bản {review.revision}</span> : null}</div>
+          <div className="flex flex-wrap items-center gap-2"><CardBadge type="status" tone={validRevision ? "info" : "neutral"}>{validRevision ? "Chờ kiểm duyệt" : "Không có phiên bản hợp lệ để duyệt"}</CardBadge></div>
           <ReleaseReviewPanel content={content.data} validRevision={canDecide} pending={decide.isPending} noteId="admin-review-note" note={note} onNoteChange={setNote} />
-          {current ? <ReviewHistory reviews={current.reviews} /> : null}
+          <details className="rounded-lg border border-mod-border p-4">
+            <summary className="cursor-pointer text-sm font-semibold text-mod-text focus-visible:outline focus-visible:outline-2 focus-visible:outline-mod-primary">Tiến độ phát hành</summary>
+            <div className="mt-4">{progress.isPending ? <p className="text-sm text-mod-text-secondary">Đang tải tiến độ…</p> : progress.isError ? <p role="alert" className="text-sm text-mod-danger">Không tải được tiến độ phát hành.</p> : <ReleaseProgressTimeline events={progress.data.items} />}</div>
+          </details>
         </> : <p className="text-sm text-mod-text-secondary">Lịch này chưa liên kết podcast.</p>}
       </div>
       <DialogFooter className="shrink-0 border-t border-mod-border px-5 py-4 sm:px-6">
-        {content.data ? <ReviewDecisionButtons ready={content.data.readiness.ready} validRevision={canDecide} reviewRevision={review?.revision ?? 0} pending={decide.isPending} note={note} onDecide={(input) => decide.mutate(input)} /> : null}
-        <Button variant="outline" disabled={decide.isPending} onClick={onClose}>Đóng</Button>
+        {content.data ? <ReviewDecisionButtons ready={content.data.readiness.ready} validRevision={canDecide} reviewId={review?.id ?? ""} reviewRevision={review?.revision ?? 0} pending={decide.isPending} note={note} onDecide={(input) => decide.mutate(input)} /> : null}
       </DialogFooter>
     </DialogContent>
   </Dialog>;

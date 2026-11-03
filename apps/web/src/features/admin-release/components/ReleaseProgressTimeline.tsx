@@ -41,6 +41,10 @@ const copy: Record<string, { title: string; description: string }> = {
     title: "Podcast đã được gửi duyệt",
     description: "Phiên bản nội dung hiện tại đang chờ kiểm duyệt.",
   },
+  "episode.review_withdrawn": {
+    title: "Moderator đã thu hồi bản gửi",
+    description: "Bản gửi đã rời hàng chờ duyệt; Moderator cần gắn lại podcast vào nhiệm vụ.",
+  },
   "episode.changes_requested": {
     title: "Cần chỉnh sửa nội dung",
     description: "Reviewer đã gửi yêu cầu chỉnh sửa.",

@@ -1,16 +1,18 @@
-import { afterEach, expect, it } from "bun:test";
+import { afterEach, expect, it, spyOn } from "bun:test";
 import { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { MemoryRouter, useLocation } from "react-router";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { PodcastCreation } from "./PodcastCreation";
+import { podcastProductionService } from "./services/podcastProductionService";
+import { useNotificationStore } from "@/shared/lib/notifications";
 
 const EPISODE_ID = "0feffcaa-036d-4c8f-8096-c47e13e72f91";
 const SERIES_ID = "5a1f6d0e-0000-4000-8000-000000000001";
 
 let root: Root | undefined;
 let client: QueryClient | undefined;
-afterEach(() => { act(() => root?.unmount()); client?.clear(); document.body.innerHTML = ""; });
+afterEach(() => { act(() => root?.unmount()); client?.clear(); useNotificationStore.setState({ notifications: [] }); document.body.innerHTML = ""; });
 
 function LocationProbe() {
   const { pathname, search } = useLocation();
@@ -67,4 +69,24 @@ it("opens a saved draft for editing, with Save available and no view-only banner
   expect(host.textContent).toContain("Đang chỉnh sửa tập podcast");
   expect(host.textContent).toContain("Lưu thay đổi");
   expect(host.textContent).not.toContain("Chế độ xem");
+});
+
+it("shows an error toast when saving a podcast fails", async () => {
+  const patch = spyOn(podcastProductionService, "patchEpisode").mockRejectedValue(new Error("Không thể kết nối"));
+  try {
+    const host = await renderEpisode(`/moderator/podcast/episodes/${EPISODE_ID}`);
+    const button = [...host.querySelectorAll<HTMLButtonElement>("button")].find((item) => item.textContent?.includes("Lưu thay đổi"))!;
+    await act(async () => { button.click(); await new Promise((resolve) => setTimeout(resolve, 0)); });
+    expect(useNotificationStore.getState().notifications.at(-1)).toMatchObject({ status: "error", title: "Không thể lưu podcast", description: "Không thể kết nối" });
+  } finally { patch.mockRestore(); }
+});
+
+it("shows a success toast after manually saving the script", async () => {
+  const save = spyOn(podcastProductionService, "script").mockResolvedValue({} as never);
+  try {
+    const host = await renderEpisode(`/moderator/podcast/episodes/${EPISODE_ID}?step=script`);
+    const button = [...host.querySelectorAll<HTMLButtonElement>("button")].find((item) => item.textContent?.trim() === "Lưu kịch bản")!;
+    await act(async () => { button.click(); await new Promise((resolve) => setTimeout(resolve, 0)); });
+    expect(useNotificationStore.getState().notifications.some((item) => item.status === "success" && item.title === "Đã lưu kịch bản")).toBe(true);
+  } finally { save.mockRestore(); }
 });

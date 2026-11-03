@@ -2,6 +2,7 @@ import { useEffect, useRef, useState, type ReactElement, type RefObject } from "
 import { Maximize2, Minimize2, Search } from "lucide-react";
 import type { StudioSeriesDetailDto } from "@repo/shared";
 import { Button } from "@/shared/components/ui/button";
+import { notify } from "@/shared/lib/notifications";
 import { cn } from "@/lib/utils";
 import { errorMessage } from "@/lib/apiError";
 import { locateBlock } from "../aiCheck/blockRefs";
@@ -126,11 +127,18 @@ export function AiAssistantPanel({ editorRef, episodeId, ensureEpisode, sources,
     const picked = scope === "SELECTION" ? editor?.getSelectionBlocks() : editor?.getBlocks();
     setDialog(null);
     closeItem();
-    if (!picked?.length) return setError("Không có đoạn nào để rà.");
+    if (!picked?.length) {
+      setError("Không có đoạn nào để rà.");
+      notify.warning({ title: "Chưa có nội dung để rà" });
+      return;
+    }
     try {
       await start(episodeId ?? (await ensureEpisode()), { kind: "SCRIPT_REVIEW", scope, blocks: picked, ...(note ? { note } : {}) });
+      notify.info({ title: "Đã bắt đầu rà kịch bản" });
     } catch (caught) {
-      setError(describeStartError(caught));
+      const message = describeStartError(caught);
+      setError(message);
+      notify.error({ title: "Không thể rà kịch bản", description: message });
     }
   };
 
@@ -151,7 +159,9 @@ export function AiAssistantPanel({ editorRef, episodeId, ensureEpisode, sources,
     try {
       await work();
     } catch (caught) {
-      setNotice({ kind: "error", text: errorMessage(caught) });
+      const message = errorMessage(caught);
+      setNotice({ kind: "error", text: message });
+      notify.error({ title: "Không thể cập nhật kết quả rà", description: message });
     } finally {
       setBusy(false);
     }
@@ -164,14 +174,20 @@ export function AiAssistantPanel({ editorRef, episodeId, ensureEpisode, sources,
         const live = editorRef.current?.getBlocks() ?? [];
         const target = locateBlock(live, item);
         const result = target === "conflict" ? "conflict" : editorRef.current?.replaceBlockText(target, item.blockHash, item.suggestion);
-        if (result !== "ok") return setNotice({ kind: "conflict", text: CONFLICT_TEXT });
+        if (result !== "ok") {
+          setNotice({ kind: "conflict", text: CONFLICT_TEXT });
+          notify.warning({ title: "Không thể áp dụng đề xuất", description: CONFLICT_TEXT });
+          return;
+        }
         unrecorded.current.add(item.id);
       }
       try {
         await patchItem(item.id, { applied: true });
         unrecorded.current.delete(item.id);
+        notify.success({ title: "Đã áp dụng đề xuất" });
       } catch {
         setNotice({ kind: "error", text: "Đã thay đoạn nhưng chưa ghi nhận được. Bấm Áp dụng đề xuất để ghi nhận lại (không thay đoạn lần nữa)." });
+        notify.error({ title: "Chưa ghi nhận được đề xuất", description: "Bấm Áp dụng đề xuất để thử ghi nhận lại." });
       }
     });
 
@@ -180,14 +196,18 @@ export function AiAssistantPanel({ editorRef, episodeId, ensureEpisode, sources,
       if (!item) return;
       await patchItem(item.id, { status: "REVIEWED" });
       closeItem();
+      notify.success({ title: "Đã hoàn tất xử lý đề xuất" });
     });
 
   const discard = async (): Promise<void> => {
     closeItem();
     try {
       await cancel();
+      notify.info({ title: "Đã hủy lượt rà kịch bản" });
     } catch (caught) {
-      setError(errorMessage(caught));
+      const message = errorMessage(caught);
+      setError(message);
+      notify.error({ title: "Không thể hủy lượt rà", description: message });
     }
   };
 
