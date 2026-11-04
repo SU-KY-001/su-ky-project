@@ -1,6 +1,7 @@
 import { useCallback, useReducer, useRef } from "react";
 import type { AudioAnalysis, EditorDocument } from "@repo/shared";
 import { newIdempotencyKey } from "@/lib/idempotency";
+import { dialogueIssues } from "../dialogueState";
 import { podcastProductionService as api } from "../services/podcastProductionService";
 import {
   createEnsureDraft,
@@ -60,6 +61,8 @@ export function usePodcastCreationWizard(initialState?: () => PodcastWizardState
     async (document: EditorDocument | null) => {
       const id = await ensureDraft();
       const { dialogue } = stateRef.current;
+      const [firstIssue] = dialogue ? dialogueIssues(dialogue) : [];
+      if (firstIssue) throw new Error(`Kịch bản hội thoại chưa hợp lệ: ${firstIssue}`);
       const narration = await api.script(id, dialogue ? { dialogue } : { scriptDocument: document });
       const unchanged = dialogue ? stateRef.current.dialogue === dialogue : stateRef.current.scriptDocument === document;
       if (unchanged) dispatch({ type: "scriptSaved" });

@@ -181,7 +181,7 @@ function PodcastWizardPage({
       onBack={onBack}
       description={existingEpisode ? "Xem lại bốn bước sản xuất của tập podcast." : undefined}
     >
-      <div className="w-full min-w-0 max-w-full overflow-hidden rounded-xl border border-mod-border bg-mod-surface shadow-sm">
+      <div className="w-full min-w-0 max-w-full overflow-clip rounded-xl border border-mod-border bg-mod-surface shadow-sm">
         {existingEpisode ? (
           <div className="flex flex-wrap items-center justify-between gap-3 border-b border-mod-border px-4 py-4 sm:px-6">
             <div>
