@@ -22,8 +22,8 @@ export function PodcastVoiceStep({ wizard, readOnly, published = false }: { wiza
   );
   const { dialogue } = wizard.state;
   const choices = [
-    { id: "upload" as const, title: dialogue ? "Thu âm thủ công" : "Tải file thu âm", description: dialogue ? "Hai người thu ngoài hệ thống theo bản đọc, rồi tải một file hoàn chỉnh lên." : "Tải một file hoàn chỉnh, kiểm tra và nghe ngay.", icon: Upload },
-    { id: "ai" as const, title: "Dùng giọng AI", description: dialogue ? "AI đọc hai vai theo kịch bản hội thoại đã lưu." : "AI đọc kịch bản đã lưu thành file âm thanh.", icon: Bot },
+    { id: "upload" as const, title: dialogue ? "Thu âm thủ công" : "Tải file thu âm", description: dialogue ? "Những người đọc thu ngoài hệ thống theo bản đọc, rồi tải một file hoàn chỉnh lên." : "Tải một file hoàn chỉnh, kiểm tra và nghe ngay.", icon: Upload },
+    { id: "ai" as const, title: "Dùng giọng AI", description: dialogue ? "AI đọc từng vai theo kịch bản hội thoại đã lưu." : "AI đọc kịch bản đã lưu thành file âm thanh.", icon: Bot },
   ];
   return <section aria-labelledby="podcast-voice-title" className="space-y-5">
     <div><h2 id="podcast-voice-title" className="text-lg font-bold text-mod-text">Giọng đọc</h2><p className="mt-1 text-sm text-mod-text-secondary">Chọn rõ một chế độ sản xuất âm thanh cho tập podcast.</p></div>

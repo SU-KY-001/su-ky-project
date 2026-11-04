@@ -10,6 +10,8 @@ blockedBy: []
 blocks: []
 ---
 
+> Mở rộng ở `plans/261104-multi-speaker-podcast`: 2..30 người nói, dán kịch bản và gán người đọc.
+
 > **Đã triển khai 2026-10-27.** Khác plan gốc (cố ý, theo ponytail): không có `readerUserId` (không có endpoint liệt kê mod) nên không có mục checklist `DIALOGUE_SPEAKER_UNASSIGNED`; hằng số giới hạn đặt cố định trong `@repo/shared` thay vì cấu hình; chỉ thêm env `TTS_DIALOGUE_MODEL` (chunk dùng `TTS_CHUNK_CHARS`, `mode: "conversational"` luôn bật); xác nhận trước khi tạo giọng là ghi chú trong panel thay vì hộp thoại hai bước; `AI_VOICE` hiển thị cặp giọng `Kore + Charon`. Chưa gọi Gemini thật, chưa chạy toàn bộ luồng web với API.
 
 # Podcast hai người

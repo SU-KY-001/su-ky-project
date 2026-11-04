@@ -214,7 +214,7 @@ export function PodcastScriptStep({
           <p className="mt-1 text-sm text-mod-text-secondary">Soạn nội dung, gắn nguồn và tải tài liệu bổ sung.</p>
           {characterCount === 0 ? (
             <Button type="button" variant="outline" size="sm" className="mt-2" onClick={() => wizard.dispatch({ type: "setDialogue", value: newDialogue() })}>
-              Chuyển sang hội thoại hai người
+              Chuyển sang hội thoại nhiều người
             </Button>
           ) : null}
         </div>

@@ -1,13 +1,20 @@
 import { z } from "zod";
 
-/** Gemini prebuilt voices offered to the moderator (prebuilt names, plus "en-us-riko" from the Extended Voice Library). */
-export const AI_VOICES = ["en-us-riko", "Kore", "Charon", "Puck", "Aoede"] as const;
+/** Gemini prebuilt voices (all 30 from the Cloud TTS table); usable in multi-speaker and single-speaker requests. */
+export const PREBUILT_VOICES = [
+  "Achernar", "Achird", "Algenib", "Algieba", "Alnilam", "Aoede", "Autonoe", "Callirrhoe", "Charon", "Despina",
+  "Enceladus", "Erinome", "Fenrir", "Gacrux", "Iapetus", "Kore", "Laomedeia", "Leda", "Orus", "Pulcherrima",
+  "Puck", "Rasalgethi", "Sadachbia", "Sadaltager", "Schedar", "Sulafat", "Umbriel", "Vindemiatrix", "Zephyr", "Zubenelgenubi",
+] as const;
+
+/** Voices offered to the moderator: the prebuilt ones plus "en-us-riko" from the Extended Voice Library. */
+export const AI_VOICES = ["en-us-riko", ...PREBUILT_VOICES] as const;
 export const AiVoiceSchema = z.enum(AI_VOICES);
 export type AiVoice = z.infer<typeof AiVoiceSchema>;
 
-/** A two-speaker Gemini request only accepts prebuilt voices, not the Extended Library "en-us-riko". */
-export const DIALOGUE_VOICES = AI_VOICES.filter((voice) => voice !== "en-us-riko");
-export const DialogueVoiceSchema = z.enum(["Kore", "Charon", "Puck", "Aoede"]);
+/** A multi-speaker Gemini request only accepts prebuilt voices, not the Extended Library "en-us-riko". */
+export const DIALOGUE_VOICES = PREBUILT_VOICES;
+export const DialogueVoiceSchema = z.enum(PREBUILT_VOICES);
 
 /** Single-narrator episodes send `voice`; dialogue episodes omit it (voices come from `dialogue.speakers`). The server enforces which form applies. */
 export const CreateVoiceJobSchema = z.object({ voice: AiVoiceSchema.optional() });
