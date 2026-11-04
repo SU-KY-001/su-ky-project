@@ -23,14 +23,25 @@ const singleAudio = (json: unknown): string | undefined =>
 const dialogueAudio = (json: unknown): string | undefined =>
   (json as GenerateContentResponse).candidates?.[0]?.content?.parts?.find((part) => part.inlineData?.data)?.inlineData?.data;
 
-export function buildSingleBody(text: string, voice: string): string {
+export interface SingleBodyOptions {
+  /** Defaults to `TTS_MODEL`. */
+  model?: string;
+  /** Defaults to `TTS_STYLE`; an empty string omits the style annotation. */
+  style?: string;
+}
+
+export function buildSingleBody(text: string, voice: string, options: SingleBodyOptions = {}): string {
+  const style = options.style ?? env.TTS_STYLE;
   return JSON.stringify({
-    model: env.TTS_MODEL,
-    input: [{ type: "user_input", content: [{ type: "text", text, annotations: [{ type: "speech_metadata", style: env.TTS_STYLE }] }] }],
+    model: options.model ?? env.TTS_MODEL,
+    input: [{ type: "user_input", content: [{ type: "text", text, annotations: style ? [{ type: "speech_metadata", style }] : [] }] }],
     response_format: { type: "audio" },
     generation_config: { speech_config: [{ voice }] },
   });
 }
+
+/** `|…|` interjection markers only mean something to the multi-speaker model; a single-speaker turn reads the plain words (tags stay). */
+export const turnSpeechText = (turn: Pick<DialogueTurn, "text">): string => turn.text.replace(/\|/g, "");
 
 /**
  * Multi-speaker TTS uses `generateContent` (documented at ai.google.dev speech-generation): one part per turn with
@@ -60,6 +71,10 @@ export function buildDialogueBody(turns: readonly Pick<DialogueTurn, "speaker" |
 }
 
 export const synthesizeWav = (text: string, voice: string, signal: AbortSignal): Promise<Buffer> => requestWav(INTERACTIONS_ENDPOINT, buildSingleBody(text, voice), singleAudio, signal);
+
+/** One dialogue turn as its own single-speaker request, used when the script does not have exactly two speakers. */
+export const synthesizeTurnWav = (turn: Pick<DialogueTurn, "text" | "style">, voice: string, signal: AbortSignal): Promise<Buffer> =>
+  requestWav(INTERACTIONS_ENDPOINT, buildSingleBody(turnSpeechText(turn), voice, { model: env.TTS_DIALOGUE_MODEL, style: turn.style?.trim() ?? "" }), singleAudio, signal);
 
 export const synthesizeDialogueWav = (
   turns: readonly Pick<DialogueTurn, "speaker" | "text" | "style">[],
