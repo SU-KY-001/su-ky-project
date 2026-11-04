@@ -93,8 +93,8 @@ export const listeningPaths: Paths = {
       tag: TAG,
       summary: "Lấy URL phát audio",
       description:
-        "Trả URL audio, thời lượng và tiến độ đã lưu (nếu có). `sync.intervalMs` là chu kỳ gọi `PUT /api/me/listening-progress/{narrationId}`; `sync.completionThreshold` là ngưỡng được tính là nghe xong. Response `Cache-Control: private, no-store`.",
-      access: "user",
+        "Không bắt buộc đăng nhập (`attachSession`). Trả URL audio, thời lượng và `sync.intervalMs`/`sync.completionThreshold`; `progress` chỉ có khi đã đăng nhập và từng lưu tiến độ, ngược lại là `null`. `sync.intervalMs` là chu kỳ gọi `PUT /api/me/listening-progress/{narrationId}`; `sync.completionThreshold` là ngưỡng được tính là nghe xong. Response `Cache-Control: private, no-store`.",
+      access: "optional",
       ...narrationParams,
       ok: { status: 200, description: "Audio và tiến độ", schema: { name: "Playback", schema: PlaybackDocSchema } },
       errors: { 404: UNAVAILABLE },
