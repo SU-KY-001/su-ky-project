@@ -111,7 +111,6 @@ export interface SeriesReviewSourceEntity {
   sourceId: string;
   title: string;
   url: string | null;
-  hasFile: boolean;
   version: number;
   verificationStatus: string;
   verifiedVersion: number | null;

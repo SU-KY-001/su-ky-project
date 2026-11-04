@@ -565,7 +565,7 @@ export class PrismaSeriesRepository implements SeriesRepository {
       orderBy: { sortOrder: "asc" },
       select: {
         sortOrder: true,
-        source: { select: { id: true, title: true, url: true, fileAssetId: true, version: true, verificationStatus: true, verifiedVersion: true } },
+        source: { select: { id: true, title: true, url: true, version: true, verificationStatus: true, verifiedVersion: true } },
       },
     });
     // One source may be attached at several locators; the AI reads each source once.
@@ -577,7 +577,6 @@ export class PrismaSeriesRepository implements SeriesRepository {
         sourceId: source.id,
         title: source.title,
         url: source.url,
-        hasFile: source.fileAssetId !== null,
         version: source.version,
         verificationStatus: source.verificationStatus,
         verifiedVersion: source.verifiedVersion,

@@ -124,13 +124,13 @@ export class AiCheckService {
     }
   }
 
-  /** Verified-at-current-version sources only. A PDF is usable once its pages are loaded; a URL source always is. */
+  /** Verified-at-current-version sources only. A source is usable as pages once its pages are loaded (uploaded PDF or imported book); a URL source always is. */
   private async selectSources(rows: SeriesReviewSourceEntity[]): Promise<ReviewSource[]> {
     const picked: Array<Omit<ReviewSource, "label">> = [];
     for (const row of rows) {
       if (row.verificationStatus !== "VERIFIED" || row.verifiedVersion !== row.version) continue;
       const base = { sourceId: row.sourceId, version: row.version, title: row.title };
-      if (row.hasFile && (await this.deps.store.hasPages(row.sourceId, row.version))) picked.push({ ...base, kind: "PDF", url: row.url });
+      if (await this.deps.store.hasPages(row.sourceId, row.version)) picked.push({ ...base, kind: "PDF", url: row.url });
       else if (row.url) picked.push({ ...base, kind: "URL", url: row.url });
     }
     return picked.map((source, index) => ({ ...source, label: `S${index + 1}` }));
