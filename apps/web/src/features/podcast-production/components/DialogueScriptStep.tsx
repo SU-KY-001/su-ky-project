@@ -62,6 +62,7 @@ export function DialogueScriptStep({ wizard, readOnly }: { wizard: PodcastCreati
   const [pasteError, setPasteError] = useState("");
   const [replaceWith, setReplaceWith] = useState<{ paragraphs: string[]; splitLong: number } | null>(null);
   const [selected, setSelected] = useState<ReadonlySet<string>>(new Set());
+  const [speakerPickerTurn, setSpeakerPickerTurn] = useState<string | null>(null);
   const wordsPerMinute = useWordsPerMinute();
   const issues = dialogueIssues(dialogue);
   const unassigned = unassignedTurns(dialogue);
@@ -222,7 +223,7 @@ export function DialogueScriptStep({ wizard, readOnly }: { wizard: PodcastCreati
                     <Checkbox className="size-5.5 shrink-0 self-center" aria-label={`Chọn lượt ${index + 1}`} checked={selected.has(turn.id)} onCheckedChange={(checked) => toggleSelected(turn.id, checked === true)} />
                   )}
                   <span className="text-xs text-mod-text-secondary">#{index + 1}</span>
-                  <Popover>
+                  <Popover open={speakerPickerTurn === turn.id} onOpenChange={(open) => setSpeakerPickerTurn(open ? turn.id : null)}>
                     <PopoverTrigger asChild>
                       <Button type="button" size="sm" variant="outline" className={cn("max-w-48 rounded-full", !speaker && "border-dashed border-mod-danger text-mod-danger")} disabled={readOnly} aria-label={`Người nói của lượt ${index + 1}`}>
                         <span className={cn("size-2.5 rounded-sm", speakerColorClass(dialogue, turn.speaker))} aria-hidden="true" />
@@ -232,7 +233,7 @@ export function DialogueScriptStep({ wizard, readOnly }: { wizard: PodcastCreati
                     </PopoverTrigger>
                     <PopoverContent align="start" className="max-h-64 w-56 space-y-1 overflow-y-auto p-2">
                       {dialogue.speakers.map((option) => (
-                        <Button key={option.key} type="button" size="sm" variant={option.key === turn.speaker ? "secondary" : "ghost"} className="w-full justify-start" onClick={() => edit(updateTurn(dialogue, turn.id, { speaker: option.key }))}>
+                        <Button key={option.key} type="button" size="sm" variant={option.key === turn.speaker ? "secondary" : "ghost"} className="w-full justify-start" onClick={() => { edit(updateTurn(dialogue, turn.id, { speaker: option.key })); setSpeakerPickerTurn(null); }}>
                           <span className={cn("size-2.5 rounded-sm", speakerColorClass(dialogue, option.key))} aria-hidden="true" />
                           <span className="truncate">{option.name}</span>
                         </Button>

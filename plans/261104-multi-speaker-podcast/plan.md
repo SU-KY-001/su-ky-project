@@ -1,7 +1,7 @@
 ---
 title: "Podcast nhiều người đọc: import đoạn văn, gán người đọc, TTS từng lượt cho >2 người"
 description: "Mở rộng Dialogue từ đúng 2 người (A/B) lên 2..30 người; UX dán văn bản tách đoạn và gán người đọc hàng loạt; TTS >2 người đi từng lượt rồi nối bằng ffmpeg"
-status: pending
+status: in-progress
 priority: P2
 effort: 5 phase, ~3-4 ngày một người
 mode: fast
@@ -9,6 +9,8 @@ created: 2026-11-04
 blockedBy: []
 blocks: []
 ---
+
+> **Đã code xong 2026-11-05**, chưa gọi Gemini thật (key hết lượt). Chưa kiểm: đường TTS từng lượt, và chunk 2 người mà chỉ có một người nói.
 
 # Podcast nhiều người đọc
 
