@@ -21,8 +21,11 @@ export const DIALOGUE_TURN_MAX_CHARS = 2000;
 export const DIALOGUE_STYLE_MAX_CHARS = 200;
 export const DIALOGUE_NOTE_MAX_CHARS = 500;
 export const DIALOGUE_NAME_MAX_CHARS = 40;
+export const DIALOGUE_MIN_SPEAKERS = 2;
+export const DIALOGUE_MAX_SPEAKERS = 30;
+export const DIALOGUE_SPEAKER_KEY_PATTERN = /^[A-Za-z0-9]{1,8}$/;
 
-export const DialogueSpeakerKeySchema = z.enum(["A", "B"]);
+export const DialogueSpeakerKeySchema = z.string().regex(DIALOGUE_SPEAKER_KEY_PATTERN);
 export type DialogueSpeakerKey = z.infer<typeof DialogueSpeakerKeySchema>;
 
 const TAG_PATTERN = /<([^<>]*)>/g;
@@ -55,14 +58,21 @@ const DialogueTurnSchema = z.object({
 
 export const DialogueSchema = z
   .object({
-    speakers: z.tuple([DialogueSpeakerSchema, DialogueSpeakerSchema]),
+    speakers: z.array(DialogueSpeakerSchema).min(DIALOGUE_MIN_SPEAKERS).max(DIALOGUE_MAX_SPEAKERS),
     turns: z.array(DialogueTurnSchema).min(1).max(DIALOGUE_MAX_TURNS),
   })
   .superRefine((value, ctx) => {
-    const [a, b] = value.speakers;
-    if (a.key !== "A" || b.key !== "B") ctx.addIssue({ code: "custom", message: "Người nói phải là A rồi B", path: ["speakers"] });
-    if (a.name.toLowerCase() === b.name.toLowerCase()) ctx.addIssue({ code: "custom", message: "Hai người nói phải khác tên", path: ["speakers"] });
-    if (a.voice === b.voice) ctx.addIssue({ code: "custom", message: "Hai người nói phải khác giọng", path: ["speakers"] });
+    const keys = new Set(value.speakers.map((speaker) => speaker.key));
+    if (keys.size !== value.speakers.length) ctx.addIssue({ code: "custom", message: "Khoá người nói bị trùng", path: ["speakers"] });
+    if (new Set(value.speakers.map((speaker) => speaker.name.toLowerCase())).size !== value.speakers.length) {
+      ctx.addIssue({ code: "custom", message: "Các người nói phải khác tên", path: ["speakers"] });
+    }
+    if (new Set(value.speakers.map((speaker) => speaker.voice)).size !== value.speakers.length) {
+      ctx.addIssue({ code: "custom", message: "Các người nói phải khác giọng", path: ["speakers"] });
+    }
+    value.turns.forEach((turn, index) => {
+      if (!keys.has(turn.speaker)) ctx.addIssue({ code: "custom", message: `Lượt ${index + 1} tham chiếu người nói không tồn tại`, path: ["turns", index, "speaker"] });
+    });
     if (new Set(value.turns.map((turn) => turn.id)).size !== value.turns.length) ctx.addIssue({ code: "custom", message: "Mã lượt bị trùng", path: ["turns"] });
   });
 export type Dialogue = z.infer<typeof DialogueSchema>;
@@ -89,4 +99,9 @@ export function dialogueSpeechKey(dialogue: Dialogue): string {
     speakers: dialogue.speakers.map((speaker) => [speaker.key, speaker.voice]),
     turns: dialogue.turns.map((turn) => [turn.speaker, turn.text, turn.style?.trim() || null]),
   });
+}
+
+/** Speaker keys that actually have a turn, in order of first appearance. */
+export function dialogueUsedSpeakerKeys(dialogue: Dialogue): string[] {
+  return [...new Set(dialogue.turns.map((turn) => turn.speaker))];
 }
