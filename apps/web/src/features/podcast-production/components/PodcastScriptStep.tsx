@@ -245,7 +245,7 @@ export function PodcastScriptStep({
                   <PopoverTrigger asChild>
                     <Button type="button" size="sm" variant="outline">Nguồn ({sources.length})</Button>
                   </PopoverTrigger>
-                  <PopoverContent align="end" className="w-80 p-3.5">
+                  <PopoverContent align="end" className="max-h-[min(32rem,var(--radix-popover-content-available-height))] w-80 overflow-y-auto p-3.5">
                     <ScriptSourcesPanel sources={sources} onInsert={(sourceId) => editorRef.current?.insertCitation(sourceId)} />
                   </PopoverContent>
                 </Popover>

@@ -68,7 +68,7 @@ echo "| $(date '+%Y-%m-%d %H:%M') | $(git rev-parse --short HEAD) | $(git branch
 
 ```bash
 docker images lgdlong/suky-api:latest                       # kích thước
-docker run --rm --entrypoint sh lgdlong/suky-api:latest -c 'ffmpeg -version | head -1 && ls packages/db/node_modules/.bin/prisma'
+docker run --rm --entrypoint sh lgdlong/suky-api:latest -c 'ffmpeg -version | head -1 && cd /app/packages/db && bun run prisma version'
 ```
 
 ## Files deploy (copy sang thư mục VPS)

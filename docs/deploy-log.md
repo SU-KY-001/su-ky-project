@@ -38,3 +38,4 @@ docker ps --format '{{.Names}} {{.Image}} {{.Status}}'
 | 2026-10-28 16:13 | d1d7699+dirty | staging | deploy prep: Dockerfile, compose.prod, Makefile.prod, docs, cookie SameSite=None | 🔵 api |
 | 2026-10-28 17:09 | ee12409+dirty | staging | staging + dev merge (quiz authoring, 3 migrations); Makefile.prod uncommitted | 🔵 api |
 | 2026-10-29 00:29 | 9fcdd34 | staging | docs(api): voice job dialogue mode in OpenAPI | 🔵 api |
+| 2026-10-29 11:21 | f2c2fba | staging | Merge remote-tracking branch 'origin/dev' into staging | 🔵 api |
