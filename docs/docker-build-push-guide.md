@@ -18,6 +18,8 @@ Guide build và push image API của Su-Ky lên Docker Hub, rồi deploy lên VP
 
 Một image duy nhất. Prisma CLI nằm trong image để chạy migration bằng `make -f Makefile.prod migrate`.
 
+Worker hiện chỉ nhắc hạn sản xuất cho Moderator; podcast được Admin phát hành thủ công. Sau khi cập nhật, thay thế cả API và worker cũ để tiến trình cũ không tiếp tục chạy các job phát hành. Worker mới gỡ cron outbox/đối soát cũ khi khởi động; giữ dữ liệu lịch sử và không cần migration.
+
 ## Architecture
 
 ```
@@ -123,7 +125,7 @@ docker exec suky-db sh -c "psql -U \$POSTGRES_USER -d \$POSTGRES_DB -c \"UPDATE 
 
 ```bash
 curl -s https://suky-api.the1struleoffightclub.top/health
-# kỳ vọng: JSON có database "connected"; releaseWorker "running" sau ~30 giây
+# kỳ vọng: JSON có database "connected"; releaseWorker "running" sau ~30 giây (worker nhắc hạn, không tự động phát hành)
 ```
 
 ## Troubleshooting

@@ -19,10 +19,6 @@ export interface HistoricalNodeRecord {
   historicalPhaseId: string | null;
   entityType: "FIGURE" | "EVENT" | null;
   aliases: string[];
-  reviewStatus: "DRAFT" | "IN_REVIEW" | "APPROVED" | "CHANGES_REQUESTED";
-  reviewedVersion: number | null;
-  reviewedAt: Date | null;
-  reviewNote: string | null;
 }
 export interface HistoricalNodeWrite {
   name?: string;
@@ -43,7 +39,6 @@ export interface HistoricalNodeQuery {
   periodId?: string;
   historicalPhaseId?: string;
   type?: "FIGURE" | "EVENT";
-  reviewStatus?: HistoricalNodeRecord["reviewStatus"];
 }
 export interface HistoricalNodeCounts {
   childCount: number;
@@ -121,14 +116,6 @@ export interface HistoricalEvidenceRepository
       note?: string | null;
     },
   ): Promise<string | null>;
-  reviewEntity(
-    actorId: string,
-    id: string,
-    baseVersion: number,
-    expectedStatus: HistoricalNodeRecord["reviewStatus"],
-    status: HistoricalNodeRecord["reviewStatus"],
-    note: string,
-  ): Promise<void>;
   reviewSource(
     actorId: string,
     id: string,

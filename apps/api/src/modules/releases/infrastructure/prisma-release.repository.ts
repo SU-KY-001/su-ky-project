@@ -6,7 +6,6 @@ import type {
   CreateReleaseScheduleRecord,
   DecideEpisodeReviewRecord,
   EpisodeReviewEntity,
-  PendingOutboxEvent,
   ReleaseProgressEvent,
   ReleaseReassignmentTicketEntity,
   ReleaseRepository,
@@ -56,14 +55,6 @@ const ticketInclude = {
   schedule: { include: scheduleInclude },
 } satisfies Prisma.ReleaseReassignmentTicketInclude;
 
-function scheduleEventPayload(scheduleId: string, version: number, scheduledAt: Date) {
-  return {
-    scheduleId,
-    scheduleVersion: version,
-    scheduledAt: scheduledAt.toISOString(),
-  } satisfies Prisma.InputJsonObject;
-}
-
 function asSchedule(
   row: Prisma.ReleaseScheduleGetPayload<{ include: typeof scheduleInclude }>,
 ): ReleaseScheduleEntity {
@@ -107,14 +98,6 @@ export class PrismaReleaseRepository implements ReleaseRepository {
         },
       });
 
-      await tx.outboxEvent.create({
-        data: {
-          eventType: "release.schedule.created",
-          aggregateType: "release_schedule",
-          aggregateId: schedule.id,
-          payload: scheduleEventPayload(schedule.id, schedule.version, schedule.scheduledAt),
-        },
-      });
       await tx.auditLog.create({
         data: {
           actorId: input.createdById,
@@ -186,16 +169,6 @@ export class PrismaReleaseRepository implements ReleaseRepository {
         },
       });
 
-      if (isReschedule) {
-        await tx.outboxEvent.create({
-          data: {
-            eventType: "release.schedule.rescheduled",
-            aggregateType: "release_schedule",
-            aggregateId: schedule.id,
-            payload: scheduleEventPayload(schedule.id, schedule.version, schedule.scheduledAt),
-          },
-        });
-      }
       await tx.auditLog.create({
         data: {
           actorId: input.actorId,
@@ -571,50 +544,6 @@ export class PrismaReleaseRepository implements ReleaseRepository {
     });
   }
 
-  async listPendingOutbox(limit = 100): Promise<PendingOutboxEvent[]> {
-    return prisma.outboxEvent.findMany({
-      where: { dispatchedAt: null },
-      orderBy: { createdAt: "asc" },
-      take: limit,
-    });
-  }
-
-  async markOutboxDispatched(id: string, dispatchedAt: Date): Promise<void> {
-    await prisma.outboxEvent.update({
-      where: { id },
-      data: { dispatchedAt, attempts: { increment: 1 }, lastError: null },
-    });
-  }
-
-  async markOutboxFailed(id: string, error: string): Promise<void> {
-    await prisma.outboxEvent.update({
-      where: { id },
-      data: { attempts: { increment: 1 }, lastError: error.slice(0, 10_000) },
-    });
-  }
-
-  listDueScheduleIds(now: Date, retryIdleBefore: Date, limit = 100) {
-    return prisma.releaseSchedule.findMany({
-      where: {
-        scheduledAt: { lte: now },
-        status: { in: ["SCHEDULED", "READY_TO_PUBLISH"] },
-        OR: [{ failureCode: null }, { updatedAt: { lte: retryIdleBefore } }],
-      },
-      orderBy: { scheduledAt: "asc" },
-      take: limit,
-      select: { id: true, version: true },
-    });
-  }
-
-  listStuckPublishingIds(before: Date, limit = 100) {
-    return prisma.releaseSchedule.findMany({
-      where: { status: "PUBLISHING", updatedAt: { lte: before } },
-      orderBy: { updatedAt: "asc" },
-      take: limit,
-      select: { id: true, version: true },
-    });
-  }
-
   async dashboardCounts(now: Date, atRiskAfter: Date) {
     const [upcoming, ready, atRisk, needsAttention] = await prisma.$transaction([
       prisma.releaseSchedule.count({
@@ -765,14 +694,6 @@ export class PrismaReleaseRepository implements ReleaseRepository {
         },
       });
       if (changed.count !== 1) return false;
-      await tx.outboxEvent.create({
-        data: {
-          eventType: "release.retry_requested",
-          aggregateType: "release_schedule",
-          aggregateId: schedule.id,
-          payload: scheduleEventPayload(schedule.id, schedule.version, new Date()),
-        },
-      });
       await tx.auditLog.create({
         data: {
           actorId: input.actorId,

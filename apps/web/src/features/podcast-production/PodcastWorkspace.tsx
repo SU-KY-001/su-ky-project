@@ -265,7 +265,7 @@ function SeriesEvidence({
                 <dd className="mt-1 font-semibold text-mod-text">{event.data?.name ?? "Chưa chọn sự kiện"}</dd>
                 {event.data ? (
                   <p className="mt-1 text-sm text-mod-text-secondary">
-                    {event.data.timeLabel} · {event.data.readiness.ready ? "Đủ điều kiện" : "Cần hoàn tất kiểm duyệt"}
+                    {event.data.timeLabel}
                   </p>
                 ) : null}
               </div>

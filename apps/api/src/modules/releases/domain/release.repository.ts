@@ -155,16 +155,6 @@ export interface AppendReleaseAuditRecord {
   toStatus?: ReleaseScheduleStatus | null;
 }
 
-export interface PendingOutboxEvent {
-  id: string;
-  eventType: string;
-  aggregateType: string;
-  aggregateId: string;
-  payload: unknown;
-  attempts: number;
-  createdAt: Date;
-}
-
 export interface ReleaseDashboardCounts {
   upcoming: number;
   ready: number;
@@ -216,12 +206,6 @@ export interface ReleaseRepository {
   claimForPublishing(scheduleId: string, version: number, jobId?: string): Promise<boolean>;
   appendAudit(input: AppendReleaseAuditRecord): Promise<void>;
   listProgress(scheduleId: string): Promise<ReleaseProgressEvent[]>;
-  listPendingOutbox(limit?: number): Promise<PendingOutboxEvent[]>;
-  markOutboxDispatched(id: string, dispatchedAt: Date): Promise<void>;
-  markOutboxFailed(id: string, error: string): Promise<void>;
-  /** Schedules with a failed attempt are returned only once untouched since `retryIdleBefore` (their retry chain has ended or been lost). */
-  listDueScheduleIds(now: Date, retryIdleBefore: Date, limit?: number): Promise<Array<{ id: string; version: number }>>;
-  listStuckPublishingIds(before: Date, limit?: number): Promise<Array<{ id: string; version: number }>>;
   dashboardCounts(now: Date, atRiskAfter: Date): Promise<ReleaseDashboardCounts>;
   listModeratorWorkload(
     now: Date,

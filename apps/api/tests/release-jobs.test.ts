@@ -125,49 +125,36 @@ describe("release jobs", () => {
         },
       }, clock);
     }
-    expect(queue.sent.map((item) => (item.options.startAfter as Date).toISOString())).toEqual([
-      "2026-10-20T13:01:00.000Z",
-      "2026-10-20T13:05:00.000Z",
-      "2026-10-20T13:15:00.000Z",
-    ]);
   });
 
-  it("reconciles due schedules that may have lost their delayed job", async () => {
-    const queue = new FakeQueue();
-    const repository = {
-      issueDueReminders: async () => 0,
-      listDueScheduleIds: async () => [{ id: "schedule-3", version: 7 }],
-      listStuckPublishingIds: async () => [],
-      findSchedule: async () => null,
-      setStatus: async () => false,
-    };
-    await reconcileReleaseSchedules(
-      repository,
-      queue,
-      new Date("2026-10-20T13:00:00.000Z"),
-    );
-    expect(queue.sent[0]).toMatchObject({
-      name: "podcast.release",
-      data: { scheduleId: "schedule-3", scheduleVersion: 7, attempt: 1 },
-    });
-  });
-
-  it("issues idempotent production reminders 24 hours before the deadline", async () => {
-    const queue = new FakeQueue();
+  it("keeps reminders within the next 24 hours without publishing or reconciling schedules", async () => {
     const calls: Array<{ from: Date; to: Date }> = [];
+    const forbidden = async (): Promise<never> => {
+      throw new Error("Automatic publication must not run");
+    };
     const repository = {
-      issueDueReminders: async (from: Date, to: Date) => {
+      issueDueReminders: async (from: Date, to: Date): Promise<number> => {
         calls.push({ from, to });
         return 2;
       },
-      listDueScheduleIds: async () => [],
-      listStuckPublishingIds: async () => [],
-      findSchedule: async () => null,
-      setStatus: async () => false,
+      listPendingOutbox: forbidden,
+      listDueScheduleIds: forbidden,
+      listStuckPublishingIds: forbidden,
+      claimForPublishing: forbidden,
+      setStatus: forbidden,
     };
     const now = new Date("2026-10-18T13:00:00.000Z");
-    await reconcileReleaseSchedules(repository, queue, now);
-    expect(calls).toEqual([{ from: now, to: new Date("2026-10-19T13:00:00.000Z") }]);
+    await issueProductionReminders(repository, now);
+    expect(calls).toEqual([{
+      from: now,
+      to: new Date("2026-10-19T13:00:00.000Z"),
+    }]);
+  });
+
+  it("propagates reminder failures to the queue without invoking a publisher", async () => {
+    await expect(issueProductionReminders({
+      issueDueReminders: async () => { throw new Error("reminders unavailable"); },
+    })).rejects.toThrow("reminders unavailable");
   });
 
   it("builds reconcile correlation ids that fit the audit column for a real schedule id", () => {

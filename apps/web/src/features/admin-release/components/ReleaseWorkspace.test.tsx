@@ -136,13 +136,13 @@ it("does not render release action errors as a full-width page alert", async () 
     setTo: mock(() => undefined),
     tablePage: 1,
     setTablePage: mock(() => undefined),
-    boardPages: { SCHEDULED: 1, READY_TO_PUBLISH: 1, PUBLISHING: 1, RELEASED: 1 },
+    boardPages: { SCHEDULED: 1, READY_TO_PUBLISH: 1, RELEASED: 1, FAILED: 1 },
     setBoardPage: mock(() => undefined),
     board: {
       columns: {
         SCHEDULED: emptyColumn,
         READY_TO_PUBLISH: emptyColumn,
-        PUBLISHING: emptyColumn,
+        FAILED: emptyColumn,
         RELEASED: emptyColumn,
       },
       isPending: false,
@@ -164,7 +164,7 @@ it("does not render release action errors as a full-width page alert", async () 
     retry: mock(() => Promise.resolve()),
     publishNow: mock(() => Promise.resolve()),
     cancel: mock(() => Promise.resolve()),
-    boardStatuses: ["SCHEDULED", "READY_TO_PUBLISH", "PUBLISHING", "RELEASED"],
+    boardStatuses: ["SCHEDULED", "READY_TO_PUBLISH", "RELEASED", "FAILED"],
     busy: false,
   } as unknown as ReturnType<typeof useReleaseWorkspace>;
   const host = document.createElement("div");

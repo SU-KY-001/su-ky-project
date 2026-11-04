@@ -73,7 +73,7 @@ export async function collectHistoricalEvidence(
     throw new DomainError(
       422,
       "CONTENT_NOT_READY",
-      "Chọn sự kiện chính đã duyệt trước khi phát hành",
+      "Chọn sự kiện chính trước khi phát hành",
     );
   await lockNode(tx, "entity", series.primaryHistoricalEventId);
   const event = await tx.historicalEntity.findUniqueOrThrow({
@@ -99,15 +99,7 @@ export async function collectHistoricalEvidence(
       historicalCitation: true,
     },
   });
-  const eventSourceIds = (
-    await tx.historicalCitation.findMany({
-      where: { entityId: event.id },
-      select: { sourceId: true },
-    })
-  ).map((c) => c.sourceId);
-  for (const id of [
-    ...new Set([...sourceRows.map((c) => c.sourceId), ...eventSourceIds]),
-  ].sort())
+  for (const id of [...new Set(sourceRows.map((c) => c.sourceId))].sort())
     await tx.$queryRaw`SELECT id FROM sources WHERE id=${id}::uuid FOR UPDATE`;
   await requireLiveParent(tx, "phase", event.historicalPhaseId);
   const ready = await tx.$queryRaw<Array<{ id: string }>>(

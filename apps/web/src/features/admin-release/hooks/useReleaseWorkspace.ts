@@ -47,8 +47,8 @@ export function useReleaseWorkspace({
   const [boardPages, setBoardPages] = useState<Record<ReleaseBoardStatus, number>>({
     SCHEDULED: 1,
     READY_TO_PUBLISH: 1,
-    PUBLISHING: 1,
     RELEASED: 1,
+    FAILED: 1,
   });
   const [selectedSchedule, setSelectedSchedule] = useState<ReleaseScheduleRecord | null>(null);
   const [dialogMode, setDialogMode] = useState<"create" | "edit" | null>(
@@ -79,8 +79,8 @@ export function useReleaseWorkspace({
     setBoardPages({
       SCHEDULED: 1,
       READY_TO_PUBLISH: 1,
-      PUBLISHING: 1,
       RELEASED: 1,
+      FAILED: 1,
     });
   }, [deferredSearch, moderatorId, status, from, to]);
 
@@ -140,7 +140,7 @@ export function useReleaseWorkspace({
   ) => {
     if (
       command === "publish-now" &&
-      !await requestConfirmation({ title: "Phát hành podcast ngay?", description: `Podcast “${schedule.title}” sẽ được phát hành ngay, thay vì chờ đến thời gian đã lên lịch.`, confirmLabel: "Phát hành ngay" })
+      !await requestConfirmation({ title: "Phát hành podcast ngay?", description: `Podcast “${schedule.title}” sẽ được phát hành ngay sau khi hệ thống kiểm tra đủ điều kiện.`, confirmLabel: "Phát hành ngay" })
     ) return;
     return runScheduleAction(schedule, () =>
       command === "check-readiness"
@@ -178,13 +178,13 @@ export function useReleaseWorkspace({
     return updated;
   });
   const publishNow = async (schedule: ReleaseScheduleRecord) => {
-    if (!await requestConfirmation({ title: "Phát hành podcast ngay?", description: `Podcast “${schedule.title}” sẽ được phát hành ngay, thay vì chờ đến thời gian đã lên lịch.`, confirmLabel: "Phát hành ngay" })) return;
+    if (!await requestConfirmation({ title: "Phát hành podcast ngay?", description: `Podcast “${schedule.title}” sẽ được phát hành ngay sau khi hệ thống kiểm tra đủ điều kiện.`, confirmLabel: "Phát hành ngay" })) return;
     return runScheduleAction(schedule, () => actions.publishNow.mutateAsync(schedule.id));
   };
   const retry = (schedule: ReleaseScheduleRecord) =>
     runScheduleAction(schedule, () => actions.retry.mutateAsync(schedule.id));
   const cancel = async (schedule: ReleaseScheduleRecord) => {
-    if (!await requestConfirmation({ title: "Hủy lịch phát hành?", description: `Lịch “${schedule.title}” sẽ bị hủy và không tự động phát hành podcast.`, confirmLabel: "Hủy lịch", destructive: true })) return;
+    if (!await requestConfirmation({ title: "Hủy lịch phát hành?", description: `Lịch “${schedule.title}” sẽ bị hủy và không còn được phép phát hành podcast.`, confirmLabel: "Hủy lịch", destructive: true })) return;
     return runScheduleAction(schedule, () => actions.cancel.mutateAsync(schedule.id));
   };
   const openEdit = (schedule: ReleaseScheduleRecord) => {

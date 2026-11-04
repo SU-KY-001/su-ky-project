@@ -118,7 +118,7 @@ export const ReleaseDashboardDocSchema = z.object({
 export const ReleaseModeratorWorkloadDocSchema = ReleaseModeratorWorkloadSchema;
 
 export const ReleaseActionResultDocSchema = z.object({
-  result: z.enum(["WAITING", "BLOCKED", "IGNORED", "RELEASED", "RETRY", "FAILED"]),
+  result: z.enum(["WAITING", "BLOCKED", "IGNORED", "RELEASED", "FAILED"]),
 });
 
 export const ReleaseStatusResultDocSchema = z.object({

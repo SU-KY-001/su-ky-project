@@ -19,6 +19,9 @@ export class HistoricalCitationService {
     readonly catalog: HistoricalCatalogService,
     private storage?: MediaStorageGateway,
   ) {}
+  private async assertCitationOwner(owner: CitationOwner): Promise<void> {
+    if (owner.kind === "entity" && (await this.catalog.getNode("entity", owner.id)).entityType === "EVENT") throw new DomainError(422, "VALIDATION_ERROR", "Sự kiện không sử dụng nguồn tư liệu riêng");
+  }
   mapCitation(row: HistoricalCitationRecord): HistoricalCitationDto {
     const s = z.record(z.unknown()).parse(row.snapshot);
     const str = (key: string, fallback: string | null) =>
@@ -72,6 +75,7 @@ export class HistoricalCitationService {
     };
   }
   async listCitations(owner: CitationOwner) {
+    await this.assertCitationOwner(owner);
     await this.catalog.getNode(owner.kind, owner.id);
     return (await this.repository.citations(owner)).map((r) =>
       this.mapCitation(r),
@@ -88,6 +92,7 @@ export class HistoricalCitationService {
       note?: string | null;
     },
   ) {
+    await this.assertCitationOwner(owner);
     await this.catalog.assertOwner(actor, owner.kind, owner.id);
     const id = await this.repository.changeCitation(
       actor.userId,
@@ -117,6 +122,7 @@ export class HistoricalCitationService {
       note?: string | null;
     },
   ) {
+    await this.assertCitationOwner(owner);
     await this.catalog.assertOwner(actor, owner.kind, owner.id);
     await this.repository.changeCitation(
       actor.userId,
@@ -133,6 +139,7 @@ export class HistoricalCitationService {
     id: string,
     baseVersion: number,
   ) {
+    await this.assertCitationOwner(owner);
     await this.catalog.assertOwner(actor, owner.kind, owner.id);
     await this.repository.changeCitation(
       actor.userId,

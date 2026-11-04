@@ -17,10 +17,15 @@ export class PublicHistoricalService {
     const node = HistoricalEntityDetailSchema.parse(
       await this.present("entity", id),
     );
+    const phase = node.historicalPhase;
+    const period = phase?.period
+      ? await this.repository.get("period", phase.period.id)
+      : null;
     if (
-      !node.readiness.ready ||
-      !node.historicalPhase?.period ||
-      !node.reviewedAt
+      node.deletedAt ||
+      node.entityType !== "EVENT" ||
+      !phase?.period || phase.deletedAt || !phase.isActive ||
+      !period || period.deletedAt || !period.isActive
     )
       throw new DomainError(404, "NOT_FOUND", "Sự kiện chưa công khai");
     return PublicHistoricalEventSchema.parse({
@@ -31,15 +36,9 @@ export class PublicHistoricalService {
       time: node.time,
       timeLabel: node.timeLabel,
       parent: {
-        phase: { id: node.historicalPhase.id, name: node.historicalPhase.name },
-        period: node.historicalPhase.period,
+        phase: { id: phase.id, name: phase.name },
+        period: { id: period.id, name: period.name },
       },
-      reviewedAt: node.reviewedAt,
-      citations: node.citations.map((c) => ({
-        locator: c.locator,
-        excerpt: c.excerpt,
-        source: c.source,
-      })),
     });
   }
   async getEvent(slug: string) {

@@ -600,26 +600,43 @@ describe("release service", () => {
   it("blocks a due schedule when approval belongs to an older revision", async () => {
     const { releaseService, repository, publishCount } = service();
     repository.latestReview = approvedReview(2);
-    const result = await releaseService.publishDueSchedule(
-      "schedule-1",
-      1,
-      "correlation-6",
-      "job-1",
-    );
+    const result = await releaseService.publishNow(session("admin-1", "admin"), "schedule-1", "correlation-6");
     expect(result).toBe("BLOCKED");
     expect(repository.statusTransitions.at(-1)?.to).toBe("BLOCKED");
     expect(publishCount()).toBe(0);
   });
 
-  it("publishes at most once when two workers race for one schedule", async () => {
+  it("publishes at most once when two Admin requests race for one schedule", async () => {
     const { releaseService, repository, publishCount } = service();
     const results = await Promise.all([
-      releaseService.publishDueSchedule("schedule-1", 1, "correlation-7", "job-a"),
-      releaseService.publishDueSchedule("schedule-1", 1, "correlation-8", "job-b"),
+      releaseService.publishNow(session("admin-1", "admin"), "schedule-1", "correlation-7"),
+      releaseService.publishNow(session("admin-1", "admin"), "schedule-1", "correlation-8"),
     ]);
     expect(results.sort()).toEqual(["IGNORED", "RELEASED"]);
     expect(publishCount()).toBe(1);
     expect(repository.statusTransitions.at(-1)?.to).toBe("RELEASED");
+  });
+
+  it("records a manual technical failure without scheduling an automatic retry", async () => {
+    const repository = new FakeReleaseRepository();
+    let calls = 0;
+    const releaseService = new ReleaseService(repository as unknown as ReleaseRepository, {
+      checklistReady: async () => true,
+      reviewContent: async () => reviewContentFor(true, {}),
+      publishEpisode: async () => { calls += 1; throw new Error("publication unavailable"); },
+    }, () => now);
+
+    expect(await releaseService.publishNow(session("admin-1", "admin"), "schedule-1", "manual-failure")).toBe("FAILED");
+    expect(calls).toBe(1);
+    expect(repository.current.status).toBe("FAILED");
+    expect(repository.statusTransitions.at(-1)?.action).toBe("release.failed");
+    expect(repository.statusTransitions.some(({ action }) => action === "release.retry_scheduled")).toBe(false);
+  });
+
+  it("forbids manual publication by a Moderator", async () => {
+    const { releaseService, publishCount } = service();
+    await expect(releaseService.publishNow(session("mod-author", "moderator"), "schedule-1", "forbidden-publish")).rejects.toMatchObject({ status: 403 });
+    expect(publishCount()).toBe(0);
   });
 
   it("lets only the active assignee create a pending reassignment ticket", async () => {

@@ -219,30 +219,6 @@ describe.skipIf(!RUN_INTEGRATION)(
               },
               endState: "KNOWN",
             },
-            reviewStatus: "APPROVED",
-            reviewedVersion: 1,
-            reviewedAt: new Date(),
-          },
-        });
-        const sourceId = await makeSource("Event evidence");
-        const source = await prisma.source.findUniqueOrThrow({
-          where: { id: sourceId },
-        });
-        const revision = await prisma.sourceRevision.create({
-          data: {
-            sourceId,
-            version: 1,
-            snapshot: { title: source.title },
-            createdById: userId,
-          },
-        });
-        await prisma.historicalCitation.create({
-          data: {
-            entityId: event.id,
-            sourceId,
-            sourceRevisionId: revision.id,
-            locator: "tr. 1",
-            createdById: userId,
           },
         });
         await prisma.historicalEntityRevision.create({

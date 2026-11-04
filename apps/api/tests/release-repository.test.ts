@@ -58,7 +58,7 @@ suite("release repository", () => {
     await prisma.user.deleteMany({ where: { id: { in: [adminId, firstModeratorId, secondModeratorId] } } });
   });
 
-  it("creates a schedule with assignments, outbox and immutable progress", async () => {
+  it("creates a schedule with assignments and immutable progress without a publication outbox event", async () => {
     const repository = new PrismaReleaseRepository();
     const created = await repository.createSchedule({
       title: "Dấu chân Trường Sơn",
@@ -74,7 +74,7 @@ suite("release repository", () => {
 
     expect(created.status).toBe("SCHEDULED");
     expect(created.assignments.map((item) => item.moderatorId)).toEqual([firstModeratorId]);
-    expect(await prisma.outboxEvent.count({ where: { aggregateId: created.id, eventType: "release.schedule.created" } })).toBe(1);
+    expect(await prisma.outboxEvent.count({ where: { aggregateId: created.id } })).toBe(0);
     expect((await repository.listProgress(created.id)).map((event) => event.action)).toEqual(["release_schedule.created"]);
   });
 

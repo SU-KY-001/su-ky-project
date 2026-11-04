@@ -20,7 +20,7 @@ const healthOperation = operation({
   tag: SYSTEM,
   summary: "Kiểm tra sức khỏe hệ thống",
   description:
-    "Trả về runtime, phiên bản Bun, trạng thái PostgreSQL, hàng đợi bảo trì (pg-boss) và uptime.",
+    "Trả về runtime, phiên bản Bun, trạng thái PostgreSQL, hàng đợi bảo trì (pg-boss), worker nhắc hạn sản xuất (trường releaseWorker được giữ để tương thích) và uptime. Worker không tự động phát hành podcast.",
   access: "public",
   ok: {
     status: 200,
