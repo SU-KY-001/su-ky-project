@@ -199,7 +199,7 @@ export function DialogueScriptStep({ wizard, readOnly }: { wizard: PodcastCreati
           </div>
         </div>
       ) : (
-        <Button type="button" variant="outline" className="w-full border-dashed" onClick={() => setPasteOpen(true)}>Dán thêm kịch bản</Button>
+        <Button type="button" variant="outline" className="w-fit border-dashed" onClick={() => setPasteOpen(true)}>Dán thêm kịch bản</Button>
       )}
 
       <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_320px]">
