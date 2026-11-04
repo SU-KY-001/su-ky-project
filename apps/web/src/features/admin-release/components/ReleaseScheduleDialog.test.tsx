@@ -189,7 +189,7 @@ it("keeps edit values on stale writes and separates exception actions", async ()
   expect(document.body.textContent).toContain("Tiến độ phát hành");
   const footer = document.body.querySelector('[data-slot="dialog-footer"]');
   expect(footer).not.toBeNull();
-  for (const label of ["Thử lại", "Phát hành ngay", "Hủy lịch", "Lưu thay đổi"]) {
+  for (const label of ["Chuẩn bị thử lại", "Phát hành ngay", "Hủy lịch", "Lưu thay đổi"]) {
     expect(document.body.textContent).toContain(label);
     const action = [...document.body.querySelectorAll<HTMLButtonElement>("button")]
       .find((button) => button.textContent?.trim() === label)!;

@@ -1,5 +1,5 @@
 # Build context = repo root:  docker build --no-cache -f apps/api/Dockerfile -t lgdlong/suky-api:latest .
-# One image runs the HTTP API (default CMD) and the release worker (`bun src/worker.ts`).
+# One image runs the HTTP API (default CMD) and the production reminder worker (`bun src/worker.ts`).
 ARG BUN_VERSION=1.4.4
 
 # turbo prune keeps only @repo/api and its workspace deps, so web/mobile deps are never installed.

@@ -1,8 +1,9 @@
-import type { PublicHistoricalEventDto } from "@repo/shared";
+import type { z } from "zod";
+import type { PublicHistoricalSourceSchema } from "@repo/shared";
 export function PublicHistoricalSources({
   citations,
 }: {
-  citations: PublicHistoricalEventDto["citations"];
+  citations: Array<{ locator: string; excerpt: string | null; source: z.infer<typeof PublicHistoricalSourceSchema> }>;
 }) {
   return (
     <section aria-label="Nguồn tư liệu">

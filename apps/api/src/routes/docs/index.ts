@@ -73,7 +73,7 @@ const TAGS = [
   { name: "System", description: "Kiểm tra trạng thái hệ thống" },
   { name: "Authentication", description: "Better Auth, phiên đăng nhập và tài khoản hiện tại" },
   { name: "Admin", description: "Endpoint riêng cho Admin" },
-  { name: "Release Coordination", description: "Điều phối, kiểm duyệt và tự động phát hành podcast" },
+  { name: "Release Coordination", description: "Điều phối, kiểm duyệt và phát hành podcast thủ công" },
   { name: "Catalog", description: "Danh mục công khai: chủ đề và giai đoạn lịch sử" },
   { name: "Listening", description: "Duyệt nội dung, phát audio, đồng bộ tiến độ và lịch sử nghe" },
   { name: "Quiz", description: "Moderator biên tập quiz; người nghe làm và nhận XP" },

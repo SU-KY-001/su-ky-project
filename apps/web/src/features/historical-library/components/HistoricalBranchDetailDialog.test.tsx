@@ -125,11 +125,8 @@ it("opens the paginated branch and edits the selected content without bypassing 
   for (const action of ["Xóa", "Khôi phục", "Thêm giai đoạn", "Thêm sự kiện", "Gắn nguồn", "Gửi duyệt"]) {
     expect(Array.from(dialog?.querySelectorAll("button") ?? []).some((item) => item.textContent?.trim() === action)).toBe(false);
   }
-  await settle(() => Boolean(dialog?.textContent?.includes("Đoạn trích sự kiện cuối")));
-  expect(dialog?.textContent).toContain("Tư liệu sự kiện cuối");
-  expect(dialog?.textContent).toContain("Trang 42");
-  expect(dialog?.textContent).toContain("Ghi chú nguồn lịch sử");
-  expect(dialog?.querySelector('a[href="https://example.com/source"]')).not.toBeNull();
+  expect(dialog?.textContent).not.toContain("Tư liệu sự kiện cuối");
+  expect(dialog?.textContent).not.toContain("Ghi chú nguồn lịch sử");
   expect(mutationRequested).toBe(false);
   const editButtons = Array.from(dialog?.querySelectorAll<HTMLButtonElement>("button") ?? []).filter((item) => item.textContent?.trim() === "Chỉnh sửa");
   expect(editButtons).toHaveLength(1);

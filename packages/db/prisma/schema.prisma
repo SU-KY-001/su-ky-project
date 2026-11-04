@@ -316,16 +316,11 @@ model HistoricalEntity {
   citations         HistoricalCitation[]
   historicalPhaseId String?                    @map("historical_phase_id") @db.Uuid
   historicalPhase   HistoricalPhase?           @relation(fields: [historicalPhaseId], references: [id], onDelete: Restrict)
-  reviewStatus      HistoricalReviewStatus     @default(DRAFT) @map("review_status")
-  reviewedVersion   Int?                       @map("reviewed_version")
-  reviewedById      String?                    @map("reviewed_by_id") @db.VarChar(36)
-  reviewedAt        DateTime?                  @map("reviewed_at") @db.Timestamptz(3)
-  reviewNote        String?                    @map("review_note") @db.Text
   revisions         HistoricalEntityRevision[]
   primarySeries     Series[]                   @relation("PrimaryHistoricalEvent")
 
   @@index([entityType], map: "historical_entities_entity_type_idx")
-  @@index([historicalPhaseId, reviewStatus, deletedAt])
+  @@index([historicalPhaseId, deletedAt])
   @@map("historical_entities")
 }
 
@@ -909,13 +904,6 @@ model AuditLog {
   @@index([actorId, createdAt], map: "audit_logs_actor_id_created_at_idx")
   @@index([action, createdAt], map: "audit_logs_action_created_at_idx")
   @@map("audit_logs")
-}
-
-enum HistoricalReviewStatus {
-  DRAFT
-  IN_REVIEW
-  APPROVED
-  CHANGES_REQUESTED
 }
 
 enum SourceVerificationStatus {

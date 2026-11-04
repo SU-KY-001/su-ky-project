@@ -159,7 +159,7 @@ export function ReleaseScheduleDialog({
           {mode === "edit" && schedule ? (
             <>
               {["SCHEDULED", "READY_TO_PUBLISH", "BLOCKED", "FAILED"].includes(status) ? <Button type="button" variant="ghost" disabled={busy} className="text-vermilion" onClick={() => onCancel(schedule)}><X /> Hủy lịch</Button> : null}
-              {status === "FAILED" ? <Button type="button" variant="outline" disabled={busy} onClick={() => onRetry(schedule)}><ArrowClockwise /> Thử lại</Button> : null}
+              {status === "FAILED" ? <Button type="button" variant="outline" disabled={busy} onClick={() => onRetry(schedule)}><ArrowClockwise /> Chuẩn bị thử lại</Button> : null}
               {["BLOCKED", "FAILED", "READY_TO_PUBLISH"].includes(status) ? <Button type="button" variant="outline" disabled={busy} onClick={() => onPublishNow(schedule)}><PaperPlaneTilt /> Phát hành ngay</Button> : null}
             </>
           ) : null}

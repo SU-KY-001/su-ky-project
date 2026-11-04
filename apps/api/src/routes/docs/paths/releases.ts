@@ -101,7 +101,7 @@ export const releasePaths: Paths = {
       id: "createReleaseSchedule",
       tag: TAG,
       summary: "Tạo lịch và phân công sản xuất",
-      description: "Tạo lịch tự động phát hành và phân công đúng một Moderator.",
+      description: "Tạo lịch và phân công đúng một Moderator. Thời gian phát hành là mốc kế hoạch; Admin chủ động phát hành bằng thao tác Phát hành ngay.",
       access: "admin",
       body: { name: "CreateReleaseSchedule", schema: CreateReleaseScheduleSchema },
       ok: {
@@ -277,7 +277,7 @@ export const releasePaths: Paths = {
       id: "publishReleaseNow",
       tag: TAG,
       summary: "Phát hành ngay",
-      description: "Thao tác cứu hộ; dùng cùng publication use case với worker.",
+      description: "Admin chủ động phát hành sau khi kiểm tra phiên bản duyệt và checklist. Không chờ worker hoặc thời gian đã lên lịch. Lỗi kỹ thuật trả FAILED, không tự động thử lại.",
       access: "admin",
       ...idParams,
       ok: {
@@ -294,11 +294,12 @@ export const releasePaths: Paths = {
       id: "retryReleaseSchedule",
       tag: TAG,
       summary: "Thử lại phát hành",
+      description: "Đưa lịch FAILED về READY_TO_PUBLISH để Admin bấm Phát hành ngay. Không tạo job hoặc tự động phát hành.",
       access: "admin",
       ...idParams,
       ok: {
         status: 200,
-        description: "Lịch được đưa lại vào hàng chờ",
+        description: "Lịch đã sẵn sàng cho thao tác phát hành thủ công",
         schema: { name: "ReleaseStatusResult", schema: ReleaseStatusResultDocSchema },
       },
       rate: "write",

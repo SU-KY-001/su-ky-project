@@ -294,7 +294,7 @@ export const studioPaths: Paths = {
       "Chỉ thành công khi `publishChecklist.ready = true` (gồm chủ đề, Giai đoạn, khoảng năm, tập đã xuất bản, mô tả, ngôn ngữ). Series không bắt buộc có ảnh bìa hoặc nguồn. Phải có primary event đã duyệt, revision nguồn VERIFIED hiện tại. Publish kiểm baseUpdatedAt và lưu snapshot bằng chứng trong transaction. Owner là người chịu trách nhiệm nội dung.",
       writeErrors("Series", {
         409: "`STALE_WRITE`: baseUpdatedAt đã cũ",
-        422: "`SERIES_NOT_PUBLISHABLE`: checklist chưa đạt (kiểm lại trong transaction); `CONTENT_NOT_READY`: sự kiện/nguồn chưa duyệt hoặc revision đã cũ",
+        422: "`SERIES_NOT_PUBLISHABLE`: checklist chưa đạt (kiểm lại trong transaction); `CONTENT_NOT_READY`: sự kiện không còn hợp lệ, revision đã cũ hoặc nguồn podcast chưa được xác minh",
       }),
     ),
   },
