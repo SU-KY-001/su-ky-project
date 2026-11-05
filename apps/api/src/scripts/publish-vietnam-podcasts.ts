@@ -40,10 +40,10 @@ async function main(): Promise<void> {
     let cursor = 0;
     for (const entry of VIETNAM_PODCAST_SEED) {
       const series = existing.find(item => item.slug === entry.slug)!;
-      // A completed run is resumable without changing reviewed versions or evidence.
+      // A completed run is resumable without changing saved versions or evidence.
       if (series.status === "PUBLISHED" && entry.episodes.every(item => series.episodes.some(episode => episode.slug === item.slug && episode.status === "PUBLISHED"))) { cursor += entry.episodes.length; continue; }
       await tx.$queryRaw`SELECT id FROM series WHERE id=${series.id}::uuid FOR UPDATE`;
-      const evidenceRows: { eventId: string; phaseId: string; revisionId: string; sourceId: string; sourceRevisionId: string; citationId: string; summary: string; locator: string; start: number; end: number }[] = [];
+      const evidenceRows: { eventId: string; phaseId: string; revisionId: string; sourceId: string; sourceRevisionId: string; summary: string; locator: string; start: number; end: number }[] = [];
       for (const item of entry.episodes) {
         const metadata = VIETNAM_PUBLICATION_DATA[cursor++]!;
         const episode = series.episodes.find(row => row.slug === item.slug)!;
@@ -70,13 +70,10 @@ async function main(): Promise<void> {
         let event = item.slug === "van-hoa-dong-son" && series.primaryHistoricalEvent ? await tx.historicalEntity.findUnique({ where: { id: series.primaryHistoricalEvent.id } }) : await tx.historicalEntity.findUnique({ where: { slug: `landing-demo-${item.slug}` } });
         if (event?.deletedAt) throw new Error(`Sự kiện nằm trong thùng rác: ${event.name}`);
         if (!event) event = await tx.historicalEntity.create({ data: { name: metadata.event, slug: `landing-demo-${item.slug}`, entityType: "EVENT", historicalPhaseId: phase.id, summary: metadata.summary, time: jsonSnapshot(time), startYear: metadata.start, endYear: metadata.end + 1, createdById: series.ownerId } });
-        const reviewed = await tx.historicalEntity.update({ where: { id: event.id }, data: { historicalPhaseId: phase.id, time: jsonSnapshot(time), startYear: metadata.start, endYear: metadata.end + 1, summary: event.summary?.trim() || metadata.summary, version: { increment: 1 }, reviewStatus: "APPROVED", reviewedVersion: event.version + 1, reviewedAt: new Date(), reviewNote: note } });
-        let citation = await tx.historicalCitation.findFirst({ where: { entityId: event.id, sourceId: source.id, sourceRevisionId: sourceRevision.id } });
+        const savedEvent = await tx.historicalEntity.update({ where: { id: event.id }, data: { historicalPhaseId: phase.id, time: jsonSnapshot(time), startYear: metadata.start, endYear: metadata.end + 1, summary: event.summary?.trim() || metadata.summary, version: { increment: 1 } } });
         const locator = `Bài trực tuyến: ${metadata.source}`;
-        if (!citation) citation = await tx.historicalCitation.create({ data: { entityId: event.id, sourceId: source.id, sourceRevisionId: sourceRevision.id, locator, note, createdById: series.ownerId } });
-        const withCitations = await tx.historicalEntity.findUniqueOrThrow({ where: { id: event.id }, include: { citations: { include: { sourceRevision: true } } } });
-        const revision = await tx.historicalEntityRevision.create({ data: { entityId: event.id, version: reviewed.version, snapshot: jsonSnapshot(withCitations), createdById: series.ownerId } });
-        evidenceRows.push({ eventId: event.id, phaseId: phase.id, revisionId: revision.id, sourceId: source.id, sourceRevisionId: sourceRevision.id, citationId: citation.id, summary: metadata.summary, locator: citation.locator, start: metadata.start, end: metadata.end });
+        const revision = await tx.historicalEntityRevision.create({ data: { entityId: event.id, version: savedEvent.version, snapshot: jsonSnapshot(savedEvent), createdById: series.ownerId } });
+        evidenceRows.push({ eventId: event.id, phaseId: phase.id, revisionId: revision.id, sourceId: source.id, sourceRevisionId: sourceRevision.id, summary: metadata.summary, locator, start: metadata.start, end: metadata.end });
 
         const narration = await tx.episodeNarration.findUniqueOrThrow({ where: { episodeId_narrationType: { episodeId: episode.id, narrationType: "THIRD_PERSON" } } });
         if (!narration.scriptContent?.trim()) {
@@ -89,7 +86,7 @@ async function main(): Promise<void> {
         await tx.episodeEntityTag.upsert({ where: { episodeId_entityId: { episodeId: episode.id, entityId: event.id } }, update: {}, create: { episodeId: episode.id, entityId: event.id, status: "CONFIRMED", origin: "MODERATOR", confirmedAt: new Date() } });
       }
       const primary = evidenceRows[0]!;
-      for (const [index, row] of evidenceRows.entries()) await tx.seriesSource.upsert({ where: { seriesId_sourceId_locator: { seriesId: series.id, sourceId: row.sourceId, locator: row.locator } }, update: {}, create: { seriesId: series.id, sourceId: row.sourceId, sourceRevisionId: row.sourceRevisionId, historicalCitationId: row.eventId === primary.eventId ? row.citationId : null, locator: row.locator, sortOrder: index + 1 } });
+      for (const [index, row] of evidenceRows.entries()) await tx.seriesSource.upsert({ where: { seriesId_sourceId_locator: { seriesId: series.id, sourceId: row.sourceId, locator: row.locator } }, update: {}, create: { seriesId: series.id, sourceId: row.sourceId, sourceRevisionId: row.sourceRevisionId, locator: row.locator, sortOrder: index + 1 } });
       await tx.series.update({ where: { id: series.id }, data: { primaryHistoricalEventId: primary.eventId, historicalEntityRevisionId: primary.revisionId, historicalPhaseId: primary.phaseId, startYear: Math.min(...evidenceRows.map(row => row.start)), endYear: Math.max(...evidenceRows.map(row => row.end)), ...(!series.description?.trim() || series.description.startsWith("Các tập podcast trong series ") ? { description: `${entry.title}: ${evidenceRows.map(row => row.summary).join(" ")}\n\nBộ dữ liệu demo landing; audio dùng tệp MP3 mẫu.` } : {}) } });
       await collectHistoricalEvidence(tx, series.id);
       await writeAudit(tx, { actorId: null, actorType: "SYSTEM", action: "series.demo_publication_prepared", resourceType: "series", resourceId: series.id, changes: { note, episodes: entry.episodes.length }, ipAddress: null });

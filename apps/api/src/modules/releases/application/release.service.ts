@@ -31,7 +31,6 @@ export type PublishReleaseResult =
   | "BLOCKED"
   | "IGNORED"
   | "RELEASED"
-  | "RETRY"
   | "FAILED";
 
 function assertAdmin(session: Session): void {
@@ -53,8 +52,7 @@ function requireSchedule(
 }
 
 /**
- * Application-level orchestration. Queue jobs and HTTP routes both call this
- * service, so permission/state rules have one implementation.
+ * Application-level orchestration for release coordination and Admin publication.
  */
 export class ReleaseService {
   constructor(
@@ -455,12 +453,11 @@ export class ReleaseService {
     return requireSchedule(await this.repository.findSchedule(scheduleId));
   }
 
-  async publishDueSchedule(
+  private async publishSchedule(
     scheduleId: string,
     expectedVersion: number,
     correlationId: string,
     jobId?: string,
-    attempt = 1,
   ): Promise<PublishReleaseResult> {
     const schedule = await this.repository.findSchedule(scheduleId);
     if (!schedule) return "IGNORED";
@@ -549,25 +546,20 @@ export class ReleaseService {
     } catch (error) {
       const businessFailure =
         error instanceof DomainError && error.status >= 400 && error.status < 500;
-      const shouldRetry = !businessFailure && attempt <= 3;
       await this.repository.setStatus({
         scheduleId,
         from: ["PUBLISHING"],
-        to: businessFailure ? "BLOCKED" : shouldRetry ? "READY_TO_PUBLISH" : "FAILED",
+        to: businessFailure ? "BLOCKED" : "FAILED",
         actorId: null,
         actorType: "SYSTEM",
-        action: businessFailure
-          ? "release.blocked"
-          : shouldRetry
-            ? "release.retry_scheduled"
-            : "release.failed",
+        action: businessFailure ? "release.blocked" : "release.failed",
         correlationId,
         jobId,
         failureCode:
           error instanceof DomainError ? error.code : "INTERNAL_SERVER_ERROR",
         failureMessage: error instanceof Error ? error.message : "Unknown error",
       });
-      return businessFailure ? "BLOCKED" : shouldRetry ? "RETRY" : "FAILED";
+      return businessFailure ? "BLOCKED" : "FAILED";
     }
   }
 
@@ -591,7 +583,7 @@ export class ReleaseService {
         failureMessage: null,
       });
     }
-    return this.publishDueSchedule(
+    return this.publishSchedule(
       scheduleId,
       schedule.version,
       correlationId,

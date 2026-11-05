@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Button, ScrollView, Separator, Text, XStack, YStack, ZStack } from "tamagui";
+import { Button, ScrollView, Text, XStack, YStack, ZStack } from "tamagui";
 import { AppCard, AppHeader, AppIcon, AppImage, Chip, PrimaryButton, ScreenScroll } from "@/shared/ui";
 import { fallbackEventImage, podcastApi, type HistoricalPeriodDto, type PublicHistoricalEventDto } from "../podcastApi";
 
@@ -137,7 +137,6 @@ export function EventDetailScreen({
   const timeLabel = event.timeLabel;
   const parentLabel = `${event.parent.period.name} / ${event.parent.phase.name}`;
   const summary = event.summary;
-  const citations = event.citations;
 
   return (
     <ScrollView f={1} showsVerticalScrollIndicator={false} bg="$paper">
@@ -153,33 +152,6 @@ export function EventDetailScreen({
         <Text color="$vermilion" fs="$2" fw="$6">{timeLabel}</Text>
         <Text color="$ink" fs="$5" lh={28} fw="$7">{title}</Text>
         <Text color="$inkSoft" fs="$1" lh={22}>{summary}</Text>
-
-        {citations.length > 0 ? (
-          <>
-            <XStack items="center" justify="space-between" mt="$1">
-              <XStack items="center" g="$1.5">
-                <AppIcon name="book-open" />
-                <Text color="$ink" fs="$3" fw="$7">Nguồn tư liệu lịch sử</Text>
-              </XStack>
-            </XStack>
-            {citations.map((cite, index) => (
-              <YStack key={index}>
-                <XStack py="$2" items="center" g="$2">
-                  <YStack w="$4" h="$4" rounded="$3" bg="$paperDeep" items="center" justify="center">
-                    <AppIcon name="file-text" />
-                  </YStack>
-                  <YStack f={1} minW={0}>
-                    <Text color="$ink" fs="$1" fw="$7" numberOfLines={1}>{cite.source.title}</Text>
-                    <Text color="$inkSoft" fs={10} numberOfLines={1}>
-                      {cite.source.author ?? "Tài liệu lịch sử"} · {cite.locator || "Chính sử"}
-                    </Text>
-                  </YStack>
-                </XStack>
-                <Separator bc="$line" />
-              </YStack>
-            ))}
-          </>
-        ) : null}
 
         <PrimaryButton label="Khám phá podcast liên quan" icon="headphones" onPress={onPodcast} />
       </YStack>

@@ -1,5 +1,5 @@
 import { useState, type ReactElement } from "react";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link } from "react-router";
 import type { PublicHistoricalEventDto } from "@repo/shared";
 import { ArrowRight } from "@phosphor-icons/react/dist/icons/ArrowRight";
@@ -14,7 +14,6 @@ import { usePodcastPlaybackStore } from "../../store/podcastPlaybackStore";
 import { PodcastSeriesGallery } from "./PodcastSeriesGallery";
 import { HistoryFilterTree } from "./HistoryFilterTree";
 import { LibraryQuiz } from "./LibraryQuiz";
-import { ReleaseCalendar } from "./ReleaseCalendar";
 import { ExhibitionSection } from "../ExhibitionSection";
 
 export function PodcastLibrary(): ReactElement {
@@ -28,7 +27,6 @@ export function PodcastLibrary(): ReactElement {
   const periods = useQuery({ queryKey: ["library-periods"], queryFn: ({ signal }) => libraryService.periods(signal), staleTime: 300000 });
   const events = useQuery({ queryKey: ["library-events", period, phase, eventPage], queryFn: ({ signal }) => libraryService.events({ periodId: period || undefined, phaseId: phase || undefined, page: eventPage }, signal), staleTime: 60000 });
   const phases = periods.data?.items.find((value) => value.id === period)?.phases ?? [];
-  const listenRelease = useMutation({ mutationFn: (slug: string) => libraryService.episode(slug), onSuccess: (value) => { if (value.series) void startPodcast(value.series.slug, value.id); else notify.error({ title: "Chưa tìm được series của tập podcast" }); }, onError: () => notify.error({ title: "Chưa mở được tập podcast", description: "Vui lòng thử lại sau." }) });
   async function startPodcast(seriesSlug: string, episodeId: string): Promise<void> {
     try {
       const series = await queryClient.fetchQuery({ queryKey: ["library-series", seriesSlug], queryFn: ({ signal }) => libraryService.seriesDetail(seriesSlug, signal), staleTime: 60000 });
@@ -77,7 +75,6 @@ export function PodcastLibrary(): ReactElement {
           </LibrarySection>
 
         <LibrarySection id="library-quiz" title="Thử tài lịch sử"><LibraryQuiz /></LibrarySection>
-        <LibrarySection id="upcoming" title="Lịch phát sóng"><ReleaseCalendar onListen={async (slug) => { if (await requestAccess()) listenRelease.mutate(slug); }} /></LibrarySection>
       </div>
     </div>
   </div>;

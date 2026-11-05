@@ -70,7 +70,7 @@ export function ReleaseScheduleTable({
         embedded
         caption="Danh sách lịch phát hành"
         columns={[audience === "moderator" ? "Tên lịch" : "Lịch phát hành", audience === "moderator" ? "Podcast" : "Người phụ trách", "Hạn sản xuất", "Thời gian phát hành", "Trạng thái", "Thao tác"]}
-        columnWidths={["28%", "15%", "15%", "17%", "11%", "14%"]}
+        columnWidths={["25%", "14%", "14%", "15%", "18%", "14%"]}
         minWidth={1000}
       >
         {items.length === 0 ? (

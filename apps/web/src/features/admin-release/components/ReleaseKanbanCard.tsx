@@ -9,6 +9,7 @@ import {
 } from "@/shared/components/dashboard/CardBadge";
 import {
   RELEASE_BOARD_COLUMNS,
+  isProductionSubmittedLate,
   type ReleaseBoardStatus,
 } from "../releaseWorkspaceModel";
 
@@ -37,9 +38,7 @@ export function ReleaseKanbanCard({
   onDragStart: (event: DragEvent<HTMLElement>, schedule: ReleaseScheduleRecord) => void;
   onDragEnd: () => void;
 }) {
-  const overdue =
-    !["RELEASED", "CANCELLED"].includes(schedule.status) &&
-    schedule.productionDeadline.getTime() < Date.now();
+  const overdue = isProductionSubmittedLate(schedule);
   const handleKeyboard = (event: KeyboardEvent<HTMLElement>) => {
     if (event.key === "Enter" || event.key === " ") {
       event.preventDefault();

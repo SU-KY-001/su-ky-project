@@ -20,7 +20,10 @@ function SeriesGalleryRow({ series, selectedId, onPlay }: { series: LibrarySerie
     const element = rail.current;
     if (!element) return;
     const update = (): void => {
-      setEdges({ start: element.scrollLeft <= 2, end: element.scrollLeft + element.clientWidth >= element.scrollWidth - 2 });
+      const style = window.getComputedStyle(element);
+      const startInset = Number.parseFloat(style.paddingLeft) || 0;
+      const endInset = Number.parseFloat(style.paddingRight) || 0;
+      setEdges({ start: element.scrollLeft <= startInset + 2, end: element.scrollLeft + element.clientWidth >= element.scrollWidth - endInset - 2 });
       const poster = element.querySelector<HTMLElement>("[data-podcast-poster]");
       const container = element.parentElement;
       setPosterCenter(poster && container ? poster.getBoundingClientRect().top - container.getBoundingClientRect().top + poster.offsetHeight / 2 : 0);

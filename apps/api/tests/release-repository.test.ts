@@ -13,6 +13,9 @@ const scheduleIds: string[] = [];
 let seriesId = "";
 let episodeId = "";
 
+const RETRY_IDLE_WINDOW_MS = 20 * 60_000;
+const ABANDONED_IDLE_MS = 60 * 60_000; // well past RETRY_IDLE_WINDOW_MS
+
 suite("release repository", () => {
   beforeAll(async () => {
     assertTestDatabase();
@@ -55,7 +58,7 @@ suite("release repository", () => {
     await prisma.user.deleteMany({ where: { id: { in: [adminId, firstModeratorId, secondModeratorId] } } });
   });
 
-  it("creates a schedule with assignments, outbox and immutable progress", async () => {
+  it("creates a schedule with assignments and immutable progress without a publication outbox event", async () => {
     const repository = new PrismaReleaseRepository();
     const created = await repository.createSchedule({
       title: "Dấu chân Trường Sơn",
@@ -71,7 +74,7 @@ suite("release repository", () => {
 
     expect(created.status).toBe("SCHEDULED");
     expect(created.assignments.map((item) => item.moderatorId)).toEqual([firstModeratorId]);
-    expect(await prisma.outboxEvent.count({ where: { aggregateId: created.id, eventType: "release.schedule.created" } })).toBe(1);
+    expect(await prisma.outboxEvent.count({ where: { aggregateId: created.id } })).toBe(0);
     expect((await repository.listProgress(created.id)).map((event) => event.action)).toEqual(["release_schedule.created"]);
   });
 
@@ -250,5 +253,25 @@ suite("release repository", () => {
     expect(schedules.some(({ id }) => id === fixtures[0]!.id)).toBe(true);
     expect(schedules.some(({ id }) => id === fixtures[1]!.id)).toBe(false);
     expect((await repository.listAssignedSchedules(firstModeratorId)).some(({ id }) => id === fixtures[0]!.id)).toBe(false);
+  });
+
+  it("leaves a schedule with a failed attempt to its retry chain until it has been idle", async () => {
+    const now = new Date("2026-10-20T14:00:00.000Z");
+    const base = {
+      productionDeadline: new Date("2026-10-19T10:00:00.000Z"),
+      scheduledAt: new Date("2026-10-20T13:00:00.000Z"),
+      status: "READY_TO_PUBLISH" as const,
+      createdById: adminId,
+    };
+    const [clean, retrying, abandoned] = await Promise.all([
+      prisma.releaseSchedule.create({ data: { ...base, title: `Clean ${suffix}` } }),
+      prisma.releaseSchedule.create({ data: { ...base, title: `Retrying ${suffix}`, failureCode: "INTERNAL_SERVER_ERROR", updatedAt: now } }),
+      prisma.releaseSchedule.create({ data: { ...base, title: `Abandoned ${suffix}`, failureCode: "INTERNAL_SERVER_ERROR", updatedAt: new Date(now.getTime() - ABANDONED_IDLE_MS) } }),
+    ]);
+    scheduleIds.push(clean.id, retrying.id, abandoned.id);
+    const due = (await new PrismaReleaseRepository().listDueScheduleIds(now, new Date(now.getTime() - RETRY_IDLE_WINDOW_MS))).map(({ id }) => id);
+    expect(due).toContain(clean.id);
+    expect(due).not.toContain(retrying.id);
+    expect(due).toContain(abandoned.id);
   });
 });

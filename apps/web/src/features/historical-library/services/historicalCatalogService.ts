@@ -11,7 +11,6 @@ import {
   paginatedSchema,
   CreateSourceSchema,
   PatchSourceSchema,
-  HistoricalEntityReviewSchema,
   SourceReviewSchema,
   PublicHistoricalEventSchema,
   type HistoricalTimeDto,
@@ -35,7 +34,6 @@ export interface CatalogFilter {
   page?: number;
   periodId?: string;
   historicalPhaseId?: string;
-  reviewStatus?: "DRAFT" | "IN_REVIEW" | "APPROVED" | "CHANGES_REQUESTED";
   includeDeleted?: boolean;
 }
 const periodPage = paginatedSchema(HistoricalPeriodDetailSchema),
@@ -58,7 +56,6 @@ const query = (f: CatalogFilter) => ({
   limit: "20",
   periodId: f.periodId,
   historicalPhaseId: f.historicalPhaseId,
-  reviewStatus: f.reviewStatus,
   includeDeleted: String(f.includeDeleted ?? false),
   includePhases: "false",
   type: "EVENT" as const,
@@ -69,6 +66,10 @@ function ownerClient(kind: HistoricalKind) {
     : kind === "phase"
       ? studio["historical-phases"]
       : studio["historical-entities"];
+}
+function citationOwnerClient(kind: HistoricalKind): (typeof studio)["historical-periods"] | (typeof studio)["historical-phases"] {
+  if (kind === "entity") throw new Error("Sự kiện không sử dụng nguồn tư liệu riêng.");
+  return kind === "period" ? studio["historical-periods"] : studio["historical-phases"];
 }
 export const historicalCatalogService = {
   periods: (f: CatalogFilter = {}) =>
@@ -180,7 +181,7 @@ export const historicalCatalogService = {
   },
   citations: (kind: HistoricalKind, id: string) =>
     parse(
-      ownerClient(kind)[":id"].sources.$get({ param: { id } }),
+      citationOwnerClient(kind)[":id"].sources.$get({ param: { id } }),
       z.object({ items: z.array(HistoricalCitationSchema) }),
     ),
   addCitation: (
@@ -196,7 +197,7 @@ export const historicalCatalogService = {
     key: string,
   ) =>
     parse(
-      ownerClient(kind)[":id"].sources.$post(
+      citationOwnerClient(kind)[":id"].sources.$post(
         { param: { id }, json },
         headers(key),
       ),
@@ -215,7 +216,7 @@ export const historicalCatalogService = {
     },
   ) =>
     parse(
-      ownerClient(kind)[":id"].sources[":citationId"].$patch({
+      citationOwnerClient(kind)[":id"].sources[":citationId"].$patch({
         param: { id, citationId },
         json,
       }),
@@ -228,7 +229,7 @@ export const historicalCatalogService = {
     baseVersion: number,
   ) =>
     parse(
-      ownerClient(kind)[":id"].sources[":citationId"].$delete({
+      citationOwnerClient(kind)[":id"].sources[":citationId"].$delete({
         param: { id, citationId },
         json: { baseVersion },
       }),
@@ -294,29 +295,6 @@ export const historicalCatalogService = {
     parse(
       studio.sources[":id"].review.$post({ param: { id }, json }),
       CatalogSourceSchema,
-    ),
-  submit: (
-    id: string,
-    baseVersion: number,
-    expectedStatus: "DRAFT" | "CHANGES_REQUESTED",
-  ) =>
-    parse(
-      studio["historical-entities"][":id"]["submit-review"].$post({
-        param: { id },
-        json: { baseVersion, expectedStatus },
-      }),
-      HistoricalEntityDetailSchema,
-    ),
-  reviewEvent: (
-    id: string,
-    json: z.input<typeof HistoricalEntityReviewSchema>,
-  ) =>
-    parse(
-      studio["historical-entities"][":id"].review.$post({
-        param: { id },
-        json,
-      }),
-      HistoricalEntityDetailSchema,
     ),
   revisions: (id: string) =>
     parse(

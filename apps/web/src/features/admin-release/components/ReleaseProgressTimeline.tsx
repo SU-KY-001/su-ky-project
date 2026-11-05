@@ -74,12 +74,12 @@ const copy: Record<string, { title: string; description: string }> = {
     description: "Lỗi kỹ thuật đã được ghi nhận để xử lý.",
   },
   "release.retry_scheduled": {
-    title: "Đã lên lịch thử lại",
-    description: "Hệ thống sẽ thực hiện lại theo chính sách retry.",
+    title: "Đã chuẩn bị thử lại",
+    description: "Lịch đã sẵn sàng để Admin chủ động phát hành lại.",
   },
   "release.cancelled": {
     title: "Đã hủy lịch phát hành",
-    description: "Các job cũ sẽ không còn được phép phát hành.",
+    description: "Lịch đã kết thúc và không còn được phép phát hành.",
   },
   "release.stale_job_ignored": {
     title: "Đã bỏ qua lịch chạy cũ",

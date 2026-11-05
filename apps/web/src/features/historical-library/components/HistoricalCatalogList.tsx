@@ -1,4 +1,3 @@
-import { CardBadge, cardBadgeToneForStatus } from "@/shared/components/dashboard/CardBadge";
 import { Fragment, useState } from "react";
 import { Button } from "@/shared/components/ui/button";
 import {
@@ -31,7 +30,6 @@ import type {
 import {
   ModeratorTable,
   EmptyTableRow,
-  InteractiveTableRow,
   tableAction,
   tableCell,
 } from "@/features/moderator/components/ModeratorTable";
@@ -66,7 +64,6 @@ export function HistoricalCatalogList({
   const [q, setQ] = useState("");
   const [selected, setSelected] = useState<string>();
   const [page, setPage] = useState(1);
-  const [review, setReview] = useState("all");
   const [editing, setEditing] = useState<CatalogSourceDto>();
   const [creating, setCreating] = useState(false);
   const [sourceBusy, setSourceBusy] = useState(false);
@@ -82,17 +79,8 @@ export function HistoricalCatalogList({
     }
     setPage(1);
   };
-  const status =
-    review === "DRAFT" ||
-    review === "IN_REVIEW" ||
-    review === "APPROVED" ||
-    review === "CHANGES_REQUESTED"
-      ? review
-      : section === "pending"
-        ? "IN_REVIEW"
-        : undefined;
   const events = useHistoricalEntities(
-    { q, reviewStatus: status },
+    { q },
     section === "events" || section === "pending",
   );
   const sources = useHistoricalSources(
@@ -101,6 +89,7 @@ export function HistoricalCatalogList({
     archived,
     sourceSort,
     sourceDirection,
+    section === "sources",
   );
   const rows = events.data?.pages.flatMap((p) => p.items) ?? [];
   const title =
@@ -134,31 +123,7 @@ export function HistoricalCatalogList({
               setQ(value);
               setPage(1);
             }}
-            filters={
-              section === "events" || section === "pending"
-                ? [
-                    {
-                      id: "review",
-                      label: "Trạng thái",
-                      value: review,
-                      onValueChange: setReview,
-                      options: [
-                        {
-                          value: "all",
-                          label:
-                            section === "pending"
-                              ? "Chờ duyệt"
-                              : "Tất cả trạng thái",
-                        },
-                        { value: "DRAFT", label: "Bản nháp" },
-                        { value: "IN_REVIEW", label: "Chờ duyệt" },
-                        { value: "APPROVED", label: "Đã duyệt" },
-                        { value: "CHANGES_REQUESTED", label: "Cần chỉnh sửa" },
-                      ],
-                    },
-                  ]
-                : []
-            }
+            filters={[]}
             actions={
               section === "sources" ? (
                 <Button onClick={() => setCreating(true)}>
@@ -173,75 +138,22 @@ export function HistoricalCatalogList({
           <ModeratorTable
             embedded
             caption={title}
-            columns={[
-              "Sự kiện",
-              "Thời kỳ / Giai đoạn",
-              "Mốc thời gian",
-              "Nguồn",
-              "Podcast",
-              "Trạng thái",
-              "Cập nhật",
-            ]}
+            columns={["Sự kiện", "Thời kỳ", "Giai đoạn", "Mốc thời gian", "Podcast", "Thao tác"]}
           >
             {rows.map((event) => (
-              <Fragment key={event.id}>
-                <InteractiveTableRow
-                  expanded={selected === event.id}
-                  onActivate={() =>
-                    setSelected(selected === event.id ? undefined : event.id)
-                  }
-                >
-                  <TableHead scope="row" className={tableCell}>
-                    <Button
-                      variant="ghost"
-                      className={tableAction}
-                      aria-expanded={selected === event.id}
-                      onClick={() =>
-                        setSelected(
-                          selected === event.id ? undefined : event.id,
-                        )
-                      }
-                    >
-                      {event.name}
-                    </Button>
-                  </TableHead>
-                  <TableCell className={tableCell}>
-                    {event.historicalPhase?.period?.name}
-                    <span className="block text-xs">
-                      {event.historicalPhase?.name}
-                    </span>
-                  </TableCell>
-                  <TableCell className={tableCell}>{event.timeLabel}</TableCell>
-                  <TableCell className={tableCell}>
-                    {event.sourceCount}
-                  </TableCell>
-                  <TableCell className={tableCell}>
-                    {event.podcastCount}
-                  </TableCell>
-                  <TableCell className={tableCell}>
-                    <CardBadge type="status" tone={cardBadgeToneForStatus(event.reviewStatus)}>{event.reviewStatus === "APPROVED"
-                      ? "Đã duyệt"
-                      : event.reviewStatus === "IN_REVIEW"
-                        ? "Chờ duyệt"
-                        : event.reviewStatus === "CHANGES_REQUESTED"
-                          ? "Cần chỉnh sửa"
-                          : "Bản nháp"}</CardBadge>
-                  </TableCell>
-                  <TableCell className={tableCell}>
-                    {event.updatedAt.toLocaleDateString("vi-VN")}
-                  </TableCell>
-                </InteractiveTableRow>
-                {selected === event.id ? (
-                  <TableRow>
-                    <TableCell colSpan={7} className="p-5">
-                      <HistoricalEventDetail id={event.id} />
-                    </TableCell>
-                  </TableRow>
-                ) : null}
-              </Fragment>
+              <TableRow key={event.id}>
+                <TableHead scope="row" className={tableCell}>{event.name}</TableHead>
+                <TableCell className={tableCell}>{event.historicalPhase?.period?.name ?? "—"}</TableCell>
+                <TableCell className={tableCell}>{event.historicalPhase?.name ?? "—"}</TableCell>
+                <TableCell className={tableCell}>{event.timeLabel}</TableCell>
+                <TableCell className={tableCell}>{event.podcastCount}</TableCell>
+                <TableCell className={tableCell}>
+                  <DashboardRowActions label={event.name} actions={[{ id: "detail", label: "Xem chi tiết", onSelect: () => setSelected(event.id) }]} />
+                </TableCell>
+              </TableRow>
             ))}
             {events.isPending || events.error || !rows.length ? (
-              <EmptyTableRow columns={7}>
+              <EmptyTableRow columns={6}>
                 {events.isPending ? (
                   "Đang tải…"
                 ) : events.error ? (
@@ -253,7 +165,7 @@ export function HistoricalCatalogList({
             ) : null}
             {events.hasNextPage ? (
               <TableRow>
-                <TableCell colSpan={7}>
+                <TableCell colSpan={6}>
                   <Button
                     variant="ghost"
                     onClick={() => {
@@ -426,6 +338,15 @@ export function HistoricalCatalogList({
           </p>
         ) : null}
       </ModeratorSectionPanel>
+      {section === "events" || section === "pending" ? <Dialog open={Boolean(selected)} onOpenChange={(open) => { if (!open) setSelected(undefined); }}>
+        <DialogContent className="flex max-h-[85dvh] max-w-3xl flex-col gap-0 overflow-hidden border-mod-border bg-mod-surface p-0 font-moderator text-mod-text sm:p-0">
+          <DialogHeader className="shrink-0 border-b border-mod-border px-5 py-4 pr-16">
+            <DialogTitle>Chi tiết sự kiện</DialogTitle>
+            <DialogDescription>Thông tin sự kiện đã lưu trong Dòng lịch sử.</DialogDescription>
+          </DialogHeader>
+          <div className="min-h-0 overflow-y-auto p-5">{selected ? <HistoricalEventDetail id={selected} /> : null}</div>
+        </DialogContent>
+      </Dialog> : null}
       <Dialog
         open={creating}
         onOpenChange={(open) => {

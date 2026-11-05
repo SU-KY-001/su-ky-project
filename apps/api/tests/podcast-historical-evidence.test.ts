@@ -86,7 +86,7 @@ describe.skipIf(!RUN_INTEGRATION)("podcast historical evidence", () => {
     await removeFixtures(adminId);
     if (topicId) await prisma.topic.deleteMany({ where: { id: topicId } });
   });
-  it("inherits primary event, selects citations explicitly, rejects draft publication and preserves publication evidence", async () => {
+  it("publishes with an unreviewed event, validates independent podcast sources and preserves publication evidence", async () => {
     const time = {
       kind: "RANGE" as const,
       start: { year: -700, precision: "YEAR" as const, approximate: false },
@@ -114,11 +114,6 @@ describe.skipIf(!RUN_INTEGRATION)("podcast historical evidence", () => {
       tier: "TIER_3_KHOA_HOC",
       url: "https://example.org/original",
     });
-    const citation = await cit.addCitation(
-      a,
-      { kind: "entity", id: event.id },
-      { baseVersion: 1, sourceId: source.id, locator: "tr. 20" },
-    );
     const cover = await prisma.mediaAsset.create({
       data: {
         kind: "IMAGE",
@@ -166,43 +161,17 @@ describe.skipIf(!RUN_INTEGRATION)("podcast historical evidence", () => {
     await content.attachAudio(session, episode.id, "THIRD_PERSON", {
       assetId: audio.id,
     });
-    await expect(publish(episode.id)).rejects.toMatchObject({
-      code: "CONTENT_NOT_READY",
-    });
-    // A failing evidence check must not leave any partial publication behind.
+    await content.addSource(session, series.id, CreateSeriesSourceSchema.parse({ sourceId: source.id, locator: "tr. 20" }));
+    await expect(publish(episode.id)).rejects.toMatchObject({ code: "CONTENT_NOT_READY" });
     const untouched = await prisma.episode.findUniqueOrThrow({ where: { id: episode.id } });
     expect(untouched.status).toBe("DRAFT");
     expect(untouched.publicationApproval).toBeNull();
-    expect(
-      await prisma.auditLog.count({ where: { resourceId: episode.id, action: { startsWith: "episode.published" } } }),
-    ).toBe(0);
-    expect(
-      CreateSeriesSourceSchema.safeParse({
-        historicalCitationId: citation.id,
-        sourceId: crypto.randomUUID(),
-        locator: "giả",
-      }).success,
-    ).toBe(false);
-    await content.addSource(
-      session,
-      series.id,
-      CreateSeriesSourceSchema.parse({ historicalCitationId: citation.id }),
-    );
+    expect(await prisma.auditLog.count({ where: { resourceId: episode.id, action: { startsWith: "episode.published" } } })).toBe(0);
     await review.reviewSource(b, source.id, {
       baseVersion: 1,
       expectedStatus: "PENDING",
       decision: "VERIFY",
       note: "Đối chiếu ấn bản",
-    });
-    await review.submitEntityReview(a, event.id, {
-      baseVersion: 2,
-      expectedStatus: "DRAFT",
-    });
-    await review.reviewEntity(b, event.id, {
-      baseVersion: 2,
-      expectedStatus: "IN_REVIEW",
-      decision: "APPROVE",
-      note: "Đúng trích dẫn",
     });
     await publish(episode.id);
     const published = await prisma.episode.findUniqueOrThrow({ where: { id: episode.id } });
@@ -271,7 +240,8 @@ describe.skipIf(!RUN_INTEGRATION)("podcast historical evidence", () => {
       createHistoricalPresenter(cat, cit, review),
     );
     const publicEvent = await publicHistory.getEvent(event.slug);
-    expect(publicEvent.citations[0]?.locator).toBe("tr. 20");
+    expect(publicEvent.name).toBe("Sự kiện");
+    expect(JSON.stringify(publicEvent)).not.toContain("citations");
     expect(JSON.stringify(publicEvent)).not.toContain("createdById");
     expect(JSON.stringify(publicEvent)).not.toContain("reviewNote");
     expect(JSON.stringify(publicEvent)).not.toContain("verificationNote");

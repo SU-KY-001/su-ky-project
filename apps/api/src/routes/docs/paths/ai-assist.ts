@@ -247,12 +247,12 @@ export const aiAssistPaths: Paths = {
   [`${COMPOSE}/voice`]: {
     post: operation({
       id: "createVoiceJob", tag: TAG, summary: "Tạo giọng đọc AI", access: "studio",
-      description: "Chạy nền với kịch bản đã lưu. Trả lại lượt RUNNING hiện có của cùng người dùng và tập. Job và MP3 tạm hết hạn theo TTS_JOB_TTL_MS; khởi động lại API sẽ mất job. Kết quả có voice, model, style, `scriptHash` (hash kịch bản đã chuẩn hóa lúc tạo) và `contentRevision`; khi gắn âm thanh vào tập, `origin.scriptHash` được server so với kịch bản hiện tại trong transaction và lệch thì bị từ chối (`HASH_MISMATCH`).",
+      description: "Chạy nền với kịch bản đã lưu. Tập một người kể: gửi `voice`, job `mode=SINGLE`. Tập hội thoại (bản kể có `dialogue`): không gửi `voice`, giọng lấy từ `dialogue.speakers`, job `mode=DIALOGUE`, `voice=null`. Đúng 2 người thực sự có lượt: một request multi-speaker mỗi chunk; số người khác 2: một request mỗi lượt và `total` = số lượt. Trả lại lượt RUNNING hiện có của cùng người dùng và tập. Job và MP3 tạm hết hạn theo TTS_JOB_TTL_MS; khởi động lại API sẽ mất job. Kết quả có mode, voice, model, style, `scriptHash` (hash kịch bản đã chuẩn hóa lúc tạo) và `contentRevision`; khi gắn âm thanh vào tập, `origin.scriptHash` được server so với kịch bản hiện tại trong transaction và lệch thì bị từ chối (`HASH_MISMATCH`).",
       ...episodeParams,
       body: { name: "CreateVoiceJob", schema: CreateVoiceJobSchema },
       ok: { status: 202, description: "Lượt tạo giọng", schema: { name: "VoiceJob", schema: VoiceJobSchema } },
       rate: "ai_generate",
-      errors: { 404: NOT_FOUND, 422: "Kịch bản đã lưu không có nội dung đọc" },
+      errors: { 404: NOT_FOUND, 422: "`VALIDATION_ERROR`: tập hội thoại không được gửi `voice`; tập một người kể phải có `voice`; tập chưa có kịch bản đã lưu để đọc" },
     }),
   },
   [`${COMPOSE}/voice/{jobId}`]: {
@@ -264,14 +264,14 @@ export const aiAssistPaths: Paths = {
     delete: operation({
       id: "cancelVoiceJob", tag: TAG, summary: "Hủy tạo giọng", access: "studio", ...voiceParams,
       ok: { status: 204, description: "Đã yêu cầu hủy" },
-      errors: { 404: "Job không tồn tại hoặc không thuộc người dùng" },
+      errors: { 404: "`NOT_FOUND`: job không tồn tại, hết hạn, thuộc tập khác hoặc không thuộc người dùng (Admin được hủy)" },
     }),
   },
   [`${COMPOSE}/voice/{jobId}/audio`]: {
     get: operation({
       id: "getVoiceAudio", tag: TAG, summary: "Tải MP3 đã tạo", access: "studio", ...voiceParams,
       ok: { status: 200, description: "File MP3, Cache-Control: no-store", contentType: "audio/mpeg", contentSchema: { type: "string", format: "binary" } },
-      errors: { 404: "Job không tồn tại hoặc không thuộc người dùng", 409: "`INVALID_STATE_TRANSITION`: job chưa DONE hoặc không có file" },
+      errors: { 404: "`NOT_FOUND`: job không tồn tại, hết hạn, thuộc tập khác hoặc không thuộc người dùng (Admin được tải)", 409: "`INVALID_STATE_TRANSITION`: job chưa DONE hoặc không có file" },
     }),
   },
 };

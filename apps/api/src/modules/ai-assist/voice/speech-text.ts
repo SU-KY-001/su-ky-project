@@ -16,7 +16,7 @@ export function speechParagraphs(document: EditorDocument | null, fallbackText: 
 export interface SpeechNarration {
   narrationType: string;
   scriptDocument: unknown;
-  /** Two-person script; when valid it replaces the paragraphs as the spoken source. */
+  /** Multi-speaker script; when valid it replaces the paragraphs as the spoken source. */
   dialogue?: unknown;
   scriptContent: string | null;
 }
@@ -37,10 +37,34 @@ export function scriptSpeechHash(narrations: readonly SpeechNarration[]): string
   return createHash("sha256").update(paragraphs.join("\n\n")).digest("hex");
 }
 
-/** The narration's two-person script, or null for a single-narrator episode (or a stored value that no longer validates). */
+/** The narration's multi-speaker script, or null for a single-narrator episode (or a stored value that no longer validates). */
 export function speechDialogue(narration: Pick<SpeechNarration, "dialogue"> | undefined): Dialogue | null {
   const parsed = DialogueSchema.safeParse(narration?.dialogue);
   return parsed.success ? parsed.data : null;
+}
+
+const SILENCE_SAMPLE_RATE = 24_000;
+export const WAV_HEADER_BYTES = 44;
+const SILENCE_BYTES_PER_SAMPLE = 2;
+const MS_PER_SECOND = 1000;
+
+/** A 16-bit mono 24 kHz WAV of silence, same format as Gemini output so the ffmpeg concat demuxer needs no extra parameters. */
+export function silenceWav(ms: number): Buffer {
+  const dataBytes = Math.round((ms / MS_PER_SECOND) * SILENCE_SAMPLE_RATE) * SILENCE_BYTES_PER_SAMPLE;
+  const header = Buffer.alloc(WAV_HEADER_BYTES);
+  header.write("RIFF", 0, "ascii");
+  header.writeUInt32LE(WAV_HEADER_BYTES - 8 + dataBytes, 4);
+  header.write("WAVEfmt ", 8, "ascii");
+  header.writeUInt32LE(16, 16); // fmt chunk size
+  header.writeUInt16LE(1, 20); // PCM
+  header.writeUInt16LE(1, 22); // mono
+  header.writeUInt32LE(SILENCE_SAMPLE_RATE, 24);
+  header.writeUInt32LE(SILENCE_SAMPLE_RATE * SILENCE_BYTES_PER_SAMPLE, 28);
+  header.writeUInt16LE(SILENCE_BYTES_PER_SAMPLE, 32);
+  header.writeUInt16LE(SILENCE_BYTES_PER_SAMPLE * 8, 34);
+  header.write("data", 36, "ascii");
+  header.writeUInt32LE(dataBytes, 40);
+  return Buffer.concat([header, Buffer.alloc(dataBytes)]);
 }
 
 /** Whole turns packed into requests of at most `maxChars` spoken characters; a turn is never split, so one longer than the limit gets its own request. */

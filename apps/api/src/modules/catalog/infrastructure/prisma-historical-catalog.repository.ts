@@ -31,7 +31,7 @@ export function jsonSnapshot(value: unknown): Prisma.InputJsonValue {
   ) as Prisma.InputJsonValue;
 }
 export const PUBLIC_EVENT_FROM = Prisma.sql`FROM historical_entities e JOIN historical_phases ph ON ph.id=e.historical_phase_id JOIN historical_periods hp ON hp.id=ph.period_id`;
-export const PUBLIC_EVENT_READY = Prisma.sql`e.entity_type='EVENT' AND e.deleted_at IS NULL AND ph.deleted_at IS NULL AND hp.deleted_at IS NULL AND ph.is_active AND hp.is_active AND e.review_status='APPROVED' AND e.reviewed_version=e.version AND trim(e.name)<>'' AND trim(COALESCE(e.summary,''))<>'' AND e.time->>'kind'<>'UNKNOWN' AND (e.time->>'kind'='POINT' OR e.time->'start'<>'null'::jsonb OR e.time->'end'<>'null'::jsonb) AND (NOT (COALESCE(e.time#>>'{at,approximate}','false')='true' OR COALESCE(e.time#>>'{start,approximate}','false')='true' OR COALESCE(e.time#>>'{end,approximate}','false')='true') OR trim(COALESCE(e.time->>'note',''))<>'') AND EXISTS(SELECT 1 FROM historical_citations c WHERE c.entity_id=e.id) AND NOT EXISTS(SELECT 1 FROM historical_citations c JOIN sources s ON s.id=c.source_id JOIN source_revisions r ON r.id=c.source_revision_id WHERE c.entity_id=e.id AND (trim(c.locator)='' OR s.archived_at IS NOT NULL OR s.verification_status<>'VERIFIED' OR s.version<>r.version OR s.verified_version IS DISTINCT FROM r.version))`;
+export const PUBLIC_EVENT_READY = Prisma.sql`e.entity_type='EVENT' AND e.deleted_at IS NULL AND ph.deleted_at IS NULL AND hp.deleted_at IS NULL AND ph.is_active AND hp.is_active AND trim(e.name)<>'' AND trim(COALESCE(e.summary,''))<>'' AND e.time->>'kind'<>'UNKNOWN' AND (e.time->>'kind'='POINT' OR e.time->'start'<>'null'::jsonb OR e.time->'end'<>'null'::jsonb) AND (NOT (COALESCE(e.time#>>'{at,approximate}','false')='true' OR COALESCE(e.time#>>'{start,approximate}','false')='true' OR COALESCE(e.time#>>'{end,approximate}','false')='true') OR trim(COALESCE(e.time->>'note',''))<>'')`;
 export function nodeRecord(
   row: HistoricalPeriod | HistoricalPhase | HistoricalEntity,
 ): HistoricalNodeRecord {
@@ -54,10 +54,6 @@ export function nodeRecord(
     historicalPhaseId: entity?.historicalPhaseId ?? null,
     entityType: entity?.entityType ?? null,
     aliases: entity?.aliases ?? [],
-    reviewStatus: entity?.reviewStatus ?? "DRAFT",
-    reviewedVersion: entity?.reviewedVersion ?? null,
-    reviewedAt: entity?.reviewedAt ?? null,
-    reviewNote: entity?.reviewNote ?? null,
   };
 }
 export async function saveEntityRevision(
@@ -67,7 +63,6 @@ export async function saveEntityRevision(
 ): Promise<void> {
   const entity = await tx.historicalEntity.findUniqueOrThrow({
     where: { id },
-    include: { citations: { include: { sourceRevision: true } } },
   });
   await tx.historicalEntityRevision.create({
     data: {
@@ -132,18 +127,11 @@ export class PrismaHistoricalCatalogRepository
   implements HistoricalEvidenceRepository
 {
   async summary() {
-    const [periods, phases, events, missingSources, ready] = await Promise.all([
+    const [periods, phases, events, ready] = await Promise.all([
       prisma.historicalPeriod.count({ where: { deletedAt: null } }),
       prisma.historicalPhase.count({ where: { deletedAt: null } }),
       prisma.historicalEntity.count({
         where: { entityType: "EVENT", deletedAt: null },
-      }),
-      prisma.historicalEntity.count({
-        where: {
-          entityType: "EVENT",
-          deletedAt: null,
-          citations: { none: {} },
-        },
       }),
       prisma.$queryRaw<Array<{ count: bigint }>>(
         Prisma.sql`SELECT count(*) ${PUBLIC_EVENT_FROM} WHERE ${PUBLIC_EVENT_READY}`,
@@ -153,7 +141,6 @@ export class PrismaHistoricalCatalogRepository
       periods,
       phases,
       events,
-      missingSources,
       readyForPodcast: Number(ready[0]!.count),
     };
   }
@@ -257,7 +244,6 @@ export class PrismaHistoricalCatalogRepository
       ...(text ? { name: text } : {}),
       historicalPhaseId: q.historicalPhaseId,
       entityType: q.type,
-      reviewStatus: q.reviewStatus,
     };
     const [items, total] = await Promise.all([
       prisma.historicalEntity.findMany({
@@ -418,11 +404,6 @@ export class PrismaHistoricalCatalogRepository
                     ...common,
                     aliases: input.aliases,
                     historicalPhaseId: input.historicalPhaseId,
-                    reviewStatus: "DRAFT",
-                    reviewedVersion: null,
-                    reviewedAt: null,
-                    reviewedById: null,
-                    reviewNote: null,
                   },
                 });
         if (updated.count !== 1)
@@ -519,7 +500,7 @@ export class PrismaHistoricalCatalogRepository
             ? await tx.historicalPhase.update({ where: { id }, data })
             : await tx.historicalEntity.update({
                 where: { id },
-                data: { ...data, reviewStatus: "DRAFT", reviewedVersion: null },
+                data,
               });
       if (kind === "entity") await saveEntityRevision(tx, id, actorId);
       await writeAudit(tx, {
@@ -639,6 +620,12 @@ export class PrismaHistoricalCatalogRepository
     try {
       return await prisma.$transaction(async (tx) => {
         await lockNode(tx, owner.kind, owner.id);
+        if (owner.kind === "entity") {
+          const entity = await tx.historicalEntity.findUnique({ where: { id: owner.id } });
+          if (entity?.entityType === "EVENT") {
+            throw new DomainError(422, "VALIDATION_ERROR", "Sự kiện không sử dụng nguồn tư liệu riêng");
+          }
+        }
         const where = { id: owner.id, version: baseVersion, deletedAt: null };
         const bump =
           owner.kind === "period"
@@ -655,11 +642,6 @@ export class PrismaHistoricalCatalogRepository
                   where,
                   data: {
                     version: { increment: 1 },
-                    reviewStatus: "DRAFT",
-                    reviewedVersion: null,
-                    reviewedAt: null,
-                    reviewedById: null,
-                    reviewNote: null,
                   },
                 });
         if (bump.count !== 1)
@@ -771,94 +753,6 @@ export class PrismaHistoricalCatalogRepository
         );
       throw error;
     }
-  }
-  async reviewEntity(
-    actorId: string,
-    id: string,
-    baseVersion: number,
-    expectedStatus: HistoricalNodeRecord["reviewStatus"],
-    status: HistoricalNodeRecord["reviewStatus"],
-    note: string,
-  ) {
-    await prisma.$transaction(async (tx) => {
-      await lockNode(tx, "entity", id);
-      const entity = await tx.historicalEntity.findUniqueOrThrow({
-        where: { id },
-      });
-      const sourceIds = (
-        await tx.historicalCitation.findMany({
-          where: { entityId: id },
-          select: { sourceId: true },
-        })
-      )
-        .map((c) => c.sourceId)
-        .sort();
-      for (const sid of new Set(sourceIds))
-        await tx.$queryRaw`SELECT id FROM sources WHERE id=${sid}::uuid FOR UPDATE`;
-      if (status === "APPROVED" || status === "IN_REVIEW") {
-        if (!entity.historicalPhaseId)
-          throw new DomainError(
-            422,
-            "CONTENT_NOT_READY",
-            "Sự kiện thiếu cấp cha",
-          );
-        await requireLiveParent(tx, "phase", entity.historicalPhaseId);
-        const citations = await tx.historicalCitation.findMany({
-          where: { entityId: id },
-          include: { source: true, sourceRevision: true },
-        });
-        if (
-          !citations.length ||
-          citations.some(
-            (c) =>
-              !c.locator.trim() ||
-              c.source.archivedAt ||
-              c.source.verificationStatus !== "VERIFIED" ||
-              c.source.verifiedVersion !== c.sourceRevision.version ||
-              c.source.version !== c.sourceRevision.version,
-          )
-        )
-          throw new DomainError(
-            422,
-            "CONTENT_NOT_READY",
-            "Trích dẫn chưa được xác minh đúng phiên bản",
-          );
-      }
-      const updated = await tx.historicalEntity.updateMany({
-        where: {
-          id,
-          version: baseVersion,
-          reviewStatus: expectedStatus,
-          deletedAt: null,
-        },
-        data: {
-          reviewStatus: status,
-          reviewedVersion: status === "APPROVED" ? baseVersion : null,
-          reviewedById: status === "IN_REVIEW" ? null : actorId,
-          reviewedAt: status === "IN_REVIEW" ? null : new Date(),
-          reviewNote: note,
-        },
-      });
-      if (updated.count !== 1)
-        throw new DomainError(
-          409,
-          "STALE_WRITE",
-          "Phiên bản hoặc trạng thái duyệt đã thay đổi",
-        );
-      await writeAudit(tx, {
-        actorId,
-        action: `entity.review.${status}`,
-        resourceType: "entity",
-        resourceId: id,
-        changes: {
-          version: baseVersion,
-          before: expectedStatus,
-          after: status,
-          note,
-        },
-        ipAddress: null,
-      });
-    });
   }
   async reviewSource(
     actorId: string,

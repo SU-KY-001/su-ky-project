@@ -142,7 +142,7 @@ export function AdminReleaseDashboardView({
       <DashboardHeader
         eyebrow="ĐIỀU PHỐI PODCAST"
         title="Theo dõi phát hành"
-        description="Theo dõi lịch sản xuất, kiểm duyệt và tiến trình tự động phát hành trong một màn hình."
+        description="Theo dõi lịch sản xuất, kiểm duyệt và tiến trình phát hành trong một màn hình."
         actions={actions}
       />
       <section className="grid gap-4 rounded-[16px] border border-mod-border bg-mod-surface p-5 shadow-[0_8px_22px_rgba(15,23,42,.03)] lg:grid-cols-[minmax(0,1fr)_auto] lg:items-center">

@@ -64,7 +64,7 @@ export function CreateHistoricalContentDialog(props: HistoricalContentFormProps)
         <DialogDescription className="text-mod-text-secondary">
           {props.edit
             ? "Cập nhật thông tin và thời gian của nội dung đã có."
-            : "Chọn loại nội dung, nhập thông tin và thời gian. Bổ sung nguồn sau khi lưu nháp."}
+            : "Chọn loại nội dung, nhập thông tin và thời gian."}
         </DialogDescription>
       </DialogHeader>
       <HistoricalContentForm {...props} />
@@ -151,7 +151,9 @@ export function HistoricalContentForm({
       notify.success({
         title: edit
           ? "Đã cập nhật nội dung lịch sử."
-          : `Đã tạo bản nháp ${kind === "period" ? "thời kỳ" : kind === "phase" ? "giai đoạn" : "sự kiện"} “${name.trim()}”.`,
+          : kind === "entity"
+            ? `Đã tạo sự kiện “${name.trim()}”.`
+            : `Đã tạo bản nháp ${kind === "period" ? "thời kỳ" : "giai đoạn"} “${name.trim()}”.`,
         description: "Đã lưu vào hệ thống; dữ liệu được giữ khi tải lại trang.",
       });
       onSaved(kind, result);
@@ -326,7 +328,7 @@ export function HistoricalContentForm({
             Hủy
           </Button>
           <Button type="submit" className={primaryAction} disabled={busy || !canSave}>
-            {busy ? "Đang lưu…" : edit ? "Lưu thay đổi" : "Lưu bản nháp"}
+            {busy ? "Đang lưu…" : edit ? "Lưu thay đổi" : "Lưu"}
           </Button>
         </footer>
       </form>

@@ -7,4 +7,5 @@ export const PI_MODEL_REFRESH_TIMEOUT_MS = 1500;
 export const DEFAULT_PI_MODEL_BY_PROVIDER: Record<string, string> = {
   google: "gemini-3.5-flash-lite",
   "opencode-go": "minimax-m3",
+  openai: "gpt-6-luna",
 };

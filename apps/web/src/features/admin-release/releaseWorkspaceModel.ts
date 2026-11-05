@@ -3,9 +3,25 @@ import type { ReleaseScheduleRecord, ReleaseScheduleStatus } from "@repo/shared"
 export type ReleaseWorkspaceViewMode = "kanban" | "table";
 export type ReleaseBoardStatus = Extract<
   ReleaseScheduleStatus,
-  "SCHEDULED" | "READY_TO_PUBLISH" | "PUBLISHING" | "RELEASED"
+  "SCHEDULED" | "READY_TO_PUBLISH" | "RELEASED" | "FAILED"
 >;
 export type ReleaseDropCommand = "check-readiness" | "publish-now";
+
+export function isProductionSubmittedLate(schedule: ReleaseScheduleRecord): boolean {
+  const episode = schedule.episode;
+  if (!episode) return false;
+
+  const submission = schedule.reviews.find(
+    (review) =>
+      review.episodeId === episode.id &&
+      review.revision === episode.contentRevision &&
+      review.status !== "WITHDRAWN",
+  );
+
+  return Boolean(
+    submission && submission.submittedAt.getTime() > schedule.productionDeadline.getTime(),
+  );
+}
 
 export const RELEASE_BOARD_COLUMNS: ReadonlyArray<{
   status: ReleaseBoardStatus;
@@ -13,14 +29,14 @@ export const RELEASE_BOARD_COLUMNS: ReadonlyArray<{
 }> = [
   { status: "SCHEDULED", label: "Đã lên lịch" },
   { status: "READY_TO_PUBLISH", label: "Sẵn sàng phát hành" },
-  { status: "PUBLISHING", label: "Đang phát hành" },
   { status: "RELEASED", label: "Đã phát hành" },
+  { status: "FAILED", label: "Phát hành thất bại" },
 ];
 
 const BOARD_STATUSES = new Set<ReleaseScheduleStatus>(
   RELEASE_BOARD_COLUMNS.map(({ status }) => status),
 );
-const ATTENTION_STATUSES = new Set<ReleaseScheduleStatus>(["BLOCKED", "FAILED"]);
+const ATTENTION_STATUSES = new Set<ReleaseScheduleStatus>(["BLOCKED"]);
 
 function byNewestCreated(
   left: ReleaseScheduleRecord,
@@ -34,8 +50,8 @@ export function groupReleaseSchedules(items: ReleaseScheduleRecord[]) {
   const columns: Record<ReleaseBoardStatus, ReleaseScheduleRecord[]> = {
     SCHEDULED: [],
     READY_TO_PUBLISH: [],
-    PUBLISHING: [],
     RELEASED: [],
+    FAILED: [],
   };
   const attention: ReleaseScheduleRecord[] = [];
 
@@ -58,7 +74,5 @@ export function getReleaseDropCommand(
 ): ReleaseDropCommand | null {
   if (from === "SCHEDULED" && to === "READY_TO_PUBLISH")
     return "check-readiness";
-  if (from === "READY_TO_PUBLISH" && to === "PUBLISHING")
-    return "publish-now";
   return null;
 }

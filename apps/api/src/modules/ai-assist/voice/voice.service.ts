@@ -4,18 +4,19 @@ import { mkdir, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { promisify } from "node:util";
-import type { AiVoice, EditorDocument, VoiceJob } from "@repo/shared";
+import { dialogueUsedSpeakerKeys, type AiVoice, type EditorDocument, type VoiceJob } from "@repo/shared";
 import { DomainError } from "../../../core/errors/domain-error";
 import { env } from "../../../core/env";
 import { logger } from "../../../core/logger";
 import type { Session } from "../../auth";
 import type { ContentService } from "../../content/application/content.service";
-import { synthesizeDialogueWav, synthesizeWav } from "./gemini-tts";
-import { chunkDialogue, chunkSpeech, scriptSpeechHash, speechDialogue, speechNarration, speechParagraphs } from "./speech-text";
+import { synthesizeDialogueWav, synthesizeTurnWav, synthesizeWav } from "./gemini-tts";
+import { WAV_HEADER_BYTES, chunkDialogue, chunkSpeech, scriptSpeechHash, silenceWav, speechDialogue, speechNarration, speechParagraphs } from "./speech-text";
 
 const execFileAsync = promisify(execFile);
 const LOG_SCOPE = "ai-voice";
-const WAV_HEADER_BYTES = 44;
+
+const MULTI_SPEAKER_COUNT = 2;
 const PCM_BYTES_PER_SECOND = 24_000 * 2; // Gemini TTS output: 24 kHz, mono, 16-bit
 const MP3_QUALITY = "4";
 const FFMPEG_TIMEOUT_MS = 120_000;
@@ -59,6 +60,7 @@ const toDto = (job: Job): VoiceJob => ({
 export interface VoiceDeps {
   synthesize?: typeof synthesizeWav;
   synthesizeDialogue?: typeof synthesizeDialogueWav;
+  synthesizeTurn?: typeof synthesizeTurnWav;
   /** Joins the WAV files listed in `listFile` (ffmpeg concat format) into the mp3 at `outFile`. */
   encode?: (listFile: string, outFile: string) => Promise<void>;
 }
@@ -78,11 +80,13 @@ export class VoiceService {
 
   private readonly synthesize: typeof synthesizeWav;
   private readonly synthesizeDialogue: typeof synthesizeDialogueWav;
+  private readonly synthesizeTurn: typeof synthesizeTurnWav;
   private readonly encode: (listFile: string, outFile: string) => Promise<void>;
 
   constructor(private readonly content: Pick<ContentService, "getEpisodeForRead">, deps: VoiceDeps = {}) {
     this.synthesize = deps.synthesize ?? synthesizeWav;
     this.synthesizeDialogue = deps.synthesizeDialogue ?? synthesizeDialogueWav;
+    this.synthesizeTurn = deps.synthesizeTurn ?? synthesizeTurnWav;
     this.encode = deps.encode ?? encodeWithFfmpeg;
     setInterval(() => void this.sweep(), SWEEP_INTERVAL_MS).unref();
   }
@@ -94,8 +98,13 @@ export class VoiceService {
     // Dialogue voices come from the script; a single narrator needs the voice chosen in the request.
     if (dialogue && voice) throw new DomainError(422, "VALIDATION_ERROR", "Tập hội thoại lấy giọng từ người nói, không gửi voice");
     if (!dialogue && !voice) throw new DomainError(422, "VALIDATION_ERROR", "Cần chọn giọng đọc");
+    const usedKeys = dialogue ? dialogueUsedSpeakerKeys(dialogue) : [];
+    // Gemini's multi-speaker request takes exactly two speakers; any other count is read turn by turn.
+    const perTurn = dialogue !== null && usedKeys.length !== MULTI_SPEAKER_COUNT;
     const units: Unit[] = dialogue
-      ? chunkDialogue(dialogue.turns, env.TTS_CHUNK_CHARS).map((turns) => ({ chars: turns.reduce((sum, turn) => sum + turn.text.length, 0), run: (signal) => this.synthesizeDialogue(turns, dialogue.speakers, signal) }))
+      ? perTurn
+        ? dialogue.turns.map((turn) => ({ chars: turn.text.length, run: (signal) => this.synthesizeTurn(turn, dialogue.speakers.find((speaker) => speaker.key === turn.speaker)!.voice, signal) }))
+        : chunkDialogue(dialogue.turns, env.TTS_CHUNK_CHARS).map((turns) => ({ chars: turns.reduce((sum, turn) => sum + turn.text.length, 0), run: (signal) => this.synthesizeDialogue(turns, dialogue.speakers.filter((speaker) => usedKeys.includes(speaker.key)), signal) }))
       : chunkSpeech(speechParagraphs((narration?.scriptDocument ?? null) as EditorDocument | null, narration?.scriptContent ?? null), env.TTS_CHUNK_CHARS).map((text) => ({ chars: text.length, run: (signal) => this.synthesize(text, voice!, signal) }));
     if (!units.length) throw new DomainError(422, "VALIDATION_ERROR", "Tập chưa có kịch bản đã lưu để đọc");
 
@@ -114,7 +123,7 @@ export class VoiceService {
       chars: units.reduce((sum, unit) => sum + unit.chars, 0), error: null, durationMs: null, mp3Path: null, finishedAt: null, abort: new AbortController(),
     };
     this.jobs.set(job.id, job);
-    void this.run(job, units);
+    void this.run(job, units, perTurn);
     return toDto(job);
   }
 
@@ -148,7 +157,7 @@ export class VoiceService {
     job.finishedAt = Date.now();
   }
 
-  private async run(job: Job, units: Unit[]): Promise<void> {
+  private async run(job: Job, units: Unit[], perTurn: boolean): Promise<void> {
     const dir = join(JOB_DIR, job.id);
     const started = Date.now();
     try {
@@ -171,10 +180,13 @@ export class VoiceService {
       }
       if (job.status !== "RUNNING") return;
 
+      // Per-turn clips are joined back to back by ffmpeg, so a short silence between turns stands in for the breath.
+      const gap = perTurn && env.TTS_TURN_GAP_MS > 0 ? silenceWav(env.TTS_TURN_GAP_MS) : null;
+      const parts = gap ? wavs.flatMap((wav, index) => (index < wavs.length - 1 ? [wav, gap] : [wav])) : wavs;
       const files: string[] = [];
-      for (const [index, wav] of wavs.entries()) {
+      for (const [index, part] of parts.entries()) {
         const file = join(dir, `part${index}.wav`);
-        await writeFile(file, wav);
+        await writeFile(file, part);
         files.push(file);
       }
       const list = join(dir, "parts.txt");
@@ -183,10 +195,10 @@ export class VoiceService {
       await this.encode(list, mp3);
       // cancel() may have landed while ffmpeg ran: a cancelled job must stay CANCELLED, not be flipped to DONE.
       if (job.status !== "RUNNING") return;
-      job.durationMs = Math.round((wavs.reduce((sum, wav) => sum + wav.length - WAV_HEADER_BYTES, 0) / PCM_BYTES_PER_SECOND) * 1000);
+      job.durationMs = Math.round((parts.reduce((sum, wav) => sum + wav.length - WAV_HEADER_BYTES, 0) / PCM_BYTES_PER_SECOND) * 1000);
       job.mp3Path = mp3;
       this.finish(job, "DONE", null);
-      logger.info({ scope: LOG_SCOPE, jobId: job.id, episodeId: job.episodeId, mode: job.mode, chunks: units.length, chars: job.chars, elapsedMs: Date.now() - started }, "voice job done");
+      logger.info({ scope: LOG_SCOPE, jobId: job.id, episodeId: job.episodeId, mode: job.mode, path: perTurn ? "per-turn" : "multi", chunks: units.length, chars: job.chars, elapsedMs: Date.now() - started }, "voice job done");
     } catch (error) {
       if (job.status !== "RUNNING") return;
       const message = error instanceof DomainError ? error.message : "Không tạo được giọng đọc. Thử lại sau.";

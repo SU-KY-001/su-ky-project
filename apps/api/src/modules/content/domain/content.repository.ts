@@ -100,7 +100,7 @@ export interface UpsertNarrationInput {
   /** Passed through verbatim: `undefined` keeps the stored content (Prisma semantics). */
   scriptContent?: string | null;
   scriptDocument?: EditorDocument | null;
-  /** Two-person script; when set, `scriptDocument` is null and `scriptContent` is its spoken text. */
+  /** Multi-speaker script; when set, `scriptDocument` is null and `scriptContent` is its spoken text. */
   dialogue?: Dialogue | null;
   narratorEntityId: string | null;
 }

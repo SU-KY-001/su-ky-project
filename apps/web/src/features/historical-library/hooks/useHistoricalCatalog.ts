@@ -85,10 +85,12 @@ export function useHistoricalSources(
   includeArchived = false,
   sortBy: SourceSortBy = "title",
   sortDirection: SourceSortDirection = "asc",
+  enabled = true,
 ) {
   return useQuery({
     queryKey: [...catalogKeys.root, "sources", q, page, includeArchived, sortBy, sortDirection],
     queryFn: () => api.sources(q, page, includeArchived, sortBy, sortDirection),
+    enabled,
   });
 }
 export function useCatalogInvalidation() {

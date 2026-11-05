@@ -7,7 +7,7 @@ import { ModeratorSelect } from "@/features/moderator/components/ModeratorSelect
 import type { PodcastCreationWizard } from "../hooks/usePodcastCreationWizard";
 import { useVoiceJob } from "../voice/useVoiceJob";
 import { UploadedAudioPanel } from "./UploadedAudioPanel";
-import { VOICE_LABEL } from "../voice/voiceLabels";
+import { VOICE_LABEL, formatVoiceOrigin } from "../voice/voiceLabels";
 import { AiRunStatus } from "../ai/AiRunStatus";
 import { useAiRunLog } from "../ai/aiRunLog";
 import { AI_RUN_TEXT } from "../ai/aiRunMessages";
@@ -43,7 +43,7 @@ export function AiVoicePanel({ wizard, published }: { wizard: PodcastCreationWiz
         <h3 id="ai-voice-title" className="font-bold text-mod-text">Tạo giọng đọc bằng AI</h3>
         <p className="mt-1 text-sm text-mod-text-secondary">
           {dialogue
-            ? "AI đọc hai vai theo kịch bản hội thoại đã lưu, giữ giọng điệu và expression của từng lượt. Sửa kịch bản sau này phải tạo lại cả tập."
+            ? "AI đọc từng vai theo kịch bản hội thoại đã lưu, giữ giọng điệu và expression của từng lượt. Sửa kịch bản sau này phải tạo lại cả tập."
             : "AI đọc kịch bản đã lưu của tập (bỏ qua các tiêu đề phần). Mỗi lần tạo tốn lượt gọi dịch vụ giọng đọc, nên hãy chọn giọng trước."}
         </p>
       </div>
@@ -87,7 +87,7 @@ export function AiVoicePanel({ wizard, published }: { wizard: PodcastCreationWiz
       {job?.status === "DONE" && job.durationMs !== null ? <p className="text-sm font-semibold text-mod-text">Đã tạo xong {duration(job.durationMs)} âm thanh. Nghe thử rồi bấm "Dùng làm âm thanh của tập". Giọng này được tạo bằng AI.</p> : null}
 
       {file && job ? (
-        <UploadedAudioPanel wizard={wizard} published={published} incomingFile={file} incomingOrigin={{ kind: "AI_VOICE", voice: job.voice ?? dialogue?.speakers.map((speaker) => speaker.voice).join(" + ") ?? "", model: job.model, style: job.style, chars: job.chars, scriptHash: job.scriptHash }} />
+        <UploadedAudioPanel wizard={wizard} published={published} incomingFile={file} incomingOrigin={{ kind: "AI_VOICE", voice: job.voice ?? formatVoiceOrigin(dialogue?.speakers.map((speaker) => speaker.voice) ?? []), model: job.model, style: job.style, chars: job.chars, scriptHash: job.scriptHash }} />
       ) : null}
     </section>
   );

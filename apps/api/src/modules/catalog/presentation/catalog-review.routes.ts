@@ -3,8 +3,6 @@ import { Hono } from "hono";
 import { zValidator } from "@hono/zod-validator";
 import { z } from "zod";
 import {
-  HistoricalEntityReviewSchema,
-  SubmitHistoricalReviewSchema,
   SourceReviewSchema,
 } from "@repo/shared";
 import { requireAuth, requireRole } from "../../auth";
@@ -62,38 +60,6 @@ export function createCatalogReviewRoutes(
         return c.json({
           items: await service.repository.revisions("entity", id),
         });
-      },
-    )
-    .post(
-      "/historical-entities/:id/submit-review",
-      rateLimit("write"),
-      zValidator("param", param, throwOnInvalid),
-      zValidator("json", SubmitHistoricalReviewSchema, throwOnInvalid),
-      async (c) => {
-        const u = c.get("session")!.user;
-        const id = c.req.valid("param").id;
-        await service.submitEntityReview(
-          { userId: u.id, role: u.role },
-          id,
-          c.req.valid("json"),
-        );
-        return c.json(await present("entity", id));
-      },
-    )
-    .post(
-      "/historical-entities/:id/review",
-      rateLimit("write"),
-      zValidator("param", param, throwOnInvalid),
-      zValidator("json", HistoricalEntityReviewSchema, throwOnInvalid),
-      async (c) => {
-        const u = c.get("session")!.user;
-        const id = c.req.valid("param").id;
-        await service.reviewEntity(
-          { userId: u.id, role: u.role },
-          id,
-          c.req.valid("json"),
-        );
-        return c.json(await present("entity", id));
       },
     );
 }
