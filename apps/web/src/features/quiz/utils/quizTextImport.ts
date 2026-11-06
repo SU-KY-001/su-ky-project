@@ -1,6 +1,7 @@
 import { validateReadyQuiz, type QuizDraftQuestion } from "@repo/shared";
 
 export const MAX_IMPORT_TEXT = 200_000;
+export type QuizImportNotes = Record<string, { source: string; issues: string[] }>;
 export interface ImportedQuizQuestion {
   question: QuizDraftQuestion;
   source: string;
@@ -32,6 +33,7 @@ const heading = (line: string): RegExpMatchArray | null =>
   clean(line).match(/^(?:Câu\s*\d+\s*[:.)-]|\d+[.)])\s*(.*)$/iu);
 
 export function importQuestionIssues(question: QuizDraftQuestion): string[] {
+  question = { ...question, kind: question.kind ?? "SINGLE" };
   const issues: string[] = [];
   if (!question.text.trim()) issues.push("Chưa có nội dung câu hỏi.");
   if (question.kind !== "TEXT" && question.options.length < 2)
