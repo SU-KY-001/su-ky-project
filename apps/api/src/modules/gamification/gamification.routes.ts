@@ -21,6 +21,7 @@ import { quizAuthoringRoute } from "./quiz-authoring.routes";
 const episodeIdParam = z.object({ episodeId: z.string().uuid() });
 const quizIdParam = z.object({ quizId: z.string().uuid() });
 const slugParam = z.object({ slug: z.string().min(1) });
+const quizFormatQuery = z.object({ format: z.literal("2").optional() });
 
 export const gamificationService = new GamificationService();
 
@@ -79,10 +80,11 @@ export const publicQuizRoute = new Hono<AppEnv>()
     "/episodes/:slug/quiz",
     requireAuth,
     zValidator("param", slugParam, throwOnInvalid),
+    zValidator("query", quizFormatQuery, throwOnInvalid),
     async (c) =>
       c.json(
         PublicQuizSchema.parse(
-          await gamificationService.getPublishedQuiz(c.req.valid("param").slug),
+          await gamificationService.getPublishedQuiz(c.req.valid("param").slug, c.req.valid("query").format === "2"),
         ),
       ),
   )
