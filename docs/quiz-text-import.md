@@ -43,25 +43,34 @@ mặc định lấy từ trình soạn, cho phép 10–120 giây. Mỗi câu t�
 hoặc 6 cách trả lời được chấp nhận. Không tách đáp án điền bằng dấu phẩy;
 dùng từng dòng `Chấp nhận thêm:`.
 
-## Xem lại và áp dụng
+## Đưa thẳng vào trình soạn
 
-1. Bấm **Đọc câu hỏi**. Chọn từng câu để đối chiếu đoạn nguồn được đánh dấu.
-2. Sửa trực tiếp câu nhận diện sai, sửa nguồn rồi đọc lại, hoặc chủ động bỏ câu.
-   Không thể áp dụng khi vẫn còn câu được chọn bị lỗi.
-3. Nếu trình soạn đã có nội dung, chọn thêm vào cuối hoặc thay thế (có xác nhận).
-   Tổng số câu sau khi nhập tối đa 100.
-4. Bấm **Đưa … câu vào trình soạn**. Tiếp tục kiểm tra rồi **Lưu nháp** và gắn
-   quiz với tập podcast theo luồng thông thường. Nhập tài liệu không tự lưu,
-   đăng tải hoặc thay đổi kịch bản podcast.
+1. Chọn **Dán văn bản**, dán nội dung rồi bấm **Đưa vào trình soạn**; hoặc chọn
+   **Tải tài liệu**, chọn/kéo thả một file. File đọc được sẽ tự đưa câu hỏi vào
+   trình soạn, không qua một màn chỉnh sửa hay xem trước trung gian.
+2. Nếu đã có câu hỏi, mặc định **Thêm vào cuối**. Chọn **Thay thế câu hỏi hiện
+   tại** khi cần; hệ thống xác nhận trước khi thay. Tổng số câu tối đa 100.
+3. Chỉnh sửa ngay bằng các ô sẵn có trong trình soạn. Mọi câu đọc được đều được
+   giữ lại, kể cả câu chưa đầy đủ. Câu cần sửa được đánh dấu và được chọn trước.
+   Thiếu đáp án, lựa chọn trống và các lỗi nội dung sẽ hiện tại câu đó.
+4. Nếu ký hiệu/nội dung/loại câu mâu thuẫn, mở **Đối chiếu văn bản nhập**, sửa
+   các ô rồi bấm **Đã kiểm tra câu này**. Cảnh báo mâu thuẫn chưa kiểm tra chặn
+   lưu nháp và đăng tải, tránh mất cảnh báo khi tải lại. Câu thông thường còn
+   thiếu nội dung vẫn có thể lưu nháp, nhưng không thể đăng tải.
+5. **Xem thử** dùng lại popup trải nghiệm quiz có sẵn, chỉ khả dụng khi mọi câu
+   hoàn chỉnh và đã kiểm tra. Không tự mở popup sau import. **Lưu nháp** và gắn
+   quiz với podcast vẫn theo luồng cũ; import không tự lưu/đăng tải.
 
-Hủy nhập không thay đổi nội dung trình soạn. Tải tài liệu khác thay nguồn
-nhập sau xác nhận, không nối văn bản âm thầm. Đọc lại sẽ cảnh báo trước khi
-thay các chỉnh sửa trong bản xem lại. Công cụ không dùng AI để đoán đáp án.
+Nếu không đọc được cấu trúc hoặc có chữ thừa trước câu đầu, nội dung được giữ
+trong ô dán kèm lỗi để sửa, chưa thay đổi trình soạn. Không tự bỏ qua phần nguồn
+không nhận diện. Hủy nhập giữ nguyên câu hỏi đang soạn, có xác nhận khi đang dán
+hoặc tải file. Công cụ không dùng AI để đoán đáp án. Bộ đếm ký tự không hiển thị
+thường trực; giới hạn vẫn được kiểm tra và báo khi vượt.
 
 ## API
 
 `POST /api/studio/quiz-import/extract` nhận `multipart/form-data`, trường
 `file`. Yêu cầu phiên Moderator và áp dụng giới hạn tần suất ghi. Trả
 `{ fileName, text }`, không lưu tệp hoặc nội dung xuống database/Cloudinary.
-Phần nhận diện câu hỏi và xem lại chạy trên FE. Cả FE và BE cần cập nhật
+Phần nhận diện câu hỏi và kiểm tra trong trình soạn chạy trên FE. Cả FE và BE cần cập nhật
 cùng phiên bản để sử dụng chức năng tải tài liệu.
