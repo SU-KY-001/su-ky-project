@@ -214,6 +214,8 @@ export function EpisodeQuiz({ slug, signedIn }: { slug: string; signedIn: boolea
             <div className="px-5 py-8 sm:px-8"><LibraryState error title="Chưa tải được bộ câu hỏi" description="Kết nối có thể đang gián đoạn. Bạn hãy thử lại." retry={() => { void quiz.refetch(); }} /></div>
           ) : quiz.data.questions.length === 0 ? (
             <div className="px-5 py-8 sm:px-8"><LibraryState title="Bộ câu hỏi đang được chuẩn bị" description="Bạn có thể quay lại tập này sau." /></div>
+          ) : quiz.data.questions.some(question => question.kind && question.kind !== "SINGLE") ? (
+            <div className="px-5 py-8 sm:px-8"><p className="mb-4">Bộ quiz này có nhiều dạng câu hỏi. Hãy mở trang làm quiz để trả lời đầy đủ.</p><Button asChild><Link to={`/quiz/${encodeURIComponent(slug)}`}>Mở bài quiz <ArrowRight /></Link></Button></div>
           ) : submit.data ? (
             <QuizResult quiz={quiz.data} result={submit.data} onRetry={retry} />
           ) : (
