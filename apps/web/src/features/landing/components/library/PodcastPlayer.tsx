@@ -1,5 +1,6 @@
 import { useEffect, useId, useRef, useState, type ReactElement } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { Link } from "react-router";
 import type { LibraryChapter } from "@repo/shared";
 import { Headphones } from "@phosphor-icons/react/dist/icons/Headphones";
 import { Play } from "@phosphor-icons/react/dist/icons/Play";
@@ -162,6 +163,7 @@ export function AudioPlayback({ narrationId, userId, playlist = false, controlsH
 
 export function PodcastPlayer({ chapter }: { chapter: LibraryChapter }): ReactElement | null {
   const session = useCurrentUser();
+  const [showQuizInvitation, setShowQuizInvitation] = useState(false);
   const available = chapter.narrations.filter((value) => value.available);
   const [choice, setChoice] = useState("");
   const selected = available.find((value) => value.id === choice) ?? available[0];
@@ -169,7 +171,8 @@ export function PodcastPlayer({ chapter }: { chapter: LibraryChapter }): ReactEl
   if (!session.isPending && !session.isError && !session.data) return null;
   return <div className="space-y-5 rounded-xl border border-line bg-paper-soft p-5 md:p-6"><div className="flex items-start gap-3"><Headphones size={25} className="shrink-0 text-bronze-dark" aria-hidden="true" /><div><p className="text-xs text-muted-foreground">Đang chọn nghe</p><h3 className="mt-1 font-semibold leading-6">{chapter.title}</h3></div></div>
     {available.length > 1 && <LibrarySelect id={`voice-${chapter.id}`} label="Góc kể" value={selected?.id ?? ""} onChange={setChoice} options={available.map((value) => ({ id: value.id, name: value.type === "FIRST_PERSON" ? "Lời kể nhân vật" : "Người dẫn chuyện" }))} />}
-    {session.isPending ? <LibraryState loading /> : session.isError ? <LibraryState error title="Chưa kiểm tra được tài khoản" retry={() => { void session.refetch(); }} /> : session.data && selected ? <AudioPlayback key={`${selected.id}-${session.data.id}`} narrationId={selected.id} userId={session.data.id} /> : <p className="text-sm text-muted-foreground">Bản thu của chương này chưa sẵn sàng.</p>}
+    {session.isPending ? <LibraryState loading /> : session.isError ? <LibraryState error title="Chưa kiểm tra được tài khoản" retry={() => { void session.refetch(); }} /> : session.data && selected ? <AudioPlayback key={`${selected.id}-${session.data.id}`} narrationId={selected.id} userId={session.data.id} onFinished={() => { if (detail.data?.hasQuiz) setShowQuizInvitation(true); }} /> : <p className="text-sm text-muted-foreground">Bản thu của chương này chưa sẵn sàng.</p>}
+    {showQuizInvitation && <section role="status" className="rounded-lg border border-line bg-paper p-4"><p className="font-semibold">Tập {chapter.title} đã phát xong</p><p className="mt-2 text-sm text-ink-soft">Ôn lại câu chuyện với quiz của tập này nhé.</p><div className="mt-3 flex flex-wrap gap-2"><Button asChild size="sm"><Link to={`/?quizEpisode=${encodeURIComponent(chapter.slug)}#library-quiz`} onClick={() => setShowQuizInvitation(false)}>Xem quiz của tập</Link></Button><Button size="sm" variant="ghost" onClick={() => setShowQuizInvitation(false)}>Để sau</Button></div></section>}
     <PublicationNoticeView info={detail.data?.publicationInfo} />
     {detail.data?.hasQuiz && <EpisodeQuiz key={session.data?.id ?? "guest"} slug={chapter.slug} signedIn={Boolean(session.data)} />}
   </div>;
