@@ -1,4 +1,4 @@
-import { useState, type ReactElement } from "react";
+import { useEffect, useState, type ReactElement } from "react";
 import { PencilSimple } from "@phosphor-icons/react/dist/icons/PencilSimple";
 import { ArrowLeft } from "@phosphor-icons/react/dist/icons/ArrowLeft";
 import { Headphones } from "@phosphor-icons/react/dist/icons/Headphones";
@@ -22,11 +22,15 @@ import { QuizEditor } from "./QuizEditor";
 function ErrorState({ message, retry }: { message: string; retry: () => void }): ReactElement {
   return <div className="rounded-lg border border-mod-border bg-mod-surface p-6 text-sm"><p role="alert" className="text-mod-danger">{message}</p><Button className="mt-3" variant="outline" onClick={retry}>Thử lại</Button></div>;
 }
-function OpenEditor({ episodeId, onBack }: { episodeId: string; onBack: () => void }): ReactElement {
-  const workspace = useQuizWorkspace(episodeId);
-  if (workspace.isPending) return <p role="status" className="p-6">Đang tải bộ quiz và kịch bản…</p>;
-  if (workspace.isError && !workspace.data) return <><Button variant="ghost" onClick={onBack}><ArrowLeft />Quay lại</Button><ErrorState message={workspace.error.message} retry={() => void workspace.refetch()} /></>;
+function OpenEditor({ episodeId, creating, onBack }: { episodeId: string; creating: boolean; onBack: () => void }): ReactElement {
+  const workspace = useQuizWorkspace(episodeId, creating);
+  const [check, setCheck] = useState<"pending" | "existing" | "empty">(creating ? "pending" : "empty");
+  useEffect(() => { if (check === "pending" && workspace.isSuccess && !workspace.isFetching && workspace.data) setCheck(workspace.data.active || workspace.data.revision > 0 || workspace.data.attemptCount > 0 ? "existing" : "empty"); }, [check, workspace.isSuccess, workspace.isFetching, workspace.data]);
+  if (workspace.isPending || (check === "pending" && workspace.isFetching)) return <p role="status" className="p-6">Đang tải bộ quiz và kịch bản…</p>;
+  if (workspace.isError && (check === "pending" || !workspace.data)) return <><Button variant="ghost" onClick={onBack}><ArrowLeft />Quay lại</Button><ErrorState message={workspace.error.message} retry={() => void workspace.refetch()} /></>;
   if (!workspace.data) return <p role="status">Đang tải bộ quiz…</p>;
+  if (check === "pending") return <p role="status" className="p-6">Đang kiểm tra tập podcast…</p>;
+  if (check === "existing") return <section className="mx-auto w-full max-w-3xl rounded-xl border border-mod-border bg-mod-surface p-6 font-moderator"><h1 className="text-xl font-semibold">Tập podcast này đã có quiz</h1><p className="mt-3 text-sm text-mod-text-secondary">Mỗi tập chỉ có một bộ quiz. Vui lòng chọn series hoặc tập podcast khác để tạo quiz mới. Bạn có thể tiếp tục soạn quiz hiện có từ danh sách.</p><Button className="mt-5" variant="outline" onClick={onBack}><ArrowLeft />Chọn tập khác</Button></section>;
   return <QuizEditor key={episodeId} initial={workspace.data} onBack={onBack} />;
 }
 function ChooseEpisode({ onOpen, onBack }: { onOpen: (episodeId: string) => void; onBack: () => void }): ReactElement {
@@ -44,13 +48,14 @@ function ChooseEpisode({ onOpen, onBack }: { onOpen: (episodeId: string) => void
 export function QuizAuthoring(): ReactElement {
   const [choosingEpisode, setChoosingEpisode] = useState(false);
   const [episodeId, setEpisodeId] = useState("");
+  const [creating, setCreating] = useState(false);
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState("all");
   const [page, setPage] = useState(1);
   const quizzes = useQuizList();
   const back = (): void => { setEpisodeId(""); setChoosingEpisode(false); };
-  if (episodeId) return <OpenEditor episodeId={episodeId} onBack={back} />;
-  if (choosingEpisode) return <ChooseEpisode onOpen={setEpisodeId} onBack={back} />;
+  if (episodeId) return <OpenEditor key={episodeId} episodeId={episodeId} creating={creating} onBack={() => { setEpisodeId(""); if (!creating) setChoosingEpisode(false); }} />;
+  if (choosingEpisode) return <ChooseEpisode onOpen={id => { setCreating(true); setEpisodeId(id); }} onBack={back} />;
   const filtered = (quizzes.data?.items ?? []).filter(q => `${q.title} ${q.episodeTitle} ${q.seriesTitle}`.toLocaleLowerCase("vi").includes(search.trim().toLocaleLowerCase("vi")) && (status === "all" || (q.active ? "ready" : "draft") === status));
   const visible = filtered.slice((page - 1) * 10, page * 10);
   return <div className="flex min-w-0 flex-col gap-6 font-moderator">
@@ -59,7 +64,7 @@ export function QuizAuthoring(): ReactElement {
       toolbar={<ModeratorListToolbar searchLabel="Tìm quiz, series hoặc tập podcast" searchValue={search} onSearchChange={v => { setSearch(v); setPage(1); }} filters={[{ id: "quiz-status", label: "Trạng thái quiz", value: status, onValueChange: v => { setStatus(v); setPage(1); }, options: [{ value: "all", label: "Tất cả trạng thái" }, { value: "draft", label: "Bản nháp" }, { value: "ready", label: "Đang sử dụng" }] }]} actions={<Button className="h-10 px-4" onClick={() => setChoosingEpisode(true)}><Plus />Tạo quiz</Button>} />}
       footer={<DashboardPagination page={page} limit={10} total={filtered.length} itemLabel="bộ quiz" onPageChange={setPage} />}>
       <DashboardDataTable embedded responsive caption="Danh sách bộ quiz" columns={["Tên bộ quiz", "Số câu", "Cập nhật", "Thao tác"]} minWidth={0}>
-        {visible.map(q => <TableRow key={q.episodeId}><TableCell data-label="Tên bộ quiz" className={dashboardTableCell}><div className="flex items-center gap-3"><Exam size={24} className="shrink-0 text-mod-primary" /><div><p className="whitespace-normal break-words font-semibold">{q.title}</p><p className="mt-1 flex items-start gap-1 text-xs text-mod-text-secondary"><Headphones className="mt-0.5 shrink-0" /><span className="whitespace-normal break-words">{q.episodeTitle}</span></p></div></div></TableCell><TableCell data-label="Số câu" className={dashboardTableCell}>{q.questions}</TableCell><TableCell data-label="Cập nhật" className={dashboardTableCell}>{q.updatedAt.toLocaleDateString("vi-VN")}</TableCell><TableCell data-label="Thao tác" className={dashboardTableCell}><DashboardRowActions label={q.title} actions={[{ id: "edit", label: "Tiếp tục soạn", onSelect: () => { setEpisodeId(q.episodeId); } }]} /></TableCell></TableRow>)}
+        {visible.map(q => <TableRow key={q.episodeId}><TableCell data-label="Tên bộ quiz" className={dashboardTableCell}><div className="flex items-center gap-3"><Exam size={24} className="shrink-0 text-mod-primary" /><div><p className="whitespace-normal break-words font-semibold">{q.title}</p><p className="mt-1 flex items-start gap-1 text-xs text-mod-text-secondary"><Headphones className="mt-0.5 shrink-0" /><span className="whitespace-normal break-words">{q.episodeTitle}</span></p></div></div></TableCell><TableCell data-label="Số câu" className={dashboardTableCell}>{q.questions}</TableCell><TableCell data-label="Cập nhật" className={dashboardTableCell}>{q.updatedAt.toLocaleDateString("vi-VN")}</TableCell><TableCell data-label="Thao tác" className={dashboardTableCell}><DashboardRowActions label={q.title} actions={[{ id: "edit", label: "Tiếp tục soạn", onSelect: () => { setCreating(false); setEpisodeId(q.episodeId); } }]} /></TableCell></TableRow>)}
         {!visible.length && <DashboardEmptyTableRow columns={4}>{quizzes.isPending ? "Đang tải bộ quiz…" : search || status !== "all" ? "Không tìm thấy quiz phù hợp." : "Chưa có bộ quiz. Chọn “Tạo quiz” để bắt đầu soạn câu hỏi."}</DashboardEmptyTableRow>}
       </DashboardDataTable>
     </DashboardTableCard>}
