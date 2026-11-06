@@ -34,6 +34,30 @@ async function render(element: ReactElement): Promise<HTMLDivElement> {
   return host;
 }
 
+it("shows one answer field for a new fill-in question without choice letters", async () => {
+  const initial = { ...workspace, data: { ...workspace.data, questions: [{ ...workspace.data.questions[0], options: ["", "", "", ""], correctIndex: null }] } };
+  client = new QueryClient({ defaultOptions: { queries: { staleTime: Infinity, retry: false } } });
+  client.setQueryData(["quiz", "workspace", "e"], initial);
+  const router = createMemoryRouter([{ path: "/", element: <QueryClientProvider client={client}><QuizEditor initial={initial} onBack={() => {}} /></QueryClientProvider> }]);
+  const host = await render(<RouterProvider router={router} />);
+  await act(async () => host.querySelector("#quiz-kind")!.dispatchEvent(new KeyboardEvent("keydown", { key: "Enter", bubbles: true })));
+  await act(async () => document.querySelector<HTMLElement>('[role="option"][data-value="TEXT"]')!.click());
+  expect(host.querySelectorAll("#quiz-text-answer")).toHaveLength(1);
+  expect(host.querySelector<HTMLTextAreaElement>("#quiz-text-answer")?.value).toBe("");
+  expect(host.querySelector(".quiz-answer-letter")).toBeNull();
+  expect(host.textContent).not.toContain("Điền đáp án ngắn");
+});
+
+it("keeps multiple existing accepted text answers in the single answer field", async () => {
+  const initial = { ...workspace, data: { ...workspace.data, questions: [{ ...workspace.data.questions[0], kind: "TEXT" as const, options: ["Nguyễn Huệ", "Quang Trung"], correctIndex: null }] } };
+  client = new QueryClient({ defaultOptions: { queries: { staleTime: Infinity, retry: false } } });
+  client.setQueryData(["quiz", "workspace", "e"], initial);
+  const router = createMemoryRouter([{ path: "/", element: <QueryClientProvider client={client}><QuizEditor initial={initial} onBack={() => {}} /></QueryClientProvider> }]);
+  const host = await render(<RouterProvider router={router} />);
+  expect(host.querySelector<HTMLTextAreaElement>("#quiz-text-answer")?.value).toBe("Nguyễn Huệ\nQuang Trung");
+  expect(host.querySelector(".quiz-answer-letter")).toBeNull();
+});
+
 function button(container: ParentNode, text: string): HTMLButtonElement {
   const found = [...container.querySelectorAll("button")].find(item => item.textContent?.includes(text));
   if (!found) throw new Error(`Missing button: ${text}`);
