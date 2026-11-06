@@ -1,14 +1,18 @@
 import { z } from "zod";
 import { QuizWorkspaceSchema, QuizWorkspaceListSchema, SeriesListItemSchema, SeriesDetailSchema, paginatedSchema,
-  ImageUploadPolicySchema, EpisodePosterSchema, type QuizDraftData, type QuizWorkspace } from "@repo/shared";
+  ImageUploadPolicySchema, EpisodePosterSchema, QuizImportDocumentSchema, type QuizDraftData, type QuizWorkspace } from "@repo/shared";
 import { uploadCatalogMedia } from "@/features/historical-library";
-import { client } from "@/lib/client";
+import { client, apiUrl } from "@/lib/client";
 import { ApiError } from "@/lib/apiError";
 const studio = client.api.studio;
 async function parse<S extends z.ZodTypeAny>(request: Promise<Pick<Response, "ok" | "json" | "status" | "headers">>, schema: S): Promise<z.infer<S>> {
   const response = await request; if (!response.ok) throw await ApiError.fromResponse(response); return schema.parse(await response.json());
 }
 export const quizService = {
+  extractDocument: (file: File, signal: AbortSignal) => {
+    const form = new FormData(); form.set("file", file);
+    return parse(fetch(`${apiUrl}/api/studio/quiz-import/extract`, { method: "POST", credentials: "include", body: form, signal: AbortSignal.any([signal, AbortSignal.timeout(30_000)]) }), QuizImportDocumentSchema);
+  },
   imagePolicy: () => parse(studio["media-assets"]["image-policy"].$get(), ImageUploadPolicySchema),
   image: (id: string) => parse(studio["media-assets"][":id"].$get({ param: { id } }), z.object({ previewUrl: z.string().optional() })),
   uploadImage: async (file: File, signal: AbortSignal) => {
