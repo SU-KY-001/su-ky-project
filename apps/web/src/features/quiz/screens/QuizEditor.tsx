@@ -26,7 +26,8 @@ import { useConfirmationDialog } from "@/shared/hooks/useConfirmationDialog";
 import { notify } from "@/shared/lib/notifications";
 import { ModeratorSelect } from "@/features/moderator/components/ModeratorSelect";
 import { cn } from "@/lib/utils";
-import { newQuestion, cloneQuestion, moveQuestion, isComplete } from "../utils/quizState";
+import { newQuestion, cloneQuestion, moveQuestion } from "../utils/quizState";
+import { importQuestionIssues, type QuizImportNotes } from "../utils/quizTextImport";
 import { useQuizMutations } from "../hooks/useQuizMutations";
 import { useQuizWorkspace } from "../hooks/useQuizWorkspace";
 import { useQuizPoster } from "../hooks/useQuizPoster";
@@ -45,16 +46,21 @@ export function QuizEditor({ initial, onBack }: { initial: QuizWorkspace; onBack
   const [preview, setPreview] = useState(false);
   const [settings, setSettings] = useState(false);
   const [imageUploading, setImageUploading] = useState(false);
+  const [importNotes, setImportNotes] = useState<QuizImportNotes>({});
   const { imagePolicy, poster, uploadImage } = useQuizPoster(data.posterAssetId, settings);
   const { requestConfirmation, confirmation } = useConfirmationDialog();
   const { save, activate } = useQuizMutations();
   const latest = useQuizWorkspace(initial.episodeId);
-  const dirty = JSON.stringify(data) !== baseline;
+  const unreviewed = data.questions.some(q => importNotes[q.id]?.issues.length);
+  const dirty = JSON.stringify(data) !== baseline || unreviewed;
   const busy = save.isPending || activate.isPending || imageUploading;
   const blocker = useBlocker(dirty || busy);
   const activeIndex = Math.max(0, data.questions.findIndex(q => q.id === selectedId));
   const question = data.questions[activeIndex];
-  const completed = data.questions.filter(isComplete).length;
+  const completed = data.questions.filter(q => !importQuestionIssues(q).length && !importNotes[q.id]?.issues.length).length;
+  const questionIssues = importQuestionIssues(question);
+  const importNote = importNotes[question.id];
+  const previewReady = completed === data.questions.length;
   const sharedTimeLimit = data.questions.every(q => q.timeLimit === data.questions[0].timeLimit) ? String(data.questions[0].timeLimit) : "";
 
   useEffect(() => {
@@ -63,7 +69,7 @@ export function QuizEditor({ initial, onBack }: { initial: QuizWorkspace; onBack
 
   const update = (q: QuizDraftQuestion): void => setData(d => ({ ...d, questions: d.questions.map(item => item.id === q.id ? q : item) }));
   const remember = (workspace: QuizWorkspace): void => {
-    setSaved(workspace); setData(workspace.data); setBaseline(JSON.stringify(workspace.data));
+    setSaved(workspace); setData(workspace.data); setBaseline(JSON.stringify(workspace.data)); setImportNotes({});
   };
   const leave = async (): Promise<void> => {
     if ((dirty || busy) && !await requestConfirmation(discardRequest)) return;
@@ -71,6 +77,7 @@ export function QuizEditor({ initial, onBack }: { initial: QuizWorkspace; onBack
   };
   const persist = async (): Promise<void> => {
     if (busy) return;
+    if (unreviewed) { notify.warning({ title: "Cần kiểm tra câu vừa nhập", description: "Hãy đối chiếu cảnh báo nhập liệu trong từng câu trước khi lưu." }); return; }
     const submitted = data;
     try {
       const workspace = await save.mutateAsync([initial.episodeId, saved.revision, submitted]);
@@ -83,6 +90,7 @@ export function QuizEditor({ initial, onBack }: { initial: QuizWorkspace; onBack
   };
   const publish = async (): Promise<void> => {
     if (busy) return;
+    if (unreviewed) { notify.warning({ title: "Cần kiểm tra câu vừa nhập", description: "Hãy xử lý cảnh báo nhập liệu trước khi gắn quiz với tập." }); return; }
     try { validateReadyQuiz(data); }
     catch (error) { notify.warning({ title: "Quiz chưa hoàn chỉnh", description: errorMessage(error) }); return; }
     if (!await requestConfirmation({ title: "Gắn quiz với tập podcast?", description: `Bộ quiz “${data.title}” sẽ được lưu và gắn với tập “${initial.episodeTitle}”. Người nghe có thể làm quiz khi tập được công khai. Nếu tập đã công khai, bộ câu hỏi này sẽ được sử dụng ngay.`, confirmLabel: "Gắn quiz với tập" })) return;
@@ -111,8 +119,8 @@ export function QuizEditor({ initial, onBack }: { initial: QuizWorkspace; onBack
       <div className="flex items-center gap-2.5 text-sm [&>h1]:font-semibold [&>span]:text-mod-text-secondary"><span>Quiz</span><span aria-hidden="true">/</span><h1>Tạo bộ câu hỏi</h1></div>
       <div className="ml-auto flex w-full flex-wrap items-center justify-end gap-2 min-[481px]:w-auto min-[481px]:justify-start">
         <span className="quiz-save-status mr-3 hidden items-center gap-2 text-xs text-mod-text-secondary [&>span]:size-1.5 [&>span]:shrink-0 [&>span]:rounded-full [&>span]:bg-mod-text-low" role="status"><span aria-hidden="true" />{busy ? "Đang xử lý…" : dirty ? "Chưa lưu thay đổi" : saved.revision ? "Đã lưu bản nháp" : "Bản nháp mới"}</span>
-        {!busy && <QuizTextImport count={data.questions.length} empty={data.questions.length === 1 && !question.text.trim() && question.options.every(option => !option.trim()) && !question.explanation.trim() && !question.evidence} defaultTime={data.questions[0].timeLimit} onApply={(questions, replace) => { setData(d => ({ ...d, questions: replace ? questions : [...d.questions, ...questions] })); setSelectedId(questions[0].id); }} />}
-        <Button variant="outline" disabled={busy} onClick={() => setPreview(true)}><Eye />Xem thử</Button>
+        {!busy && <QuizTextImport count={data.questions.length} empty={data.questions.length === 1 && !question.text.trim() && question.options.every(option => !option.trim()) && !question.explanation.trim() && !question.evidence} defaultTime={data.questions[0].timeLimit} onApply={(questions, replace, notes) => { setData(d => ({ ...d, questions: replace ? questions : [...d.questions, ...questions] })); setImportNotes(current => replace ? notes : { ...current, ...notes }); setSelectedId(questions.find(q => notes[q.id] || importQuestionIssues(q).length)?.id ?? questions[0].id); }} />}
+        <Button variant="outline" disabled={busy || !previewReady} title={!previewReady ? "Hoàn thiện và kiểm tra các câu hỏi trước khi xem thử" : undefined} onClick={() => setPreview(true)}><Eye />Xem thử</Button>
       </div>
     </header>
     <div className="flex flex-wrap items-center gap-4 p-3 min-[481px]:p-4 [&>button]:ml-auto">
@@ -135,7 +143,7 @@ export function QuizEditor({ initial, onBack }: { initial: QuizWorkspace; onBack
           {data.questions.map(q => <li key={q.id}><Button type="button" variant="ghost" disabled={busy} aria-current={q.id === question.id ? "step" : undefined} onClick={() => setSelectedId(q.id)} className={cn("quiz-question-link h-auto min-h-[70px] w-full items-start justify-start gap-2.5 whitespace-normal border border-mod-border px-2.5 py-3 text-left", q.id === question.id && "is-selected")}>
             <span className="quiz-question-summary flex min-w-0 flex-col gap-1.5">
               <span className="quiz-question-name line-clamp-2 text-[13px] font-semibold leading-normal [overflow-wrap:anywhere]">{q.text || "Câu hỏi mới"}</span>
-              <span className="quiz-question-completion [&_svg]:size-3 flex items-center gap-1.5 text-[11px] font-normal text-mod-text-secondary">{isComplete(q) ? <CheckCircle weight="fill" className="text-mod-success" aria-hidden="true" /> : <span className="quiz-incomplete-dot size-1.5 shrink-0 rounded-full bg-mod-text-low" aria-hidden="true" />}{isComplete(q) ? "Đủ nội dung" : "Chưa hoàn chỉnh"}</span>
+              <span className="quiz-question-completion [&_svg]:size-3 flex items-center gap-1.5 text-[11px] font-normal text-mod-text-secondary">{!importQuestionIssues(q).length && !importNotes[q.id]?.issues.length ? <><CheckCircle weight="fill" className="text-mod-success" aria-hidden="true" />Đủ nội dung</> : <><span className="quiz-incomplete-dot size-1.5 shrink-0 rounded-full bg-mod-text-low" aria-hidden="true" />{importNotes[q.id] ? "Cần kiểm tra" : "Chưa hoàn chỉnh"}</>}</span>
             </span>
           </Button></li>)}
         </ol>
@@ -146,6 +154,11 @@ export function QuizEditor({ initial, onBack }: { initial: QuizWorkspace; onBack
       </aside>
       <section className="quiz-question-canvas flex min-w-0 flex-col gap-5 rounded-[10px] border border-mod-border bg-mod-surface p-3.5 min-[481px]:gap-6 min-[481px]:p-5" aria-label="Nội dung câu hỏi đang chọn">
         <div className="quiz-question-meta flex flex-wrap items-center gap-2.5"><span className="quiz-section-eyebrow text-[11px] font-semibold uppercase tracking-[.05em] text-mod-text-secondary">Câu hỏi {String(activeIndex + 1).padStart(2, "0")}</span><CardBadge type="status" tone={question.evidence ? "info" : "neutral"}>{question.evidence ? "Từ kịch bản" : "Tự soạn"}</CardBadge></div>
+        {(importNote || question.text.trim()) && (questionIssues.length > 0 || Boolean(importNote?.issues.length)) && <div role="alert" className="space-y-2 text-sm leading-6 text-mod-danger">
+          <p className="font-semibold">Câu này cần kiểm tra</p>
+          <ul className="list-disc pl-5">{[...new Set([...(importNote?.issues ?? []), ...questionIssues])].map(issue => <li key={issue}>{issue}</li>)}</ul>
+        </div>}
+        {importNote && <details className="text-sm leading-6"><summary className="cursor-pointer font-medium">Đối chiếu văn bản nhập</summary><pre className="mt-2 max-h-52 overflow-auto whitespace-pre-wrap rounded-md bg-mod-canvas-accent p-3 font-moderator text-mod-text-secondary">{importNote.source}</pre>{importNote.issues.length > 0 && <div className="mt-3 space-y-2"><p>Kiểm tra loại câu, nội dung và đáp án ở các ô bên dưới. Chỉ xác nhận khi chúng đã đúng với tài liệu.</p><Button variant="outline" disabled={busy || questionIssues.length > 0} onClick={() => setImportNotes(current => ({ ...current, [question.id]: { ...importNote, issues: [] } }))}>Đã kiểm tra câu này</Button></div>}</details>}
         <div className="flex flex-col gap-2"><Label htmlFor="quiz-kind">Loại câu hỏi</Label><ModeratorSelect id="quiz-kind" label="Loại câu hỏi" placeholder="Chọn loại câu hỏi" value={question.kind ?? "SINGLE"} onValueChange={value => update({ ...question, kind: value as "SINGLE" | "MULTIPLE" | "TEXT", options: value === "TEXT" && question.options.every(option => !option.trim()) ? [""] : value !== "TEXT" && question.options.length < 2 ? [...question.options, ""] : question.options, correctIndex: null, correctIndexes: [] })} options={[{ value: "SINGLE", label: "Chọn một đáp án" }, { value: "MULTIPLE", label: "Chọn nhiều đáp án" }, { value: "TEXT", label: "Điền đáp án" }]} /></div>
         <div className="quiz-form-field [&>[data-slot=label]]:font-semibold [&>div>[data-slot=label]]:font-semibold flex flex-col gap-2.5">
           <Label htmlFor="quiz-question">Nội dung câu hỏi</Label>
@@ -171,7 +184,7 @@ export function QuizEditor({ initial, onBack }: { initial: QuizWorkspace; onBack
         <div className="quiz-question-actions flex flex-wrap gap-2">
           <Button variant="outline" size="icon-sm" aria-label="Di chuyển câu lên" disabled={busy || !activeIndex} onClick={() => setData(d => ({ ...d, questions: moveQuestion(d.questions, question.id, -1) }))}><ArrowUp /></Button>
           <Button variant="outline" size="icon-sm" aria-label="Di chuyển câu xuống" disabled={busy || activeIndex === data.questions.length - 1} onClick={() => setData(d => ({ ...d, questions: moveQuestion(d.questions, question.id, 1) }))}><ArrowDown /></Button>
-          <Button variant="outline" size="sm" disabled={busy || data.questions.length >= 100} onClick={() => { const q = cloneQuestion(question); setData(d => ({ ...d, questions: [...d.questions.slice(0, activeIndex + 1), q, ...d.questions.slice(activeIndex + 1)] })); setSelectedId(q.id); }}><Copy />Nhân bản</Button>
+          <Button variant="outline" size="sm" disabled={busy || data.questions.length >= 100} onClick={() => { const q = cloneQuestion(question); setData(d => ({ ...d, questions: [...d.questions.slice(0, activeIndex + 1), q, ...d.questions.slice(activeIndex + 1)] })); if (importNote) setImportNotes(current => ({ ...current, [q.id]: { ...importNote, issues: [...importNote.issues] } })); setSelectedId(q.id); }}><Copy />Nhân bản</Button>
           <Button variant="outline" size="sm" className="ml-auto" disabled={busy} onClick={() => void persist()}><FloppyDisk />{save.isPending ? "Đang lưu…" : "Lưu nháp"}</Button>
           <Button variant="destructive" size="sm" disabled={busy || data.questions.length === 1} onClick={() => void remove()}><Trash />Xóa câu</Button>
         </div>

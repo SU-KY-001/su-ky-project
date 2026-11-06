@@ -64,6 +64,88 @@ function button(container: ParentNode, text: string): HTMLButtonElement {
   return found;
 }
 
+async function renderEditor(initial: QuizWorkspace): Promise<HTMLDivElement> {
+  client = new QueryClient({ defaultOptions: { queries: { staleTime: Infinity, retry: false } } });
+  client.setQueryData(["quiz", "workspace", "e"], initial);
+  const router = createMemoryRouter([{ path: "/", element: <QueryClientProvider client={client}><QuizEditor initial={initial} onBack={() => {}} /></QueryClientProvider> }]);
+  return render(<RouterProvider router={router} />);
+}
+
+async function importIntoEditor(host: ParentNode, text: string): Promise<void> {
+  await act(async () => button(host, "Nhập câu hỏi").click());
+  const textarea = document.querySelector<HTMLTextAreaElement>("#quiz-import-source")!;
+  await act(async () => {
+    Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, "value")!.set!.call(textarea, text);
+    textarea.dispatchEvent(new Event("input", { bubbles: true }));
+  });
+  await act(async () => button(document, "Đưa vào trình soạn").click());
+}
+
+function blankWorkspace(): QuizWorkspace {
+  return { ...workspace, data: { ...workspace.data, questions: [{ ...workspace.data.questions[0], text: "", options: ["", "", "", ""], correctIndex: null, explanation: "", evidence: null }] } };
+}
+
+it("replaces the blank placeholder directly and uses only the existing preview on demand", async () => {
+  const save = spyOn(quizService, "save");
+  const activate = spyOn(quizService, "activate");
+  restore = () => { save.mockRestore(); activate.mockRestore(); };
+  const host = await renderEditor(blankWorkspace());
+  expect(button(host, "Xem thử").disabled).toBe(true);
+  await importIntoEditor(host, "Câu 1: Ai lãnh đạo khởi nghĩa Lam Sơn?\nĐáp án: Lê Lợi");
+  expect(document.querySelector('[role="dialog"]')).toBeNull();
+  expect(host.querySelectorAll(".quiz-question-link")).toHaveLength(1);
+  expect(host.querySelector<HTMLTextAreaElement>("#quiz-question")?.value).toBe("Ai lãnh đạo khởi nghĩa Lam Sơn?");
+  expect(host.querySelector<HTMLTextAreaElement>("#quiz-text-answer")?.value).toBe("Lê Lợi");
+  expect(button(host, "Xem thử").disabled).toBe(false);
+  expect(save).not.toHaveBeenCalled();
+  expect(activate).not.toHaveBeenCalled();
+  await act(async () => button(host, "Xem thử").click());
+  expect(document.querySelector('[role="dialog"]')?.textContent).toContain("Xem thử bộ quiz");
+});
+
+it("selects the incomplete imported question and lets its existing form fix the answer", async () => {
+  const host = await renderEditor(blankWorkspace());
+  await importIntoEditor(host, "Câu 1: Ai lãnh đạo?\nĐáp án: Lê Lợi\nCâu 2: Chọn số hai\nA. Một\nB. Hai");
+  expect(host.querySelectorAll(".quiz-question-link")).toHaveLength(2);
+  expect(host.querySelector<HTMLTextAreaElement>("#quiz-question")?.value).toBe("Chọn số hai");
+  expect(host.querySelector('[role="alert"]')?.textContent).toContain("Chưa có đáp án đúng");
+  expect(button(host, "Xem thử").disabled).toBe(true);
+  await act(async () => host.querySelector<HTMLInputElement>('[aria-label="Chọn B là đáp án đúng"]')!.click());
+  expect(host.querySelector('[role="alert"]')).toBeNull();
+  expect(button(host, "Xem thử").disabled).toBe(false);
+});
+
+it("keeps contradictory import warnings until explicit review and blocks saving them away", async () => {
+  const save = spyOn(quizService, "save").mockImplementation(async (_id, _revision, data) => ({ ...workspace, revision: 2, data }));
+  restore = () => save.mockRestore();
+  const host = await renderEditor(blankWorkspace());
+  await importIntoEditor(host, "Câu 1: Chọn số hai\nA. Một\nB. Hai\nĐáp án: B. Ba");
+  expect(host.querySelector('[role="alert"]')?.textContent).toContain("không khớp");
+  expect(button(host, "Xem thử").disabled).toBe(true);
+  await act(async () => button(host, "Lưu nháp").click());
+  expect(save).not.toHaveBeenCalled();
+  await act(async () => host.querySelector("details summary")!.dispatchEvent(new MouseEvent("click", { bubbles: true })));
+  expect(host.querySelector("details pre")?.textContent).toContain("Đáp án: B. Ba");
+  await act(async () => button(host, "Đã kiểm tra câu này").click());
+  expect(host.querySelector('[role="alert"]')).toBeNull();
+  expect(button(host, "Xem thử").disabled).toBe(false);
+  await act(async () => { button(host, "Lưu nháp").click(); await Bun.sleep(30); });
+  expect(save).toHaveBeenCalledTimes(1);
+});
+
+it("does not lose unresolved import warnings when duplicating a question", async () => {
+  const save = spyOn(quizService, "save");
+  restore = () => save.mockRestore();
+  const host = await renderEditor(blankWorkspace());
+  await importIntoEditor(host, "Câu 1: Chọn số hai\nA. Một\nB. Hai\nĐáp án: B. Ba");
+  await act(async () => button(host, "Nhân bản").click());
+  expect(host.querySelectorAll(".quiz-question-link")).toHaveLength(2);
+  await act(async () => button(host, "Đã kiểm tra câu này").click());
+  expect(button(host, "Xem thử").disabled).toBe(true);
+  await act(async () => button(host, "Lưu nháp").click());
+  expect(save).not.toHaveBeenCalled();
+});
+
 it("applies the chosen time to every question and newly added questions in the saved draft", async () => {
   let savedData: QuizDraftData | undefined;
   const save = spyOn(quizService, "save").mockImplementation(async (_episodeId, _revision, data) => {
