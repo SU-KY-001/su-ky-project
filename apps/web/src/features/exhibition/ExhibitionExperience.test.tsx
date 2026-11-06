@@ -23,8 +23,8 @@ afterEach(() => {
 
 it("does not mount a gallery on the poster, supports cancel, then enters after the first frame", async () => {
   spyOn(sceneModule, "GalleryScene").mockImplementation(({ onReady, onUnavailable, onPause }) => { sceneReady = onReady; sceneUnavailable = onUnavailable; scenePause = onPause; return <canvas data-testid="gallery" />; });
-  const play = spyOn(HTMLMediaElement.prototype, "play").mockImplementation(async function () { Object.defineProperty(this, "paused", { configurable: true, value: false }); });
-  const pause = spyOn(HTMLMediaElement.prototype, "pause").mockImplementation(function () { Object.defineProperty(this, "paused", { configurable: true, value: true }); });
+  const play = spyOn(HTMLMediaElement.prototype, "play").mockImplementation(async function (this: HTMLMediaElement) { Object.defineProperty(this, "paused", { configurable: true, value: false }); });
+  const pause = spyOn(HTMLMediaElement.prototype, "pause").mockImplementation(function (this: HTMLMediaElement) { Object.defineProperty(this, "paused", { configurable: true, value: true }); });
   Object.defineProperty(document, "fonts", { configurable: true, value: { load: async () => [] } });
   const exhibition: ResolvedExhibition = { metadata: { title: "Ký ức", subtitle: "", description: "Tư liệu", coverAssetId: null }, chapters: [{ id: "chapter", roomKey: "room-1", title: "Chương một", period: "", description: "" }], items: [], audio: { url: "https://example.com/audio.mp3" } };
   const host = document.createElement("div"); document.body.append(host); root = createRoot(host);
