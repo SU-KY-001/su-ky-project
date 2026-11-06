@@ -73,17 +73,17 @@ async function submit(form: HTMLFormElement) {
 }
 
 async function chooseDate(ariaLabel: string, day: string) {
-  const trigger = document.body.querySelector<HTMLButtonElement>(`button[aria-label="${ariaLabel}"]`)!;
-  await act(async () => trigger.click());
-  const dayButton = document.body.querySelector<HTMLButtonElement>(`[data-day="${day}"] button`)!;
-  await act(async () => dayButton.click());
+  // Picker dropdown interactions are covered by date-picker.test.tsx. Use its
+  // typed-input path here so form validation does not depend on exit animations.
+  const input = document.body.querySelector<HTMLInputElement>(`input[aria-label="${ariaLabel} - nhập ngày"]`)!;
+  await setInput(input, day.split("-").reverse().join("/"));
+  await act(async () => input.dispatchEvent(new KeyboardEvent("keydown", { key: "Enter", bubbles: true })));
 }
 
 async function chooseTime(ariaLabel: string, hour: string, minute: string) {
-  const trigger = document.body.querySelector<HTMLButtonElement>(`button[aria-label="Mở ${ariaLabel} - giờ"]`)!;
-  await act(async () => trigger.click());
-  await act(async () => document.body.querySelector<HTMLButtonElement>(`button[aria-label="Chọn giờ ${hour}"]`)?.click());
-  await act(async () => document.body.querySelector<HTMLButtonElement>(`button[aria-label="Chọn phút ${minute}"]`)?.click());
+  const input = document.body.querySelector<HTMLInputElement>(`input[aria-label="${ariaLabel} - giờ"]`)!;
+  await setInput(input, `${hour}:${minute}`);
+  await act(async () => input.dispatchEvent(new KeyboardEvent("keydown", { key: "Enter", bubbles: true })));
 }
 
 it("validates create values and closes only after a successful create", async () => {
@@ -103,6 +103,8 @@ it("validates create values and closes only after a successful create", async ()
   await chooseDate("Chọn ngày phát hành", "2026-10-20");
   await chooseTime("Chọn hạn hoàn thành sản xuất", "20", "00");
   await chooseTime("Chọn ngày phát hành", "19", "00");
+  expect(document.querySelector<HTMLInputElement>('[aria-label="Chọn hạn hoàn thành sản xuất - giờ"]')?.value).toBe("20:00");
+  expect(document.querySelector<HTMLInputElement>('[aria-label="Chọn ngày phát hành - giờ"]')?.value).toBe("19:00");
   const moderatorTrigger = document.body.querySelector<HTMLButtonElement>('[data-slot="select-trigger"][aria-label="Moderator phụ trách"]')!;
   await act(async () => {
     moderatorTrigger.focus();
