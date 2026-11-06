@@ -707,6 +707,7 @@ model Quiz {
 model QuizQuestion {
   id           String       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   quizId       String       @map("quiz_id") @db.Uuid
+  kind         String       @default("SINGLE") @db.VarChar(20)
   questionText String       @map("question_text") @db.Text
   explanation  String?      @db.Text
   timeLimit    Int?         @map("time_limit") @db.SmallInt
