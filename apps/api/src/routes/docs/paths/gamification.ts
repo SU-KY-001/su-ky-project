@@ -9,7 +9,7 @@ import {
   SubmitQuizAttemptSchema,
   UpsertQuizSchema,
   WeeklyMissionQuerySchema,
-  QuizWorkspaceSchema, QuizWorkspaceListSchema, SaveQuizDraftSchema, ActivateQuizDraftSchema, QuizImportDocumentSchema,
+  QuizWorkspaceSchema, QuizWorkspaceListSchema, SaveQuizDraftSchema, ActivateQuizDraftSchema, QuizImportDocumentSchema, QuizImportPreviewSchema,
 } from "@repo/shared";
 import { operation, type Paths } from "../operation";
 
@@ -23,6 +23,12 @@ const SlugParam = z.object({ slug: z.string().min(1) });
 // Cùng query schema inline trong gamification.routes.ts.
 const QuizFormatQuery = z.object({ format: z.literal("2").optional() });
 export const gamificationPaths: Paths = {
+  "/api/studio/quiz-import/preview": {
+    post: {
+      ...operation({ id: "previewQuizDocument", tag: QUIZ_TAG, summary: "Đọc và xem trước câu hỏi từ tài liệu", description: "DOC, DOCX, PDF có văn bản, TXT/MD UTF-8; tối đa 5 MB, 200.000 ký tự, PDF 100 trang và quiz 100 câu. Phân tích ba loại câu hỏi không AI/OCR, trả vị trí nguồn và hướng dẫn sửa. status ready/needs_correction không có nghĩa đã lưu quiz. Không lưu file, không ghi database. DOC cần LibreOffice trên server. Deadline tổng 60 giây.", access: "moderator", rate: "write", ok: { status: 200, description: "Preview chỉ đọc; lỗi cấu trúc nằm trong diagnostics, chặn áp dụng khi needs_correction", schema: { name: "QuizImportPreview", schema: QuizImportPreviewSchema } }, errors: { 413: "`PAYLOAD_TOO_LARGE`: file vượt 5 MB", 422: "`VALIDATION_ERROR`: thiếu/nhiều file, thời gian sai, định dạng/file hỏng, bị khóa, bản scan hoặc vượt giới hạn đọc", 503: "`SERVICE_UNAVAILABLE`: bộ đọc DOC chưa sẵn sàng, quá tải hoặc xử lý quá thời gian" } }),
+      requestBody: { required: true, content: { "multipart/form-data": { schema: { type: "object", required: ["file"], properties: { file: { type: "string", format: "binary" }, defaultTime: { type: "integer", minimum: 10, maximum: 120, default: 20 } } } } } },
+    },
+  },
   "/api/studio/quiz-import/extract": {
     post: {
       ...operation({ id: "extractQuizDocument", tag: QUIZ_TAG, summary: "Đọc văn bản từ tài liệu câu hỏi", description: "Nhận một file .docx, .txt, .md hoặc PDF có văn bản, tối đa 5 MB và 200.000 ký tự. Chỉ trích chữ, không tạo quiz, không lưu tài liệu. PDF tối đa 100 trang; không OCR bản scan.", access: "moderator", rate: "write", ok: { status: 200, description: "Văn bản nguồn để kiểm tra và nhập câu hỏi", schema: { name: "QuizImportDocument", schema: QuizImportDocumentSchema } }, errors: { 413: "`PAYLOAD_TOO_LARGE`: tài liệu vượt 5 MB", 422: "`VALIDATION_ERROR`: thiếu file, định dạng không hỗ trợ, tài liệu lỗi, vượt giới hạn hoặc không có văn bản" } }),

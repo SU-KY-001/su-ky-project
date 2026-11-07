@@ -14,11 +14,13 @@ interface PlaybackState {
   episodeId: string | null;
   playRequest: number;
   playing: boolean;
+  pauseRequested: boolean;
   shuffle: boolean;
   repeat: "off" | "all" | "one";
   history: string[];
   play: (playlist: PodcastPlaylist, episodeId: string) => void;
   close: () => void;
+  pause: () => void;
   setPlaying: (value: boolean) => void;
   toggleShuffle: () => void;
   cycleRepeat: () => void;
@@ -27,13 +29,14 @@ interface PlaybackState {
 }
 
 export const usePodcastPlaybackStore = create<PlaybackState>((set, get) => ({
-  playlist: null, episodeId: null, playRequest: 0, playing: false, shuffle: true, repeat: "off", history: [],
+  playlist: null, episodeId: null, playRequest: 0, playing: false, pauseRequested: false, shuffle: true, repeat: "off", history: [],
   play: (playlist, episodeId) => {
     if (!playlist.episodes.some(episode => episode.id === episodeId && primaryNarration(episode))) return;
-    set(state => ({ playlist, episodeId, playRequest: state.playRequest + 1, playing: state.episodeId === episodeId ? state.playing : false, history: state.playlist?.slug === playlist.slug ? state.episodeId && state.episodeId !== episodeId ? [...state.history, state.episodeId] : state.history : [] }));
+    set(state => ({ playlist, episodeId, playRequest: state.playRequest + 1, playing: state.episodeId === episodeId ? state.playing : false, pauseRequested: false, history: state.playlist?.slug === playlist.slug ? state.episodeId && state.episodeId !== episodeId ? [...state.history, state.episodeId] : state.history : [] }));
   },
-  close: () => set({ playlist: null, episodeId: null, playing: false, history: [] }),
-  setPlaying: playing => set({ playing }),
+  close: () => set({ playlist: null, episodeId: null, playing: false, pauseRequested: false, history: [] }),
+  pause: () => set({ playing: false, pauseRequested: true }),
+  setPlaying: playing => set(playing ? { playing, pauseRequested: false } : { playing }),
   toggleShuffle: () => set(state => ({ shuffle: !state.shuffle })),
   cycleRepeat: () => set(state => ({ repeat: state.repeat === "off" ? "all" : state.repeat === "all" ? "one" : "off" })),
   next: () => {
@@ -50,6 +53,6 @@ export const usePodcastPlaybackStore = create<PlaybackState>((set, get) => ({
     if (!state.playlist) return;
     const playable = state.playlist.episodes.filter(episode => primaryNarration(episode));
     const previous = playable.find(episode => episode.id === state.history.at(-1)) ?? playable[playable.findIndex(episode => episode.id === state.episodeId) - 1];
-    if (previous) set({ episodeId: previous.id, history: state.history.slice(0, -1), playing: false, playRequest: state.playRequest + 1 });
+    if (previous) set({ episodeId: previous.id, history: state.history.slice(0, -1), playing: false, pauseRequested: false, playRequest: state.playRequest + 1 });
   },
 }));
