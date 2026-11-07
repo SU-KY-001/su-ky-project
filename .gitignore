@@ -49,3 +49,4 @@ postgres_data/
 apps/api/spike-tts/out/
 tmp/
 .env.prod
+.commandcode/
