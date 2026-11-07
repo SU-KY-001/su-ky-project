@@ -54,7 +54,7 @@ function PreviewContent({ data }: { data: QuizDraftData }): ReactElement {
   </>;
 }
 export function QuizPreview({ open, onOpenChange, data }: { open: boolean; onOpenChange: (open: boolean) => void; data: QuizDraftData }): ReactElement {
-  return <Dialog open={open} onOpenChange={onOpenChange}><DialogContent className="max-h-[90dvh] max-w-3xl gap-0 overflow-y-auto border-mod-border bg-mod-surface p-0 font-moderator text-mod-text sm:p-0">
+  return <Dialog open={open} onOpenChange={onOpenChange}><DialogContent className="quiz-dialog max-h-[90dvh] max-w-3xl gap-0 overflow-y-auto border-mod-border bg-mod-surface p-0 font-moderator text-mod-text sm:p-0">
     <DialogHeader className="relative border-b border-mod-border px-5 py-5 pr-12 min-[481px]:py-6 min-[481px]:pl-16 min-[481px]:pr-14"><BookOpen size={25} className="absolute left-6 top-[25px] hidden text-mod-primary min-[481px]:block" aria-hidden="true" /><DialogTitle>Xem thử bộ quiz</DialogTitle><DialogDescription>Trải nghiệm của người nghe · Không ghi nhận lượt làm</DialogDescription></DialogHeader>
     {open && <PreviewContent data={data} />}
   </DialogContent></Dialog>;

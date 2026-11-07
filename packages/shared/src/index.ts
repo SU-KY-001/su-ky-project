@@ -21,6 +21,9 @@ export * from "./schemas/listening";
 export * from "./schemas/admin";
 export * from "./schemas/quiz-mission";
 export * from "./schemas/quiz-authoring";
+export * from "./schemas/quiz-import";
+export * from "./quiz-import/types";
+export * from "./quiz-import/parser";
 export * from "./schemas/showcase";
 export * from "./types/index";
 

@@ -17,6 +17,7 @@
   --color-secondary-foreground: var(--secondary-foreground);
   --color-muted: var(--muted);
   --color-muted-foreground: var(--muted-foreground);
+  --color-placeholder: var(--placeholder);
   --color-accent: var(--accent);
   --color-accent-foreground: var(--accent-foreground);
   --color-destructive: var(--destructive);
@@ -90,6 +91,7 @@
   --secondary-foreground: #1c1714;
   --muted: #e9dcc2;
   --muted-foreground: #5b4e44;
+  --placeholder: color-mix(in srgb, var(--foreground) 62%, var(--background));
   --accent: #b58a3c;
   --accent-foreground: #14110f;
   --destructive: #b8322a;
@@ -453,6 +455,20 @@ button {
 
 button:disabled {
   cursor: not-allowed;
+}
+
+@layer base {
+  :where(input, textarea)::placeholder {
+    color: var(--placeholder);
+    font-weight: 400;
+    opacity: 1;
+  }
+}
+
+.mod-layout-root,
+.mod-dashboard-sheet,
+.font-moderator {
+  --placeholder: color-mix(in srgb, var(--modText) 60%, var(--modSurface));
 }
 
 :where(input, textarea, select):disabled,
@@ -1198,6 +1214,11 @@ img {
 
 /* The editor responds to its available panel width rather than the viewport. */
 .quiz-editor { container: quiz-editor / inline-size; }
+.quiz-editor,
+.quiz-dialog {
+  --accent: color-mix(in srgb, var(--modText) 7%, var(--modSurface));
+  --accent-foreground: var(--modText);
+}
 .quiz-question-link.is-selected { border-color: var(--modPrimary); background: color-mix(in srgb, var(--modPrimary) 5%, var(--modSurface)); }
 .quiz-answer-row.is-correct .quiz-answer-letter { background: color-mix(in srgb, var(--modSuccess) 10%, var(--modSurface)); }
 .quiz-answer-row.is-correct > textarea { border-color: color-mix(in srgb, var(--modSuccess) 50%, var(--modBorder)); background: color-mix(in srgb, var(--modSuccess) 5%, var(--modSurface)); }

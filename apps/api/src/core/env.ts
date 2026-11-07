@@ -7,6 +7,7 @@ const envSchema = z
       .enum(["development", "production", "test"])
       .default("development"),
     PORT: z.coerce.number().default(3005),
+    QUIZ_IMPORT_OFFICE_PATH: z.preprocess(emptyAsUndefined, z.string().min(1).optional()),
     DATABASE_URL: z.string().optional(),
     BETTER_AUTH_SECRET: z
       .string()

@@ -33,6 +33,7 @@ interface AudioPlaybackProps {
   playlist?: boolean;
   controlsHidden?: boolean;
   playRequest?: number;
+  pauseRequested?: boolean;
   onPlayingChange?: (playing: boolean) => void;
   onFinished?: () => void;
   shuffle?: boolean;
@@ -43,10 +44,12 @@ interface AudioPlaybackProps {
   onNext?: () => void;
 }
 
-export function AudioPlayback({ narrationId, userId, playlist = false, controlsHidden = false, playRequest = 0, autoPlayOnReady = false, appearance = "default", onPlayingChange, onFinished, shuffle = false, repeat = "off", onShuffle, onRepeat, onPrevious, onNext }: AudioPlaybackProps): ReactElement {
+export function AudioPlayback({ narrationId, userId, playlist = false, controlsHidden = false, playRequest = 0, pauseRequested = false, autoPlayOnReady = false, appearance = "default", onPlayingChange, onFinished, shuffle = false, repeat = "off", onShuffle, onRepeat, onPrevious, onNext }: AudioPlaybackProps): ReactElement {
   const speedControlId = useId();
   const playback = useQuery({ queryKey: ["library-playback", userId, narrationId], queryFn: ({ signal }) => libraryService.playback(narrationId, signal), staleTime: 0, refetchOnWindowFocus: false });
   const audio = useRef<HTMLAudioElement>(null);
+  const pauseIntent = useRef(pauseRequested);
+  pauseIntent.current = pauseRequested;
   const autoPlayRequested = useRef(autoPlayOnReady);
   const queryClient = useQueryClient();
   const [audioError, setAudioError] = useState(false);
@@ -54,6 +57,7 @@ export function AudioPlayback({ narrationId, userId, playlist = false, controlsH
   const [playing, setPlaying] = useState(false);
   const [position, setPosition] = useState(0);
   const [volume, setVolume] = useState(1);
+  useEffect(() => { if (pauseRequested) audio.current?.pause(); }, [pauseRequested, playback.data]);
   useEffect(() => {
     const pauseWhenHidden = (): void => { if (document.hidden) audio.current?.pause(); };
     document.addEventListener("visibilitychange", pauseWhenHidden);
@@ -61,7 +65,7 @@ export function AudioPlayback({ narrationId, userId, playlist = false, controlsH
   }, []);
   function toggle(): void {
     if (!audio.current) return;
-    if (audio.current.paused) void audio.current.play().catch(() => { setPlaying(false); onPlayingChange?.(false); });
+    if (audio.current.paused) { pauseIntent.current = false; void audio.current.play().catch(() => { setPlaying(false); onPlayingChange?.(false); }); }
     else audio.current.pause();
   }
   useEffect(() => {
@@ -126,7 +130,7 @@ export function AudioPlayback({ narrationId, userId, playlist = false, controlsH
   if (playback.isPending) return playlist ? <p role="status" className="py-3 text-xs text-ink-soft">Đang mở bản thu…</p> : <LibraryState loading />;
   if (playback.isError) return playlist ? <div role="alert" className="flex flex-wrap items-center gap-3 text-xs"><p>Chưa mở được bản thu. Vui lòng thử lại.</p><Button size="sm" variant="outline" onClick={() => { void playback.refetch(); }}>Thử lại</Button></div> : <LibraryState error title="Chưa mở được bản thu" description="Kiểm tra kết nối hoặc đăng nhập lại để tiếp tục nghe." retry={() => { void playback.refetch(); }} />;
   return <div className={playlist ? "contents" : "space-y-4"}>
-    <audio ref={audio} controls={!playlist && appearance !== "exhibition"} preload="metadata" className={playlist || appearance === "exhibition" ? "hidden" : "w-full"} src={playback.data.audio.url} onPlay={event => { progress.current.previous = event.currentTarget.currentTime; setPlaying(true); onPlayingChange?.(true); }} onPause={() => { setPlaying(false); onPlayingChange?.(false); }} onEnded={async event => { const element = event.currentTarget; setPlaying(false); onPlayingChange?.(false); await flushProgress.current(); if (repeat === "one") { element.currentTime = 0; progress.current.previous = -1; void element.play().catch(() => {}); } else onFinished?.(); }} onLoadedMetadata={(event) => { event.currentTarget.currentTime = (playback.data.progress?.positionMs ?? 0) / 1000; setPosition(event.currentTarget.currentTime); event.currentTarget.playbackRate = Number(speed); const shouldPlay = playlist || autoPlayRequested.current; autoPlayRequested.current = false; if (shouldPlay && !document.hidden) void event.currentTarget.play().catch(() => { setPlaying(false); onPlayingChange?.(false); }); }} onSeeking={() => { progress.current.previous = -1; }} onSeeked={(event) => { progress.current.previous = event.currentTarget.currentTime; progress.current.positionMs = Math.min(Math.round(event.currentTarget.currentTime * 1000), playback.data.audio.durationMs); progress.current.dirty = true; }} onError={() => setAudioError(true)} onTimeUpdate={(event) => {
+    <audio ref={audio} controls={!playlist && appearance !== "exhibition"} preload="metadata" className={playlist || appearance === "exhibition" ? "hidden" : "w-full"} src={playback.data.audio.url} onPlay={event => { if (pauseIntent.current) { event.currentTarget.pause(); return; } progress.current.previous = event.currentTarget.currentTime; setPlaying(true); onPlayingChange?.(true); }} onPause={() => { setPlaying(false); onPlayingChange?.(false); }} onEnded={async event => { const element = event.currentTarget; setPlaying(false); onPlayingChange?.(false); await flushProgress.current(); if (audio.current !== element || pauseIntent.current) return; if (repeat === "one") { element.currentTime = 0; progress.current.previous = -1; void element.play().catch(() => {}); } else onFinished?.(); }} onLoadedMetadata={(event) => { event.currentTarget.currentTime = (playback.data.progress?.positionMs ?? 0) / 1000; setPosition(event.currentTarget.currentTime); event.currentTarget.playbackRate = Number(speed); const shouldPlay = playlist || autoPlayRequested.current; autoPlayRequested.current = false; if (shouldPlay && !pauseIntent.current && !document.hidden) void event.currentTarget.play().catch(() => { setPlaying(false); onPlayingChange?.(false); }); }} onSeeking={() => { progress.current.previous = -1; }} onSeeked={(event) => { progress.current.previous = event.currentTarget.currentTime; progress.current.positionMs = Math.min(Math.round(event.currentTarget.currentTime * 1000), playback.data.audio.durationMs); progress.current.dirty = true; }} onError={() => setAudioError(true)} onTimeUpdate={(event) => {
       const element = event.currentTarget;
       const state = progress.current;
       const now = element.currentTime;

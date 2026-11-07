@@ -3,7 +3,7 @@ import { act, type ReactElement } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { createMemoryRouter, RouterProvider } from "react-router";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import type { QuizDraftData, QuizWorkspace } from "@repo/shared";
+import { parseQuizDocument, type QuizDraftData, type QuizWorkspace } from "@repo/shared";
 import { QuizEditor } from "./QuizEditor";
 import { QuizPreview } from "../components/QuizPreview";
 import { quizService } from "../services/quizService";
@@ -72,13 +72,14 @@ async function renderEditor(initial: QuizWorkspace): Promise<HTMLDivElement> {
 }
 
 async function importIntoEditor(host: ParentNode, text: string): Promise<void> {
-  await act(async () => button(host, "Nhập câu hỏi").click());
-  const textarea = document.querySelector<HTMLTextAreaElement>("#quiz-import-source")!;
-  await act(async () => {
-    Object.getOwnPropertyDescriptor(HTMLTextAreaElement.prototype, "value")!.set!.call(textarea, text);
-    textarea.dispatchEvent(new Event("input", { bubbles: true }));
-  });
-  await act(async () => button(document, "Đưa vào trình soạn").click());
+  const result = parseQuizDocument({ fileName: "quiz.txt", format: "txt", blocks: text.split("\n").map((text, i) => ({ text, line: i + 1, page: null })) }, 20);
+  const preview = spyOn(quizService, "previewDocument").mockResolvedValue(result);
+  try {
+    if (!document.querySelector('[role="dialog"]')) await act(async () => button(host, "Import File").click());
+    const input = document.querySelector<HTMLInputElement>('input[type="file"]')!;
+    await act(async () => { Object.defineProperty(input, "files", { configurable: true, value: [new File([text], "quiz.txt")] }); input.dispatchEvent(new Event("change", { bubbles: true })); });
+    await act(async () => button(document, "Đưa vào trình soạn").click());
+  } finally { preview.mockRestore(); }
 }
 
 function blankWorkspace(): QuizWorkspace {
@@ -103,46 +104,37 @@ it("replaces the blank placeholder directly and uses only the existing preview o
   expect(document.querySelector('[role="dialog"]')?.textContent).toContain("Xem thử bộ quiz");
 });
 
-it("selects the incomplete imported question and lets its existing form fix the answer", async () => {
+it("keeps incomplete imports out of the editor until the corrected file is uploaded", async () => {
   const host = await renderEditor(blankWorkspace());
   await importIntoEditor(host, "Câu 1: Ai lãnh đạo?\nĐáp án: Lê Lợi\nCâu 2: Chọn số hai\nA. Một\nB. Hai");
+  expect(host.querySelectorAll(".quiz-question-link")).toHaveLength(1);
+  expect(host.querySelector<HTMLTextAreaElement>("#quiz-question")?.value).toBe("");
+  expect(button(document, "Đưa vào trình soạn").disabled).toBe(true);
+  await importIntoEditor(host, "Câu 1: Ai lãnh đạo?\nĐáp án: Lê Lợi\nCâu 2: Chọn số hai\nA. Một\nB. Hai\nĐáp án: B");
   expect(host.querySelectorAll(".quiz-question-link")).toHaveLength(2);
-  expect(host.querySelector<HTMLTextAreaElement>("#quiz-question")?.value).toBe("Chọn số hai");
-  expect(host.querySelector('[role="alert"]')?.textContent).toContain("Chưa có đáp án đúng");
-  expect(button(host, "Xem thử").disabled).toBe(true);
-  await act(async () => host.querySelector<HTMLInputElement>('[aria-label="Chọn B là đáp án đúng"]')!.click());
-  expect(host.querySelector('[role="alert"]')).toBeNull();
   expect(button(host, "Xem thử").disabled).toBe(false);
 });
 
-it("keeps contradictory import warnings until explicit review and blocks saving them away", async () => {
+it("shows contradictory imports only in the report and never saves them", async () => {
   const save = spyOn(quizService, "save").mockImplementation(async (_id, _revision, data) => ({ ...workspace, revision: 2, data }));
   restore = () => save.mockRestore();
   const host = await renderEditor(blankWorkspace());
   await importIntoEditor(host, "Câu 1: Chọn số hai\nA. Một\nB. Hai\nĐáp án: B. Ba");
-  expect(host.querySelector('[role="alert"]')?.textContent).toContain("không khớp");
-  expect(button(host, "Xem thử").disabled).toBe(true);
-  await act(async () => button(host, "Lưu nháp").click());
+  expect(document.querySelector('[role="dialog"]')?.textContent).toContain("không khớp");
+  expect(button(document, "Đưa vào trình soạn").disabled).toBe(true);
   expect(save).not.toHaveBeenCalled();
-  await act(async () => host.querySelector("details summary")!.dispatchEvent(new MouseEvent("click", { bubbles: true })));
-  expect(host.querySelector("details pre")?.textContent).toContain("Đáp án: B. Ba");
-  await act(async () => button(host, "Đã kiểm tra câu này").click());
-  expect(host.querySelector('[role="alert"]')).toBeNull();
-  expect(button(host, "Xem thử").disabled).toBe(false);
-  await act(async () => { button(host, "Lưu nháp").click(); await Bun.sleep(30); });
-  expect(save).toHaveBeenCalledTimes(1);
+  expect(document.querySelector("details pre")?.textContent).toContain("Đáp án: B. Ba");
+  expect(host.querySelector<HTMLTextAreaElement>("#quiz-question")?.value).toBe("");
 });
 
-it("does not lose unresolved import warnings when duplicating a question", async () => {
+it("closing an invalid preview keeps the current questions unchanged", async () => {
   const save = spyOn(quizService, "save");
   restore = () => save.mockRestore();
   const host = await renderEditor(blankWorkspace());
   await importIntoEditor(host, "Câu 1: Chọn số hai\nA. Một\nB. Hai\nĐáp án: B. Ba");
-  await act(async () => button(host, "Nhân bản").click());
-  expect(host.querySelectorAll(".quiz-question-link")).toHaveLength(2);
-  await act(async () => button(host, "Đã kiểm tra câu này").click());
-  expect(button(host, "Xem thử").disabled).toBe(true);
-  await act(async () => button(host, "Lưu nháp").click());
+  await act(async () => document.querySelector<HTMLButtonElement>('[aria-label="Đóng hộp thoại"]')!.click());
+  expect(host.querySelectorAll(".quiz-question-link")).toHaveLength(1);
+  expect(host.querySelector<HTMLTextAreaElement>("#quiz-question")?.value).toBe("");
   expect(save).not.toHaveBeenCalled();
 });
 

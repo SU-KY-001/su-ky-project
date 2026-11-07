@@ -190,12 +190,11 @@ export function QuizEditor({ initial, onBack }: { initial: QuizWorkspace; onBack
         </div>
       </section>
       <aside className="quiz-properties flex min-w-0 flex-col gap-5 rounded-[10px] border border-mod-border bg-mod-surface p-[18px]" aria-label="Kịch bản tham chiếu">
-        <div className="quiz-time-guidance [&>p]:text-[11px] [&>p]:leading-[1.7] [&>p]:text-mod-text-secondary border-b border-mod-border pb-5">
+        <div className="quiz-time-guidance border-b border-mod-border pb-5">
           <Accordion type="single" collapsible defaultValue="time"><AccordionItem value="time" className="border-b-0">
             <AccordionTrigger disabled={busy}>Thời gian gợi ý cho tất cả câu hỏi</AccordionTrigger>
             <AccordionContent><ModeratorSelect id="quiz-time" label="Thời gian gợi ý cho tất cả câu hỏi" value={sharedTimeLimit} onValueChange={value => setData(d => ({ ...d, questions: d.questions.map(q => ({ ...q, timeLimit: Number(value) })) }))} options={[10, 20, 30, 60, 120].map(n => ({ value: String(n), label: `${n} giây / câu` }))} placeholder="Chọn thời gian chung" disabled={busy} /></AccordionContent>
           </AccordionItem></Accordion>
-          <p>Lựa chọn áp dụng cho toàn bộ {data.questions.length} câu và các câu thêm mới. Người học sẽ thấy thời gian đếm ngược cho mỗi câu.</p>
         </div>
         <QuizScriptReference text={data.referenceText ?? ""} onTextChange={referenceText => setData(d => ({ ...d, referenceText }))} />
       </aside>
@@ -203,11 +202,10 @@ export function QuizEditor({ initial, onBack }: { initial: QuizWorkspace; onBack
     <footer className="quiz-editor-footer flex flex-wrap items-center justify-between gap-3 border-t border-mod-border px-4 py-3">
       <div className="quiz-publish-summary [&>div]:max-w-[72ch] [&>svg]:mt-0.5 [&>svg]:shrink-0 [&_p+p]:mt-1 flex min-w-0 flex-[1_1_300px] items-start gap-2.5 text-xs leading-[1.7] text-mod-text-secondary"><Info size={18} aria-hidden="true" /><div>
         <p className="font-semibold text-mod-text">{saved.attemptCount ? `Bộ quiz đã có ${saved.attemptCount} lượt làm` : saved.active && !dirty ? "Quiz đã được gắn với tập podcast" : "Cho phép người nghe làm quiz của tập này"}</p>
-        <p>{saved.attemptCount ? "Bạn vẫn có thể lưu bản nháp, nhưng không thể thay bộ câu hỏi đã có lượt làm." : saved.active && !dirty ? "Người nghe có thể làm quiz khi tập podcast được công khai." : "Gắn bộ câu hỏi với tập podcast sau khi rà soát. Người nghe thấy quiz khi tập được công khai; lưu nháp chỉ giữ nội dung để tiếp tục biên soạn."}</p>
       </div></div>
       {saved.active && !dirty ? <CardBadge type="status" tone="success"><CheckCircle weight="fill" />Đã gắn với tập podcast</CardBadge> : saved.attemptCount ? <CardBadge type="status" tone="neutral">Quiz đã có lượt làm</CardBadge> : <Button variant="outline" disabled={busy} onClick={() => void publish()}>{busy ? "Đang xử lý…" : "Gắn quiz với tập podcast"}</Button>}
     </footer>
-    <Dialog open={settings} onOpenChange={setSettings}><DialogContent className="max-h-[90dvh] overflow-y-auto border-mod-border bg-mod-surface font-moderator text-mod-text">
+    <Dialog open={settings} onOpenChange={setSettings}><DialogContent className="quiz-dialog max-h-[90dvh] overflow-y-auto border-mod-border bg-mod-surface font-moderator text-mod-text">
       <DialogHeader><DialogTitle>Thiết lập bộ quiz</DialogTitle><DialogDescription>Bổ sung mô tả và chọn mức điểm để người nghe được tính là đạt.</DialogDescription></DialogHeader>
       <div className="space-y-2">
         <Label htmlFor="quiz-description">Mô tả bộ quiz <span className="text-xs font-normal text-mod-text-low">Không bắt buộc</span></Label>
@@ -222,7 +220,7 @@ export function QuizEditor({ initial, onBack }: { initial: QuizWorkspace; onBack
       {imagePolicy.isError && <div role="alert" className="text-xs text-mod-danger">Chưa lấy được điều kiện tải ảnh. <Button type="button" size="sm" variant="link" onClick={() => { void imagePolicy.refetch(); }}>Thử lại</Button></div>}
       <ImageUploadDropzone label="Ảnh đại diện quiz" value={data.posterAssetId ? { assetId: data.posterAssetId, url: poster.data?.previewUrl ?? null, fileName: "Ảnh quiz", sizeBytes: null } : null} policy={imagePolicy.data} disabled={busy || imagePolicy.isPending} onUpload={uploadImage} onBusyChange={setImageUploading} onChange={image => setData(current => ({ ...current, posterAssetId: image?.assetId ?? null }))} />
       <p className="text-xs leading-5 text-mod-text-secondary">Nếu không chọn ảnh riêng, quiz dùng poster của tập podcast.</p>
-      <div className="border-t border-mod-border pt-4"><p className="mb-4 text-xs leading-5 text-mod-text-secondary">Cài đặt áp dụng cho bản đang soạn. Bấm “Lưu nháp” ở trình soạn để lưu lại các thay đổi.</p><DialogFooter><Button onClick={() => setSettings(false)}>Quay lại soạn câu hỏi</Button></DialogFooter></div>
+      <div className="border-t border-mod-border pt-4"><DialogFooter><Button onClick={() => setSettings(false)}>Quay lại soạn câu hỏi</Button></DialogFooter></div>
     </DialogContent></Dialog>
     <QuizPreview open={preview} onOpenChange={setPreview} data={data} />
     <ConfirmationDialog {...confirmation} />
