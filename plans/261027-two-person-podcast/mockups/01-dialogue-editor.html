@@ -1,0 +1,110 @@
+<!doctype html><html lang="vi"><head><meta charset="utf-8"><title>Kịch bản hai người</title><meta name="viewport" content="width=device-width,initial-scale=1"><link rel="stylesheet" href="../../261015-1640-podcast-ai-source-check-p1/mockups/mock.css">
+<style>
+.turn{background:var(--card);border:1px solid var(--line);border-radius:12px;overflow:hidden}
+.turn.cur{border-color:var(--text)}
+.thead{display:flex;gap:8px;align-items:center;padding:10px 12px;background:var(--kbd);flex-wrap:wrap}
+.thead select{width:auto}.thead input[type=text]{flex:1;min-width:160px}
+.turn textarea{border:0;border-radius:0;min-height:72px;padding:12px 16px;line-height:1.7;font-size:14px}
+.turn textarea:focus{outline:0;background:#fffefb}
+.tfoot{display:flex;gap:6px;align-items:center;padding:6px 12px;border-top:1px solid var(--line);color:var(--low);font-size:12px}
+.tfoot input{border:0;flex:1;padding:4px;background:none;font-size:12px}
+.tfoot input:focus{outline:0}
+.menu{position:absolute;z-index:45;display:none;background:var(--card);border:1px solid var(--line);border-radius:8px;padding:8px;width:300px;box-shadow:0 8px 24px rgba(0,0,0,.08)}
+.menu.open{display:block}
+.menu .chips{display:flex;flex-wrap:wrap;gap:4px;margin-top:6px}
+.menu .chip{cursor:pointer;font-family:var(--mono)}.menu .chip:hover{background:var(--line)}
+.dotc{width:10px;height:10px;border-radius:2px;display:inline-block}
+.sp-a{background:var(--text)}.sp-b{background:var(--info)}
+</style></head><body>
+<div class="top"><div class="crumb">Studio / Hào khí Đại Việt / <b>Tập 3: Cuộc dời đô</b> <span class="tag t-info">Hội thoại 2 người</span></div>
+ <div class="row"><button class="btn" id="toSheet"><i class="ph-bold ph-users"></i>Bản đọc theo vai</button><button class="btn p" data-open="#m-tts"><i class="ph-bold ph-microphone"></i>Tạo giọng AI</button></div></div>
+<div class="steps"><span class="step done"><em><i class="ph-bold ph-check"></i></em>Thông tin</span><span class="step on"><em>2</em>Kịch bản</span><span class="step"><em>3</em>Giọng đọc</span><span class="step"><em>4</em>Xem lại</span></div>
+<div class="wrap" style="padding-top:32px"><div class="cols">
+ <div class="stack" id="turns"></div>
+ <div class="stack" style="position:sticky;top:16px">
+  <div class="card tight stack">
+   <div class="row sp"><h3>Người nói</h3><span class="low">Đúng 2 người</span></div>
+   <div class="sec"><div class="row"><span class="dotc sp-a"></span><input type="text" value="Veda" id="nameA" style="font-weight:600"></div>
+    <label class="f">Giọng AI<select><option>Kore · ấm, gần gũi, cao</option><option>Puck · sôi nổi, trung</option><option>Charon · điềm đạm, thấp</option></select></label>
+    <label class="f">Người đọc thật <small>dùng cho bản đọc theo vai</small><select><option>Chưa gán</option><option>Mod: Nguyễn An</option><option>Mod: Trần Bình</option></select></label></div>
+   <div class="sec"><div class="row"><span class="dotc sp-b"></span><input type="text" value="Rami" id="nameB" style="font-weight:600"></div>
+    <label class="f">Giọng AI<select><option>Charon · điềm đạm, thấp</option><option>Kore · ấm, gần gũi, cao</option><option>Puck · sôi nổi, trung</option></select></label>
+    <label class="f">Người đọc thật<select><option>Chưa gán</option><option>Mod: Nguyễn An</option><option selected>Mod: Trần Bình</option></select></label></div>
+   <div class="alert info"><i class="ph-bold ph-info"></i><span>Giọng AI chỉ dùng giọng có sẵn của Google khi tạo một lượt hai người. Giọng tự thiết kế phải tạo từng lượt riêng, chưa hỗ trợ.</span></div>
+  </div>
+  <div class="card tight stack s8">
+   <div class="row sp"><h3>Tóm tắt</h3><span class="tag t-ok" id="vt">Hợp lệ</span></div>
+   <table><tr><td class="low">Số lượt</td><td id="sn">0</td></tr><tr><td class="low">Số ký tự</td><td id="sc">0</td></tr><tr><td class="low">Ước tính thời lượng</td><td id="sd">0</td></tr></table>
+   <p class="low" id="vm"></p>
+  </div>
+ </div></div></div>
+
+<div class="menu" id="menu"><b style="font-size:12px">Chèn expression tại con trỏ</b><div class="chips" id="chips"></div><p class="low" style="margin-top:8px">Tag viết tiếng Anh dù lời là tiếng Việt. Dùng <span class="mono">|ừ|</span> để người kia chen vào mà không tách lượt.</p></div>
+
+<div class="modal" id="m-tts"><div class="dialog">
+ <div class="dhead"><div><p class="low">Giọng AI · hai người</p><h2 class="dtitle">Xác nhận</h2></div><div class="dots"><span></span><span></span></div></div>
+ <div data-s="1" data-title="Xác nhận"><div class="dbody">
+  <table><tr><td class="low">Mô hình</td><td>Gemini 3.8 Flash TTS</td></tr><tr><td class="low">Số lượt / ký tự</td><td id="tn">0</td></tr><tr><td class="low">Giọng</td><td>A: Kore, B: Charon</td></tr></table>
+  <div class="alert warn"><i class="ph-bold ph-warning-circle"></i><span>Sửa kịch bản sau này phải tạo lại cả tập, không tạo lại riêng một lượt.</span></div>
+  <label class="row" style="align-items:flex-start"><input type="checkbox" style="margin-top:4px"><span>Tôi hiểu giọng đọc do AI tạo và sẽ được gắn nhãn "giọng AI" khi phát hành.</span></label></div>
+  <div class="dfoot"><button class="btn" data-close>Đóng</button><button class="btn p" data-step-go="2"><i class="ph-bold ph-play"></i>Tạo giọng đọc</button></div></div>
+ <div data-s="2" data-title="Tiến độ và nghe thử"><div class="dbody"><div class="stack" data-panel data-view="run" data-first="run" data-auto="run:done:3000">
+  <div data-v="run" class="stack"><div class="row sp"><h3>Đang tạo</h3><span class="tag t-info">Đang chạy</span></div><div class="meter"><span data-fill="70%"></span></div><p class="low">Chạy nền, đóng tab vẫn không mất.</p></div>
+  <div data-v="done" class="stack"><div class="alert ok"><i class="ph-bold ph-check-circle"></i><span>Đã tạo xong.</span></div><div class="wave"></div><div class="row"><button class="btn"><i class="ph-bold ph-play"></i>Nghe cả tập</button></div></div></div></div>
+  <div class="dfoot"><span class="low">Âm thanh chưa dùng cho tập cho tới khi bạn nghe và bấm Xong.</span><button class="btn p" data-close><i class="ph-bold ph-check"></i>Xong</button></div></div>
+</div></div>
+
+<p class="note">Mockup tĩnh có tương tác (thêm/xóa lượt, đổi người nói, chèn expression). Chưa nối API. Giọng và chi phí là giả.</p>
+<script src="../../261015-1640-podcast-ai-source-check-p1/mockups/mock.js"></script>
+<script>
+const TAGS = ["laugh","chuckle","sigh","breath","gasp","cough","throat-clearing","whispers","short pause","long pause"];
+const STYLES = ["", "điềm đạm, rõ ràng", "sôi nổi, hào hứng", "tò mò, hơi chậm", "trầm, trang trọng", "thì thầm"];
+const DPM = 700; // ký tự mỗi phút đọc, chỉ để ước lượng trong mock
+let turns = [
+ { s: "A", style: "sôi nổi, hào hứng", text: "Chào mừng quay lại với chương trình! Hôm nay mình kể chuyện mùa thu năm 1010, khi triều đình quyết định rời kinh đô cũ.", note: "Mở đầu, nhịp nhanh" },
+ { s: "B", style: "tò mò, hơi chậm", text: "<chuckle> Nghe đã thấy hấp dẫn. Nhưng vì sao lại là Đại La, hả Veda?", note: "" },
+ { s: "A", style: "điềm đạm, rõ ràng", text: "Ừ, câu hỏi đúng đấy. |Ừm.| Chiếu dời đô nói về một vùng đất ở giữa trời đất, thuận cho việc dựng nghiệp lâu dài.", note: "Trích ý Chiếu dời đô, đọc chậm" },
+];
+let cur = -1, caretTa = null;
+const name = (s) => $(s === "A" ? "#nameA" : "#nameB").value;
+function render() {
+  $("#turns").innerHTML = turns.map((t, i) => `<div class="turn ${i === cur ? "cur" : ""}" data-i="${i}">
+   <div class="thead"><span class="dotc ${t.s === "A" ? "sp-a" : "sp-b"}"></span>
+    <select data-f="s"><option value="A" ${t.s === "A" ? "selected" : ""}>A · ${name("A")}</option><option value="B" ${t.s === "B" ? "selected" : ""}>B · ${name("B")}</option></select>
+    <input type="text" data-f="style" list="sty" placeholder="Giọng điệu (cả lượt)" value="${t.style}">
+    <button class="btn sm" data-a="expr"><i class="ph-bold ph-plus"></i>Expression</button>
+    <button class="ic" data-a="up" title="Lên"><i class="ph-bold ph-arrow-up"></i></button><button class="ic" data-a="down" title="Xuống"><i class="ph-bold ph-arrow-down"></i></button><button class="ic" data-a="del" title="Xóa lượt"><i class="ph-bold ph-trash"></i></button></div>
+   <textarea data-f="text" placeholder="Lời nói của lượt này">${t.text}</textarea>
+   <div class="tfoot"><i class="ph-bold ph-note-pencil"></i><input type="text" data-f="note" placeholder="Ghi chú cho người thu (không gửi cho AI)" value="${t.note}"></div></div>`).join("")
+   + `<datalist id="sty">${STYLES.map((s) => `<option value="${s}">`).join("")}</datalist>
+   <div class="row"><button class="btn" data-a="add" data-s="A"><span class="dotc sp-a"></span>Thêm lượt ${name("A")}</button><button class="btn" data-a="add" data-s="B"><span class="dotc sp-b"></span>Thêm lượt ${name("B")}</button></div>`;
+  const chars = turns.reduce((n, t) => n + t.text.length, 0), min = chars / DPM, empty = turns.filter((t) => !t.text.trim()).length;
+  $("#sn").textContent = turns.length; $("#sc").textContent = chars.toLocaleString("vi"); $("#sd").textContent = `~${Math.floor(min)} phút ${Math.round((min % 1) * 60)} giây`;
+  $("#tn").textContent = `${turns.length} lượt, ${chars.toLocaleString("vi")} ký tự`;
+  const bad = !turns.length || empty;
+  $("#vt").className = "tag " + (bad ? "t-bad" : "t-ok"); $("#vt").textContent = bad ? "Chưa hợp lệ" : "Hợp lệ";
+  $("#vm").textContent = !turns.length ? "Cần ít nhất một lượt." : empty ? `${empty} lượt còn trống.` : "";
+}
+$("#turns").addEventListener("input", (e) => { const f = e.target.dataset.f; if (!f) return; turns[+e.target.closest(".turn").dataset.i][f] = e.target.value; if (f === "text") { const sel = e.target.selectionStart; render(); const ta = $(`.turn[data-i="${cur}"] textarea`); ta && (ta.focus(), ta.setSelectionRange(sel, sel)); } });
+$("#turns").addEventListener("change", (e) => { if (e.target.dataset.f === "s") { turns[+e.target.closest(".turn").dataset.i].s = e.target.value; render(); } });
+$("#turns").addEventListener("focusin", (e) => { const t = e.target.closest(".turn"); if (t && +t.dataset.i !== cur) { cur = +t.dataset.i; $$(".turn").forEach((x) => x.classList.toggle("cur", +x.dataset.i === cur)); } });
+document.addEventListener("click", (e) => {
+  const b = e.target.closest("[data-a]"); const menu = $("#menu");
+  if (!b) { if (!e.target.closest("#menu")) menu.classList.remove("open"); return; }
+  const i = +(b.closest(".turn")?.dataset.i ?? -1), a = b.dataset.a;
+  if (a === "add") { turns.push({ s: b.dataset.s, style: "", text: "", note: "" }); cur = turns.length - 1; render(); $(`.turn[data-i="${cur}"] textarea`).focus(); }
+  if (a === "del") { turns.splice(i, 1); cur = -1; render(); }
+  if (a === "up" && i > 0) { [turns[i - 1], turns[i]] = [turns[i], turns[i - 1]]; cur = i - 1; render(); }
+  if (a === "down" && i < turns.length - 1) { [turns[i + 1], turns[i]] = [turns[i], turns[i + 1]]; cur = i + 1; render(); }
+  if (a === "expr") { caretTa = $("textarea", b.closest(".turn")); const r = b.getBoundingClientRect(); menu.style.left = Math.min(r.left + scrollX, innerWidth - 320) + "px"; menu.style.top = r.bottom + scrollY + 6 + "px"; menu.classList.add("open"); e.stopPropagation(); }
+});
+$("#chips").innerHTML = TAGS.map((t) => `<span class="chip" data-t="${t}">&lt;${t}&gt;</span>`).join("");
+$("#chips").addEventListener("click", (e) => {
+  const c = e.target.closest("[data-t]"); if (!c || !caretTa) return;
+  const idx = +caretTa.closest(".turn").dataset.i, p = caretTa.selectionStart ?? caretTa.value.length, tag = `<${c.dataset.t}> `;
+  turns[idx].text = caretTa.value.slice(0, p) + tag + caretTa.value.slice(p); cur = idx; render(); $("#menu").classList.remove("open");
+});
+["#nameA", "#nameB"].forEach((s) => $(s).addEventListener("input", render));
+$("#toSheet").addEventListener("click", () => (location.href = "02-recording-sheet.html"));
+render();
+</script></body></html>

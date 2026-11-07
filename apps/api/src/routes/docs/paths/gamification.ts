@@ -1,0 +1,185 @@
+import { z } from "zod";
+import {
+  MyWeeklyMissionsSchema,
+  PublicQuizSchema,
+  PublicQuizCatalogQuerySchema,
+  PublicQuizCatalogSchema,
+  QuizAttemptResultSchema,
+  StudioQuizSchema,
+  SubmitQuizAttemptSchema,
+  UpsertQuizSchema,
+  WeeklyMissionQuerySchema,
+  QuizWorkspaceSchema, QuizWorkspaceListSchema, SaveQuizDraftSchema, ActivateQuizDraftSchema, QuizImportDocumentSchema, QuizImportPreviewSchema,
+} from "@repo/shared";
+import { operation, type Paths } from "../operation";
+
+const QUIZ_TAG = "Quiz";
+const MISSION_TAG = "Missions";
+const LOCKED = "`CONTENT_LOCKED`: Admin đã khoá tập hoặc Series, chỉ Admin sửa được";
+const IN_TRASH = "`CONTENT_IN_TRASH`: tập hoặc Series đang ở thùng rác";
+const EpisodeIdParam = z.object({ episodeId: z.string().uuid() });
+const QuizIdParam = z.object({ quizId: z.string().uuid() });
+const SlugParam = z.object({ slug: z.string().min(1) });
+// Cùng query schema inline trong gamification.routes.ts.
+const QuizFormatQuery = z.object({ format: z.literal("2").optional() });
+export const gamificationPaths: Paths = {
+  "/api/studio/quiz-import/preview": {
+    post: {
+      ...operation({ id: "previewQuizDocument", tag: QUIZ_TAG, summary: "Đọc và xem trước câu hỏi từ tài liệu", description: "DOC, DOCX, PDF có văn bản, TXT/MD UTF-8; tối đa 5 MB, 200.000 ký tự, PDF 100 trang và quiz 100 câu. Phân tích ba loại câu hỏi không AI/OCR, trả vị trí nguồn và hướng dẫn sửa. status ready/needs_correction không có nghĩa đã lưu quiz. Không lưu file, không ghi database. DOC cần LibreOffice trên server. Deadline tổng 60 giây.", access: "moderator", rate: "write", ok: { status: 200, description: "Preview chỉ đọc; lỗi cấu trúc nằm trong diagnostics, chặn áp dụng khi needs_correction", schema: { name: "QuizImportPreview", schema: QuizImportPreviewSchema } }, errors: { 413: "`PAYLOAD_TOO_LARGE`: file vượt 5 MB", 422: "`VALIDATION_ERROR`: thiếu/nhiều file, thời gian sai, định dạng/file hỏng, bị khóa, bản scan hoặc vượt giới hạn đọc", 503: "`SERVICE_UNAVAILABLE`: bộ đọc DOC chưa sẵn sàng, quá tải hoặc xử lý quá thời gian" } }),
+      requestBody: { required: true, content: { "multipart/form-data": { schema: { type: "object", required: ["file"], properties: { file: { type: "string", format: "binary" }, defaultTime: { type: "integer", minimum: 10, maximum: 120, default: 20 } } } } } },
+    },
+  },
+  "/api/studio/quiz-import/extract": {
+    post: {
+      ...operation({ id: "extractQuizDocument", tag: QUIZ_TAG, summary: "Đọc văn bản từ tài liệu câu hỏi", description: "Nhận một file .docx, .txt, .md hoặc PDF có văn bản, tối đa 5 MB và 200.000 ký tự. Chỉ trích chữ, không tạo quiz, không lưu tài liệu. PDF tối đa 100 trang; không OCR bản scan.", access: "moderator", rate: "write", ok: { status: 200, description: "Văn bản nguồn để kiểm tra và nhập câu hỏi", schema: { name: "QuizImportDocument", schema: QuizImportDocumentSchema } }, errors: { 413: "`PAYLOAD_TOO_LARGE`: tài liệu vượt 5 MB", 422: "`VALIDATION_ERROR`: thiếu file, định dạng không hỗ trợ, tài liệu lỗi, vượt giới hạn hoặc không có văn bản" } }),
+      requestBody: { required: true, content: { "multipart/form-data": { schema: { type: "object", required: ["file"], properties: { file: { type: "string", format: "binary" } } } } } },
+    },
+  },
+  "/api/quizzes": {
+    get: operation({ id: "listPublishedQuizzes", tag: QUIZ_TAG, summary: "Danh sách quiz của các tập công khai", access: "optional", query: PublicQuizCatalogQuerySchema,
+      queryDocs: { page: "Số trang (từ 1)", limit: "Số quiz mỗi trang (1-50, mặc định 12)", topicId: "Lọc theo ID chủ đề (UUID) của Series", episodeSlug: "Lọc theo slug tập công khai" },
+      ok: { status: 200, description: "Danh sách quiz phân trang", schema: { name: "PublicQuizCatalog", schema: PublicQuizCatalogSchema } } }),
+  },
+  "/api/studio/quiz-workspaces": {
+    get: operation({ id: "listQuizWorkspaces", tag: QUIZ_TAG, summary: "Danh sách quiz thật thuộc Moderator", access: "moderator",
+      ok: { status: 200, description: "Bản nháp và quiz đang dùng", schema: { name: "QuizWorkspaceList", schema: QuizWorkspaceListSchema } } }),
+  },
+  "/api/studio/episodes/{episodeId}/quiz-workspace": {
+    get: operation({ id: "getQuizWorkspace", tag: QUIZ_TAG, summary: "Đọc bản nháp và kịch bản quiz độc lập", access: "moderator", pathParams: EpisodeIdParam,
+      ok: { status: 200, description: "Nội dung referenceText là kịch bản riêng của quiz, không lấy từ podcast. Bản nháp cũ chưa có trường này dùng nội dung trống.", schema: { name: "QuizWorkspace", schema: QuizWorkspaceSchema } },
+      errors: { 403: LOCKED, 404: "`NOT_FOUND`: tập không thuộc Moderator", 409: IN_TRASH } }),
+    put: operation({ id: "saveQuizWorkspace", tag: QUIZ_TAG, summary: "Lưu câu hỏi và kịch bản quiz referenceText cùng bản nháp", access: "moderator", pathParams: EpisodeIdParam,
+      body: { name: "SaveQuizDraft", schema: SaveQuizDraftSchema }, rate: "write",
+      ok: { status: 200, description: "Bản nháp đã lưu với revision mới", schema: { name: "QuizWorkspace", schema: QuizWorkspaceSchema } },
+      errors: { 403: LOCKED, 404: "`NOT_FOUND`: tập không thuộc Moderator", 409: `${IN_TRASH}; \`STALE_WRITE\`: revision đã thay đổi`, 422: "`VALIDATION_ERROR`: ảnh quiz không hợp lệ" } }),
+  },
+  "/api/studio/episodes/{episodeId}/quiz-workspace/activate": {
+    post: operation({ id: "activateQuizWorkspace", tag: QUIZ_TAG, summary: "Đưa bản nháp đã rà soát vào sử dụng", access: "moderator", pathParams: EpisodeIdParam,
+      body: { name: "ActivateQuizDraft", schema: ActivateQuizDraftSchema }, rate: "write",
+      ok: { status: 200, description: "Quiz sẵn sàng cho tập công khai", schema: { name: "QuizWorkspace", schema: QuizWorkspaceSchema } },
+      errors: { 403: LOCKED, 404: "`NOT_FOUND`: tập không thuộc Moderator", 409: `${IN_TRASH}; \`STALE_WRITE\`: revision thay đổi; \`CONFLICT\`: đã có lượt làm`, 422: "`VALIDATION_ERROR`: câu hỏi chưa hoàn chỉnh" } }),
+  },
+  "/api/studio/episodes/{episodeId}/quiz": {
+    get: operation({
+      id: "getStudioQuiz",
+      tag: QUIZ_TAG,
+      summary: "Đọc quiz để biên tập",
+      access: "moderator",
+      pathParams: EpisodeIdParam,
+      pathParamDocs: { episodeId: "ID tập thuộc Moderator" },
+      ok: {
+        status: 200,
+        description: "Quiz kèm đáp án đúng và giải thích",
+        schema: { name: "StudioQuiz", schema: StudioQuizSchema },
+      },
+      errors: {
+        403: LOCKED,
+        404: "`NOT_FOUND`: tập không thuộc Moderator hoặc chưa có quiz",
+        409: IN_TRASH,
+      },
+    }),
+    put: operation({
+      id: "upsertStudioQuiz",
+      tag: QUIZ_TAG,
+      summary: "Tạo hoặc thay nội dung quiz",
+      description:
+        "Thay toàn bộ câu hỏi. Không cho thay sau khi đã có lượt làm để bảo toàn lịch sử.",
+      access: "moderator",
+      pathParams: EpisodeIdParam,
+      pathParamDocs: { episodeId: "ID tập thuộc Moderator" },
+      body: { name: "UpsertQuiz", schema: UpsertQuizSchema },
+      rate: "write",
+      ok: {
+        status: 200,
+        description: "Quiz đã lưu, kèm đáp án đúng và giải thích",
+        schema: { name: "StudioQuiz", schema: StudioQuizSchema },
+      },
+      errors: {
+        403: LOCKED,
+        404: "`NOT_FOUND`: tập không thuộc Moderator",
+        409: `${IN_TRASH}; hoặc \`CONFLICT\`: quiz đã có lượt làm`,
+      },
+    }),
+    delete: operation({
+      id: "deleteStudioQuiz",
+      tag: QUIZ_TAG,
+      summary: "Xóa quiz chưa có lượt làm",
+      access: "moderator",
+      pathParams: EpisodeIdParam,
+      pathParamDocs: { episodeId: "ID tập thuộc Moderator" },
+      rate: "write",
+      ok: { status: 204, description: "Đã xóa quiz" },
+      errors: {
+        403: LOCKED,
+        404: "`NOT_FOUND`: tập không thuộc Moderator hoặc chưa có quiz",
+        409: `${IN_TRASH}; hoặc \`CONFLICT\`: quiz đã có lượt làm`,
+      },
+    }),
+  },
+  "/api/episodes/{slug}/quiz": {
+    get: operation({
+      id: "getPublishedQuiz",
+      tag: QUIZ_TAG,
+      summary: "Lấy quiz của tập công khai",
+      description: "Không trả đáp án đúng hay giải thích trước khi nộp bài.",
+      access: "user",
+      pathParams: SlugParam,
+      pathParamDocs: { slug: "Slug tập công khai" },
+      query: QuizFormatQuery,
+      queryDocs: { format: "Truyền 2 nếu client hỗ trợ câu chọn nhiều và điền đáp án." },
+      ok: {
+        status: 200,
+        description: "Quiz cho người nghe",
+        schema: { name: "PublicQuiz", schema: PublicQuizSchema },
+      },
+      errors: {
+        404: "`NOT_FOUND`: tập/Series chưa xuất bản hoặc tập chưa có quiz",
+        409: "`CONFLICT`: quiz có dạng câu mới và client chưa yêu cầu format=2",
+      },
+    }),
+  },
+  "/api/quizzes/{quizId}/attempts": {
+    post: operation({
+      id: "submitQuizAttempt",
+      tag: QUIZ_TAG,
+      summary: "Nộp bài quiz",
+      description:
+        "Chấm điểm theo ngưỡng của quiz. Lần đậu đầu tiên nhận XP và mỗi quiz chỉ được tính một lần vào từng nhiệm vụ tuần PASS_QUIZ.",
+      access: "user",
+      pathParams: QuizIdParam,
+      pathParamDocs: { quizId: "ID quiz" },
+      body: { name: "SubmitQuizAttempt", schema: SubmitQuizAttemptSchema },
+      idempotent: true,
+      rate: "write",
+      ok: {
+        status: 201,
+        description: "Kết quả, đáp án đúng, XP và thay đổi nhiệm vụ",
+        schema: { name: "QuizAttemptResult", schema: QuizAttemptResultSchema },
+      },
+      errors: {
+        404: "`NOT_FOUND`: quiz không khả dụng",
+        422: "`VALIDATION_ERROR`: thiếu câu trả lời hoặc đáp án không thuộc câu hỏi",
+      },
+    }),
+  },
+  "/api/me/weekly-missions": {
+    get: operation({
+      id: "listMyWeeklyMissions",
+      tag: MISSION_TAG,
+      summary: "Danh sách nhiệm vụ tuần của tôi",
+      description:
+        "Mặc định là tuần hiện tại, tính từ thứ Hai 00:00 đến thứ Hai kế tiếp theo múi giờ Việt Nam. `weekStartDate` và `weekEndDate` trong response là thời điểm chính xác (ISO 8601 UTC) của cửa sổ tuần; `status` là `EXPIRED` khi nhiệm vụ chưa hoàn thành mà tuần đã kết thúc.",
+      access: "user",
+      query: WeeklyMissionQuerySchema,
+      queryDocs: {
+        weekStartDate:
+          "Một thời điểm bất kỳ trong tuần cần xem; server chuẩn hóa về thứ Hai 00:00 Asia/Ho_Chi_Minh",
+      },
+      ok: {
+        status: 200,
+        description: "XP hiện tại và tiến độ nhiệm vụ",
+        schema: { name: "MyWeeklyMissions", schema: MyWeeklyMissionsSchema },
+      },
+    }),
+  },
+};

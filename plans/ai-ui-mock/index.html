@@ -1,0 +1,263 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Mock UI AI – Hiện tại vs Đề xuất</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;500;600;700&display=swap">
+<style>
+/* Tokens copied from apps/web/src/styles/globals.css (--mod*) */
+:root{--canvas:#fff;--accent:#f5f6f7;--primary:#b8322a;--primary-h:#96271f;--text:#1c1714;--sec:#5b4e44;--low:#8b796a;--border:#e5e7eb;--ok:#315b34;--warn:#7a5a26;--danger:#9f2923;
+--dock-w:340px;--stage-h:620px;--radius:10px}
+*{box-sizing:border-box}body{margin:0;font:14px/1.5 "Be Vietnam Pro",system-ui,sans-serif;color:var(--text);background:#ece8e2}
+button,input,select,textarea{font:inherit;color:inherit}
+.top{display:flex;gap:12px;align-items:center;padding:12px 20px;background:#fff;border-bottom:1px solid var(--border);position:sticky;top:0;z-index:50}
+.top h1{font-size:15px;margin:0 12px 0 0}
+.seg{display:inline-flex;background:var(--accent);border-radius:8px;padding:3px}
+.seg button{border:0;background:none;padding:6px 14px;border-radius:6px;cursor:pointer;font-weight:600;color:var(--sec)}
+.seg button[aria-pressed=true]{background:#fff;color:var(--primary);box-shadow:0 1px 2px #0002}
+.note{margin-left:auto;color:var(--sec);font-size:13px;max-width:560px}
+.wrap{padding:20px;max-width:1240px;margin:auto}
+.stage{position:relative;height:var(--stage-h);background:#fff;border:1px solid var(--border);border-radius:14px;overflow:hidden;display:flex}
+.col{flex:1;min-width:0;display:flex;flex-direction:column}
+.bar{display:flex;align-items:center;gap:4px;padding:8px 12px;background:var(--accent);border-bottom:1px solid var(--border)}
+.bar .fmt{display:grid;place-items:center;width:30px;height:30px;border-radius:6px;color:var(--sec);font-weight:700}
+.bar .sp{flex:1}
+.btn{display:inline-flex;align-items:center;gap:6px;padding:6px 12px;border-radius:8px;border:1px solid var(--border);background:#fff;cursor:pointer;font-weight:600;font-size:13px}
+.btn:hover{border-color:var(--primary)}
+.btn.pri{background:var(--primary);border-color:var(--primary);color:#fff}.btn.pri:hover{background:var(--primary-h)}
+.btn.sm{padding:3px 9px;font-size:12px}.btn.ghost{border-color:transparent;background:none}
+.btn:disabled{opacity:.5;cursor:not-allowed}
+.btn:focus-visible,.tab:focus-visible,.issue:focus-visible{outline:2px solid var(--primary);outline-offset:2px}
+.editor{flex:1;overflow:auto;padding:18px 28px;font-size:15px;line-height:1.75}
+.editor h3{margin:0 0 6px;font-size:17px}.editor p{margin:0 0 12px}
+mark{background:#f4e3c3;border-bottom:2px solid var(--warn);cursor:pointer;border-radius:2px}
+mark.on{background:#f0c987}
+.pop{position:absolute;z-index:20;display:none}
+/* dock */
+.dock{width:var(--dock-w);border-left:1px solid var(--border);display:flex;flex-direction:column;flex-shrink:0;background:#fff}
+.dock.rail{width:48px;align-items:center;padding:12px 0;gap:8px}
+.dock header{display:flex;align-items:center;justify-content:space-between;padding:10px 14px;border-bottom:1px solid var(--border);font-weight:700}
+.dock .body{flex:1;overflow:auto;padding:14px}
+.rail .v{writing-mode:vertical-rl;font-size:12px;color:var(--sec)}
+.badge{display:inline-grid;place-items:center;min-width:16px;height:16px;padding:0 4px;border-radius:99px;background:var(--warn);color:#fff;font-size:10px;font-weight:700}
+.chip{display:inline-block;border-radius:99px;padding:1px 8px;font-size:12px;background:#f4e3c3;color:var(--warn);font-weight:600}
+.chip.ok{background:#e1ecde;color:var(--ok)}
+.muted{color:var(--sec);font-size:12px}
+.tabs{display:flex;border-bottom:1px solid var(--border);padding:0 8px}
+.tab{border:0;background:none;padding:10px 10px;font-weight:600;color:var(--sec);cursor:pointer;border-bottom:2px solid transparent}
+.tab[aria-selected=true]{color:var(--primary);border-color:var(--primary)}
+.issue{display:block;width:100%;text-align:left;border:1px solid var(--border);background:#fff;border-radius:8px;padding:9px 10px;margin-bottom:8px;cursor:pointer}
+.issue:hover,.issue.on{border-color:var(--primary)}
+/* shared run state (the proposal): one component for every AI job */
+.run{border:1px solid var(--border);border-radius:var(--radius);padding:12px;background:var(--accent);margin-bottom:12px}
+.run .head{display:flex;align-items:center;gap:10px;font-weight:700}
+.think{display:inline-flex;gap:3px}
+.think i{width:6px;height:6px;border-radius:50%;background:var(--primary);animation:think 1.2s infinite ease-in-out}
+.think i:nth-child(2){animation-delay:.15s}.think i:nth-child(3){animation-delay:.3s}
+@keyframes think{0%,80%,100%{opacity:.25;transform:translateY(0)}40%{opacity:1;transform:translateY(-4px)}}
+.steps{list-style:none;margin:10px 0 0;padding:0;font-size:13px}
+.steps li{display:flex;gap:8px;padding:2px 0;color:var(--low)}
+.steps li.done{color:var(--ok)}.steps li.cur{color:var(--text);font-weight:600}
+.steps li::before{content:"○";width:14px}.steps li.done::before{content:"✓"}.steps li.cur::before{content:"●";color:var(--primary);animation:think 1.2s infinite}
+.bar2{height:6px;background:#e5e7eb;border-radius:99px;overflow:hidden;margin-top:10px}
+.bar2 span{display:block;height:100%;width:0;background:var(--primary);transition:width .4s}
+.sheet{display:none;position:absolute;inset:0;background:#1c171466;z-index:30;place-items:center}
+.sheet.open{display:grid}
+.srcpop{display:none;position:absolute;top:50px;right:12px;width:300px;z-index:25;background:#fff;border:1px solid var(--border);border-radius:10px;box-shadow:0 6px 24px #0003;padding:12px}
+.srcpop.open{display:block}
+.dlg{background:#fff;width:640px;border-radius:14px;box-shadow:0 10px 40px #0004;display:flex;flex-direction:column}
+.dlg h4{margin:0;padding:16px 20px;font-size:16px;border-bottom:1px solid var(--border)}
+.dlg .in{padding:14px 20px}.dlg footer{display:flex;justify-content:flex-end;gap:8px;padding:12px 20px;border-top:1px solid var(--border)}
+.field{margin-bottom:12px}.field label{display:block;font-weight:600;margin-bottom:4px}
+.field input[type=text],.field input[type=number],.field select,.field textarea{width:100%;padding:8px 10px;border:1px solid var(--border);border-radius:8px;background:#fff}
+.angles{max-height:236px;overflow:auto;border:1px solid var(--border);border-radius:8px;padding:4px}
+.angles label{display:flex;gap:8px;padding:8px;border-radius:8px;cursor:pointer;font-weight:600}
+.angles label small{display:block;font-weight:400;color:var(--sec)}
+.angles label:has(input:checked){background:#f9ecea;outline:1px solid var(--primary)}
+.angles.themed input{accent-color:var(--primary)}
+.dur{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+.dur button{border:1px solid var(--border);background:#fff;border-radius:99px;padding:4px 12px;cursor:pointer}
+.dur button[aria-pressed=true]{border-color:var(--primary);background:#f9ecea;color:var(--primary)}
+.dur input{width:70px!important}
+.hidden{display:none!important}
+.legend{font-size:12px;color:var(--sec);margin:8px 0 0}
+@media (prefers-reduced-motion:reduce){.think i,.steps li.cur::before{animation:none}.bar2 span{transition:none}}
+</style>
+</head>
+<body>
+<div class="top">
+  <h1>Bước Kịch bản – mock UI AI</h1>
+  <div class="seg" role="group" aria-label="Phiên bản">
+    <button id="m-cur" aria-pressed="true">Hiện tại</button>
+    <button id="m-new" aria-pressed="false">Đề xuất</button>
+  </div>
+  <div class="note" id="note"></div>
+</div>
+<div class="wrap">
+  <div class="stage" id="stage">
+    <div class="col">
+      <div class="bar" id="bar"></div>
+      <div class="editor" id="editor">
+        <h3>Dòng nước trước giờ giao chiến</h3>
+        <p>Một buổi trên sông Bạch Đằng tưởng chừng trôi qua bình lặng. Mặt nước rộng, bờ bãi nối nhau, thuyền bè vẫn xuôi dòng như thường lệ. Thế nhưng, cuộc đối đầu đã ở rất gần.</p>
+        <p>Trong lúc ấy <mark data-i="0">ngày 20/10</mark>, những lực lượng khác giữ vị trí kín đáo hơn. Quân mai phục chờ đợi bên bờ sông, phía sau các lạch nước.</p>
+        <p>Lúc thủy triều lên, các cọc gỗ được cắm dưới lòng sông vẫn bị che khuất. <mark data-i="1">Hàng nghìn chiến thuyền mắc kẹt cùng lúc</mark>, đội hình bị xô lệch và mệnh lệnh khó truyền đi.</p>
+        <p>Sau khúc sông Bạch Đằng, câu hỏi còn lại không chỉ là ai mạnh hơn.</p>
+      </div>
+    </div>
+    <aside class="dock" id="dock"></aside>
+    <div class="pop" id="rw"><button class="btn pri sm" id="rwBtn">✦ Viết lại</button></div>
+    <div class="sheet" id="sheet"></div>
+    <div class="srcpop" id="srcPop"><b>Nguồn của tập (1)</b><div class="issue" style="margin-top:8px;cursor:default"><b>Đại Việt sử ký toàn thư</b><div class="muted">Bản kỷ – Lý Thái Tổ</div><button class="btn sm" style="margin-top:6px">Chèn trích dẫn</button></div></div>
+  </div>
+  <p class="legend" id="legend"></p>
+</div>
+<script>
+const $=s=>document.querySelector(s);
+const ISSUES=[
+ {t:"Chưa thấy trong nguồn",q:"ngày 20/10",d:"Nguồn đính kèm không nêu ngày này.",sug:"Lược ngày cụ thể."},
+ {t:"Số liệu chưa kiểm chứng",q:"Hàng nghìn chiến thuyền",d:"Nguồn chỉ ghi 'nhiều chiến thuyền'.",sug:"Nhiều chiến thuyền mắc kẹt cùng lúc"}];
+let mode="cur",dock="rail",tab="check",issueState="idle",reviewed=new Set(),openIdx=null,timer=null;
+
+/* ---------- shared run component (proposal) ---------- */
+function runView(title,steps,pct,cur){
+  return `<div class="run" role="status" aria-busy="true">
+   <div class="head"><span class="think" aria-hidden="true"><i></i><i></i><i></i></span>${title}</div>
+   <ul class="steps">${steps.map((s,i)=>`<li class="${i<cur?"done":i===cur?"cur":""}">${s}</li>`).join("")}</ul>
+   <div class="bar2" role="progressbar" aria-valuenow="${pct}" aria-valuemin="0" aria-valuemax="100"><span style="width:${pct}%"></span></div>
+   <div style="margin-top:10px"><button class="btn sm" data-act="cancel">Hủy</button> <span class="muted">Bạn vẫn có thể gõ tiếp.</span></div></div>`;
+}
+function simulate(steps,render,done,ms=900){
+  clearInterval(timer);let i=0;render(i);
+  timer=setInterval(()=>{i++;if(i>=steps.length){clearInterval(timer);done();}else render(i);},ms);
+}
+
+/* ---------- toolbar ---------- */
+function drawBar(){
+  const fmt=["H1","H2","B","I","U","•","1.","❝"].map(x=>`<span class="fmt">${x}</span>`).join("");
+  $("#bar").innerHTML=fmt+'<span class="sp"></span>'+(mode==="cur"
+   ?`<button class="btn" data-act="draftDlg">✎ Soạn bản nháp</button><button class="btn pri" data-act="runCur">✦ Rà lại</button><button class="btn" data-act="src">📖 Nguồn (1)</button>`
+   :`<button class="btn" data-act="src">📖 Nguồn (1)</button><button class="btn pri" data-act="openAi">✦ Trợ lý AI ${issueState==="done"?`<span class="badge">${ISSUES.length-reviewed.size}</span>`:""}</button>`);
+}
+
+/* ---------- CURRENT ---------- */
+function issuesHtml(){return ISSUES.map((x,i)=>`<button class="issue ${openIdx===i?"on":""}" data-act="issue" data-i="${i}"><b>${x.t}</b> <span class="chip ${reviewed.has(i)?"ok":""}">${reviewed.has(i)?"đã xem":"chưa xem"}</span><div class="muted">“${x.q}”</div></button>`).join("")}
+function drawCur(){
+  const d=$("#dock");
+  if(dock==="rail"){d.className="dock rail";d.innerHTML=`<button class="btn ghost" data-act="expand" aria-label="Mở trợ lý AI">${issueState==="run"?"⟳":"✦"}</button><span class="v">${issueState==="run"?"Đang rà…":issueState==="done"?"AI rà kịch bản":"Trợ lý AI"}</span>`;return}
+  d.className="dock";
+  let body;
+  if(issueState==="run") body=`<div class="run" role="status"><b>AI đang rà…</b> <span class="chip">Đang chạy</span><div class="bar2"><span style="width:${window.__p||8}%"></span></div><p class="muted">Đã xét ${window.__n||0}/4 đoạn</p><button class="btn sm" data-act="cancel">Hủy</button></div>`;
+  else if(issueState==="done") body=`<b style="font-size:18px">${ISSUES.length} cảnh báo</b> <span class="chip">AI nghi ngờ, chưa xác minh</span><p class="muted">${reviewed.size} đã xem</p>`+issuesHtml()+(openIdx!==null?detail():"");
+  else body=`<h4 style="margin:0 0 8px;font-size:18px">AI rà kịch bản</h4><p class="muted">Rà từng đoạn, đối chiếu với nguồn đã đính kèm.</p><button class="btn pri" data-act="runCur">Bắt đầu rà</button>`;
+  d.innerHTML=`<header>✦ AI rà kịch bản <button class="btn ghost sm" data-act="collapse" aria-label="Thu gọn">▷</button></header><div class="body">${body}</div>`;
+}
+function detail(){const x=ISSUES[openIdx];return `<div style="border-top:1px solid var(--border);margin-top:10px;padding-top:10px"><b>${x.t}</b><p>${x.d}</p><p class="muted">Đề xuất: ${x.sug}</p><button class="btn pri sm" data-act="apply">Áp dụng</button> <button class="btn sm" data-act="seen">Đã xem</button></div>`}
+
+/* current draft dialog: deliberately fixed-height pieces => overflows the stage like the real app */
+function curDialog(){
+  $("#sheet").innerHTML=`<div class="dlg"><h4>Đề bài</h4><div class="in">
+   <div class="field"><label>Chủ đề của tập</label><input type="text" value="Vì sao Lý Thái Tổ dời đô từ Hoa Lư ra Thăng Long"></div>
+   <div class="field"><label>Góc kể</label><div class="angles">${angleHtml()}</div></div>
+   <div class="field"><label>Thời lượng mục tiêu</label><div class="dur"><input type="number" value="12"> phút <button>8</button><button aria-pressed="true">12</button><button>15</button> ≈ 1.800 từ</div>
+   <div style="margin-top:8px">Hoặc đặt trực tiếp số từ <input type="number" value="1800" style="width:90px;padding:6px"></div></div>
+   <p class="muted">Quy đổi theo 150 từ/phút. AI có thể dùng nguồn của series làm ngữ cảnh nền.</p></div>
+   <footer><button class="btn" data-act="closeDlg">Hủy</button><button class="btn pri" data-act="draftRunCur">Tạo dàn ý</button></footer></div>`;
+  $("#sheet").classList.add("open");
+}
+const ANGLES=[["Chuỗi sự kiện","Trước, trong, sau."],["Nhân vật","Kể qua một người."],["Nguyên nhân – hệ quả","Vì sao, rồi sao."],["Đối lập","Hai phía của cùng một sự việc."]];
+function angleHtml(){return ANGLES.map((a,i)=>`<label><input type="radio" name="ang" ${i?"":"checked"}><span>${a[0]}<small>${a[1]}</small></span></label>`).join("")}
+
+/* ---------- PROPOSED: one dock, three tabs, one run component ---------- */
+const CHECK_STEPS=["Tách kịch bản thành 4 đoạn","Đối chiếu từng đoạn với nguồn","Tổng hợp cảnh báo"];
+const DRAFT_STEPS=["Đọc chủ đề và góc kể","Lập dàn ý 3 phần","Viết phần 1: Mở đầu","Viết phần 2: Diễn biến","Viết phần 3: Hệ quả"];
+function drawNew(){
+  const d=$("#dock");d.className="dock";
+  const tabs=[["check","Rà soát"],["draft","Soạn nháp"]].map(([k,l])=>`<button class="tab" role="tab" aria-selected="${tab===k}" data-act="tab" data-t="${k}">${l}</button>`).join("");
+  d.innerHTML=`<header>✦ Trợ lý AI</header><div class="tabs" role="tablist">${tabs}</div><div class="body" id="pane"></div>`;
+  paneNew();
+}
+function paneNew(extra){
+  const p=$("#pane");if(!p)return;
+  if(extra){p.innerHTML=extra;return}
+  if(tab==="check"){
+    p.innerHTML=issueState==="done"
+     ?`<b style="font-size:18px">${ISSUES.length} cảnh báo</b> <span class="chip">AI nghi ngờ, chưa xác minh</span><p class="muted">${reviewed.size} đã xem</p>${issuesHtml()}${openIdx!==null?detail():""}<button class="btn" data-act="runNew">Rà lại</button>`
+     :`<p class="muted">Rà từng đoạn, đối chiếu với nguồn đã đính kèm.</p><button class="btn pri" data-act="runNew">Bắt đầu rà</button>`;
+  }else if(tab==="draft"){
+    p.innerHTML=`<div class="field"><label>Chủ đề</label><input type="text" value="Vì sao Lý Thái Tổ dời đô từ Hoa Lư ra Thăng Long"></div>
+     <div class="field"><label>Góc kể</label><select>${ANGLES.map(a=>`<option>${a[0]} — ${a[1]}</option>`).join("")}</select><a class="muted" href="#" onclick="return false">Quản lý góc kể</a></div>
+     <div class="field"><label>Thời lượng</label><div class="dur" id="dur">${[8,12,15].map(m=>`<button data-act="dur" data-m="${m}" aria-pressed="${m===12}">${m} phút</button>`).join("")}<input type="number" id="durN" value="12" min="1" aria-label="Số phút"> <span class="muted">phút ≈ <b id="words">1.800</b> từ</span></div></div>
+     <button class="btn pri" data-act="draftRunNew">Soạn bản nháp</button>`;
+  }
+}
+function rwResult(){
+  tab="rewrite";const d=$("#dock");
+  d.querySelectorAll(".tab").forEach(t=>t.setAttribute("aria-selected","false"));
+  const opts=["Nhiều chiến thuyền mắc kẹt cùng lúc","Một số lượng lớn chiến thuyền bị mắc kẹt","Chiến thuyền dồn lại và mắc kẹt cùng lúc"];
+  paneNew(`<b>Viết lại câu đã chọn</b><div class="issue on" style="margin-top:8px;cursor:default"><span class="muted">Gốc</span><br>Hàng nghìn chiến thuyền mắc kẹt cùng lúc</div>`+
+   opts.map((o,i)=>`<label class="issue" style="cursor:pointer"><input type="radio" name="rw" style="accent-color:var(--primary)" ${i?"":"checked"}> ${o}</label>`).join("")+
+   `<button class="btn pri" data-act="rwApply">Dùng bản này</button> <button class="btn" data-act="runNew2">Thử lại</button>`);
+}
+
+/* ---------- actions ---------- */
+function setNote(){
+  $("#note").textContent=mode==="cur"
+   ?"Dựng lại đúng cấu trúc code hiện tại: 2 nút AI + nút Nguồn ở thanh công cụ, dock bên phải (rail → panel), dialog Soạn bản nháp, mỗi chỗ một kiểu trạng thái chờ."
+   :"Đề xuất: 1 cửa vào cho AI (Trợ lý AI) → dock 2 tab; mọi tác vụ AI dùng chung một khối đang chạy (thinking + bước + tiến độ + Hủy); không còn dialog che màn hình. Nguồn tách riêng, là nút độc lập ở thanh công cụ.";
+  $("#legend").textContent=mode==="cur"
+   ?"Thử: bấm 'Soạn bản nháp' (dialog bị cắt ở màn thấp, radio xanh mặc định, 3 cách nhập thời lượng) • bấm 'Rà lại' (trạng thái chờ kiểu A) • rail bên phải."
+   :"Thử: 'Trợ lý AI' → Rà soát / Soạn nháp (xem khối chạy chung) • bôi đen một câu trong kịch bản → 'Viết lại' mở kết quả trong dock.";
+}
+function render(){
+  setNote();drawBar();$("#sheet").classList.remove("open");
+  mode==="cur"?drawCur():drawNew();
+  document.querySelectorAll("mark").forEach(m=>m.classList.toggle("on",+m.dataset.i===openIdx));
+}
+function startCheck(){
+  issueState="run";window.__p=8;window.__n=0;
+  if(mode==="cur"){dock="panel";drawCur();
+    simulate([0,1,2,3],i=>{window.__n=i;window.__p=Math.max(8,i*25);drawCur()},()=>{issueState="done";drawBar();drawCur()},800);
+  }else{
+    simulate(CHECK_STEPS,i=>paneNew(runView("AI đang rà kịch bản",CHECK_STEPS,Math.round(i/CHECK_STEPS.length*100),i)),()=>{issueState="done";reviewed.clear();drawBar();paneNew()},1100);
+  }
+}
+function startDraft(){
+  $("#sheet").classList.remove("open");
+  if(mode==="cur"){dock="panel";issueState="run";startCheck();return}
+  simulate(DRAFT_STEPS,i=>paneNew(runView("AI đang soạn bản nháp",DRAFT_STEPS,Math.round(i/DRAFT_STEPS.length*100),i)),()=>paneNew(`<div class="run"><b>✓ Đã soạn xong 3 phần</b><p class="muted">Chèn vào cuối kịch bản hoặc thay thế kịch bản hiện tại.</p><button class="btn pri sm">Chèn vào kịch bản</button> <button class="btn sm" data-act="tab" data-t="draft">Soạn lại</button></div>`),900);
+}
+document.addEventListener("click",e=>{
+  const b=e.target.closest("[data-act]");if(!b)return;
+  const a=b.dataset.act;
+  if(a==="src")$("#srcPop").classList.toggle("open");
+  else if(a==="draftDlg")curDialog();
+  else if(a==="closeDlg")$("#sheet").classList.remove("open");
+  else if(a==="draftRunCur")startDraft();
+  else if(a==="runCur"||a==="runNew"||a==="runNew2"){a==="runNew2"?startDraft():startCheck()}
+  else if(a==="draftRunNew")startDraft();
+  else if(a==="expand"){dock="panel";drawCur()}
+  else if(a==="collapse"){dock="rail";drawCur()}
+  else if(a==="openAi"){tab="check";drawNew()}
+  else if(a==="tab"){tab=b.dataset.t;clearInterval(timer);drawNew()}
+  else if(a==="cancel"){clearInterval(timer);issueState="idle";mode==="cur"?drawCur():paneNew();drawBar()}
+  else if(a==="issue"){openIdx=+b.dataset.i;mode==="cur"?drawCur():paneNew();document.querySelectorAll("mark").forEach(m=>m.classList.toggle("on",+m.dataset.i===openIdx))}
+  else if(a==="seen"||a==="apply"){reviewed.add(openIdx);if(a==="apply")document.querySelector(`mark[data-i="${openIdx}"]`).outerHTML=ISSUES[openIdx].sug;openIdx=null;drawBar();mode==="cur"?drawCur():paneNew()}
+  else if(a==="dur"){document.querySelectorAll("#dur button").forEach(x=>x.setAttribute("aria-pressed",x===b));$("#durN").value=b.dataset.m;$("#words").textContent=(b.dataset.m*150).toLocaleString("vi-VN")}
+  else if(a==="rwApply"){tab="check";drawNew()}
+});
+document.addEventListener("input",e=>{if(e.target.id==="durN"){$("#words").textContent=(e.target.value*150).toLocaleString("vi-VN");document.querySelectorAll("#dur button").forEach(x=>x.setAttribute("aria-pressed",x.dataset.m===e.target.value))}});
+document.addEventListener("mouseup",()=>{
+  if(mode!=="new")return;const s=getSelection();
+  if(s.isCollapsed||!$("#editor").contains(s.anchorNode))return $("#rw").style.display="none";
+  const r=s.getRangeAt(0).getBoundingClientRect(),st=$("#stage").getBoundingClientRect();
+  Object.assign($("#rw").style,{display:"block",top:r.bottom-st.top+6+"px",left:r.left-st.left+"px"});
+});
+$("#rwBtn").onclick=()=>{$("#rw").style.display="none";simulate(["x","y"],i=>paneNew(runView("AI đang viết lại câu",["Đọc ngữ cảnh quanh câu","Viết 3 phương án"],i*50,i)),rwResult,700)};
+$("#m-cur").onclick=()=>{mode="cur";dock="rail";issueState="idle";openIdx=null;clearInterval(timer);$("#m-cur").setAttribute("aria-pressed",true);$("#m-new").setAttribute("aria-pressed",false);render()};
+$("#m-new").onclick=()=>{mode="new";issueState="idle";openIdx=null;clearInterval(timer);$("#m-new").setAttribute("aria-pressed",true);$("#m-cur").setAttribute("aria-pressed",false);render()};
+render();
+</script>
+</body>
+</html>

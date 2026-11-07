@@ -1,0 +1,124 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Mockup: podcast nhiều người đọc</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="top">
+  <div class="crumb">Studio / Hào khí Đại Việt / <b>Tập 3: Cuộc dời đô</b> <span class="tag info">Hội thoại nhiều người</span></div>
+  <span class="low">Mockup tĩnh có tương tác. Chưa nối API. Giọng và tiến độ tạo audio là giả.</span>
+</div>
+<div class="steps">
+  <button class="step" disabled>1 · Thông tin</button>
+  <button class="step on" data-view="script">2 · Kịch bản</button>
+  <button class="step" data-view="voice">3 · Giọng đọc</button>
+  <button class="step" disabled>4 · Xem lại</button>
+</div>
+
+<!-- ===== Bước 2: Kịch bản ===== -->
+<div class="wrap" id="v-script">
+  <div class="row sp" style="margin-bottom:14px">
+    <div>
+      <h2>Kịch bản hội thoại</h2>
+      <p class="low">Dán văn bản, tách đoạn, rồi gán người đọc. Dùng chung cho giọng AI và bản đọc để thu âm.</p>
+    </div>
+    <span id="saveState" class="low"></span>
+  </div>
+
+  <div class="cols">
+    <div class="stack">
+      <div class="drop" id="drop">
+        <div id="dropFull" class="stack">
+          <b>Dán văn bản</b>
+          <p class="low">Mỗi đoạn cách nhau một dòng trống. Mỗi đoạn thành một lượt, chưa gán người đọc.</p>
+          <textarea id="paste" placeholder="Dán kịch bản vào đây..."></textarea>
+          <div class="row">
+            <button class="btn p" id="split">Tách đoạn</button>
+            <button class="btn" id="sample">Nạp kịch bản mẫu (30 đoạn)</button>
+            <span class="low" id="pasteInfo"></span>
+          </div>
+        </div>
+        <div id="dropMini" class="row sp hidden">
+          <span class="low">Muốn thêm hoặc thay kịch bản?</span>
+          <button class="btn sm" id="openPaste">Dán thêm kịch bản</button>
+        </div>
+      </div>
+
+      <div class="stack" id="turns"></div>
+
+      <div class="row sp">
+        <button class="btn" id="addTurn">+ Thêm khối hội thoại</button>
+        <button class="btn" id="selUn">Chọn tất cả lượt chưa gán</button>
+      </div>
+
+      <div class="bulk hidden" id="bulk">
+        <div class="row sp" style="margin-bottom:8px">
+          <b id="bulkN"></b>
+          <button class="btn sm" id="bulkClear">Bỏ chọn</button>
+        </div>
+        <div class="who" id="bulkWho"></div>
+      </div>
+    </div>
+
+    <div class="side">
+      <div class="card">
+        <div class="row sp"><h3 id="spkTitle">Người nói</h3></div>
+        <div class="list" id="spks"></div>
+        <button class="btn" id="addSpk" style="width:100%;margin-top:8px">+ Thêm người nói</button>
+        <p class="alert" id="spkMsg" style="margin-top:8px">Giọng AI chỉ dùng khi tạo giọng bằng AI. Các người nói phải khác tên và khác giọng.</p>
+      </div>
+      <div class="card stack">
+        <div class="row sp"><h3>Tóm tắt</h3><span class="tag" id="valTag"></span></div>
+        <table>
+          <tr><td class="low">Số lượt</td><td id="sTurns"></td></tr>
+          <tr><td class="low">Người nói (dùng / khai báo)</td><td id="sSpk"></td></tr>
+          <tr><td class="low">Chưa gán</td><td id="sUn"></td></tr>
+          <tr><td class="low">Số ký tự</td><td id="sChars"></td></tr>
+          <tr><td class="low">Ước tính</td><td id="sDur"></td></tr>
+        </table>
+        <div class="alert" id="path"></div>
+        <ul id="issues" style="margin:0;padding-left:18px;color:var(--danger);font-size:12px"></ul>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== Bước 3: Giọng đọc ===== -->
+<div class="wrap hidden" id="v-voice">
+  <div class="row sp" style="margin-bottom:14px">
+    <div><h2>Giọng đọc</h2><p class="low">Bản đọc theo vai cho thu âm thủ công, hoặc để AI đọc từng vai.</p></div>
+    <button class="btn p" id="gen">Tạo giọng AI</button>
+  </div>
+  <div class="sheet stack">
+    <div class="row filters" id="filters"></div>
+    <ol id="sheet"></ol>
+  </div>
+</div>
+
+<p class="note">Quy tắc trong mock khớp plan: tối đa 30 người, tối thiểu 2; không xóa người đang có lượt; không cắt ngầm khi vượt 300 lượt; lượt chưa gán chặn tạo giọng AI.</p>
+
+<div class="menu hidden" id="menu"></div>
+<div class="toast" id="toast"></div>
+
+<div class="modal hidden" id="mAsk"><div class="dialog">
+  <h3>Đã có lượt trong kịch bản</h3>
+  <p class="low">Nối thêm vào cuối, hay thay thế toàn bộ? Thay thế sẽ bỏ các lượt hiện có.</p>
+  <div class="row" style="justify-content:flex-end">
+    <button class="btn" id="askCancel">Hủy</button>
+    <button class="btn" id="askAppend">Nối thêm</button>
+    <button class="btn p" id="askReplace">Thay thế</button>
+  </div>
+</div></div>
+
+<div class="modal hidden" id="mGen"><div class="dialog">
+  <h3>Tạo giọng AI</h3>
+  <div id="genBody" class="stack"></div>
+  <div class="row" style="justify-content:flex-end"><button class="btn" id="genClose">Đóng</button><button class="btn p" id="genGo">Bắt đầu</button></div>
+</div></div>
+
+<script src="app.js"></script>
+</body>
+</html>
