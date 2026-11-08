@@ -13,9 +13,10 @@ export const QuizOptionInputSchema = z.object({
 export const QuizQuestionInputSchema = z
   .object({
     text: z.string().trim().min(1).max(2000),
+    kind: z.enum(["SINGLE", "MULTIPLE", "TEXT"]).optional(),
     explanation: z.string().trim().max(4000).nullable().optional(),
     timeLimit: z.number().int().min(10).max(120).nullable().optional(),
-    options: z.array(QuizOptionInputSchema).min(2).max(6),
+    options: z.array(QuizOptionInputSchema).min(1).max(6),
   })
   .superRefine((question, context) => {
     const labels = question.options.map((option) => option.label);
@@ -25,7 +26,11 @@ export const QuizQuestionInputSchema = z
         message: "Nhãn đáp án trong một câu hỏi không được trùng",
       });
     }
-    if (question.options.filter((option) => option.isCorrect).length !== 1) {
+    const correctCount = question.options.filter((option) => option.isCorrect).length;
+    if ((question.kind ?? "SINGLE") !== "TEXT" && question.options.length < 2) {
+      context.addIssue({ code: "custom", message: "Câu hỏi chọn đáp án cần ít nhất hai lựa chọn" });
+    }
+    if ((question.kind ?? "SINGLE") === "SINGLE" ? correctCount !== 1 : correctCount < 1 || (question.kind === "TEXT" && correctCount !== question.options.length)) {
       context.addIssue({
         code: "custom",
         message: "Mỗi câu hỏi phải có đúng một đáp án đúng",
@@ -44,7 +49,9 @@ export const SubmitQuizAttemptSchema = z
       .array(
         z.object({
           questionId: z.string().uuid(),
-          optionId: z.string().uuid().nullable(),
+          optionId: z.string().uuid().nullable().optional(),
+          optionIds: z.array(z.string().uuid()).max(6).optional(),
+          text: z.string().max(1000).nullable().optional(),
         }),
       )
       .min(1)
@@ -69,6 +76,7 @@ export const QuizOptionSchema = z.object({
 export const QuizQuestionSchema = z.object({
   id: z.string().uuid(),
   text: z.string(),
+  kind: z.enum(["SINGLE", "MULTIPLE", "TEXT"]).optional(),
   sortOrder: z.number().int(),
   timeLimit: z.number().int().positive().nullable(),
   options: z.array(QuizOptionSchema),
@@ -111,6 +119,10 @@ export const QuizAttemptResultSchema = z.object({
       questionId: z.string().uuid(),
       selectedOptionId: z.string().uuid().nullable(),
       correctOptionId: z.string().uuid(),
+      selectedOptionIds: z.array(z.string().uuid()).optional(),
+      correctOptionIds: z.array(z.string().uuid()).optional(),
+      selectedText: z.string().nullable().optional(),
+      acceptedAnswers: z.array(z.string()).optional(),
       isCorrect: z.boolean(),
       explanation: z.string().nullable(),
     }),
@@ -149,6 +161,7 @@ export const StudioQuizSchema = PublicQuizSchema.extend({
     z.object({
       id: z.string().uuid(),
       text: z.string(),
+      kind: z.enum(["SINGLE", "MULTIPLE", "TEXT"]).optional(),
       explanation: z.string().nullable(),
       sortOrder: z.number().int(),
       timeLimit: z.number().int().positive().nullable(),

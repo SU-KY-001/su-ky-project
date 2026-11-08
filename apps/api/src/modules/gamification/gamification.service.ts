@@ -33,9 +33,10 @@ function publicQuiz(
     questions: quiz.questions.map((question) => ({
       id: question.id,
       text: question.questionText,
+      kind: question.kind as "SINGLE" | "MULTIPLE" | "TEXT",
       sortOrder: question.sortOrder,
       timeLimit: question.timeLimit,
-      options: question.options.map((option) => ({
+      options: (question.kind === "TEXT" ? [] : question.options).map((option) => ({
         id: option.id,
         label: option.optionLabel.trim(),
         text: option.optionText,
@@ -78,6 +79,7 @@ export class GamificationService {
       questions: quiz.questions.map((question) => ({
         id: question.id,
         text: question.questionText,
+        kind: question.kind as "SINGLE" | "MULTIPLE" | "TEXT",
         explanation: question.explanation,
         sortOrder: question.sortOrder,
         timeLimit: question.timeLimit,
@@ -129,6 +131,7 @@ export class GamificationService {
           data: {
             quizId: quiz.id,
             questionText: question.text,
+            kind: question.kind ?? "SINGLE",
             explanation: question.explanation,
             timeLimit: question.timeLimit ?? null,
             sortOrder,
@@ -170,13 +173,15 @@ export class GamificationService {
     });
   }
 
-  async getPublishedQuiz(episodeSlug: string) {
+  async getPublishedQuiz(episodeSlug: string, supportsNewTypes = false) {
     const quiz = await prisma.quiz.findFirst({
       where: { episode: { slug: episodeSlug, ...PUBLISHED_EPISODE } },
       include: quizInclude,
     });
     if (!quiz)
       throw new DomainError(404, "NOT_FOUND", "Không tìm thấy quiz khả dụng");
+    if (!supportsNewTypes && quiz.questions.some(question => question.kind !== "SINGLE"))
+      throw new DomainError(409, "CONFLICT", "Bộ quiz này cần phiên bản ứng dụng mới hơn.");
     return publicQuiz(quiz);
   }
 
@@ -204,26 +209,30 @@ export class GamificationService {
           "Phải trả lời đầy đủ tất cả câu hỏi",
         );
 
-      const selected = new Map(
-        input.answers.map((answer) => [answer.questionId, answer.optionId]),
-      );
+      const selected = new Map(input.answers.map((answer) => [answer.questionId, answer]));
       const answerResults = quiz.questions.map((question) => {
-        const optionId = selected.get(question.id);
-        const chosen = question.options.find(
-          (option) => option.id === optionId,
-        );
-        if (optionId === undefined || (optionId !== null && !chosen))
+        const answer = selected.get(question.id);
+        if (!answer) throw new DomainError(422, "VALIDATION_ERROR", "Thiếu câu trả lời");
+        const kind = question.kind;
+        const selectedIds = kind === "MULTIPLE" ? answer.optionIds ?? [] : answer.optionId ? [answer.optionId] : [];
+        if (new Set(selectedIds).size !== selectedIds.length || selectedIds.some(id => !question.options.some(option => option.id === id)) || (kind === "SINGLE" && answer.optionId === undefined) || (kind === "MULTIPLE" && !answer.optionIds) || (kind === "TEXT" && answer.text === undefined))
           throw new DomainError(
             422,
             "VALIDATION_ERROR",
             "Đáp án không thuộc câu hỏi tương ứng",
           );
-        const correct = question.options.find((option) => option.isCorrect)!;
+        const correct = question.options.filter((option) => option.isCorrect);
+        const correctIds = correct.map(option => option.id);
+        const normalize = (value: string): string => value.normalize("NFC").trim().replace(/\s+/g, " ").toLocaleLowerCase("vi");
+        const isCorrect = kind === "TEXT" ? Boolean(answer.text?.trim()) && correct.some(option => normalize(option.optionText) === normalize(answer.text!)) : selectedIds.length === correctIds.length && selectedIds.every(id => correctIds.includes(id));
         return {
           questionId: question.id,
-          selectedOptionId: chosen?.id ?? null,
-          correctOptionId: correct.id,
-          isCorrect: chosen?.isCorrect ?? false,
+          selectedOptionId: selectedIds[0] ?? null,
+          correctOptionId: correctIds[0],
+          selectedOptionIds: selectedIds,
+          correctOptionIds: correctIds,
+          ...(kind === "TEXT" ? { selectedText: answer.text ?? null, acceptedAnswers: correct.map(option => option.optionText) } : {}),
+          isCorrect,
           explanation: question.explanation,
         };
       });

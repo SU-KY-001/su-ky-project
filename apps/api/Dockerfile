@@ -20,7 +20,7 @@ COPY --from=prune /app/out/full/ ./
 RUN cd packages/db && bun run db:generate && bun run prisma version
 
 FROM oven/bun:${BUN_VERSION}-slim AS runner
-RUN apt-get update && apt-get install -y --no-install-recommends openssl ca-certificates ffmpeg \
+RUN apt-get update && apt-get install -y --no-install-recommends openssl ca-certificates ffmpeg libreoffice-writer fonts-dejavu-core \
     && rm -rf /var/lib/apt/lists/*
 ENV NODE_ENV=production
 WORKDIR /app/apps/api

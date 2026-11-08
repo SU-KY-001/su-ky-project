@@ -13,9 +13,6 @@ const scheduleIds: string[] = [];
 let seriesId = "";
 let episodeId = "";
 
-const RETRY_IDLE_WINDOW_MS = 20 * 60_000;
-const ABANDONED_IDLE_MS = 60 * 60_000; // well past RETRY_IDLE_WINDOW_MS
-
 suite("release repository", () => {
   beforeAll(async () => {
     assertTestDatabase();
@@ -153,7 +150,9 @@ suite("release repository", () => {
     const repository = new PrismaReleaseRepository();
 
     const byTitle = await repository.listSchedules({
-      q: "tRƯỜnG sƠn",
+      // PostgreSQL's case-folding of accented letters depends on LC_CTYPE.
+      // Verify ILIKE's ASCII case handling on both C and UTF-8 locale databases.
+      q: "tRường sơn",
       status: "SCHEDULED",
       page: 1,
       limit: 20,
@@ -255,23 +254,26 @@ suite("release repository", () => {
     expect((await repository.listAssignedSchedules(firstModeratorId)).some(({ id }) => id === fixtures[0]!.id)).toBe(false);
   });
 
-  it("leaves a schedule with a failed attempt to its retry chain until it has been idle", async () => {
+  it("does not remind or automatically publish schedules already ready for manual publication", async () => {
     const now = new Date("2026-10-20T14:00:00.000Z");
     const base = {
-      productionDeadline: new Date("2026-10-19T10:00:00.000Z"),
-      scheduledAt: new Date("2026-10-20T13:00:00.000Z"),
+      productionDeadline: new Date("2026-10-21T02:00:00.000Z"),
+      scheduledAt: new Date("2026-10-21T13:00:00.000Z"),
       status: "READY_TO_PUBLISH" as const,
       createdById: adminId,
+      assignments: { create: { moderatorId: firstModeratorId, assignedById: adminId } },
     };
     const [clean, retrying, abandoned] = await Promise.all([
       prisma.releaseSchedule.create({ data: { ...base, title: `Clean ${suffix}` } }),
       prisma.releaseSchedule.create({ data: { ...base, title: `Retrying ${suffix}`, failureCode: "INTERNAL_SERVER_ERROR", updatedAt: now } }),
-      prisma.releaseSchedule.create({ data: { ...base, title: `Abandoned ${suffix}`, failureCode: "INTERNAL_SERVER_ERROR", updatedAt: new Date(now.getTime() - ABANDONED_IDLE_MS) } }),
+      prisma.releaseSchedule.create({ data: { ...base, title: `Failed ${suffix}`, status: "FAILED", failureCode: "INTERNAL_SERVER_ERROR" } }),
     ]);
     scheduleIds.push(clean.id, retrying.id, abandoned.id);
-    const due = (await new PrismaReleaseRepository().listDueScheduleIds(now, new Date(now.getTime() - RETRY_IDLE_WINDOW_MS))).map(({ id }) => id);
-    expect(due).toContain(clean.id);
-    expect(due).not.toContain(retrying.id);
-    expect(due).toContain(abandoned.id);
+    await new PrismaReleaseRepository().issueDueReminders(now, new Date(now.getTime() + 24 * 60 * 60_000));
+    const ids = [clean.id, retrying.id, abandoned.id];
+    expect(await prisma.releaseReminder.count({ where: { scheduleId: { in: ids } } })).toBe(0);
+    const schedules = await prisma.releaseSchedule.findMany({ where: { id: { in: ids } } });
+    expect(schedules.filter(item => item.status === "READY_TO_PUBLISH")).toHaveLength(2);
+    expect(schedules.find(item => item.id === abandoned.id)?.status).toBe("FAILED");
   });
 });

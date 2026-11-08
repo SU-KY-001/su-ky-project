@@ -212,6 +212,28 @@ describe.skipIf(!RUN_INTEGRATION)("quiz + admin mutations (database)", () => {
     );
   });
 
+  it("grades mixed multiple choice and text without leaking answers", async () => {
+    const episode = await makeEpisode("mixed-kinds");
+    const quiz = await service.upsertQuiz(episode.id, moderatorId, { passScorePercent: 100, questions: [
+      { text: "Chọn nhiều", kind: "MULTIPLE", explanation: null, options: [
+        { label: "A", text: "Một", isCorrect: true }, { label: "B", text: "Hai", isCorrect: false }, { label: "C", text: "Ba", isCorrect: true },
+      ] },
+      { text: "Tên gọi", kind: "TEXT", explanation: null, options: [
+        { label: "A", text: "Nguyễn Huệ", isCorrect: true }, { label: "B", text: "Quang Trung", isCorrect: true },
+      ] },
+    ] });
+    await expectDomainError(service.getPublishedQuiz(episode.slug), 409, "CONFLICT");
+    const visible = await service.getPublishedQuiz(episode.slug, true);
+    expect(visible.questions[1].options).toHaveLength(0);
+    const ids = quiz.questions[0].options;
+    const answers = [{ questionId: quiz.questions[0].id, optionIds: [ids[0].id, ids[2].id] }, { questionId: quiz.questions[1].id, text: "  QUANG   TRUNG  " }];
+    const result = await service.submitAttempt(quiz.id, learnerId, { answers });
+    expect(result.answers.map(answer => answer.isCorrect)).toEqual([true, true]);
+    expect(result.answers[1].acceptedAnswers).toContain("Nguyễn Huệ");
+    const partial = await service.submitAttempt(quiz.id, learnerId, { answers: [{ ...answers[0], optionIds: [ids[0].id] }, answers[1]] });
+    expect(partial.answers[0].isCorrect).toBe(false);
+  });
+
   it("maps only 'not found' to 404 and writes the audit row with the ban", async () => {
     await expectDomainError(
       admin.banUser(

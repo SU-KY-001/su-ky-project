@@ -39,13 +39,11 @@ export class QuizAuthoringService {
       prisma.quizWorkspaceDraft.findUnique({ where: { episodeId } }),
       prisma.quiz.findUnique({ where: { episodeId }, include: { questions: { orderBy: { sortOrder: "asc" }, include: { options: { orderBy: { optionLabel: "asc" } } } }, _count: { select: { attempts: true } } } }),
     ]);
-    if (!draft && active?.questions.some(q => q.options.length > 4))
-      throw new DomainError(409, "CONFLICT", "Quiz cũ có câu vượt quá bốn đáp án. Không thể mở trong trình soạn bốn đáp án; nội dung cũ được giữ nguyên.");
     const data: QuizDraftData = draft ? QuizDraftDataSchema.parse(draft.data) : {
       title: active?.title ?? (active ? `Quiz · ${episode.title}` : ""), description: active?.description ?? "", posterAssetId: active?.posterAssetId ?? null, referenceText: "", passScorePercent: active?.passScorePercent ?? 80,
-      questions: active?.questions.map(q => ({ id: q.id, text: q.questionText, explanation: q.explanation ?? "", timeLimit: q.timeLimit ?? 20,
-        options: Array.from({ length: 4 }, (_, i) => q.options[i]?.optionText ?? ""),
-        correctIndex: q.options.findIndex(o => o.isCorrect), evidence: null })) ?? [{ id: randomUUID(), text: "", options: ["", "", "", ""], correctIndex: null, explanation: "", evidence: null, timeLimit: 20 }],
+      questions: active?.questions.map(q => ({ id: q.id, text: q.questionText, kind: q.kind as "SINGLE" | "MULTIPLE" | "TEXT", explanation: q.explanation ?? "", timeLimit: q.timeLimit ?? 20,
+        options: q.options.map(option => option.optionText),
+        correctIndex: q.options.findIndex(o => o.isCorrect), correctIndexes: q.options.flatMap((o, i) => o.isCorrect ? [i] : []), evidence: null })) ?? [{ id: randomUUID(), text: "", options: ["", "", "", ""], correctIndex: null, explanation: "", evidence: null, timeLimit: 20 }],
     };
     return { episodeId, episodeTitle: episode.title, seriesId: episode.seriesId, seriesTitle: episode.series.title,
       revision: draft?.revision ?? 0, updatedAt: draft?.updatedAt ?? null, data,
@@ -89,7 +87,7 @@ export class QuizAuthoringService {
       const presentation = { title: data.title.trim(), description: data.description.trim() || null, posterAssetId: data.posterAssetId ?? null };
       const quiz = await db.quiz.upsert({ where: { episodeId }, create: { episodeId, passScorePercent: input.passScorePercent, ...presentation }, update: { passScorePercent: input.passScorePercent, ...presentation } });
       for (const [sortOrder, q] of input.questions.entries()) {
-        await db.quizQuestion.create({ data: { quizId: quiz.id, questionText: q.text, explanation: q.explanation, timeLimit: q.timeLimit, sortOrder,
+        await db.quizQuestion.create({ data: { quizId: quiz.id, questionText: q.text, kind: q.kind ?? "SINGLE", explanation: q.explanation, timeLimit: q.timeLimit, sortOrder,
           options: { create: q.options.map(o => ({ optionLabel: o.label, optionText: o.text, isCorrect: o.isCorrect })) } } });
       }
       await db.quizWorkspaceDraft.update({ where: { episodeId }, data: { activatedRevision: revision } });

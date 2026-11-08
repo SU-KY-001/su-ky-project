@@ -9,7 +9,7 @@ import {
   SubmitQuizAttemptSchema,
   UpsertQuizSchema,
   WeeklyMissionQuerySchema,
-  QuizWorkspaceSchema, QuizWorkspaceListSchema, SaveQuizDraftSchema, ActivateQuizDraftSchema,
+  QuizWorkspaceSchema, QuizWorkspaceListSchema, SaveQuizDraftSchema, ActivateQuizDraftSchema, QuizImportDocumentSchema, QuizImportPreviewSchema,
 } from "@repo/shared";
 import { operation, type Paths } from "../operation";
 
@@ -20,7 +20,21 @@ const IN_TRASH = "`CONTENT_IN_TRASH`: tập hoặc Series đang ở thùng rác"
 const EpisodeIdParam = z.object({ episodeId: z.string().uuid() });
 const QuizIdParam = z.object({ quizId: z.string().uuid() });
 const SlugParam = z.object({ slug: z.string().min(1) });
+// Cùng query schema inline trong gamification.routes.ts.
+const QuizFormatQuery = z.object({ format: z.literal("2").optional() });
 export const gamificationPaths: Paths = {
+  "/api/studio/quiz-import/preview": {
+    post: {
+      ...operation({ id: "previewQuizDocument", tag: QUIZ_TAG, summary: "Đọc và xem trước câu hỏi từ tài liệu", description: "DOC, DOCX, PDF có văn bản, TXT/MD UTF-8; tối đa 5 MB, 200.000 ký tự, PDF 100 trang và quiz 100 câu. Phân tích ba loại câu hỏi không AI/OCR, trả vị trí nguồn và hướng dẫn sửa. status ready/needs_correction không có nghĩa đã lưu quiz. Không lưu file, không ghi database. DOC cần LibreOffice trên server. Deadline tổng 60 giây.", access: "moderator", rate: "write", ok: { status: 200, description: "Preview chỉ đọc; lỗi cấu trúc nằm trong diagnostics, chặn áp dụng khi needs_correction", schema: { name: "QuizImportPreview", schema: QuizImportPreviewSchema } }, errors: { 413: "`PAYLOAD_TOO_LARGE`: file vượt 5 MB", 422: "`VALIDATION_ERROR`: thiếu/nhiều file, thời gian sai, định dạng/file hỏng, bị khóa, bản scan hoặc vượt giới hạn đọc", 503: "`SERVICE_UNAVAILABLE`: bộ đọc DOC chưa sẵn sàng, quá tải hoặc xử lý quá thời gian" } }),
+      requestBody: { required: true, content: { "multipart/form-data": { schema: { type: "object", required: ["file"], properties: { file: { type: "string", format: "binary" }, defaultTime: { type: "integer", minimum: 10, maximum: 120, default: 20 } } } } } },
+    },
+  },
+  "/api/studio/quiz-import/extract": {
+    post: {
+      ...operation({ id: "extractQuizDocument", tag: QUIZ_TAG, summary: "Đọc văn bản từ tài liệu câu hỏi", description: "Nhận một file .docx, .txt, .md hoặc PDF có văn bản, tối đa 5 MB và 200.000 ký tự. Chỉ trích chữ, không tạo quiz, không lưu tài liệu. PDF tối đa 100 trang; không OCR bản scan.", access: "moderator", rate: "write", ok: { status: 200, description: "Văn bản nguồn để kiểm tra và nhập câu hỏi", schema: { name: "QuizImportDocument", schema: QuizImportDocumentSchema } }, errors: { 413: "`PAYLOAD_TOO_LARGE`: tài liệu vượt 5 MB", 422: "`VALIDATION_ERROR`: thiếu file, định dạng không hỗ trợ, tài liệu lỗi, vượt giới hạn hoặc không có văn bản" } }),
+      requestBody: { required: true, content: { "multipart/form-data": { schema: { type: "object", required: ["file"], properties: { file: { type: "string", format: "binary" } } } } } },
+    },
+  },
   "/api/quizzes": {
     get: operation({ id: "listPublishedQuizzes", tag: QUIZ_TAG, summary: "Danh sách quiz của các tập công khai", access: "optional", query: PublicQuizCatalogQuerySchema,
       queryDocs: { page: "Số trang (từ 1)", limit: "Số quiz mỗi trang (1-50, mặc định 12)", topicId: "Lọc theo ID chủ đề (UUID) của Series", episodeSlug: "Lọc theo slug tập công khai" },
@@ -33,7 +47,7 @@ export const gamificationPaths: Paths = {
   "/api/studio/episodes/{episodeId}/quiz-workspace": {
     get: operation({ id: "getQuizWorkspace", tag: QUIZ_TAG, summary: "Đọc bản nháp và kịch bản quiz độc lập", access: "moderator", pathParams: EpisodeIdParam,
       ok: { status: 200, description: "Nội dung referenceText là kịch bản riêng của quiz, không lấy từ podcast. Bản nháp cũ chưa có trường này dùng nội dung trống.", schema: { name: "QuizWorkspace", schema: QuizWorkspaceSchema } },
-      errors: { 403: LOCKED, 404: "`NOT_FOUND`: tập không thuộc Moderator", 409: `${IN_TRASH}; \`CONFLICT\`: quiz cũ (chưa có bản nháp) có câu vượt quá bốn đáp án, không mở được trong trình soạn` } }),
+      errors: { 403: LOCKED, 404: "`NOT_FOUND`: tập không thuộc Moderator", 409: IN_TRASH } }),
     put: operation({ id: "saveQuizWorkspace", tag: QUIZ_TAG, summary: "Lưu câu hỏi và kịch bản quiz referenceText cùng bản nháp", access: "moderator", pathParams: EpisodeIdParam,
       body: { name: "SaveQuizDraft", schema: SaveQuizDraftSchema }, rate: "write",
       ok: { status: 200, description: "Bản nháp đã lưu với revision mới", schema: { name: "QuizWorkspace", schema: QuizWorkspaceSchema } },
@@ -111,6 +125,8 @@ export const gamificationPaths: Paths = {
       access: "user",
       pathParams: SlugParam,
       pathParamDocs: { slug: "Slug tập công khai" },
+      query: QuizFormatQuery,
+      queryDocs: { format: "Truyền 2 nếu client hỗ trợ câu chọn nhiều và điền đáp án." },
       ok: {
         status: 200,
         description: "Quiz cho người nghe",
@@ -118,6 +134,7 @@ export const gamificationPaths: Paths = {
       },
       errors: {
         404: "`NOT_FOUND`: tập/Series chưa xuất bản hoặc tập chưa có quiz",
+        409: "`CONFLICT`: quiz có dạng câu mới và client chưa yêu cầu format=2",
       },
     }),
   },

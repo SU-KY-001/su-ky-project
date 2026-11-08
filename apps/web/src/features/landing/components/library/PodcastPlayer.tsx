@@ -1,5 +1,6 @@
 import { useEffect, useId, useRef, useState, type ReactElement } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { Link } from "react-router";
 import type { LibraryChapter } from "@repo/shared";
 import { Headphones } from "@phosphor-icons/react/dist/icons/Headphones";
 import { Play } from "@phosphor-icons/react/dist/icons/Play";
@@ -32,6 +33,7 @@ interface AudioPlaybackProps {
   playlist?: boolean;
   controlsHidden?: boolean;
   playRequest?: number;
+  pauseRequested?: boolean;
   onPlayingChange?: (playing: boolean) => void;
   onFinished?: () => void;
   shuffle?: boolean;
@@ -42,10 +44,12 @@ interface AudioPlaybackProps {
   onNext?: () => void;
 }
 
-export function AudioPlayback({ narrationId, userId, playlist = false, controlsHidden = false, playRequest = 0, autoPlayOnReady = false, appearance = "default", onPlayingChange, onFinished, shuffle = false, repeat = "off", onShuffle, onRepeat, onPrevious, onNext }: AudioPlaybackProps): ReactElement {
+export function AudioPlayback({ narrationId, userId, playlist = false, controlsHidden = false, playRequest = 0, pauseRequested = false, autoPlayOnReady = false, appearance = "default", onPlayingChange, onFinished, shuffle = false, repeat = "off", onShuffle, onRepeat, onPrevious, onNext }: AudioPlaybackProps): ReactElement {
   const speedControlId = useId();
   const playback = useQuery({ queryKey: ["library-playback", userId, narrationId], queryFn: ({ signal }) => libraryService.playback(narrationId, signal), staleTime: 0, refetchOnWindowFocus: false });
   const audio = useRef<HTMLAudioElement>(null);
+  const pauseIntent = useRef(pauseRequested);
+  pauseIntent.current = pauseRequested;
   const autoPlayRequested = useRef(autoPlayOnReady);
   const queryClient = useQueryClient();
   const [audioError, setAudioError] = useState(false);
@@ -53,6 +57,7 @@ export function AudioPlayback({ narrationId, userId, playlist = false, controlsH
   const [playing, setPlaying] = useState(false);
   const [position, setPosition] = useState(0);
   const [volume, setVolume] = useState(1);
+  useEffect(() => { if (pauseRequested) audio.current?.pause(); }, [pauseRequested, playback.data]);
   useEffect(() => {
     const pauseWhenHidden = (): void => { if (document.hidden) audio.current?.pause(); };
     document.addEventListener("visibilitychange", pauseWhenHidden);
@@ -60,7 +65,7 @@ export function AudioPlayback({ narrationId, userId, playlist = false, controlsH
   }, []);
   function toggle(): void {
     if (!audio.current) return;
-    if (audio.current.paused) void audio.current.play().catch(() => { setPlaying(false); onPlayingChange?.(false); });
+    if (audio.current.paused) { pauseIntent.current = false; void audio.current.play().catch(() => { setPlaying(false); onPlayingChange?.(false); }); }
     else audio.current.pause();
   }
   useEffect(() => {
@@ -125,7 +130,7 @@ export function AudioPlayback({ narrationId, userId, playlist = false, controlsH
   if (playback.isPending) return playlist ? <p role="status" className="py-3 text-xs text-ink-soft">Đang mở bản thu…</p> : <LibraryState loading />;
   if (playback.isError) return playlist ? <div role="alert" className="flex flex-wrap items-center gap-3 text-xs"><p>Chưa mở được bản thu. Vui lòng thử lại.</p><Button size="sm" variant="outline" onClick={() => { void playback.refetch(); }}>Thử lại</Button></div> : <LibraryState error title="Chưa mở được bản thu" description="Kiểm tra kết nối hoặc đăng nhập lại để tiếp tục nghe." retry={() => { void playback.refetch(); }} />;
   return <div className={playlist ? "contents" : "space-y-4"}>
-    <audio ref={audio} controls={!playlist && appearance !== "exhibition"} preload="metadata" className={playlist || appearance === "exhibition" ? "hidden" : "w-full"} src={playback.data.audio.url} onPlay={event => { progress.current.previous = event.currentTarget.currentTime; setPlaying(true); onPlayingChange?.(true); }} onPause={() => { setPlaying(false); onPlayingChange?.(false); }} onEnded={async event => { const element = event.currentTarget; setPlaying(false); onPlayingChange?.(false); await flushProgress.current(); if (repeat === "one") { element.currentTime = 0; progress.current.previous = -1; void element.play().catch(() => {}); } else onFinished?.(); }} onLoadedMetadata={(event) => { event.currentTarget.currentTime = (playback.data.progress?.positionMs ?? 0) / 1000; setPosition(event.currentTarget.currentTime); event.currentTarget.playbackRate = Number(speed); const shouldPlay = playlist || autoPlayRequested.current; autoPlayRequested.current = false; if (shouldPlay && !document.hidden) void event.currentTarget.play().catch(() => { setPlaying(false); onPlayingChange?.(false); }); }} onSeeking={() => { progress.current.previous = -1; }} onSeeked={(event) => { progress.current.previous = event.currentTarget.currentTime; progress.current.positionMs = Math.min(Math.round(event.currentTarget.currentTime * 1000), playback.data.audio.durationMs); progress.current.dirty = true; }} onError={() => setAudioError(true)} onTimeUpdate={(event) => {
+    <audio ref={audio} controls={!playlist && appearance !== "exhibition"} preload="metadata" className={playlist || appearance === "exhibition" ? "hidden" : "w-full"} src={playback.data.audio.url} onPlay={event => { if (pauseIntent.current) { event.currentTarget.pause(); return; } progress.current.previous = event.currentTarget.currentTime; setPlaying(true); onPlayingChange?.(true); }} onPause={() => { setPlaying(false); onPlayingChange?.(false); }} onEnded={async event => { const element = event.currentTarget; setPlaying(false); onPlayingChange?.(false); await flushProgress.current(); if (audio.current !== element || pauseIntent.current) return; if (repeat === "one") { element.currentTime = 0; progress.current.previous = -1; void element.play().catch(() => {}); } else onFinished?.(); }} onLoadedMetadata={(event) => { event.currentTarget.currentTime = (playback.data.progress?.positionMs ?? 0) / 1000; setPosition(event.currentTarget.currentTime); event.currentTarget.playbackRate = Number(speed); const shouldPlay = playlist || autoPlayRequested.current; autoPlayRequested.current = false; if (shouldPlay && !pauseIntent.current && !document.hidden) void event.currentTarget.play().catch(() => { setPlaying(false); onPlayingChange?.(false); }); }} onSeeking={() => { progress.current.previous = -1; }} onSeeked={(event) => { progress.current.previous = event.currentTarget.currentTime; progress.current.positionMs = Math.min(Math.round(event.currentTarget.currentTime * 1000), playback.data.audio.durationMs); progress.current.dirty = true; }} onError={() => setAudioError(true)} onTimeUpdate={(event) => {
       const element = event.currentTarget;
       const state = progress.current;
       const now = element.currentTime;
@@ -162,6 +167,7 @@ export function AudioPlayback({ narrationId, userId, playlist = false, controlsH
 
 export function PodcastPlayer({ chapter }: { chapter: LibraryChapter }): ReactElement | null {
   const session = useCurrentUser();
+  const [showQuizInvitation, setShowQuizInvitation] = useState(false);
   const available = chapter.narrations.filter((value) => value.available);
   const [choice, setChoice] = useState("");
   const selected = available.find((value) => value.id === choice) ?? available[0];
@@ -169,7 +175,8 @@ export function PodcastPlayer({ chapter }: { chapter: LibraryChapter }): ReactEl
   if (!session.isPending && !session.isError && !session.data) return null;
   return <div className="space-y-5 rounded-xl border border-line bg-paper-soft p-5 md:p-6"><div className="flex items-start gap-3"><Headphones size={25} className="shrink-0 text-bronze-dark" aria-hidden="true" /><div><p className="text-xs text-muted-foreground">Đang chọn nghe</p><h3 className="mt-1 font-semibold leading-6">{chapter.title}</h3></div></div>
     {available.length > 1 && <LibrarySelect id={`voice-${chapter.id}`} label="Góc kể" value={selected?.id ?? ""} onChange={setChoice} options={available.map((value) => ({ id: value.id, name: value.type === "FIRST_PERSON" ? "Lời kể nhân vật" : "Người dẫn chuyện" }))} />}
-    {session.isPending ? <LibraryState loading /> : session.isError ? <LibraryState error title="Chưa kiểm tra được tài khoản" retry={() => { void session.refetch(); }} /> : session.data && selected ? <AudioPlayback key={`${selected.id}-${session.data.id}`} narrationId={selected.id} userId={session.data.id} /> : <p className="text-sm text-muted-foreground">Bản thu của chương này chưa sẵn sàng.</p>}
+    {session.isPending ? <LibraryState loading /> : session.isError ? <LibraryState error title="Chưa kiểm tra được tài khoản" retry={() => { void session.refetch(); }} /> : session.data && selected ? <AudioPlayback key={`${selected.id}-${session.data.id}`} narrationId={selected.id} userId={session.data.id} onFinished={() => { if (detail.data?.hasQuiz) setShowQuizInvitation(true); }} /> : <p className="text-sm text-muted-foreground">Bản thu của chương này chưa sẵn sàng.</p>}
+    {showQuizInvitation && <section role="status" className="rounded-lg border border-line bg-paper p-4"><p className="font-semibold">Tập {chapter.title} đã phát xong</p><p className="mt-2 text-sm text-ink-soft">Ôn lại câu chuyện với quiz của tập này nhé.</p><div className="mt-3 flex flex-wrap gap-2"><Button asChild size="sm"><Link to={`/?quizEpisode=${encodeURIComponent(chapter.slug)}#library-quiz`} onClick={() => setShowQuizInvitation(false)}>Xem quiz của tập</Link></Button><Button size="sm" variant="ghost" onClick={() => setShowQuizInvitation(false)}>Để sau</Button></div></section>}
     <PublicationNoticeView info={detail.data?.publicationInfo} />
     {detail.data?.hasQuiz && <EpisodeQuiz key={session.data?.id ?? "guest"} slug={chapter.slug} signedIn={Boolean(session.data)} />}
   </div>;

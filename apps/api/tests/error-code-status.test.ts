@@ -7,7 +7,9 @@ const SRC_DIR = join(import.meta.dir, "..", "src");
 const DOMAIN_ERROR_PATTERN = /new DomainError\(\s*(\d{3})\s*,\s*"([A-Z_]+)"/g;
 
 // A code listed here may legitimately carry several statuses. Each entry needs a reason.
-const MULTI_STATUS_EXCEPTIONS: Record<string, string> = {};
+const MULTI_STATUS_EXCEPTIONS: Record<string, string> = {
+  VALIDATION_ERROR: "Existing APIs use 400 for invalid request structure and 422 for invalid business input. Preserve both contracts.",
+};
 
 function sourceFiles(dir: string): string[] {
   return readdirSync(dir).flatMap((name) => {
@@ -39,5 +41,9 @@ describe("DomainError codes", () => {
       .filter(([code, byStatus]) => byStatus.size > 1 && !(code in MULTI_STATUS_EXCEPTIONS))
       .map(([code, byStatus]) => `${code}: ${[...byStatus].map(([status, files]) => `${status} in ${files.join(", ")}`).join(" | ")}`);
     expect(conflicts).toEqual([]);
+  });
+  it("limits the validation exception to the existing 400 and 422 contracts", () => {
+    const statuses = statusesByCode().get("VALIDATION_ERROR");
+    expect([...statuses!.keys()].every(status => status === 400 || status === 422)).toBe(true);
   });
 });

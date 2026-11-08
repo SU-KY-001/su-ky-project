@@ -42,3 +42,49 @@ it("updates workspace cache from a successful draft save", async () => {
   await act(async () => { host.querySelector('button')!.click(); await Bun.sleep(20); });
   expect(client.getQueryData<QuizWorkspace>(["quiz", "workspace", "e"])).toEqual(next);
 });
+
+it("prevents creating a second quiz on an episode with an existing quiz or draft", async () => {
+  client = new QueryClient({ defaultOptions: { queries: { staleTime: Infinity, retry: false } } });
+  client.setQueryData(["quiz", "list"], { items: [] });
+  client.setQueryData(["quiz", "series"], { pages: [{ items: [{ id: "s", title: "Series" }], page: 1, limit: 50, total: 1 }], pageParams: [1] });
+  client.setQueryData(["quiz", "series", "s"], { episodes: [{ id: "e", title: "Tập 1", sortOrder: 1, status: "PUBLISHED" }] });
+  const spy = spyOn(quizService, "read").mockResolvedValue(workspace); restore = () => spy.mockRestore();
+  const host = document.createElement("div"); document.body.append(host); root = createRoot(host);
+  const router = createMemoryRouter([{ path: "/", element: <QueryClientProvider client={client}><QuizAuthoring /></QueryClientProvider> }]);
+  await act(async () => root?.render(<RouterProvider router={router} />));
+  const byText = (text: string): HTMLButtonElement => [...host.querySelectorAll("button")].find(button => button.textContent?.includes(text))!;
+  await act(async () => byText("Tạo quiz").click());
+  await act(async () => host.querySelector("#quiz-series")!.dispatchEvent(new KeyboardEvent("keydown", { key: "Enter", bubbles: true })));
+  await act(async () => document.querySelector<HTMLElement>('[role="option"][data-value="s"]')!.click());
+  await act(async () => host.querySelector("#quiz-episode")!.dispatchEvent(new KeyboardEvent("keydown", { key: "Enter", bubbles: true })));
+  await act(async () => document.querySelector<HTMLElement>('[role="option"][data-value="e"]')!.click());
+  await act(async () => { byText("Mở trình soạn").click(); await Bun.sleep(30); });
+  expect(host.textContent).toContain("Tập podcast này đã có quiz");
+  expect(host.querySelector(".quiz-editor")).toBeNull();
+  await act(async () => byText("Chọn tập khác").click());
+  expect(host.textContent).toContain("Tự soạn bộ quiz");
+});
+
+it("opens a blank editor for an episode without a quiz and keeps it mounted after a draft save", async () => {
+  const blank: QuizWorkspace = { ...workspace, revision: 0, active: false, data: { ...workspace.data, title: "", questions: [{ ...workspace.data.questions[0], text: "" }] } };
+  client = new QueryClient({ defaultOptions: { queries: { staleTime: Infinity, retry: false } } });
+  client.setQueryData(["quiz", "list"], { items: [] });
+  client.setQueryData(["quiz", "series"], { pages: [{ items: [{ id: "s", title: "Series" }], page: 1, limit: 50, total: 1 }], pageParams: [1] });
+  client.setQueryData(["quiz", "series", "s"], { episodes: [{ id: "e", title: "Tập 1", sortOrder: 1, status: "PUBLISHED" }] });
+  const spy = spyOn(quizService, "read").mockResolvedValue(blank); restore = () => spy.mockRestore();
+  const host = document.createElement("div"); document.body.append(host); root = createRoot(host);
+  const router = createMemoryRouter([{ path: "/", element: <QueryClientProvider client={client}><QuizAuthoring /></QueryClientProvider> }]);
+  await act(async () => root?.render(<RouterProvider router={router} />));
+  const byText = (text: string): HTMLButtonElement => [...host.querySelectorAll("button")].find(button => button.textContent?.includes(text))!;
+  await act(async () => byText("Tạo quiz").click());
+  await act(async () => host.querySelector("#quiz-series")!.dispatchEvent(new KeyboardEvent("keydown", { key: "Enter", bubbles: true })));
+  await act(async () => document.querySelector<HTMLElement>('[role="option"][data-value="s"]')!.click());
+  await act(async () => host.querySelector("#quiz-episode")!.dispatchEvent(new KeyboardEvent("keydown", { key: "Enter", bubbles: true })));
+  await act(async () => document.querySelector<HTMLElement>('[role="option"][data-value="e"]')!.click());
+  await act(async () => { byText("Mở trình soạn").click(); await Bun.sleep(30); });
+  expect(host.querySelector<HTMLInputElement>("#quiz-name")?.value).toBe("");
+  expect(host.querySelector<HTMLTextAreaElement>("#quiz-question")?.value).toBe("");
+  const editor = host.querySelector(".quiz-editor");
+  await act(async () => { client.setQueryData(["quiz", "workspace", "e"], { ...blank, revision: 1 }); });
+  expect(host.querySelector(".quiz-editor")).toBe(editor);
+});
