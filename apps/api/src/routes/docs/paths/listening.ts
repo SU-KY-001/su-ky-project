@@ -1,6 +1,7 @@
 import { z } from "zod";
 import {
   ListeningHistoryQuerySchema,
+  PodcastRankingQuerySchema, PodcastRankingResponseSchema,
   PublicSeriesListQuerySchema,
   UpdateListeningProgressRequestSchema,
   paginatedSchema,
@@ -29,6 +30,13 @@ const narrationParams = {
 const UNAVAILABLE = "`CONTENT_UNAVAILABLE`: bản kể chưa có audio hoặc không còn công khai";
 
 export const listeningPaths: Paths = {
+  "/api/me/top-podcasts": {
+    get: operation({ id: "listTopPodcasts", tag: TAG, summary: "Podcast nghe nhiều theo tuần/tháng", access: "user",
+      description: "Mọi role đăng nhập. scope=personal lấy user từ session; scope=system gộp toàn hệ thống, không trả định danh người nghe. Đếm ListeningSession có qualifiedAt; lọc startedAt trong tuần hiện tại (thứ Hai00:00) hoặc tháng lịch hiện tại tại Asia/Ho_Chi_Minh, khoảng [start,end). Hai bản kể cùng tập được gộp theo episode. Sort lượt DESC, title ASC, episode ID ASC; chỉ tập/series công khai, không xóa mềm và có audio READY phát được. Không backfill từ ListeningProgress. Trả window cùng pagination để client biết kỳ đang xem.",
+      query: PodcastRankingQuerySchema,
+      ok: { status: 200, description: "Ranking có phân trang, không có dữ liệu người nghe", schema: { name: "PodcastRanking", schema: PodcastRankingResponseSchema } },
+    }),
+  },
   "/api/series": {
     get: operation({
       id: "listPublicSeries",
@@ -120,7 +128,7 @@ export const listeningPaths: Paths = {
       tag: TAG,
       summary: "Đồng bộ tiến độ nghe",
       description:
-        "Gộp `playedBitmap` gửi lên vào bitmap đã lưu: chỉ thêm giây đã nghe, và số giây được cộng bị giới hạn theo thời gian thực đã trôi qua kể từ lần đồng bộ trước (chống tua). Lần đồng bộ khiến tập đạt ngưỡng hoàn thành trả `completion` kèm XP và tiến độ nhiệm vụ tuần; các lần khác `completion = null`.",
+        "Gộp `playedBitmap` vào tiến độ cộng dồn, giữ chống tua/XP như cũ. Tương thích client cũ: không có sessionId/sessionPlayedBitmap thì không ghi phiên. Client mới gửi cùng cặp sessionId(UUID) và sessionPlayedBitmap(base64 bit/giây nghe riêng của phiên, KHÔNG dùng bitmap cộng dồn); sync ngay khi bắt đầu với bitmap rỗng. Server lấy startedAt từ sync đầu, không nhận thời gian client. Pause/resume/background/retry giữ cùng ID, mở player mới/đổi tập tạo ID mới; audio thay đổi phải đổi ID. Response bổ sung listeningSession với bitmap được chấp nhận/playedMs/qualifiedAt. Ngân sách phiên là thời gian từ startedAt nhân max_playback_rate, không cấp lại tolerance qua retry. Một phiên đủ điều kiện tại min(30000ms,ceil(durationMs*0.8)); bit cuối tính đúng phần duration còn lại. qualifiedAt chỉ đặt một lần, startedAt bất biến dùng cho ranking tương lai. Ghi phiên và progress trong cùng transaction, ID không được tái dùng với user/narration/asset khác. Worker dọn phiên cũ hơn13 tháng lịch; account deletion cascade. API chỉ ghi phiên, chưa có endpoint ranking trong nhóm này.",
       access: "user",
       ...narrationParams,
       body: {
@@ -136,7 +144,7 @@ export const listeningPaths: Paths = {
       rate: "listening_progress",
       errors: {
         404: UNAVAILABLE,
-        409: "`AUDIO_CHANGED`: audio của tập đã đổi, hãy tải lại playback",
+        409: "`AUDIO_CHANGED`: audio của tập đã đổi; `CONFLICT`: sessionId thuộc account/narration/audio khác, cần tạo phiên mới",
         422: "`PROGRESS_INVALID`: `positionMs` vượt thời lượng, bitmap không phải base64 hoặc dài hơn thời lượng audio",
       },
     }),
@@ -146,7 +154,7 @@ export const listeningPaths: Paths = {
       id: "listListeningHistory",
       tag: TAG,
       summary: "Lịch sử nghe",
-      description: "Mỗi tập xuất hiện một lần, lần nghe gần nhất trước. `episode.available = false` khi tập hoặc Series đã bị ẩn hay xoá.",
+      description: "Mỗi tập xuất hiện một lần, lần nghe gần nhất trước. Chỉ đưa bản kể vào lịch sử khi playedSeconds được backend chấp nhận đạt ít nhất5 giây; sync khởi tạo bitmap rỗng vẫn lưu progress/session nhưng chưa hiện lịch sử. `episode.available = false` khi tập hoặc Series đã bị ẩn hay xoá.",
       access: "user",
       query: ListeningHistoryQuerySchema,
       queryDocs: {

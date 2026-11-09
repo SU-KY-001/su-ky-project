@@ -234,6 +234,16 @@ export class ListeningService {
     if (unusedBits > 0)
       padded[expectedBytes - 1] &= (1 << (BITS_PER_BYTE - unusedBits)) - 1;
 
+    let sessionBitmap: Uint8Array | undefined;
+    if (input.sessionId !== undefined && input.sessionPlayedBitmap !== undefined) {
+      if (!BASE64_PATTERN.test(input.sessionPlayedBitmap)) throw new DomainError(422, "PROGRESS_INVALID", "Session bitmap is not valid base64");
+      const decoded = Buffer.from(input.sessionPlayedBitmap, "base64");
+      if (decoded.length > expectedBytes) throw new DomainError(422, "PROGRESS_INVALID", "Session bitmap exceeds audio duration");
+      sessionBitmap = new Uint8Array(expectedBytes);
+      sessionBitmap.set(decoded);
+      if (unusedBits > 0) sessionBitmap[expectedBytes - 1] &= (1 << (BITS_PER_BYTE - unusedBits)) - 1;
+    }
+
     // Policy numbers are read up front so the repository unit of work stays mechanics-only.
     const [
       syncInterval,
@@ -260,6 +270,7 @@ export class ListeningService {
       now,
       xpPerEpisodeCompletion,
       completionRatio,
+      ...(input.sessionId && sessionBitmap ? { session: { id: input.sessionId, bitmap: sessionBitmap, durationMs: narration.audioAsset.durationMs, maxRate } } : {}),
       budget: (elapsedSeconds: number) =>
         Math.ceil(elapsedSeconds * maxRate) +
         Math.ceil((syncInterval / MS_PER_SECOND) * maxRate * tolerance),
@@ -287,6 +298,7 @@ export class ListeningService {
       ),
       completedAt: result.completedAt,
       completion: result.completion,
+      ...(result.listeningSession ? { listeningSession: result.listeningSession } : {}),
     };
   }
 
@@ -438,7 +450,7 @@ export class ListeningService {
   }
 
   async getHistory(userId: string, { page, limit, status }: HistoryQuery) {
-    const rows = await this.repo.listListeningHistory(userId);
+      const rows = (await this.repo.listListeningHistory(userId)).filter((row) => row.playedSeconds >= 5);
     const grouped = new Map<string, (typeof rows)[number]>();
     for (const row of rows)
       if (!grouped.has(row.episodeId)) grouped.set(row.episodeId, row);

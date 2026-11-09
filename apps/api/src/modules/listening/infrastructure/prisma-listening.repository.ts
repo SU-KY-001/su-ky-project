@@ -1,4 +1,6 @@
 import { PublicationEvidenceSchema } from "@repo/shared";
+import { DomainError } from "../../../core/errors/domain-error";
+import { mergeSessionBitmap } from "../application/listening-session-policy";
 import { SourceTierSchema } from "@repo/shared";
 import { z } from "zod";
 import { recordMissionActivity } from "../../../core/weekly-mission";
@@ -461,6 +463,24 @@ export class PrismaListeningRepository implements ListeningRepository {
       const current = await tx.listeningProgress.findUniqueOrThrow({
         where: { userId_narrationId: { userId, narrationId } },
       });
+      let listeningSession: ApplyProgressResult["listeningSession"];
+      if (command.session) {
+        const session = command.session;
+        await tx.listeningSession.createMany({
+          data: [{ id: session.id, userId, narrationId, episodeId, audioAssetId: assetId, durationMs: session.durationMs, startedAt: now, updatedAt: now, playedBitmap: new Uint8Array(session.bitmap.length) }],
+          skipDuplicates: true,
+        });
+        await tx.$queryRaw`SELECT id FROM listening_sessions WHERE id = ${session.id}::uuid FOR UPDATE`;
+        const storedSession = await tx.listeningSession.findUniqueOrThrow({ where: { id: session.id } });
+        if (storedSession.userId !== userId || storedSession.narrationId !== narrationId || storedSession.episodeId !== episodeId || storedSession.audioAssetId !== assetId || storedSession.durationMs !== session.durationMs) {
+          throw new DomainError(409, "CONFLICT", "Listening session belongs to different audio or account; start a new session");
+        }
+        const budgetMs = Math.floor(Math.max(0, now.getTime() - storedSession.startedAt.getTime()) * session.maxRate);
+        const accepted = mergeSessionBitmap(new Uint8Array(storedSession.playedBitmap), session.bitmap, session.durationMs, budgetMs);
+        const qualifiedAt = storedSession.qualifiedAt ?? (accepted.qualified ? now : null);
+        await tx.listeningSession.update({ where: { id: session.id }, data: { playedBitmap: new Uint8Array(accepted.bitmap), playedMs: accepted.playedMs, qualifiedAt, updatedAt: now } });
+        listeningSession = { id: session.id, startedAt: storedSession.startedAt, qualifiedAt, playedMs: accepted.playedMs, playedBitmap: Buffer.from(accepted.bitmap).toString("base64") };
+      }
       const sameAsset = current.audioAssetId === assetId;
       const stored = sameAsset
         ? new Uint8Array(current.playedBitmap)
@@ -490,7 +510,7 @@ export class PrismaListeningRepository implements ListeningRepository {
       const completion = completedNow
         ? await this.awardCompletion(tx, command)
         : null;
-      return { positionMs, playedSeconds, completedAt, completion };
+      return { positionMs, playedSeconds, completedAt, completion, ...(listeningSession ? { listeningSession } : {}) };
     });
   }
 

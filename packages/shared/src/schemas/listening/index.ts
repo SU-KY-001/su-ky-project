@@ -9,6 +9,14 @@ export const PublicSeriesListQuerySchema = PaginationQuerySchema.extend({
 });
 export const UpdateListeningProgressRequestSchema = z.object({
   assetId: z.string().uuid(), positionMs: z.number().int().nonnegative(), playedBitmap: z.string().max(4096),
+  sessionId: z.string().uuid().optional(),
+  sessionPlayedBitmap: z.string().max(4096).optional(),
+}).superRefine((value, context) => {
+  if ((value.sessionId === undefined) !== (value.sessionPlayedBitmap === undefined)) context.addIssue({ code: "custom", path: ["sessionId"], message: "sessionId và sessionPlayedBitmap phải được gửi cùng nhau" });
+});
+export const ListeningSessionSyncSchema = z.object({
+  id: z.string().uuid(), startedAt: z.coerce.date(), qualifiedAt: z.coerce.date().nullable(),
+  playedMs: z.number().int().nonnegative(), playedBitmap: z.string(),
 });
 export const ListeningHistoryQuerySchema = PaginationQuerySchema.extend({ status: z.enum(["all", "in_progress", "completed"]).default("all") });
 
@@ -18,7 +26,7 @@ export const PublicEpisodeDetailSchema = z.object({ id: z.string().uuid(), slug:
 export const PublicSeriesDetailSchema = z.object({ id: z.string().uuid(), slug: z.string(), title: z.string(), sources: z.array(PublicSeriesSourceSchema), episodes: z.array(z.unknown()) }).passthrough();
 export const PlaybackSchema = z.object({ narrationId: z.string().uuid(), episodeId: z.string().uuid(), audio: z.object({ assetId: z.string().uuid(), url: z.string(), mimeType: z.string(), durationMs: z.number().int() }), progress: z.unknown().nullable(), sync: z.object({ intervalMs: z.number().int(), completionThreshold: z.number() }) });
 export const ListeningProgressSchema = z.object({ assetId: z.string().uuid(), positionMs: z.number().int(), playedBitmap: z.string(), playedSeconds: z.number().int(), percent: z.number(), completedAt: z.coerce.date().nullable() });
-export const ListeningProgressUpdateResultSchema = ListeningProgressSchema.omit({ assetId: true, playedBitmap: true }).extend({ narrationId: z.string().uuid(), completion: z.unknown().nullable() });
+export const ListeningProgressUpdateResultSchema = ListeningProgressSchema.omit({ assetId: true, playedBitmap: true }).extend({ narrationId: z.string().uuid(), completion: z.unknown().nullable(), listeningSession: ListeningSessionSyncSchema.optional() });
 export const ListeningHistoryEpisodeSchema = z.object({
   id: z.string().uuid(), slug: z.string(), title: z.string(), available: z.boolean(),
   series: z.object({ slug: z.string(), title: z.string() }),

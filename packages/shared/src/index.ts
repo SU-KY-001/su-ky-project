@@ -8,6 +8,8 @@ export * from "./schemas/historical-time";
 export * from "./schemas/timeline";
 export * from "./schemas/auth";
 export * from "./schemas/top-quizzes";
+export * from "./schemas/podcast-ranking";
+export * from "./schemas/playlists";
 export * from "./schemas/health";
 export * from "./schemas/release";
 export * from "./schemas/common";
