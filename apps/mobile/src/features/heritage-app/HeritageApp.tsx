@@ -6,6 +6,7 @@ import { useQuery } from "@tanstack/react-query";
 import { AppShell, type MainTab } from "@/shared/ui";
 import { useAuthStore } from "@/lib/authStore";
 import { screenForTab, tabForScreen } from "./appLogic";
+import { nextPlaylistMode, nextQueueIndex, playlistOrder, type PlaylistMode } from "./playlistPlayback";
 import {
   podcastApi,
   fallbackEventImage,
@@ -15,7 +16,7 @@ import {
   type PodcastEpisode,
   type PublicHistoricalEventDto,
 } from "./podcastApi";
-import { LoginScreen, ScheduleScreen } from "./screens/AccountScreens";
+import { LoginScreen } from "./screens/AccountScreens";
 import { ProfileScreen } from "./screens/ProfileScreen";
 import { DiscoveryScreen } from "./screens/DiscoveryScreen";
 import { EventDetailScreen, HistoryScreen } from "./screens/HistoryScreens";
@@ -47,6 +48,7 @@ export function HeritageApp(): React.JSX.Element {
   const openingHistory = useRef(false);
   const screenRef = useRef(screen);
   screenRef.current = screen;
+  const playbackInteraction = useRef(0);
 
   const [quizEpisode, setQuizEpisode] = useState<QuizEpisodeSummary | null>(null);
   const [quizReturn, setQuizReturn] = useState<AppScreen>("quizzes");
@@ -68,7 +70,8 @@ export function HeritageApp(): React.JSX.Element {
   const [libraryError, setLibraryError] = useState<string | null>(null);
   const [libraryBusy, setLibraryBusy] = useState(false);
   const libraryLock = useRef(false);
-  const [playbackQueue, setPlaybackQueue] = useState<{ ownerId: string; playlistId: string; tracks: PlaylistTrack[]; index: number } | null>(null);
+  const [playlistMode, setPlaylistMode] = useState<{ id: string; mode: PlaylistMode } | null>(null);
+  const [playbackQueue, setPlaybackQueue] = useState<{ ownerId: string; playlistId: string; tracks: PlaylistTrack[]; originalTracks: PlaylistTrack[]; index: number; mode: PlaylistMode } | null>(null);
   const finishedQueueSession = useRef<string | null>(null);
 
   const [loginReturn, setLoginReturn] = useState<AppScreen>("profile");
@@ -83,22 +86,23 @@ export function HeritageApp(): React.JSX.Element {
   // Phục hồi tập nghe gần nhất từ AsyncStorage, hoặc tải tập mới nhất từ API
   useEffect(() => {
     let active = true;
+    const initialInteraction = playbackInteraction.current;
     void AsyncStorage.getItem(LAST_EPISODE_KEY)
       .then((saved) => {
-        if (!active) return;
+        if (!active || playbackInteraction.current !== initialInteraction) return;
         if (saved) {
           try {
             const restored = restoreCachedEpisode(JSON.parse(saved) as CachedEpisodePayload);
             void podcastApi
               .getSeries(restored.seriesSlug)
               .then((detail) => {
-                if (!active) return;
+                if (!active || playbackInteraction.current !== initialInteraction) return;
                 const current = detail.episodes.find((item) => item.slug === restored.slug) ?? restored;
                 setEpisode(current);
                 setSelectedNarrationId(current.narrationId);
               })
               .catch(() => {
-                if (!active) return;
+                if (!active || playbackInteraction.current !== initialInteraction) return;
                 setEpisode(restored);
                 setSelectedNarrationId(restored.narrationId);
               });
@@ -108,7 +112,7 @@ export function HeritageApp(): React.JSX.Element {
           }
         }
         void podcastApi.latestEpisodes(1).then((latest) => {
-          if (!active) return;
+          if (!active || playbackInteraction.current !== initialInteraction) return;
           if (latest[0]) {
             setEpisode(latest[0]);
             setSelectedNarrationId(latest[0].narrationId);
@@ -140,10 +144,10 @@ export function HeritageApp(): React.JSX.Element {
   );
 
   const activeTab = tabForScreen(screen);
-  const hideTabs = ["event", "series", "player", "episodeQuiz", "login", "listeningHistory", "topQuizzes", "rankings", "playlists", "playlistDetail"].includes(screen);
-  const dark = screen === "player";
+  const hideTabs = ["event", "series", "player", "episodeQuiz", "login", "listeningHistory", "topQuizzes", "rankings"].includes(screen) || (screen === "playlists" && !!addingEpisodeId);
+  const dark = screen === "player" || screen === "playlistDetail";
 
-  const changeTab = (tab: MainTab): void => setScreen(screenForTab(tab));
+  const changeTab = (tab: MainTab): void => { if (tab === "playlist") { setAddingEpisodeId(null); setPlaylistsReturn("discovery"); } setScreen(screenForTab(tab)); };
 
   const startEpisodeQuiz = (target: QuizEpisodeSummary): void => {
     setQuizReturn("quizzes");
@@ -181,13 +185,14 @@ export function HeritageApp(): React.JSX.Element {
   const playEpisode = (target: PodcastEpisode, from: AppScreen, resume?: { narrationId: string; positionMs: number }): void => {
     const narrationId = resume?.narrationId ?? target.narrationId;
     if (!narrationId) return;
+    if (!useAuthStore.getState().user) { requireAuth(undefined, target); return; }
+    playbackInteraction.current += 1;
     setEpisode(target);
     setPlaybackQueue(null);
     setSelectedNarrationId(narrationId);
     setResumeRequest(resume ? { ...resume, token: ++resumeToken.current } : null);
     setAutoplayToken((v) => v + 1);
     setPlayerReturn(from);
-    setScreen("player");
     void AsyncStorage.setItem(LAST_EPISODE_KEY, JSON.stringify(serializeEpisode(target))).catch(() => undefined);
   };
 
@@ -195,12 +200,12 @@ export function HeritageApp(): React.JSX.Element {
     if (!user) { requireAuth("Đăng nhập để nghe podcast và lưu hành trình."); return; }
     if (libraryLock.current) return;
     const from = screen;
-    const ownerId = user.id;
+    const ownerId = user.id; const interaction = playbackInteraction.current;
     libraryLock.current = true; setLibraryBusy(true); setLibraryError(null);
     try {
       const ep = await podcastApi.getEpisode(slug);
       const series = await podcastApi.getSeries(ep.series!.slug);
-      if (screenRef.current !== from || useAuthStore.getState().user?.id !== ownerId) return;
+      if (screenRef.current !== from || useAuthStore.getState().user?.id !== ownerId || playbackInteraction.current !== interaction) return;
       const target = series.episodes.find((item) => item.slug === slug);
       if (!target?.narrationId) throw new Error("Tập không còn audio");
       playEpisode(target, from);
@@ -211,19 +216,22 @@ export function HeritageApp(): React.JSX.Element {
   const playQueueIndex = async (queue: NonNullable<typeof playbackQueue>, startIndex: number, direction: number, from: AppScreen, keepScreen = false): Promise<void> => {
     if (libraryLock.current || useAuthStore.getState().user?.id !== queue.ownerId) return;
     libraryLock.current = true; setLibraryBusy(true); setLibraryError(null);
+    const interaction = playbackInteraction.current;
     try {
-      for (let index = startIndex; index >= 0 && index < queue.tracks.length; index += direction) {
+      for (let offset = 0; offset < queue.tracks.length; offset++) {
+        const rawIndex = startIndex + offset * direction;
+        const index = queue.mode === "repeat" && direction === 1 ? rawIndex % queue.tracks.length : rawIndex;
+        if (index < 0 || index >= queue.tracks.length) break;
         const track = queue.tracks[index]!;
         if (!track.available) continue;
         let detail;
         try { detail = await podcastApi.getSeries(track.seriesSlug); }
         catch (error) { if ((error as { response?: { status?: number } }).response?.status === 404) continue; throw error; }
-        if (useAuthStore.getState().user?.id !== queue.ownerId || screenRef.current !== from) return;
+        if (useAuthStore.getState().user?.id !== queue.ownerId || screenRef.current !== from || playbackInteraction.current !== interaction) return;
         const target = detail.episodes.find((item) => item.id === track.episodeId);
         if (!target?.narrationId) continue;
         playback.stop();
         playEpisode(target, from === "player" || keepScreen ? playerReturn : "playlistDetail");
-        if (keepScreen) setScreen(from);
         setPlaybackQueue({ ...queue, index });
         return;
       }
@@ -236,15 +244,17 @@ export function HeritageApp(): React.JSX.Element {
   const startPlaylist = async (id: string, episodeId?: string): Promise<void> => {
     if (!user) { requireAuth("Đăng nhập để phát playlist."); return; }
     if (libraryLock.current) return;
-    const ownerId = user.id; const from = screen;
+    const ownerId = user.id; const from = screen; const interaction = playbackInteraction.current;
     libraryLock.current = true; setLibraryBusy(true); setLibraryError(null);
     try {
-      const tracks = await libraryService.tracks(id);
-      if (useAuthStore.getState().user?.id !== ownerId || screenRef.current !== from) return;
+      const originalTracks = await libraryService.tracks(id);
+      if (useAuthStore.getState().user?.id !== ownerId || screenRef.current !== from || playbackInteraction.current !== interaction) return;
       libraryLock.current = false;
+      const mode = playlistMode?.id === id ? playlistMode.mode : "normal";
+      const tracks = playlistOrder(originalTracks, mode, episodeId);
       const index = episodeId ? tracks.findIndex((track) => track.episodeId === episodeId) : 0;
       if (index < 0 || !tracks.some((track) => track.available)) { setLibraryError("Playlist chưa có tập nào phát được."); return; }
-      await playQueueIndex({ ownerId, playlistId: id, tracks, index }, index, 1, from);
+      await playQueueIndex({ ownerId, playlistId: id, tracks, originalTracks, index, mode }, index, 1, from);
     } catch { setLibraryError("Chưa tải được playlist. Vui lòng thử lại."); }
     finally { libraryLock.current = false; setLibraryBusy(false); }
   };
@@ -252,7 +262,8 @@ export function HeritageApp(): React.JSX.Element {
   useEffect(() => {
     if (!playback.finishedSessionId || !playbackQueue || finishedQueueSession.current === playback.finishedSessionId || playbackQueue.ownerId !== user?.id) return;
     finishedQueueSession.current = playback.finishedSessionId;
-    if (playbackQueue.index + 1 < playbackQueue.tracks.length) void playQueueIndex(playbackQueue, playbackQueue.index + 1, 1, screen, true);
+    const next = nextQueueIndex(playbackQueue.index, playbackQueue.tracks.length, playbackQueue.mode);
+    if (next !== null) void playQueueIndex(playbackQueue, next, 1, screen, true);
   }, [playback.finishedSessionId, playbackQueue, user?.id]);
 
   useFocusEffect(useCallback(() => {
@@ -264,13 +275,13 @@ export function HeritageApp(): React.JSX.Element {
   const playHistoryEpisode = async (item: ListeningHistoryItem, from: "profile" | "listeningHistory"): Promise<void> => {
     if (!user) { requireAuth("Đăng nhập để tiếp tục nghe và lưu hành trình."); return; }
     if (openingHistory.current || !item.episode.available) return;
-    const ownerId = user.id;
+    const ownerId = user.id; const interaction = playbackInteraction.current;
     openingHistory.current = true;
     setOpeningHistoryEpisodeId(item.episode.id);
     setHistoryOpenError(null);
     try {
       const detail = await podcastApi.getSeries(item.episode.series.slug);
-      if (screenRef.current !== from || useAuthStore.getState().user?.id !== ownerId) return;
+      if (screenRef.current !== from || useAuthStore.getState().user?.id !== ownerId || playbackInteraction.current !== interaction) return;
       const target = detail.episodes.find((candidate) => candidate.id === item.episode.id);
       if (!target || !target.narrations.some((choice) => choice.id === item.lastNarrationId)) {
         setHistoryOpenError("Bản kể bạn đã nghe hiện không còn khả dụng. Hãy chọn tập khác.");
@@ -291,20 +302,6 @@ export function HeritageApp(): React.JSX.Element {
     return () => subscription.remove();
   }, [screen, playerReturn]));
 
-  const playEpisodeBySlug = async (slug: string): Promise<void> => {
-    try {
-      const ep = await podcastApi.getEpisode(slug);
-      const detail = await podcastApi.getSeries(ep.series?.slug ?? "viet-nam-thoi-phong-kien");
-      const matched = detail.episodes.find((item) => item.slug === slug);
-      if (matched) {
-        playEpisode(matched, screen);
-      }
-    } catch {
-      // nếu không tìm thấy thì mở thư viện
-      setScreen("podcasts");
-    }
-  };
-
   const openPlayer = (from: AppScreen): void => {
     if (!episode) return;
     setPlayerReturn(from);
@@ -321,6 +318,7 @@ export function HeritageApp(): React.JSX.Element {
       const target = pendingPlay;
       setPendingPlay(null);
       playEpisode(target, loginReturn);
+      setScreen(loginReturn);
       return;
     }
     setScreen(loginReturn);
@@ -331,16 +329,19 @@ export function HeritageApp(): React.JSX.Element {
       activeTab={activeTab}
       onTabChange={changeTab}
       hideTabs={hideTabs}
-      extendBottom={screen === "login"}
+      hideMiniPlayer={["player", "login", "episodeQuiz"].includes(screen)}
+      extendBottom={screen === "login" || screen === "player"}
       dark={dark}
       miniPlayer={
         episode
           ? {
+              episodeId: episode.id,
               artwork: episode.image,
               title: episode.title,
               subtitle: `Sử Ký · ${episode.seriesTitle} · Tập ${episode.number}`,
               playback,
               onOpen: () => openPlayer(screen),
+              onDismiss: () => { playbackInteraction.current += 1; playback.stop(); setPlaybackQueue(null); setEpisode(null); setSelectedNarrationId(null); setResumeRequest(null); },
             }
           : undefined
       }
@@ -354,8 +355,7 @@ export function HeritageApp(): React.JSX.Element {
             setScreen("history");
           }}
           onPodcast={() => setScreen("podcasts")}
-          onPlayer={() => openPlayer("discovery")}
-          onSchedule={() => setScreen("schedule")}
+          onPlayer={() => playback.toggle()}
         />
       ) : null}
 
@@ -381,6 +381,7 @@ export function HeritageApp(): React.JSX.Element {
           onSeries={openSeries}
           onPlay={(item) => playEpisode(item, "podcasts")}
           onEpisodeQuiz={startEpisodeQuiz}
+          onRequireAuth={() => requireAuth("Đăng nhập để thêm tập vào playlist.")}
         />
       ) : null}
 
@@ -397,15 +398,12 @@ export function HeritageApp(): React.JSX.Element {
 
       {screen === "player" && episode ? (
         <AudioPlayerScreen
-          onAddPlaylist={() => { if (!user) { requireAuth("Đăng nhập để thêm tập vào playlist."); return; } setAddingEpisodeId(episode.id); setPlaylistsReturn("player"); setScreen("playlists"); }}
-          onStop={() => { playback.stop(); setPlaybackQueue(null); }}
           libraryError={libraryError}
           queueNavigation={playbackQueue?.ownerId === user?.id && playbackQueue ? { index: playbackQueue.index, total: playbackQueue.tracks.length, busy: libraryBusy, onPrevious: () => void playQueueIndex(playbackQueue, playbackQueue.index - 1, -1, "player"), onNext: () => void playQueueIndex(playbackQueue, playbackQueue.index + 1, 1, "player") } : undefined}
           episode={episode}
           narrationId={currentNarrationId}
           onSelectNarration={setSelectedNarrationId}
           onBack={() => setScreen(playerReturn)}
-          onQuiz={() => startEpisodeQuiz(episode)}
           playback={playback}
         />
       ) : null}
@@ -420,13 +418,6 @@ export function HeritageApp(): React.JSX.Element {
           signedIn={Boolean(user)}
           onBack={() => setScreen(quizReturn)}
           onRequireAuth={() => requireAuth("Đăng nhập để nộp bài quiz và tích lũy XP.")}
-        />
-      ) : null}
-
-      {screen === "schedule" ? (
-        <ScheduleScreen
-          onBack={() => setScreen("profile")}
-          onPlayEpisode={playEpisodeBySlug}
         />
       ) : null}
 
@@ -473,7 +464,7 @@ export function HeritageApp(): React.JSX.Element {
 
       {screen === "rankings" ? <RankingsScreen scope={rankingScope} period={rankingPeriod} page={rankingPage} onPeriod={(period) => { setRankingPeriod(period); setRankingPage(1); }} onPage={setRankingPage} onBack={() => setScreen("profile")} onPlay={(slug) => void openLibraryEpisode(slug)} onLogin={() => requireAuth()} error={libraryError} /> : null}
       {screen === "playlists" ? <PlaylistsScreen addingEpisodeId={addingEpisodeId} onBack={() => { if (screenRef.current === "playlists") setScreen(playlistsReturn); }} onLogin={() => requireAuth()} onOpen={(id) => { setSelectedPlaylistId(id); setPlaylistPage(1); setLibraryError(null); setScreen("playlistDetail"); }} /> : null}
-      {screen === "playlistDetail" && selectedPlaylistId ? <PlaylistDetailScreen key={selectedPlaylistId} id={selectedPlaylistId} page={playlistPage} onPage={setPlaylistPage} onBack={() => { if (screenRef.current === "playlistDetail" && selectedPlaylistRef.current === selectedPlaylistId) setScreen("playlists"); }} onLogin={() => requireAuth()} onPlay={(id) => void startPlaylist(id)} onPlayTrack={(id, episodeId) => void startPlaylist(id, episodeId)} onBrowse={() => setScreen("podcasts")} error={libraryError} busy={libraryBusy} /> : null}
+      {screen === "playlistDetail" && selectedPlaylistId ? <PlaylistDetailScreen key={selectedPlaylistId} id={selectedPlaylistId} page={playlistPage} onPage={setPlaylistPage} onBack={() => { if (screenRef.current === "playlistDetail" && selectedPlaylistRef.current === selectedPlaylistId) setScreen("playlists"); }} onLogin={() => requireAuth()} onPlay={(id) => void startPlaylist(id)} onPlayTrack={(id, episodeId) => void startPlaylist(id, episodeId)} mode={playlistMode?.id === selectedPlaylistId ? playlistMode.mode : "normal"} onCycleMode={() => { const mode = nextPlaylistMode(playlistMode?.id === selectedPlaylistId ? playlistMode.mode : "normal"); setPlaylistMode({ id: selectedPlaylistId, mode }); setPlaybackQueue((queue) => { if (!queue || queue.playlistId !== selectedPlaylistId) return queue; const currentId = queue.tracks[queue.index]?.episodeId; const tracks = playlistOrder(queue.originalTracks, mode, currentId); const index = tracks.findIndex((item) => item.episodeId === currentId); return index < 0 ? null : { ...queue, tracks, index, mode }; }); }} onSaved={(originalTracks) => setPlaybackQueue((queue) => { if (!queue || queue.playlistId !== selectedPlaylistId) return queue; const currentId = queue.tracks[queue.index]?.episodeId; const tracks = playlistOrder(originalTracks, queue.mode, currentId); const index = tracks.findIndex((track) => track.episodeId === currentId); return index < 0 ? null : { ...queue, originalTracks, tracks, index }; })} error={libraryError} busy={libraryBusy} /> : null}
 
       {screen === "login" ? (
         <LoginScreen

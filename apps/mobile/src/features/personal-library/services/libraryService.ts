@@ -19,6 +19,7 @@ export const libraryService = {
   async delete(id: string): Promise<void> { await apiClient.delete(`/api/me/playlists/${id}`); },
   async add(id: string, episodeId: string): Promise<void> { await apiClient.post(`/api/me/playlists/${id}/items`, { episodeId }); },
   async remove(id: string, episodeId: string): Promise<void> { await apiClient.delete(`/api/me/playlists/${id}/items/${episodeId}`); },
+  async reorder(id: string, episodeIds: string[]): Promise<void> { await apiClient.put(`/api/me/playlists/${id}/items/order`, { episodeIds }); },
   async tracks(id: string): Promise<PlaylistTrack[]> {
     const first = await libraryService.playlist(id, 1, 50);
     const items = [...first.items];

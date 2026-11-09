@@ -1,6 +1,6 @@
 # API-first: phiên nghe, ranking và playlist
 
-Đã chốt: chỉ code/migration local để người dùng deploy; giữ tương thích client cũ. Nhóm A đã được duyệt; B/C đã hoàn thiện. Đợt tích hợp local tiếp theo đã nối sync mobile/ranking/playlist và chạy PostgreSQL thật; trạng thái mới nhất ở `LOCAL-PROFILE-INTEGRATION-HANDOFF.md`. Mọi deploy production vẫn do người dùng thực hiện.
+Đã chốt: agent chỉ code/kiểm tra local, người dùng tự deploy production; giữ tương thích client cũ. Nhóm A/B/C và mobile integration đã hoàn thiện local, PostgreSQL test riêng đã đạt; trạng thái ở `LOCAL-PROFILE-INTEGRATION-HANDOFF.md`. OpenAPI production hiện công bố routes mới và /health báo DB/queue chạy; migration state và luồng authenticated end-to-end vẫn cần xác nhận.
 
 ## Nhóm A — Ghi nhận phiên nghe (đã triển khai local, đã duyệt)
 
@@ -48,7 +48,7 @@ Model owner-scoped Playlist/PlaylistItem, unique episode trong playlist, thứ t
 - User deletion cascade Playlist/items cùng ListeningSession; không sửa nội dung chung. Khi lấy danh sách/chi tiết chỉ trả metadata và narration IDs/duration, dùng API playback hiện có để lấy audio URL và lưu tiến độ sau này.
 - Shared schemas/playlists.ts; module playlists/service+routes; docs paths/playlists.ts và tag Playlists. Migration mới `20261109110000_private_playlists`; chưa apply DB. Không thêm UI trong đợt này.
 
-## Hướng dẫn deploy A/B/C (chưa thực thi)
+## Hướng dẫn deploy A/B/C và kiểm tra sau deploy
 
 1. Deploy source và generate Prisma Client: từ root chạy `bun run --cwd packages/db db:generate`.
 2. Người dùng trỏ DATABASE_URL đúng môi trường rồi chạy migration theo pipeline hiện có (`bun run --cwd packages/db db:deploy`). Migration mới: `20261109100000_listening_sessions` và `20261109110000_private_playlists`; chỉ tạo bảng/index/FK/check, không backfill hoặc đổi dữ liệu tiến độ cũ. Áp dụng migration trước khi khởi động API/worker bản mới.

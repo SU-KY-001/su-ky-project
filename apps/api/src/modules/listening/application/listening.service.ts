@@ -419,6 +419,7 @@ export class ListeningService {
         narrator: item.narratorEntity,
         durationMs: item.audioAsset?.durationMs ?? null,
         available: item.audioAsset?.status === "READY",
+        scriptContent: item.audioAsset?.status === "READY" ? item.scriptContent : null,
       })),
       entities: episode.entityTags.map((item) => item.entity),
       previousEpisode: index > 0 ? episode.series.episodes[index - 1] : null,

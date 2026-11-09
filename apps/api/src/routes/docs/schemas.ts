@@ -382,7 +382,7 @@ export const PublicEpisodeDetailDocSchema = z.object({
       .describe("Trích dẫn thuộc series; mọi tập của series dùng chung"),
   }),
   narrations: z.array(
-    PublicNarrationSchema.extend({ narrator: PublicEntitySchema.nullable() }),
+    PublicNarrationSchema.extend({ narrator: PublicEntitySchema.nullable(), scriptContent: z.string().nullable().describe("Kịch bản của bản thu có audio sẵn sàng") }),
   ),
   entities: z
     .array(PublicEntitySchema)

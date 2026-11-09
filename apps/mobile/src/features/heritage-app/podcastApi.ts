@@ -11,7 +11,6 @@ import {
   PublicHistoricalEventSchema,
   PublicQuizSchema,
   PublicQuizCatalogSchema,
-  PublicReleasesSchema,
   QuizAttemptResultSchema,
   paginatedSchema,
   type HistoricalPeriodDto,
@@ -27,7 +26,6 @@ export type PublicQuizCard = z.infer<typeof PublicQuizCatalogSchema>["items"][nu
 export type QuizAttemptResult = z.infer<typeof QuizAttemptResultSchema>;
 export type MyWeeklyMissions = z.infer<typeof MyWeeklyMissionsSchema>;
 export type ListeningProgressResult = z.infer<typeof ListeningProgressUpdateResultSchema>;
-export type ReleaseItem = z.infer<typeof PublicReleasesSchema>["items"][number];
 
 export interface NarrationChoice {
   id: string;
@@ -274,12 +272,6 @@ export const podcastApi = {
   async weeklyMissions(): Promise<MyWeeklyMissions> {
     const { data } = await apiClient.get("/api/me/weekly-missions");
     return MyWeeklyMissionsSchema.parse(data);
-  },
-  async releases(from: Date, to: Date): Promise<ReleaseItem[]> {
-    const { data } = await apiClient.get("/api/showcase/releases", {
-      params: { from: from.toISOString(), to: to.toISOString() },
-    });
-    return PublicReleasesSchema.parse(data).items;
   },
   async periods(): Promise<HistoricalPeriodDto[]> {
     const { data } = await apiClient.get("/api/historical-periods");

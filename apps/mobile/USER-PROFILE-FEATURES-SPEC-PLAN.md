@@ -8,23 +8,23 @@
 
 Mở rộng màn Tôi / Hồ sơ cá nhân để user quản lý hồ sơ, xem hoạt động nghe và quiz của mình, khám phá podcast được nghe nhiều trên hệ thống, và tạo playlist cá nhân. Triển khai từng luồng hoàn chỉnh; sau mỗi bước sẽ báo cáo kết quả và chờ bạn duyệt rồi mới sang bước kế tiếp.
 
-**Điều chỉnh thứ tự đã duyệt:** ưu tiên hoàn thiện API/model/migration local cho Task4–7 để người dùng deploy, rồi mới tiếp tục nối UI theo task. Chia ba review gate: A ghi nhận phiên nghe → B ranking cá nhân/toàn hệ thống → C playlist. Giữ tương thích client cũ, không tự deploy. Chi tiết ở `API-FIRST-IMPLEMENTATION-PLAN.md`.
+**Điều chỉnh thứ tự đã duyệt:** hoàn thiện API/model/migration local cho Task4–7, nối mobile local, rồi người dùng deploy. Chia ba review gate: A ghi nhận phiên nghe → B ranking cá nhân/toàn hệ thống → C playlist. Giữ tương thích client cũ; agent không tự deploy. Chi tiết ở `API-FIRST-IMPLEMENTATION-PLAN.md`.
 
 **Trạng thái API-first:** A đã duyệt; B/C đã hoàn tất local. Sau đợt API-first, người dùng đã yêu cầu nối mobile và chạy DB thật: UI/sync Task4–7 đã nối, migration đã được kiểm chứng trên database test riêng. Lịch sử nghiệm thu Task1–2 giữ nguyên; production do người dùng cập nhật.
 
-**Cập nhật sau tích hợp local:** đã apply toàn bộ27 migration trên PostgreSQL test riêng (không phải dev/prod),61 API tests với integration bật đều đạt, không skip. Đã nối code mobile sync phiên và UI ranking/playlist. Người dùng tự deploy production; app vẫn giữ API URL hiện có nên luồng thành công trên Android cần kiểm tra sau khi backend được người dùng cập nhật. Chi tiết mới nhất: `LOCAL-PROFILE-INTEGRATION-HANDOFF.md`.
+**Cập nhật tích hợp:** đã apply toàn bộ 27 migration trên PostgreSQL test riêng và 61 API integration tests đạt. Mobile sync phiên và UI ranking/playlist đã nối local. Kiểm tra production mới nhất: OpenAPI công bố các route cần thiết; `/health` báo DB connected, queue running. Chưa xác nhận migration state hoặc API thành công với session đăng nhập; Android end-to-end còn chờ. Chi tiết ở `LOCAL-PROFILE-INTEGRATION-HANDOFF.md`.
 
 ## 2. Hiện trạng đã rà soát
 
 - `apps/mobile/src/features/heritage-app/screens/ProfileScreen.tsx` là màn Tôi, dùng Tamagui và component/token chung. Header hiển thị avatar/tên/email và mũi tên mở route `/profile`; đã bỏ nút chỉnh sửa rời, hai ô Tổng XP/Nhiệm vụ hoàn thành và toàn bộ mục Nhiệm vụ tuần theo yêu cầu. Nghe gần đây nằm ngay sau header; màn này không còn gọi API nhiệm vụ tuần.
 - HeritageApp.tsx đã có màn profile và điều hướng bottom tab tới đó. Theo yêu cầu bổ sung, header hồ sơ không còn biểu tượng mở lịch phát sóng; lịch ở các vị trí khác của ứng dụng được giữ.
 - Bước 2 đã thay wrapper podcastApi.listeningHistory cũ bằng service/hook trong `features/listening-history`: preview limit=4, màn Xem tất cả phân trang 5 mục, bộ lọc all/in_progress/completed, giữ metadata từ API hiện có.
-- Backend lưu một bản ghi tiến độ thay đổi dần cho mỗi user/narration. Không có lịch sử từng lượt nghe nên chưa thể xếp hạng tuần/tháng chính xác.
+- Backend local đã có bảng phiên nghe để xếp hạng theo lượt; ListeningProgress vẫn lưu tiến độ resume cộng dồn. Session và migration đã được kiểm tra trên PostgreSQL test riêng, chưa deploy production.
 - Backend lưu từng lần nộp quiz trong QuizAttempt; có thể dùng dữ liệu này để tính quiz user làm nhiều nhất.
-- Player mobile phát được danh sách tập truyền vào, nhưng playlist của user chưa được lưu trên backend.
+- Mobile local đã nối session sync, ranking và playlist cá nhân. Production OpenAPI hiện đã công bố các route này; trạng thái migration và hoạt động bằng session đăng nhập chưa được xác nhận.
 - Bước 1 đã hoàn tất: GET/PATCH/DELETE `/api/me`, POST `/api/me/avatar`; API dùng chung cho ba role và chỉ thao tác tài khoản của mình. UI chỉnh sửa ở `features/profile`, route `src/app/profile.tsx`. API xóa tài khoản được giữ, nhưng UI xóa tài khoản đã bỏ theo yêu cầu người dùng.
 
-**Tiến độ:** Bước 1–2 đã nghiệm thu. Bước 3 đã triển khai code và kiểm tra local; production chưa có `GET /api/me/top-quizzes`, nên app đang báo lỗi tải top quiz. Chưa thể xác minh ranking/submit trên dữ liệu thật cho tới khi endpoint được deploy. Bước 4–8 vẫn chờ duyệt sau review gate. Danh sách API lệch nhau nằm trong `PROFILE-IMPLEMENTATION-PLAN.md`.
+**Tiến độ:** Bước 1–2 đã nghiệm thu. Bước 3–7 đã có code local; 27 migrations và 61 API integration tests đã đạt trên PostgreSQL test riêng. Production OpenAPI hiện công bố top quiz, top podcast, playlist và session fields; /health báo DB connected và queue running. Chưa xác nhận production migrations hoặc các request có session đăng nhập. Bước 8 end-to-end Android/prod còn chờ. Bằng chứng/giới hạn ở `LOCAL-PROFILE-INTEGRATION-HANDOFF.md`.
 
 ## 2.1. Chuẩn UI mobile được chọn
 
@@ -129,13 +129,13 @@ Không chọn tính top tuần/tháng trực tiếp từ ListeningProgress, vì 
 
 **Thứ tự đề xuất:** số lần nộp giảm dần; hòa thì lần nộp gần nhất trước; cuối cùng dùng quiz ID ổn định. API chỉ trả tối đa `limit` kết quả, mặc định 4 cho preview; màn “Xem tất cả” dùng phân trang 5 kết quả/trang để đồng nhất với lịch sử nghe.
 
-**Review gate:** dừng sau khi API/OpenAPI/schema, UI preview/danh sách, điều hướng quiz và trạng thái loading/error/empty đã hoàn tất. Báo rõ kiểm tra đã chạy và giới hạn dữ liệu; chưa bắt đầu Bước 4 khi chưa được duyệt tiếp.
+**Review gate Bước 3:** code/API/UI và PostgreSQL integration đã hoàn tất local. OpenAPI production hiện có route; ranking/submit trên Android với session thật chưa được xác nhận. Task 4–7 cũng đã tích hợp local; end-to-end còn chờ xác nhận migration production và kiểm tra bằng session đăng nhập.
 
-**Trạng thái thực tế:** đã bổ sung schema chung, route/service aggregate `GET /api/me/top-quizzes`, OpenAPI và UI Tamagui feature `top-quizzes`. Quiz chỉ mở sau preflight qua API quiz hiện có; cache được invalidate bởi `QuizScreens` sau nộp bài qua prefix `["me"]`. `available=false` cũng áp dụng quiz không có câu hỏi hoặc có loại câu hỏi chưa tương thích luồng SINGLE hiện tại. Không thay luồng chấm điểm. Production OpenAPI hiện chưa công bố route mới; mobile đang trỏ production nên việc fetch thất bại là do backend chưa được deploy cùng revision. Loading/error/retry và điều hướng đã được kiểm tra; ranking thành công/submit cập nhật lượt trên Android chưa được xác nhận. Test PostgreSQL opt-in chưa chạy vì DB local không sẵn sàng. Chi tiết trong PROFILE-IMPLEMENTATION-PLAN.md và artifacts/top-quizzes/CHECKS.md.
+**Trạng thái thực tế:** schema, route/service aggregate `GET /api/me/top-quizzes`, OpenAPI và UI Tamagui đã hoàn tất local; PostgreSQL integration đạt. Production OpenAPI hiện đã công bố route, nhưng ranking/submit thành công với session đăng nhập trên Android production chưa được xác nhận.
 
 ### Luồng 4 — Nền tảng ghi nhận phiên nghe
 
-**Mobile đã nối local:** sessionId/bitmap riêng; sync đầu rỗng trước khi bắt đầu phát; pause/resume/background/retry giữ ID. Replay, chọn tập mới, hoặc Dừng rồi phát lại tạo ID mới. Thu nhỏ player không đóng phiên. Local position phân vùng user/narration; request lifetime tuần tự theo audio và retry session cũ không ghi đè vị trí replay. Có trạng thái báo lỗi nếu server chưa có hợp đồng mới; cần deploy backend trước khi phát hành client mới.
+**Mobile đã nối local:** sessionId/bitmap riêng; sync đầu rỗng trước khi bắt đầu phát; pause/resume/background/retry giữ ID. Replay, chọn tập mới, hoặc Dừng rồi phát lại tạo ID mới. Thu nhỏ player không đóng phiên. Local position phân vùng user/narration; request lifetime tuần tự theo audio và retry session cũ không ghi đè vị trí replay. UI báo lỗi nếu server không trả session contract; production OpenAPI hiện công bố contract, nhưng cần xác nhận bằng session đăng nhập và phát thử thật.
 
 Đây là phần phụ thuộc bắt buộc trước hai bảng top podcast.
 
@@ -147,7 +147,7 @@ Không chọn tính top tuần/tháng trực tiếp từ ListeningProgress, vì 
 4. Phát lại trong player mới có ID mới và được tính riêng nếu đạt ngưỡng.
 5. Lưu tối thiểu user, narration/tập, thời điểm bắt đầu và dữ liệu cần để xác nhận ngưỡng; không lưu thông tin xác thực vào dữ liệu thống kê.
 
-**Dữ liệu/API đề xuất:** thêm bảng phiên nghe có ID duy nhất và index theo thời gian, user, track; truyền ID qua endpoint đồng bộ tiến độ hiện tại hoặc endpoint tương đương gọn nhất. ListeningProgress tiếp tục giữ vị trí resume/completion; bảng mới chỉ phục vụ xếp hạng.
+**Đã triển khai local:** bảng ListeningSession, migration, session fields trong progress sync, policy qualification, transaction/locking và worker retention. Mobile sync dùng sessionId/bitmap riêng. PostgreSQL integration đã đạt. Production OpenAPI công bố session fields; chưa xác nhận migration hoặc phiên nghe được ghi thật trên production.
 
 **Tiêu chí nghiệm thu:** retry/nhiều sync chỉ tính một lượt; tua hoặc nghe lại cùng đoạn trong phiên không làm giả tăng thời lượng duy nhất; phiên mới có thể tính riêng; quy tắc chống tua nhanh hiện tại vẫn áp dụng; kiểm tra biên kỳ, track ngắn và phiên bỏ dở.
 
@@ -162,7 +162,7 @@ Không chọn tính top tuần/tháng trực tiếp từ ListeningProgress, vì 
 3. Xem tất cả mở ranking cá nhân có phân trang.
 4. Chọn track mở trang tập hoặc phát bằng player.
 
-**API đề xuất:** truy vấn phiên nghe theo user từ session và kỳ giờ Việt Nam; trả track metadata, số lượt, kỳ, trang và tổng số.
+**API:** `GET /api/me/top-podcasts` với scope=personal, kỳ tuần/tháng Việt Nam, pagination và metadata kỳ. OpenAPI production đã công bố route; request thành công với session thật và dữ liệu ranking trên Android chưa xác nhận.
 
 **Tiêu chí nghiệm thu:** dữ liệu lấy theo thời điểm bắt đầu phiên; không lẫn user khác; preview tối đa 4 và danh sách mở rộng có phân trang.
 
@@ -176,15 +176,15 @@ Không chọn tính top tuần/tháng trực tiếp từ ListeningProgress, vì 
 2. Xem tất cả mở ranking toàn hệ thống có phân trang.
 3. Dòng kết quả hiển thị thứ hạng, tập, series và tổng lượt; không có thông tin người nghe.
 
-**API đề xuất:** cùng nguồn phiên nghe, group toàn hệ thống theo tập và kỳ; endpoint vẫn yêu cầu đăng nhập vì chỉ dùng trong profile.
+**API:** dùng chung `GET /api/me/top-podcasts` với scope=system; yêu cầu đăng nhập, chỉ trả aggregate. Route có trong OpenAPI production; aggregate với session thật chưa xác nhận.
 
 **Tiêu chí nghiệm thu:** thứ tự/số lượt đúng theo phiên hợp lệ; response không lộ danh tính; preview và phân trang đúng quy tắc.
 
 ### Luồng 7 — Playlist cá nhân
 
-**UI đã nối local:** list/detail phân trang5, tạo/đổi tên/xóa có xác nhận, thêm từ player (chọn playlist có sẵn hoặc tạo mới), bỏ/sắp xếp tập và phát playlist. Queue có tập trước/tiếp, tự sang tập khi kết thúc, kiểm tra availability và bỏ qua tập không còn phát được; Dừng kết thúc phiên, thu nhỏ tiếp tục phát. Không dùng player khác; source audio/progress vẫn từ hệ thống hiện có. Cần nghiệm thu Android end-to-end sau backend cập nhật; dữ liệu API đã kiểm tra thật trên PostgreSQL test.
+**UI đã nối local:** list/detail phân trang5, tạo/đổi tên/xóa có xác nhận, thêm từ player (chọn playlist có sẵn hoặc tạo mới), bỏ/sắp xếp tập và phát playlist. Queue có tập trước/tiếp, tự sang tập khi kết thúc, kiểm tra availability và bỏ qua tập không còn phát được; Dừng kết thúc phiên, thu nhỏ tiếp tục phát. Không dùng player khác; source audio/progress vẫn từ hệ thống hiện có. Cần nghiệm thu Android end-to-end sau khi xác nhận production migration và API có session đăng nhập; dữ liệu API đã kiểm tra trên PostgreSQL test.
 
-**Backend đã có local:** CRUD `/api/me/playlists`, GET/PATCH/DELETE `/{id}`, POST `/{id}/items`, DELETE `/{id}/items/{episodeId}`, PUT `/{id}/items/order`. Model Playlist/PlaylistItem + migration `20261109110000_private_playlists`, đã kiểm chứng trên DB test, chưa apply production. Owner session cho cả ba role, tạo có Idempotency-Key, unique episode/playlist, parent-lock mọi mutation, reorder exact set và bulk update. Pagination tối đa50/trang; playlist tối đa500 tập. Tập unavailable giữ metadata nhưng không có narration phát được; xóa cứng episode cascade item, xóa user cascade playlist/items. API đọc trả narration IDs/duration để dùng playback hiện tại; tái sử dụng player và UI local đã được nối.
+**Backend/UI:** playlist API CRUD/item/order, model và migration `20261109110000_private_playlists` đã kiểm tra trên DB test riêng; UI/player queue đã nối local. Các route hiện có trong OpenAPI production, nhưng migration và CRUD/playback với session thật chưa xác nhận.
 
 1. Từ profile, user tạo playlist và đặt tên.
 2. Từ trang tập/player, user thêm tập vào playlist đã có hoặc tạo playlist mới.
@@ -192,7 +192,7 @@ Không chọn tính top tuần/tháng trực tiếp từ ListeningProgress, vì 
 4. Phát playlist chạy các tập khả dụng theo thứ tự qua player hiện tại và hỗ trợ next/previous.
 5. Tập không còn công khai/không có audio được đánh dấu và không phát; không cho trùng tập trong cùng playlist.
 
-**Dữ liệu/API đề xuất:** bảng owner-scoped Playlist và PlaylistItem có thứ tự; API list/create/read/update/delete và add/remove/reorder dưới /api/me/playlists. Lưu episode ID, lấy title/audio mới nhất từ dữ liệu podcast; playlist riêng tư, không chia sẻ.
+**Đã triển khai local:** model/migration Playlist/PlaylistItem, API CRUD/item/order và Tamagui UI list/detail/create/rename/delete/add/remove/reorder/queue player. PostgreSQL integration đạt trên DB test. OpenAPI production hiện công bố routes; vẫn cần xác nhận migration production và CRUD/playback bằng session đăng nhập.
 
 **Tiêu chí nghiệm thu:** chỉ owner truy cập được; thao tác trùng được chống lặp; thứ tự giữ nguyên sau khi tải lại; xóa playlist xóa các item; playback tiếp tục lưu tiến độ theo cơ chế hiện tại.
 
@@ -212,28 +212,25 @@ Mỗi bước là một vertical slice có UI, API/dữ liệu cần thiết và
 |---|---|---|---|
 | 1 — Đã nghiệm thu | Hồ sơ, avatar và API tài khoản | Tạo nền quản lý tài khoản và quy tắc quyền sở hữu. | Đã nghiệm thu. UI Tamagui; API đủ thao tác tài khoản của mình cho cả ba role. UI xóa đã bỏ theo yêu cầu; backend xóa được giữ. |
 | 2 — Đã nghiệm thu | Nghe gần đây + Xem tất cả | Đã duyệt và triển khai trên API sẵn có. | Đã nghiệm thu. Preview 4, danh sách 5 tập/trang, filter/page và resume; lỗi test NativeWind cũ đã xử lý. |
-| 3 — Code local xong, thiếu API production | Top quiz + Xem tất cả | Aggregate từ QuizAttempt sẵn có; code/API/mobile đã được tạo ở local. | Sau khi production có route mới, xác minh ranking/submit trên Android rồi dừng chờ người dùng nghiệm thu. |
-| 4 | Ghi nhận phiên nghe | Nền cho hai ranking; kiểm chứng idempotency trước khi thống kê. | Ngưỡng, pause/resume, retry, replay và kỳ thời gian đạt tiêu chí. |
-| 5 | Top podcast cá nhân + Xem tất cả | Kiểm tra aggregate với quyền sở hữu cá nhân trước. | Kỳ tuần/tháng, số lượt và phân trang đúng; không lộ chéo user. |
-| 6 | Top podcast toàn hệ thống + Xem tất cả | Tái dùng dữ liệu đã kiểm chứng, chỉ thêm aggregate toàn hệ thống. | Thứ tự đúng và không lộ danh tính người nghe. |
-| 7 | Tạo/quản lý/phát playlist | Luồng riêng, dựa trên episode/player hiện tại. | CRUD, owner, thứ tự, chống trùng và phát playlist đúng. |
-| 8 | Ghép profile, chính sách lưu/xóa và hồi quy | Kiểm tra các phần cùng hoạt động, dữ liệu được dọn đúng. | Tất cả tiêu chí nghiệm thu của yêu cầu được đáp ứng. |
+| 3 — Local hoàn tất | Top quiz + Xem tất cả | API/UI tích hợp và PostgreSQL test riêng đã đạt; production route đã công bố. | Dùng session đăng nhập kiểm tra ranking/submit trên Android rồi chờ nghiệm thu. |
+| 4 — Local hoàn tất | Ghi nhận phiên nghe | Backend, migration và mobile session sync đã tích hợp; PostgreSQL integration đạt. | Xác nhận migration, ghi session đủ ngưỡng và retry/pause trên production. |
+| 5 — Local hoàn tất | Top podcast cá nhân + Xem tất cả | API và UI local đã nối vào session ranking. | Xác minh kỳ tuần/tháng, ranking và pagination bằng session/data production. |
+| 6 — Local hoàn tất | Top podcast toàn hệ thống + Xem tất cả | Dùng chung ranking API với scope system. | Xác minh aggregate và không lộ danh tính người nghe bằng session production. |
+| 7 — Local hoàn tất | Tạo/quản lý/phát playlist | API, migration, Tamagui UI và player queue đã tích hợp local. | Xác minh CRUD, owner, reorder và playback queue trên Android production. |
+| 8 — Chờ nghiệm thu production | Ghép profile và hồi quy | Local integration/typecheck/API tests đạt; production OpenAPI và health hiện thấy sẵn sàng cơ bản. | Xác nhận migration, chạy các luồng Android có đăng nhập, rồi dừng chờ nghiệm thu. |
 
 ## 8. API và thay đổi dữ liệu dự kiến
 
 Tên route cụ thể có thể điều chỉnh theo quy ước backend ở bước triển khai.
 
-- Đã có GET/PATCH/DELETE /api/me và POST /api/me/avatar (Bước 1). UI xóa tài khoản đã bỏ; không đưa lại vào UI các bước sau nếu chưa có yêu cầu mới.
-- Tái sử dụng GET /api/me/listening-history cho preview và danh sách đầy đủ.
-- Endpoint top quiz cá nhân aggregate từ QuizAttempt.
-- Endpoint top podcast có scope personal|system, period week|month, page và limit; yêu cầu đăng nhập.
-- Bảng phiên nghe mới gắn vào progress sync hiện tại.
-- API playlist riêng tư dưới /api/me/playlists.
-- Schema Zod đặt tại packages/shared; cập nhật OpenAPI và Prisma migration cho phần API/dữ liệu mới.
+- Local đã có GET/PATCH/DELETE /api/me, POST /api/me/avatar, GET /api/me/top-quizzes, GET /api/me/top-podcasts, các route /api/me/playlists và session fields tùy chọn trong PUT tiến độ nghe.
+- Local đã có migration ListeningSession/Playlist/PlaylistItem; đã apply và kiểm tra trên PostgreSQL test riêng, chưa apply production.
+- Production OpenAPI hiện có top-quizzes, top-podcasts, playlist endpoints và session fields trong progress PUT. `/health` báo DB connected và queue running.
+- Chưa xác nhận production đã áp dụng hai migration session/playlist hoặc API thành công với session đăng nhập. Đây là điều kiện còn lại cho end-to-end, dù route đã được công bố.
 
 ## 9. Mặc định đề xuất để duyệt
 
-1. **Xóa tài khoản:** API Bước 1 đã có xác thực lại bằng mật khẩu và confirm=true; chặn nội dung/media/phân công cần bàn giao và admin hoạt động cuối cùng. UI xóa tài khoản đã bỏ theo yêu cầu. Khi bổ sung playlist/phiên nghe ở các bước sau, phải bổ sung chính sách dọn dữ liệu tương ứng; chưa coi các dữ liệu chưa triển khai là đã được xử lý.
+1. **Xóa tài khoản:** API Bước 1 đã có xác thực lại bằng mật khẩu và confirm=true; chặn nội dung/media/phân công cần bàn giao và admin hoạt động cuối cùng. UI xóa tài khoản đã bỏ theo yêu cầu. Local schema đã cascade playlist/phiên nghe cá nhân khi xóa user; cần kiểm chứng lại sau khi áp dụng migration trên production.
 2. **Trường profile sửa được (đã duyệt cập nhật):** tên hiển thị và avatar (chọn/upload/thay/gỡ). Email/mật khẩu dùng flow Better Auth riêng. Áp dụng API cho cả ba role; UI chỉ làm mobile.
 3. **Lượt nghe hợp lệ:** 30 giây nghe duy nhất; track dưới 37,5 giây cần đạt 80% thời lượng.
 4. **Top quiz:** tính mọi lần nộp hợp lệ, đạt hay chưa đạt; xếp hạng all-time trong đợt đầu.
@@ -243,7 +240,7 @@ Tên route cụ thể có thể điều chỉnh theo quy ước backend ở bư�
 ## 10. Quy tắc duyệt và thực hiện
 
 - Bước 1–2 đã được người dùng nghiệm thu. Không mở lại UI/tính năng đã chốt nếu chưa có yêu cầu mới.
-- Bước 3 đã triển khai local, còn nghiệm thu dữ liệu thật sau deploy. API-first Task4–7: A đã duyệt, B/C đã hoàn thiện code local theo yêu cầu tiếp tục phần còn lại. Người dùng tự deploy/migrate; API tests không có DB đạt, PostgreSQL integration còn opt-in/chưa chạy. Nghiệm thu sau deploy trước khi tiếp tục UI từng task.
+- Bước 3–7 đã có code/UI local; 27 migrations và 61 API integration tests đạt trên PostgreSQL test riêng theo `LOCAL-PROFILE-INTEGRATION-HANDOFF.md`. Production OpenAPI hiện có routes mới và health cho biết DB/queue đang chạy; migration state và request có đăng nhập chưa xác nhận. Kiểm tra end-to-end Task 3–7 trên Android rồi hoàn tất review gate Task 8.
 - Sau mỗi bước, mình báo các phần đã đổi, kết quả kiểm tra và việc còn lại; dừng chờ bạn duyệt rồi mới đi tiếp.
 - Nếu triển khai phát hiện cần đổi hành vi, cập nhật spec trước bước bị ảnh hưởng.
 - UI mobile các bước tiếp theo phải theo chuẩn Tamagui ở mục 2.1; lấy các màn hồ sơ đã chuyển và shared/ui làm mẫu, không sao chép NativeWind/StyleSheet từ các phần cũ.
