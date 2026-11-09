@@ -1,6 +1,7 @@
 import { z } from "zod";
 import {
   MyWeeklyMissionsSchema,
+  TopQuizzesQuerySchema, TopQuizzesResponseSchema,
   PublicQuizSchema,
   PublicQuizCatalogQuerySchema,
   PublicQuizCatalogSchema,
@@ -23,6 +24,13 @@ const SlugParam = z.object({ slug: z.string().min(1) });
 // Cùng query schema inline trong gamification.routes.ts.
 const QuizFormatQuery = z.object({ format: z.literal("2").optional() });
 export const gamificationPaths: Paths = {
+  "/api/me/top-quizzes": {
+    get: operation({ id: "listMyTopQuizzes", tag: QUIZ_TAG, summary: "Quiz cá nhân đã làm nhiều nhất", access: "user",
+      description: "Mọi role đăng nhập đều dùng được, chỉ thống kê tài khoản từ session. Đếm tất cả QuizAttempt đã lưu, đạt hoặc chưa đạt, mọi thời gian. Số lượt giảm dần, hòa thì lần nộp mới nhất, cuối cùng quiz ID tăng dần. Phân trang tại DB. Quiz/tập/series ẩn, xóa mềm, không có câu hỏi hoặc không tương thích luồng SINGLE hiện tại trả available=false; vẫn giữ thống kê lịch sử. Không trả đáp án hay thông tin người khác.",
+      query: TopQuizzesQuerySchema, queryDocs: { page: "Trang từ 1", limit: "1–50; mặc định 4 cho preview; mobile danh sách dùng 5" },
+      ok: { status: 200, description: "Top quiz cá nhân có phân trang", schema: { name: "MyTopQuizzes", schema: TopQuizzesResponseSchema } },
+    }),
+  },
   "/api/studio/quiz-import/preview": {
     post: {
       ...operation({ id: "previewQuizDocument", tag: QUIZ_TAG, summary: "Đọc và xem trước câu hỏi từ tài liệu", description: "DOC, DOCX, PDF có văn bản, TXT/MD UTF-8; tối đa 5 MB, 200.000 ký tự, PDF 100 trang và quiz 100 câu. Phân tích ba loại câu hỏi không AI/OCR, trả vị trí nguồn và hướng dẫn sửa. status ready/needs_correction không có nghĩa đã lưu quiz. Không lưu file, không ghi database. DOC cần LibreOffice trên server. Deadline tổng 60 giây.", access: "moderator", rate: "write", ok: { status: 200, description: "Preview chỉ đọc; lỗi cấu trúc nằm trong diagnostics, chặn áp dụng khi needs_correction", schema: { name: "QuizImportPreview", schema: QuizImportPreviewSchema } }, errors: { 413: "`PAYLOAD_TOO_LARGE`: file vượt 5 MB", 422: "`VALIDATION_ERROR`: thiếu/nhiều file, thời gian sai, định dạng/file hỏng, bị khóa, bản scan hoặc vượt giới hạn đọc", 503: "`SERVICE_UNAVAILABLE`: bộ đọc DOC chưa sẵn sàng, quá tải hoặc xử lý quá thời gian" } }),

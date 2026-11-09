@@ -1,4 +1,5 @@
 import { CatalogSourceSchema } from "@repo/shared";
+import { ListeningSessionSyncSchema } from "@repo/shared";
 import { PublicPublicationInfoSchema, ReviewReadinessSnapshotSchema } from "@repo/shared";
 import { z } from "zod";
 import {
@@ -443,6 +444,7 @@ export const PlaybackDocSchema = z.object({
 });
 
 export const ListeningProgressUpdateDocSchema = z.object({
+  listeningSession: ListeningSessionSyncSchema.optional(),
   narrationId: uuid,
   positionMs: z.number().int(),
   playedSeconds: z.number().int(),

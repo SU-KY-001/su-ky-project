@@ -1,4 +1,4 @@
-import { SignInSchema, SignUpSchema } from "@repo/shared";
+import { DeleteProfileSchema, UpdateProfileSchema, SignInSchema, SignUpSchema } from "@repo/shared";
 import { component } from "../registry";
 import { operation, type Paths } from "../operation";
 import {
@@ -11,6 +11,7 @@ import {
 
 const SYSTEM = "System";
 const AUTH = "Authentication";
+const ProfileMutationResponseSchema = CurrentUserResponseSchema.pick({ user: true });
 
 const AUTH_NOTE =
   "Endpoint do Better Auth quản lý (`/api/auth/*`); đây chỉ là phần thường dùng. Danh sách đầy đủ do thư viện cung cấp.";
@@ -112,6 +113,20 @@ export const systemAuthPaths: Paths = {
     }),
   },
   "/api/me": {
+    patch: operation({
+      id: "updateMyProfile", tag: AUTH, summary: "Cập nhật hồ sơ của mình", access: "user", rate: "write",
+      description: "Mọi vai trò user/moderator/admin được sửa tên hoặc gỡ avatar (image: null) của chính mình. Không chấp nhận role, email, userId hoặc URL ảnh tùy ý. Upload ảnh qua POST /api/me/avatar. Cookie-auth writes cần Origin/Referer tin cậy; native Bearer không cần Origin. Gỡ ảnh dọn tài nguyên Cloudinary cũ sau cập nhật; lỗi provider được ghi log.",
+      errors: { 403: "`FORBIDDEN`: Origin/Referer không tin cậy" },
+      body: { name: "UpdateProfile", schema: UpdateProfileSchema },
+      ok: { status: 200, description: "Hồ sơ mới", schema: { name: "ProfileMutationResponse", schema: ProfileMutationResponseSchema } },
+    }),
+    delete: operation({
+      id: "deleteMyAccount", tag: AUTH, summary: "Xóa tài khoản của mình", access: "user", rate: "write",
+      description: "Mọi role dùng được. Bắt buộc mật khẩu hiện tại và confirm=true. Xóa user, sessions, accounts, tiến độ nghe, quiz attempts, XP và nhiệm vụ cá nhân qua cascade trong transaction. Nội dung chung không bị xóa; FK liên kết nội dung/phân công chặn thao tác. Không xóa admin hoạt động cuối cùng. Avatar trên Cloudinary được dọn sau commit; lỗi provider được ghi log để xử lý.",
+      body: { name: "DeleteProfile", schema: DeleteProfileSchema },
+      ok: { status: 200, description: "Đã xóa tài khoản và thu hồi toàn bộ phiên", example: { success: true } },
+      errors: { 400: "`BAD_REQUEST`: sai mật khẩu hoặc tài khoản chưa có mật khẩu", 403: "`FORBIDDEN`: Origin/Referer không tin cậy", 409: "`CONFLICT`: cần bàn giao media/nội dung/phân công, admin cuối cùng hoặc xung đột đồng thời" },
+    }),
     get: operation({
       id: "getCurrentUser",
       tag: AUTH,
@@ -127,5 +142,16 @@ export const systemAuthPaths: Paths = {
   },
   "/api/timeline": {
     get: { ...timelineOperation, deprecated: true },
+  },
+  "/api/me/avatar": {
+    post: {
+      ...operation({
+        id: "uploadMyAvatar", tag: AUTH, summary: "Upload ảnh đại diện của mình", access: "user", rate: "media_upload",
+        description: "Mọi role user/moderator/admin được upload JPEG/PNG/WebP tối đa 5 MiB bằng multipart field file. Kiểm tra MIME và chữ ký file; Cloudinary giải mã và thu nhỏ tối đa 512×512. Trả hồ sơ đã cập nhật. Không mở quyền upload nội dung Studio cho user.",
+        ok: { status: 200, description: "Avatar đã lưu", schema: { name: "ProfileMutationResponse", schema: ProfileMutationResponseSchema } },
+        errors: { 400: "`VALIDATION_ERROR`: thiếu file", 403: "`FORBIDDEN`: Origin/Referer không tin cậy", 422: "`MEDIA_TOO_LARGE` hoặc `MEDIA_TYPE_NOT_ALLOWED`: ảnh sai định dạng/dung lượng", 503: "`MEDIA_PROVIDER_UNAVAILABLE`: upload Cloudinary thất bại" },
+      }),
+      requestBody: { required: true, content: { "multipart/form-data": { schema: { type: "object", required: ["file"], properties: { file: { type: "string", format: "binary" } } } } } },
+    },
   },
 };

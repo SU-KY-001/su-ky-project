@@ -5,11 +5,13 @@ import { getSystemConfig } from "../config/system-config";
 import { logger } from "../logger";
 import type { MediaStorageGateway } from "../../modules/media";
 import { reapStaleAiChecks } from "../../modules/ai-assist";
+import { sessionRetentionCutoff } from "../../modules/listening/application/listening-session-policy";
 
 const MEDIA_QUEUE = "maintenance.media-cleanup";
 const IDEMPOTENCY_QUEUE = "maintenance.idempotency-purge";
 const RATE_LIMIT_QUEUE = "maintenance.rate-limit-purge";
 const AI_CHECK_REAPER_QUEUE = "maintenance.ai-check-reaper";
+const LISTENING_SESSION_PURGE_QUEUE = "maintenance.listening-session-purge";
 const MEDIA_CLEANUP_CRON = "*/30 * * * *";
 const IDEMPOTENCY_PURGE_CRON = "0 * * * *";
 const RATE_LIMIT_PURGE_CRON = "15 * * * *";
@@ -67,7 +69,11 @@ export async function startMaintenanceJobs(connectionString: string, storage: Me
   const boss = new PgBoss({ connectionString });
   boss.on("error", (error: Error) => logger.error({ err: error }, "Maintenance queue error"));
   await boss.start();
-  for (const queue of [MEDIA_QUEUE, IDEMPOTENCY_QUEUE, RATE_LIMIT_QUEUE, AI_CHECK_REAPER_QUEUE]) await boss.createQueue(queue);
+  for (const queue of [MEDIA_QUEUE, IDEMPOTENCY_QUEUE, RATE_LIMIT_QUEUE, AI_CHECK_REAPER_QUEUE, LISTENING_SESSION_PURGE_QUEUE]) await boss.createQueue(queue);
+  await boss.schedule(LISTENING_SESSION_PURGE_QUEUE, "30 2 * * *");
+  await boss.work(LISTENING_SESSION_PURGE_QUEUE, async () => {
+    await prisma.listeningSession.deleteMany({ where: { startedAt: { lt: sessionRetentionCutoff(new Date()) } } });
+  });
   await boss.schedule(MEDIA_QUEUE, MEDIA_CLEANUP_CRON);
   await boss.schedule(IDEMPOTENCY_QUEUE, IDEMPOTENCY_PURGE_CRON);
   await boss.schedule(RATE_LIMIT_QUEUE, RATE_LIMIT_PURGE_CRON);

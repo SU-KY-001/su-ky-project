@@ -11,13 +11,16 @@ This skill enforces **feature-based architecture** with modern design patterns, 
 
 ---
 
-## UI and Styling System: NativeWind
+## UI and Styling System: Tamagui
 
-`apps/mobile` uses NativeWind with Tailwind CSS for styling React Native components. `apps/web` has its own web styling system.
+`apps/mobile` uses Tamagui for layout and visual styling. `apps/web` keeps its separate Tailwind CSS v4 styling system.
 
-- Build mobile UI with React Native components and NativeWind `className` utilities.
-- Use React Native compatible component libraries when they add needed behavior; web-only shadcn/ui components cannot run in the native app.
-- Keep mobile styling and its Tailwind configuration in `apps/mobile`; share design values through platform-neutral tokens where useful.
+- Build mobile layouts with Tamagui primitives (`XStack`, `YStack`, `Text`, `Button`, `ScrollView`) and project-owned components from `src/shared/ui/`.
+- Use the tokens, themes, shorthands, and font scales in the root `tamagui.config.ts`; check `tamagui-prompt.md` instead of inventing token names or hard-coding colors.
+- Do not use Tailwind/NativeWind `className` utilities in mobile UI. Do not mix `className`, `StyleSheet.create`, and Tamagui props on the same visual component.
+- Use React Native primitives only where native behavior requires them, such as image picking, keyboard management, or platform APIs; keep visual layout and colors in Tamagui.
+- Reuse shared UI components before creating new wrappers. Do not add a styling dependency or duplicate token set.
+- Do not import web-only shadcn/ui components into the native app. Do not change the web styling system as part of mobile work.
 
 ---
 

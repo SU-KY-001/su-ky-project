@@ -11,7 +11,8 @@
     },
     "plugins": [
       "expo-router",
-      "expo-status-bar"
+      "expo-status-bar",
+      ["expo-image-picker", { "photosPermission": "Cho phép Sử Ký chọn ảnh đại diện từ thư viện của bạn.", "cameraPermission": false, "microphonePermission": false }]
     ],
     "experiments": {
       "typedRoutes": true

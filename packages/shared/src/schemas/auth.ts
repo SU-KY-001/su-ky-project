@@ -27,3 +27,15 @@ export const UserProfileSchema = z.object({
   updatedAt: z.date().or(z.string()).optional(),
 });
 export type UserProfileDto = z.infer<typeof UserProfileSchema>;
+
+export const UpdateProfileSchema = z.object({
+  name: z.string().trim().min(2, "Tên cần ít nhất 2 ký tự").max(100).optional(),
+  image: z.null().optional(),
+}).strict().refine((value) => value.name !== undefined || value.image === null, "Chưa có thay đổi");
+export type UpdateProfileInput = z.infer<typeof UpdateProfileSchema>;
+
+export const DeleteProfileSchema = z.object({
+  password: z.string().min(1).max(128),
+  confirm: z.literal(true),
+}).strict();
+export type DeleteProfileInput = z.infer<typeof DeleteProfileSchema>;

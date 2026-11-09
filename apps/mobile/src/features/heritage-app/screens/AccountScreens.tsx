@@ -1,22 +1,21 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { Image, ImageBackground, Keyboard, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text as NativeText, TextInput, View } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useQuery } from "@tanstack/react-query";
-import { Button, Input, Separator, Text, XStack, YStack } from "tamagui";
+import { Text, XStack, YStack } from "tamagui";
 import {
   AppCard,
   AppHeader,
   AppIcon,
-  AppImage,
-  BrandMark,
-  Chip,
   IconButton,
   PrimaryButton,
-  ProgressBar,
   ScreenScroll,
-  SectionHeader,
 } from "@/shared/ui";
 import { useAuthStore } from "@/lib/authStore";
-import { art } from "../data";
-import { formatDateVi, formatDuration, podcastApi, type ListeningHistoryEntry, type PodcastEpisode, type ReleaseItem } from "../podcastApi";
+import { authErrorMessage, validateAuthForm } from "../authForm";
+import { formatDateVi, podcastApi, type ReleaseItem } from "../podcastApi";
+import loginBackground from "../../../assets/brand/login-background-v2.png";
+import brandImage from "../../../assets/brand/brand-su-ky-viet-nam.png";
 
 export function ScheduleScreen({
   onBack,
@@ -107,130 +106,6 @@ export function ScheduleScreen({
   );
 }
 
-export function ProfileScreen({
-  onLogin,
-  onSchedule,
-  onPlayEpisodeSlug,
-}: {
-  onLogin: () => void;
-  onSchedule: () => void;
-  onPlayEpisodeSlug: (slug: string) => void;
-}): React.JSX.Element {
-  const { user, signOut } = useAuthStore();
-
-  const missionsQuery = useQuery({
-    queryKey: ["me", "missions", user?.id],
-    queryFn: () => podcastApi.weeklyMissions(),
-    enabled: Boolean(user),
-  });
-
-  const historyQuery = useQuery({
-    queryKey: ["me", "history", user?.id],
-    queryFn: () => podcastApi.listeningHistory(),
-    enabled: Boolean(user),
-  });
-
-  return (
-    <ScreenScroll>
-      <XStack pt="$1" justify="space-between" items="center">
-        <Text color="$ink" fs="$5" fw="$7">Hồ sơ cá nhân</Text>
-        <IconButton icon="bell" label="Thông báo" onPress={onSchedule} />
-      </XStack>
-
-      {user ? (
-        <XStack items="center" g="$3">
-          <AppImage source={art.haiBaTrungCard} w={64} h={64} rounded={32} resizeMode="cover" />
-          <YStack f={1} minW={0}>
-            <Text color="$ink" fs="$4" fw="$7" numberOfLines={1}>{user.name}</Text>
-            <Text color="$inkSoft" fs="$1" numberOfLines={1}>{user.email}</Text>
-          </YStack>
-          <Button unstyled px="$2.5" py="$1" bg="$paperDeep" rounded="$4" onPress={() => void signOut()}>
-            <Text color="$vermilion" fs={11} fw="$7">Đăng xuất</Text>
-          </Button>
-        </XStack>
-      ) : (
-        <AppCard>
-          <YStack p="$3" g="$2">
-            <XStack items="center" g="$2">
-              <AppIcon name="user" size={24} color="#B8322A" />
-              <YStack f={1}>
-                <Text color="$ink" fs="$2" fw="$7">Chưa đăng nhập</Text>
-                <Text color="$inkSoft" fs={10}>Đăng nhập để đồng bộ tiến trình nghe, lưu quiz và tích lũy XP.</Text>
-              </YStack>
-            </XStack>
-            <PrimaryButton label="Đăng nhập ngay" onPress={onLogin} />
-          </YStack>
-        </AppCard>
-      )}
-
-      {user && missionsQuery.data ? (
-        <XStack justify="space-around" py="$2" bg="$paperSoft" rounded="$5" bw="$0.25" bc="$line">
-          <YStack items="center">
-            <Text color="$vermilion" fs="$5" fw="$7">{missionsQuery.data.totalXp}</Text>
-            <Text color="$inkSoft" fs={10}>Tổng điểm XP</Text>
-          </YStack>
-          <Separator vertical bc="$line" />
-          <YStack items="center">
-            <Text color="$bronzeDark" fs="$5" fw="$7">{missionsQuery.data.items.filter((m) => m.status === "COMPLETED").length}</Text>
-            <Text color="$inkSoft" fs={10}>Nhiệm vụ xong</Text>
-          </YStack>
-        </XStack>
-      ) : null}
-
-      {user && missionsQuery.data && missionsQuery.data.items.length > 0 ? (
-        <YStack g="$2">
-          <SectionHeader title="Nhiệm vụ tuần này" />
-          {missionsQuery.data.items.map((mission) => {
-            const pct = Math.min(100, Math.round((mission.progressCount / mission.targetCount) * 100));
-            return (
-              <AppCard key={mission.id}>
-                <XStack p="$2.5" items="center" g="$2">
-                  <AppIcon name={mission.activityType === "PASS_QUIZ" ? "award" : "headphones"} size={20} color="#B8322A" />
-                  <YStack f={1} g="$1">
-                    <Text color="$ink" fs="$1" fw="$6">{mission.title}</Text>
-                    <ProgressBar value={pct} />
-                  </YStack>
-                  <Text color="$inkSoft" fs={10}>{mission.progressCount}/{mission.targetCount}</Text>
-                </XStack>
-              </AppCard>
-            );
-          })}
-        </YStack>
-      ) : null}
-
-      {user && historyQuery.data && historyQuery.data.length > 0 ? (
-        <YStack g="$1.5">
-          <SectionHeader title="Đã nghe gần đây" />
-          {historyQuery.data.map((item: ListeningHistoryEntry) => (
-            <XStack
-              key={item.episodeId}
-              py="$1.5"
-              items="center"
-              g="$2"
-              onPress={() => onPlayEpisodeSlug(item.episodeSlug)}
-              pressStyle={{ op: 0.75 }}
-            >
-              <YStack w="$4" h="$4" rounded="$3" bg="$paperDeep" items="center" justify="center">
-                <AppIcon name="headphones" size={18} color="#B8322A" />
-              </YStack>
-              <YStack f={1} minW={0} g="$0.5">
-                <Text color="$ink" fs="$1" fw="$7" numberOfLines={1}>{item.episodeTitle}</Text>
-                <Text color="$inkSoft" fs={10} numberOfLines={1}>
-                  {item.seriesTitle} · Đã nghe {item.percent}%
-                </Text>
-                <ProgressBar value={item.percent} />
-              </YStack>
-              <IconButton icon="play" label="Nghe tiếp" onPress={() => onPlayEpisodeSlug(item.episodeSlug)} light />
-            </XStack>
-          ))}
-        </YStack>
-      ) : null}
-
-      <PrimaryButton label="Xem lịch phát sóng" icon="calendar" secondary onPress={onSchedule} />
-    </ScreenScroll>
-  );
-}
-
 export function LoginScreen({
   onBack,
   onSuccess,
@@ -244,20 +119,50 @@ export function LoginScreen({
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const scrollRef = useRef<React.ElementRef<typeof ScrollView>>(null);
+  const keyboardVisible = useRef(false);
+  const keyboardTop = useRef(0);
+  const scrollOffset = useRef(0);
+  const [keyboardOpen, setKeyboardOpen] = useState(false);
+  const focusedInput = useRef<React.ElementRef<typeof TextInput> | null>(null);
+  const nameInput = useRef<React.ElementRef<typeof TextInput>>(null);
+  const emailInput = useRef<React.ElementRef<typeof TextInput>>(null);
+  const passwordInput = useRef<React.ElementRef<typeof TextInput>>(null);
+  const confirmPasswordInput = useRef<React.ElementRef<typeof TextInput>>(null);
+  const insets = useSafeAreaInsets();
+
+  const scrollToFocusedInput = (): void => {
+    focusedInput.current?.measureInWindow((_x, y, _width, height) => {
+      const overlap = y + height + 20 - keyboardTop.current;
+      if (keyboardVisible.current && overlap > 0) {
+        scrollRef.current?.scrollTo({ y: scrollOffset.current + overlap, animated: false });
+      }
+    });
+  };
+
+  useEffect(() => {
+    const showListener = Keyboard.addListener("keyboardDidShow", (event) => {
+      keyboardVisible.current = true;
+      keyboardTop.current = event.endCoordinates.screenY;
+      setKeyboardOpen(true);
+      scrollToFocusedInput();
+    });
+    const hideListener = Keyboard.addListener("keyboardDidHide", () => { keyboardVisible.current = false; setKeyboardOpen(false); focusedInput.current?.blur(); focusedInput.current = null; });
+    return () => { showListener.remove(); hideListener.remove(); };
+  }, []);
 
   const { signIn, signUp } = useAuthStore();
 
   const handleSubmit = async (): Promise<void> => {
     setError(null);
-    if (!email.trim() || !password) {
-      setError("Vui lòng điền đầy đủ email và mật khẩu.");
-      return;
-    }
-    if (isRegister && !name.trim()) {
-      setError("Vui lòng nhập tên của bạn.");
+    const validationError = validateAuthForm({ isRegister, name, email, password, confirmPassword });
+    if (validationError) {
+      setError(validationError);
       return;
     }
     try {
@@ -269,98 +174,105 @@ export function LoginScreen({
       }
       onSuccess();
     } catch (err) {
-      const msg = err instanceof Error ? err.message : "Đăng nhập không thành công";
-      setError(msg.includes("401") || msg.includes("credentials") ? "Sai email hoặc mật khẩu." : msg);
+      setError(authErrorMessage(err, isRegister));
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <YStack f={1} px="$3" pb="$4" justify="space-between" bg="$paper">
-      <XStack justify="flex-start" pt="$1">
-        <IconButton icon="chevron-left" label="Quay lại" onPress={onBack} />
-      </XStack>
-
-      <YStack items="center" g="$2.5">
-        <BrandMark />
-        <AppImage source={art.doiMoiHero} w={180} h={90} resizeMode="cover" rounded={10} />
-        <YStack items="center" g="$1" px="$2">
-          <Text color="$ink" fs="$5" lh={28} fw="$7" text="center">
-            {isRegister ? "Tạo tài khoản Sử Ký" : "Lưu hành trình nghe của bạn"}
-          </Text>
-          <Text color="$inkSoft" fs="$1" text="center">
-            {reason ?? "Đăng nhập để đồng bộ tiến trình nghe, lưu bộ câu hỏi và tiếp tục khám phá lịch sử Việt Nam."}
-          </Text>
-        </YStack>
-      </YStack>
-
-      <YStack g="$2">
+    <ImageBackground source={loginBackground} resizeMode="cover" style={loginStyles.background}>
+      <KeyboardAvoidingView style={loginStyles.flex} behavior={Platform.OS === "ios" ? "padding" : "height"} keyboardVerticalOffset={insets.top}>
+        <ScrollView ref={scrollRef} keyboardShouldPersistTaps="always" keyboardDismissMode="none" scrollEventThrottle={16} onScroll={(event) => { scrollOffset.current = event.nativeEvent.contentOffset.y; }} contentContainerStyle={{ flexGrow: 1 }} onContentSizeChange={() => { if (keyboardVisible.current) scrollToFocusedInput(); }} onLayout={() => { if (keyboardVisible.current) scrollToFocusedInput(); }}>
+          <View style={[loginStyles.content, { paddingBottom: keyboardOpen ? 100 : Math.max(24, insets.bottom + 12) }]}>
+            <Pressable accessibilityRole="button" accessibilityLabel="Quay lại" onPress={onBack} style={loginStyles.back}>
+              <AppIcon name="chevron-left" size={24} color="#2A211A" />
+            </Pressable>
+            <View style={loginStyles.brandArea}>
+              <Image source={brandImage} resizeMode="contain" accessibilityLabel="Sử Ký" style={{ width: 245, height: 86 }} />
+              <NativeText style={loginStyles.tagline}>NGHE LẠI DÒNG CHẢY VIỆT NAM</NativeText>
+            </View>
+            <View style={loginStyles.form}>
+              <View style={loginStyles.intro}>
+                <NativeText style={loginStyles.title}>
+                  {isRegister ? "Bắt đầu hành trình\ncùng Sử Ký" : "Lưu hành trình\nnghe của bạn"}
+                </NativeText>
+                <NativeText style={loginStyles.description}>
+                  {isRegister ? "Tạo tài khoản để lưu tiến trình và tiếp tục khám phá lịch sử Việt Nam." : reason ?? "Đăng nhập để đồng bộ tiến trình, lưu tập nghe yêu thích và tiếp tục khám phá lịch sử Việt Nam."}
+                </NativeText>
+              </View>
         {error ? (
-          <YStack p="$2" bg="#F6DEDA" rounded="$4" bw={1} bc="$vermilion">
-            <Text color="$vermilion" fs={11} text="center">{error}</Text>
-          </YStack>
+          <View accessibilityRole="alert" style={loginStyles.error}>
+            <NativeText style={loginStyles.errorText}>{error}</NativeText>
+          </View>
         ) : null}
 
-        {isRegister ? (
-          <XStack h="$4.5" px="$3" items="center" g="$2" rounded="$5" bw="$0.25" bc="$line" bg="$paperSoft">
-            <AppIcon name="user" />
-            <Input
-              unstyled
-              f={1}
-              placeholder="Tên của bạn"
-              placeholderTextColor="$inkSoft"
-              value={name}
-              onChangeText={setName}
-            />
-          </XStack>
-        ) : null}
-
-        <XStack h="$4.5" px="$3" items="center" g="$2" rounded="$5" bw="$0.25" bc="$line" bg="$paperSoft">
-          <AppIcon name="mail" />
-          <Input
-            unstyled
-            f={1}
-            autoCapitalize="none"
-            keyboardType="email-address"
-            placeholder="Email của bạn"
-            placeholderTextColor="$inkSoft"
-            value={email}
-            onChangeText={setEmail}
-          />
-        </XStack>
-
-        <XStack h="$4.5" px="$3" items="center" g="$2" rounded="$5" bw="$0.25" bc="$line" bg="$paperSoft">
-          <AppIcon name="lock" />
-          <Input
-            unstyled
-            f={1}
-            secureTextEntry={!showPassword}
-            placeholder="Mật khẩu"
-            placeholderTextColor="$inkSoft"
-            value={password}
-            onChangeText={setPassword}
-          />
-          <Button unstyled onPress={() => setShowPassword((v) => !v)}>
-            <AppIcon name={showPassword ? "eye" : "eye-off"} />
-          </Button>
-        </XStack>
-
-        <PrimaryButton
-          label={loading ? "Đang xử lý…" : isRegister ? "Tạo tài khoản" : "Đăng nhập"}
-          disabled={loading}
-          onPress={() => void handleSubmit()}
-        />
-
-        <XStack justify="center" mt="$1">
-          <Button unstyled onPress={() => { setIsRegister((v) => !v); setError(null); }}>
-            <Text color="$inkSoft" fs={11}>
-              {isRegister ? "Đã có tài khoản? " : "Chưa có tài khoản? "}
-              <Text color="$vermilion" fw="$7">{isRegister ? "Đăng nhập" : "Đăng ký ngay"}</Text>
-            </Text>
-          </Button>
-        </XStack>
-      </YStack>
-    </YStack>
+              <View style={loginStyles.fields}>
+                {isRegister ? (
+                  <View style={loginStyles.field}>
+                    <AppIcon name="user" size={21} color="#352D25" />
+                    <TextInput style={loginStyles.input} placeholder="Tên của bạn" placeholderTextColor="#766A5D" value={name} onChangeText={setName} autoComplete="name" accessibilityLabel="Tên của bạn" ref={nameInput} onFocus={() => { focusedInput.current = nameInput.current; if (keyboardVisible.current) scrollToFocusedInput(); }} />
+                  </View>
+                ) : null}
+                <View style={loginStyles.field}>
+                  <AppIcon name="mail" size={21} color="#352D25" />
+                  <TextInput style={loginStyles.input} autoCapitalize="none" autoCorrect={false} autoComplete="email" keyboardType="email-address" placeholder="Email của bạn" placeholderTextColor="#766A5D" value={email} onChangeText={setEmail} accessibilityLabel="Email của bạn" ref={emailInput} onFocus={() => { focusedInput.current = emailInput.current; if (keyboardVisible.current) scrollToFocusedInput(); }} />
+                </View>
+                <View style={loginStyles.field}>
+                  <AppIcon name="lock" size={21} color="#352D25" />
+                  <TextInput style={loginStyles.input} secureTextEntry={!showPassword} autoCapitalize="none" autoComplete={isRegister ? "new-password" : "current-password"} placeholder="Mật khẩu" placeholderTextColor="#766A5D" value={password} onChangeText={setPassword} accessibilityLabel="Mật khẩu" ref={passwordInput} onFocus={() => { focusedInput.current = passwordInput.current; if (keyboardVisible.current) scrollToFocusedInput(); }} />
+                  <Pressable accessibilityRole="button" accessibilityLabel={showPassword ? "Ẩn mật khẩu" : "Hiện mật khẩu"} onPress={() => setShowPassword((v) => !v)} style={loginStyles.passwordToggle}>
+                    <AppIcon name={showPassword ? "eye" : "eye-off"} size={20} color="#62574B" />
+                  </Pressable>
+                </View>
+                {isRegister ? (
+                  <View style={loginStyles.field}>
+                    <AppIcon name="lock" size={21} color="#352D25" />
+                    <TextInput style={loginStyles.input} secureTextEntry={!showConfirmPassword} autoCapitalize="none" autoComplete="new-password" placeholder="Xác nhận mật khẩu" placeholderTextColor="#766A5D" value={confirmPassword} onChangeText={setConfirmPassword} accessibilityLabel="Xác nhận mật khẩu" ref={confirmPasswordInput} onFocus={() => { focusedInput.current = confirmPasswordInput.current; if (keyboardVisible.current) scrollToFocusedInput(); }} />
+                    <Pressable accessibilityRole="button" accessibilityLabel={showConfirmPassword ? "Ẩn mật khẩu xác nhận" : "Hiện mật khẩu xác nhận"} onPress={() => setShowConfirmPassword((v) => !v)} style={loginStyles.passwordToggle}>
+                      <AppIcon name={showConfirmPassword ? "eye" : "eye-off"} size={20} color="#62574B" />
+                    </Pressable>
+                  </View>
+                ) : null}
+                <Pressable accessibilityRole="button" disabled={loading} onPress={() => void handleSubmit()} style={[loginStyles.submit, { opacity: loading ? 0.6 : 1 }]}>
+                  <NativeText style={loginStyles.submitText}>{loading ? "Đang xử lý…" : isRegister ? "Tạo tài khoản" : "Đăng nhập"}</NativeText>
+                  <AppIcon name="arrow-right" size={19} color="#FFF9EF" />
+                </Pressable>
+              </View>
+              <Pressable accessibilityRole="button" onPress={() => { setIsRegister((v) => !v); setConfirmPassword(""); setError(null); }} style={loginStyles.switchButton}>
+                <NativeText style={loginStyles.switchText}>
+                  {isRegister ? "Đã có tài khoản? " : "Chưa có tài khoản? "}
+                  <NativeText style={loginStyles.switchLink}>{isRegister ? "Đăng nhập" : "Đăng ký tài khoản"}</NativeText>
+                </NativeText>
+              </Pressable>
+            </View>
+          </View>
+        </ScrollView>
+      </KeyboardAvoidingView>
+    </ImageBackground>
   );
 }
+
+const loginStyles = StyleSheet.create({
+  background: { flex: 1, backgroundColor: "#F2E5CE" },
+  flex: { flex: 1 },
+  content: { flexGrow: 1, paddingHorizontal: 24 },
+  back: { height: 48, width: 48, alignItems: "center", justifyContent: "center", alignSelf: "flex-start" },
+  brandArea: { flexGrow: 1, minHeight: 260, alignItems: "center", paddingTop: 8 },
+  tagline: { marginTop: 4, color: "#4E4034", fontSize: 9, letterSpacing: 2.4, textAlign: "center" },
+  form: { width: "100%", maxWidth: 420, alignSelf: "center" },
+  intro: { marginBottom: 24, alignItems: "center", paddingHorizontal: 8 },
+  title: { textAlign: "center", fontSize: 30, fontWeight: "700", lineHeight: 36, color: "#1C1714" },
+  description: { marginTop: 12, textAlign: "center", fontSize: 14, lineHeight: 20, color: "#51483F" },
+  error: { marginBottom: 12, borderRadius: 12, borderWidth: 1, borderColor: "#9A2922", backgroundColor: "#F8E4DD", padding: 12 },
+  errorText: { textAlign: "center", fontSize: 14, color: "#8B211D" },
+  fields: { gap: 10 },
+  field: { height: 54, flexDirection: "row", alignItems: "center", gap: 12, borderRadius: 16, borderWidth: 1, borderColor: "#CDBDA5", backgroundColor: "rgba(248,240,226,0.9)", paddingHorizontal: 16 },
+  input: { height: "100%", flex: 1, padding: 0, fontSize: 15, color: "#1C1714" },
+  passwordToggle: { height: 44, width: 44, alignItems: "center", justifyContent: "center", marginRight: -10 },
+  submit: { height: 54, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 12, borderRadius: 27, backgroundColor: "#8A1E1A" },
+  submitText: { fontSize: 16, fontWeight: "700", color: "#FFF9EF" },
+  switchButton: { marginTop: 16, minHeight: 44, alignItems: "center", justifyContent: "center" },
+  switchText: { fontSize: 14, color: "#51483F" },
+  switchLink: { fontWeight: "700", color: "#8A1E1A", textDecorationLine: "underline" },
+});

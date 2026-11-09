@@ -1,7 +1,7 @@
 import axios from "axios";
 import { create } from "zustand";
 import { apiClient } from "./client";
-import { clearSession, loadSession, saveSession, type SessionUser } from "./session";
+import { clearSession, getToken, loadSession, saveSession, type SessionUser } from "./session";
 
 interface AuthState {
   user: SessionUser | null;
@@ -10,11 +10,18 @@ interface AuthState {
   signIn: (email: string, password: string) => Promise<void>;
   signUp: (name: string, email: string, password: string) => Promise<void>;
   signOut: () => Promise<void>;
+  updateUser: (user: SessionUser) => Promise<void>;
 }
 
-export const useAuthStore = create<AuthState>((set) => ({
+export const useAuthStore = create<AuthState>((set, get) => ({
   user: null,
   hydrated: false,
+  updateUser: async (user) => {
+    const token = getToken();
+    if (!token || get().user?.id !== user.id) return;
+    await saveSession(token, user);
+    set({ user });
+  },
   hydrate: async () => {
     const session = await loadSession().catch(() => null);
     if (!session) {
@@ -40,7 +47,7 @@ export const useAuthStore = create<AuthState>((set) => ({
     });
     const token = (response.headers["set-auth-token"] as string | undefined) ?? response.data.token;
     if (!token) throw new Error("Không nhận được phiên đăng nhập");
-    const user = { id: response.data.user.id, name: response.data.user.name, email: response.data.user.email };
+    const user = response.data.user;
     await saveSession(token, user);
     set({ user });
   },
@@ -52,7 +59,7 @@ export const useAuthStore = create<AuthState>((set) => ({
     });
     const token = (response.headers["set-auth-token"] as string | undefined) ?? response.data.token;
     if (!token) throw new Error("Không nhận được phiên đăng nhập");
-    const user = { id: response.data.user.id, name: response.data.user.name, email: response.data.user.email };
+    const user = response.data.user;
     await saveSession(token, user);
     set({ user });
   },

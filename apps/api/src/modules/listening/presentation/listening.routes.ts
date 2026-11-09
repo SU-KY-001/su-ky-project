@@ -6,6 +6,7 @@ import { rateLimit, throwOnInvalid } from "../../../core/middleware";
 import type { AppEnv } from "../../../types";
 import { attachSession, requireAuth } from "../../auth";
 import type { ListeningService } from "../application/listening.service";
+import { createPodcastRankingRoute } from "./podcast-ranking.routes";
 
 const slugParam = z.object({ slug: z.string().min(1) });
 const narrationParam = z.object({ narrationId: z.string().uuid() });
@@ -24,6 +25,7 @@ export function createPublicListeningRoute(service: ListeningService) {
 
 export function createMeListeningRoute(service: ListeningService) {
   return new Hono<AppEnv>()
+    .route("/", createPodcastRankingRoute())
     .use("*", requireAuth)
     .get("/listening-progress/:narrationId", zValidator("param", narrationParam, throwOnInvalid), async (c) => c.json(await service.getProgress(c.req.valid("param").narrationId, c.get("session")!.user.id)))
     .put("/listening-progress/:narrationId", rateLimit("listening_progress"), zValidator("param", narrationParam, throwOnInvalid), zValidator("json", UpdateListeningProgressRequestSchema, throwOnInvalid), async (c) => c.json(await service.updateProgress(c.req.valid("param").narrationId, c.get("session")!.user.id, c.req.valid("json"))))

@@ -291,6 +291,10 @@ function SeekBar({ playback }: { playback: LivePlaybackState }): React.JSX.Eleme
 }
 
 interface AudioPlayerScreenProps {
+  onAddPlaylist: () => void;
+  onStop: () => void;
+  queueNavigation?: { index: number; total: number; busy: boolean; onPrevious: () => void; onNext: () => void };
+  libraryError?: string | null;
   episode: PodcastEpisode;
   narrationId: string | null;
   onSelectNarration: (id: string) => void;
@@ -300,6 +304,10 @@ interface AudioPlayerScreenProps {
 }
 
 export function AudioPlayerScreen({
+  onAddPlaylist,
+  onStop,
+  queueNavigation,
+  libraryError,
   episode,
   narrationId,
   onSelectNarration,
@@ -345,7 +353,8 @@ export function AudioPlayerScreen({
         <YStack w="$4" />
       </XStack>
 
-      <YStack f={1} justify="space-around" items="center">
+      <ScrollView f={1} showsVerticalScrollIndicator={false}>
+      <YStack items="center" g="$4" py="$3">
         <YStack rounded={14} bw={1} bc="$bronzeDark" boxShadow="0 14px 36px rgba(0, 0, 0, 0.55)">
           <AppImage source={episode.image} w={artworkSize} h={artworkSize} resizeMode="cover" rounded={13} />
         </YStack>
@@ -447,8 +456,13 @@ export function AudioPlayerScreen({
               <PrimaryButton label="Làm quiz" icon="edit-3" onPress={onQuiz} />
             </YStack>
           </XStack>
+          {queueNavigation ? <YStack g="$2"><Text ff="$body" fs="$1" text="center" color="$paperDeep">Playlist · Tập {queueNavigation.index + 1}/{queueNavigation.total}</Text><XStack g="$2"><YStack f={1}><PrimaryButton secondary icon="skip-back" label="Tập trước" disabled={queueNavigation.busy || queueNavigation.index <= 0} onPress={queueNavigation.onPrevious} /></YStack><YStack f={1}><PrimaryButton secondary icon="skip-forward" label="Tập tiếp" disabled={queueNavigation.busy || queueNavigation.index >= queueNavigation.total - 1} onPress={queueNavigation.onNext} /></YStack></XStack></YStack> : null}
+          {libraryError ? <Text accessibilityRole="alert" ff="$body" fs="$2" lh="$3" color="$paperDeep">{libraryError}</Text> : null}
+          <PrimaryButton secondary label="Thêm vào playlist" icon="list" onPress={onAddPlaylist} />
+          <PrimaryButton secondary label="Dừng phát" icon="square" onPress={onStop} />
         </YStack>
       </YStack>
+      </ScrollView>
     </YStack>
   );
 }

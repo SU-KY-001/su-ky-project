@@ -144,6 +144,8 @@ model User {
   confirmedEntityTags     EpisodeEntityTag[]     @relation("EntityTagConfirmer")
   quizAttempts            QuizAttempt[]
   listeningProgress       ListeningProgress[]
+  listeningSessions       ListeningSession[]
+  playlists               Playlist[]
   missionTemplates        MissionTemplate[]      @relation("MissionTemplateCreator")
   activatedWeeklyMissions WeeklyMission[]        @relation("WeeklyMissionActivator")
   userWeeklyMissions      UserWeeklyMission[]
@@ -439,6 +441,8 @@ model Episode {
   quiz               Quiz?
   quizDraft          QuizWorkspaceDraft?
   listeningProgress  ListeningProgress[]
+  listeningSessions  ListeningSession[]
+  playlistItems      PlaylistItem[]
   releaseSchedules   ReleaseSchedule[]
   reviews            EpisodeReview[]
   aiChecks           AiCheck[]
@@ -584,6 +588,7 @@ model EpisodeNarration {
   narratorEntity    HistoricalEntity?   @relation(fields: [narratorEntityId], references: [id], onDelete: Restrict)
   audioAsset        MediaAsset?         @relation("NarrationAudio", fields: [audioAssetId], references: [id], onDelete: Restrict)
   listeningProgress ListeningProgress[]
+  listeningSessions ListeningSession[]
 
   @@unique([episodeId, narrationType], map: "episode_narrations_episode_id_narration_type_key")
   @@map("episode_narrations")
@@ -611,6 +616,7 @@ model MediaAsset {
   narrationAudio    EpisodeNarration?   @relation("NarrationAudio")
   sourceFile        Source?             @relation("SourceFile")
   listeningProgress ListeningProgress[]
+  listeningSessions ListeningSession[]
   sourceRevisions   SourceRevision[]    @relation("SourceRevisionFile")
   episodeAttachment EpisodeAttachment?  @relation("EpisodeAttachmentMedia")
   quizPosters       Quiz[]              @relation("QuizPoster")
@@ -746,6 +752,55 @@ model QuizAttempt {
 
   @@index([userId, quizId, submittedAt], map: "quiz_attempts_user_id_quiz_id_submitted_at_idx")
   @@map("quiz_attempts")
+}
+
+model Playlist {
+  id        String @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  ownerId   String @map("owner_id") @db.VarChar(36)
+  name      String @db.VarChar(100)
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+  owner     User @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  items     PlaylistItem[]
+
+  @@index([ownerId, updatedAt, id], map: "playlists_owner_updated_idx")
+  @@map("playlists")
+}
+
+model PlaylistItem {
+  playlistId String @map("playlist_id") @db.Uuid
+  episodeId String @map("episode_id") @db.Uuid
+  position Int
+  addedAt DateTime @default(now()) @map("added_at") @db.Timestamptz(3)
+  playlist Playlist @relation(fields: [playlistId], references: [id], onDelete: Cascade)
+  episode Episode @relation(fields: [episodeId], references: [id], onDelete: Cascade)
+
+  @@id([playlistId, episodeId])
+  @@index([playlistId, position, episodeId], map: "playlist_items_order_idx")
+  @@map("playlist_items")
+}
+
+model ListeningSession {
+  id            String   @id @db.Uuid
+  userId        String   @map("user_id") @db.VarChar(36)
+  narrationId   String   @map("narration_id") @db.Uuid
+  episodeId     String   @map("episode_id") @db.Uuid
+  audioAssetId  String   @map("audio_asset_id") @db.Uuid
+  durationMs    Int      @map("duration_ms")
+  startedAt     DateTime @default(now()) @map("started_at") @db.Timestamptz(3)
+  updatedAt     DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+  playedBitmap  Bytes    @map("played_bitmap")
+  playedMs      Int      @default(0) @map("played_ms")
+  qualifiedAt   DateTime? @map("qualified_at") @db.Timestamptz(3)
+  user          User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  narration     EpisodeNarration @relation(fields: [narrationId], references: [id], onDelete: Cascade)
+  episode       Episode @relation(fields: [episodeId], references: [id], onDelete: Restrict)
+  audioAsset    MediaAsset @relation(fields: [audioAssetId], references: [id], onDelete: Restrict)
+
+  @@index([userId, startedAt], map: "listening_sessions_user_started_idx")
+  @@index([episodeId, startedAt], map: "listening_sessions_episode_started_idx")
+  @@index([startedAt, qualifiedAt], map: "listening_sessions_started_qualified_idx")
+  @@map("listening_sessions")
 }
 
 model ListeningProgress {
