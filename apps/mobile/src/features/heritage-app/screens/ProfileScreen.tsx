@@ -1,11 +1,12 @@
 import { useQueryClient } from "@tanstack/react-query";
 import { MaterialIcons } from "@expo/vector-icons";
 import { Button, ScrollView, Spinner, Text, XStack, YStack, getTokens } from "tamagui";
-import { AppIcon, AppImage, PrimaryButton, SectionHeader } from "@/shared/ui";
+import { AppIcon, AppImage, Chip, PrimaryButton, SectionHeader } from "@/shared/ui";
 import { useAuthStore } from "@/lib/authStore";
 import background from "../../../assets/brand/profile-header-v2.png";
 import { ListeningHistoryRow, useListeningHistory, type ListeningHistoryItem } from "@/features/listening-history";
 import { useTopQuizzes, TopQuizRow, type TopQuizItem } from "@/features/top-quizzes";
+import { RankingSection, PlaylistPreview } from "@/features/personal-library";
 
 interface ProfileScreenProps {
   onLogin: () => void;
@@ -19,9 +20,16 @@ interface ProfileScreenProps {
   onExploreQuizzes: () => void;
   openingQuizId: string | null;
   quizOpenError: string | null;
+  period: "week" | "month";
+  onPeriod: (period: "week" | "month") => void;
+  onViewRanking: (scope: "personal" | "system") => void;
+  onPlayRanking: (slug: string) => void;
+  onViewPlaylists: () => void;
+  onOpenPlaylist: (id: string) => void;
+  libraryError: string | null;
 }
 
-export function ProfileScreen({ onLogin, onEditProfile, onPlayHistoryItem, onViewListeningHistory, openingEpisodeId, historyOpenError, onViewTopQuizzes, onOpenQuiz, onExploreQuizzes, openingQuizId, quizOpenError }: ProfileScreenProps): React.JSX.Element {
+export function ProfileScreen({ onLogin, onEditProfile, onPlayHistoryItem, onViewListeningHistory, openingEpisodeId, historyOpenError, onViewTopQuizzes, onOpenQuiz, onExploreQuizzes, openingQuizId, quizOpenError, period, onPeriod, onViewRanking, onPlayRanking, onViewPlaylists, onOpenPlaylist, libraryError }: ProfileScreenProps): React.JSX.Element {
   const { user, signOut } = useAuthStore();
   const tokens = getTokens();
   const queryClient = useQueryClient();
@@ -33,6 +41,10 @@ export function ProfileScreen({ onLogin, onEditProfile, onPlayHistoryItem, onVie
     queryClient.removeQueries({ queryKey: ["me", "listening-history"] });
     await queryClient.cancelQueries({ queryKey: ["me", "top-quizzes"] });
     queryClient.removeQueries({ queryKey: ["me", "top-quizzes"] });
+    await queryClient.cancelQueries({ queryKey: ["me", "top-podcasts"] });
+    await queryClient.cancelQueries({ queryKey: ["me", "playlists"] });
+    queryClient.removeQueries({ queryKey: ["me", "top-podcasts"] });
+    queryClient.removeQueries({ queryKey: ["me", "playlists"] });
   };
   const initials = user?.name.trim().split(/\s+/).slice(-2).map((part) => part[0]).join("").toUpperCase() || "SK";
 
@@ -78,6 +90,11 @@ export function ProfileScreen({ onLogin, onEditProfile, onPlayHistoryItem, onVie
             {quizOpenError ? <Text accessibilityRole="alert" ff="$body" fs="$2" color="$vermilion">{quizOpenError}</Text> : null}
             {!user ? <Text ff="$body" fs="$2" lh="$3" color="$inkSoft">Đăng nhập để xem những quiz bạn đã làm.</Text> : topQuizzes.isPending ? <XStack g="$2" items="center"><Spinner color="$vermilion" /><Text ff="$body" fs="$2" color="$inkSoft">Đang tải top quiz…</Text></XStack> : topQuizzes.isError ? <YStack g="$2"><Text ff="$body" fs="$2" color="$inkSoft">Chưa tải được top quiz.</Text><PrimaryButton secondary label="Thử lại" onPress={() => void topQuizzes.refetch()} /></YStack> : !topQuizzes.data.items.length ? <YStack g="$3"><Text ff="$body" fs="$2" lh="$3" color="$inkSoft">Bạn chưa làm quiz nào. Hãy khám phá thư viện quiz.</Text><PrimaryButton secondary label="Khám phá quiz" onPress={onExploreQuizzes} /></YStack> : topQuizzes.data.items.slice(0, 4).map((item, index) => <TopQuizRow key={item.quizId} item={item} rank={index + 1} onPress={() => onOpenQuiz(item)} opening={openingQuizId === item.quizId} disabled={openingQuizId !== null} />)}
           </YStack>
+          {libraryError ? <Text accessibilityRole="alert" ff="$body" fs="$2" lh="$3" color="$vermilion">{libraryError}</Text> : null}
+          <XStack g="$2"><Chip label="Tuần" selected={period === "week"} onPress={() => onPeriod("week")} /><Chip label="Tháng" selected={period === "month"} onPress={() => onPeriod("month")} /></XStack>
+          <RankingSection scope="personal" period={period} onAll={() => onViewRanking("personal")} onPlay={onPlayRanking} onLogin={onLogin} />
+          <RankingSection scope="system" period={period} onAll={() => onViewRanking("system")} onPlay={onPlayRanking} onLogin={onLogin} />
+          <PlaylistPreview onAll={onViewPlaylists} onOpen={onOpenPlaylist} onLogin={onLogin} />
           {user ? <Button unstyled minH="$4" fd="row" items="center" justify="center" g="$2" onPress={() => void handleSignOut()} accessibilityRole="button" pressStyle={{ op: 0.75 }}><AppIcon name="log-out" size={17} color={tokens.color.vermilion.val} /><Text ff="$body" fs="$2" fw="$7" color="$vermilion">Đăng xuất</Text></Button> : null}
         </YStack>
       </YStack>

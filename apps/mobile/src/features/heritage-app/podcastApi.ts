@@ -267,7 +267,7 @@ export const podcastApi = {
       syncIntervalMs: parsed.sync.intervalMs,
     };
   },
-  async saveProgress(narrationId: string, body: { assetId: string; positionMs: number; playedBitmap: string }): Promise<ListeningProgressResult> {
+  async saveProgress(narrationId: string, body: { assetId: string; positionMs: number; playedBitmap: string; sessionId?: string; sessionPlayedBitmap?: string }): Promise<ListeningProgressResult> {
     const { data } = await apiClient.put(`/api/me/listening-progress/${narrationId}`, body);
     return ListeningProgressUpdateResultSchema.parse(data);
   },

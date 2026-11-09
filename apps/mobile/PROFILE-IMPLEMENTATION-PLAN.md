@@ -1,8 +1,10 @@
 # Hồ sơ Mobile — Theo dõi triển khai theo từng bước
 
-**Trạng thái:** Bước 1 và Bước 2 đã nghiệm thu; Bước 3 đã triển khai code, chờ kiểm tra tích hợp dữ liệu thật và người dùng nghiệm thu.
+**Trạng thái:** Bước 1 và Bước 2 đã nghiệm thu; Bước 3 đã triển khai code local nhưng production đang thiếu `GET /api/me/top-quizzes`, nên chưa thể nghiệm thu tích hợp dữ liệu thật.
 **Spec:** `USER-PROFILE-FEATURES-SPEC-PLAN.md`.
-**Bước tiếp theo:** cập nhật backend môi trường kiểm tra với route mới và nghiệm thu ranking/submit trên dữ liệu thật của Bước 3; dừng chờ người dùng review, không tự bắt đầu Bước 4.
+**Tích hợp local mới nhất:** xem `LOCAL-PROFILE-INTEGRATION-HANDOFF.md`: sync phiên, UI ranking/playlist đã nối; lịch sử chỉ hiện sau5 giây;27 migrations và61 API tests (không skip) đã chạy trên PostgreSQL test riêng. Image API local đã build; người dùng tự deploy production.
+**Ưu tiên mới đã hoàn thiện local:** API Task4–7, sync mobile và UI Tamagui ranking/playlist; migration đã apply trên PostgreSQL test riêng,61 API tests không skip đã đạt. Production chưa thay đổi; người dùng tự deploy. Xem `LOCAL-PROFILE-INTEGRATION-HANDOFF.md` để biết bằng chứng và giới hạn Android end-to-end.
+**Bước tiếp theo:** cập nhật backend production theo quy trình deploy được duyệt, rồi kiểm tra ranking/submit trên dữ liệu thật của Bước 3; dừng chờ người dùng review, không tự deploy hoặc bắt đầu Bước 4.
 
 ## Phạm vi đã hoàn tất
 
@@ -136,4 +138,7 @@ Hiển thị các quiz user đã làm nhiều nhất, dựa trên số lần n�
 - Mobile `.env` trỏ API remote chưa có route mới. Chưa deploy backend, chưa đổi API URL; chưa thể nghiệm thu trực tiếp dữ liệu ranking thành công, pagination có dữ liệu, empty/unavailable và submit cập nhật lượt trên Android. Các state đã được triển khai trong code; cần backend cập nhật trước khi kiểm tra luồng thật.
 - Review độc lập: không còn lỗi correctness/security quan trọng; giới hạn live-data như trên. Bước 4 chưa bắt đầu.
 - Android export cuối cùng: đạt, 2468 modules; output trong thư mục OS temp `suky-top-quizzes-verify-20261109`.
-- Kiểm tra OpenAPI server remote hiện không có operation `/api/me/top-quizzes`; request không đăng nhập nhận401 từ guard `/api/me`, nên 401 riêng lẻ không chứng minh route đã được deploy. UI hiện nhận lỗi ở môi trường này; không tuyên bố đã nghiệm thu thành công trên server.
+- **Finding P1 — production thiếu API Top quiz:** Đối chiếu OpenAPI production `https://suky-api.the1struleoffightclub.top/openapi.json` với `openApiSpec` dựng từ source local ngày 2026-11-09: local có 227 operation, production có 223. Local có nhưng production chưa công bố: `GET /api/me/top-quizzes`, `PATCH /api/me`, `DELETE /api/me`, `POST /api/me/avatar`, `POST /api/studio/quiz-import/preview`, `POST /api/studio/quiz-import/extract`. Production có nhưng local không công bố: `POST /api/studio/historical-entities/{id}/review` và `POST /api/studio/historical-entities/{id}/submit-review`.
+- Nguyên nhân trực tiếp của lỗi Top quiz: mobile gọi `GET /api/me/top-quizzes`, nhưng production OpenAPI không có operation này. Production `/api/me` hiện chỉ có GET, nên API sửa/xóa hồ sơ và upload avatar từ Bước 1 cũng chưa được deploy.
+- GET `/api/me/top-quizzes` khi không đăng nhập trả 401, nhưng đây không chứng minh route tồn tại: middleware `requireAuth` bảo vệ namespace `/api/me`; OpenAPI production mới xác nhận operation bị thiếu. Chưa gọi endpoint bằng session production hay dùng credential người dùng để kiểm tra.
+- UI hiện nhận lỗi tải top quiz trên production. Không tuyên bố ranking/submit đã nghiệm thu trực tiếp với backend deploy. Cần đưa production backend lên revision tương ứng rồi kiểm tra API có auth và ranking trên Android; không tự deploy trong phạm vi review này.
