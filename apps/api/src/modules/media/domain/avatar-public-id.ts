@@ -5,9 +5,13 @@ export function avatarPublicId(image: string | null | undefined, cloud: string, 
     const url = new URL(image);
     const prefix = `/${cloud}/image/upload/`;
     if (url.protocol !== "https:" || url.hostname !== "res.cloudinary.com" || !url.pathname.startsWith(prefix)) return null;
-    const publicId = url.pathname.slice(prefix.length).replace(/^v\d+\//, "").replace(/\.(jpe?g|png|webp)$/i, "");
     const ownerPrefix = `${folder}/avatars/${userId}/`;
-    if (!publicId.startsWith(ownerPrefix) || !/^[\da-f]{8}-[\da-f]{4}-[\da-f]{4}-[\da-f]{4}-[\da-f]{12}$/i.test(publicId.slice(ownerPrefix.length))) return null;
+    // Delivery URLs may prefix transformation and version segments before the public id.
+    const path = url.pathname.slice(prefix.length).replace(/\.(jpe?g|png|webp)$/i, "");
+    const start = path.indexOf(ownerPrefix);
+    if (start < 0) return null;
+    const publicId = path.slice(start);
+    if (!/^[\da-f]{8}-[\da-f]{4}-[\da-f]{4}-[\da-f]{4}-[\da-f]{12}$/i.test(publicId.slice(ownerPrefix.length))) return null;
     return publicId;
   } catch { return null; }
 }

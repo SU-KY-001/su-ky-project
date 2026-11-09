@@ -1,4 +1,4 @@
-import type { DeleteProfileInput, UpdateProfileInput } from "@repo/shared";
+import type { UpdateProfileInput } from "@repo/shared";
 import { apiClient } from "@/lib/client";
 import type { SessionUser } from "@/lib/session";
 
@@ -15,8 +15,5 @@ export const profileService = {
     // React Native accepts URI descriptors instead of browser Blobs.
     body.append("file", file as unknown as Blob);
     return (await apiClient.post<{ user: SessionUser }>("/api/me/avatar", body, { headers: { "Content-Type": "multipart/form-data" }, timeout: 60_000 })).data.user;
-  },
-  async delete(input: DeleteProfileInput): Promise<void> {
-    await apiClient.delete("/api/me", { data: input });
   },
 };
