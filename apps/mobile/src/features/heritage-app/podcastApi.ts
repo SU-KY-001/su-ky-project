@@ -5,7 +5,6 @@ import {
   LibraryEpisodeSchema,
   LibrarySeriesDetailSchema,
   LibrarySeriesSchema,
-  ListeningHistoryItemSchema,
   ListeningProgressUpdateResultSchema,
   MyWeeklyMissionsSchema,
   PlaybackSchema,
@@ -83,18 +82,6 @@ export interface PlaybackInfo {
   syncIntervalMs: number;
 }
 
-export interface ListeningHistoryEntry {
-  episodeId: string;
-  episodeSlug: string;
-  episodeTitle: string;
-  seriesSlug: string;
-  seriesTitle: string;
-  lastNarrationId: string;
-  lastPositionMs: number;
-  percent: number;
-  isCompleted: boolean;
-}
-
 export interface CachedEpisodePayload {
   id: string;
   slug: string;
@@ -164,13 +151,6 @@ const ExtendedSeriesDetailSchema = LibrarySeriesDetailSchema.extend({
   endYear: z.number().nullable().optional(),
 });
 const EventsPageSchema = paginatedSchema(PublicHistoricalEventSchema);
-const HistoryPageSchema = paginatedSchema(ListeningHistoryItemSchema);
-const HistoryEpisodeSchema = z.object({
-  id: z.string(),
-  slug: z.string(),
-  title: z.string(),
-  series: z.object({ slug: z.string(), title: z.string() }),
-});
 
 function toSeries(item: z.infer<typeof LibrarySeriesSchema>): PodcastSeries {
   const pick = hash(item.slug);
@@ -290,26 +270,6 @@ export const podcastApi = {
   async saveProgress(narrationId: string, body: { assetId: string; positionMs: number; playedBitmap: string }): Promise<ListeningProgressResult> {
     const { data } = await apiClient.put(`/api/me/listening-progress/${narrationId}`, body);
     return ListeningProgressUpdateResultSchema.parse(data);
-  },
-  async listeningHistory(): Promise<ListeningHistoryEntry[]> {
-    const { data } = await apiClient.get("/api/me/listening-history", { params: { page: 1, limit: 10, status: "all" } });
-    return HistoryPageSchema.parse(data)
-      .items.map<ListeningHistoryEntry | null>((item) => {
-        const ep = HistoryEpisodeSchema.safeParse(item.episode);
-        if (!ep.success) return null;
-        return {
-          episodeId: ep.data.id,
-          episodeSlug: ep.data.slug,
-          episodeTitle: ep.data.title,
-          seriesSlug: ep.data.series.slug,
-          seriesTitle: ep.data.series.title,
-          lastNarrationId: item.lastNarrationId,
-          lastPositionMs: item.lastPositionMs,
-          percent: item.percent,
-          isCompleted: item.isCompleted,
-        };
-      })
-      .filter((item): item is ListeningHistoryEntry => item !== null);
   },
   async weeklyMissions(): Promise<MyWeeklyMissions> {
     const { data } = await apiClient.get("/api/me/weekly-missions");

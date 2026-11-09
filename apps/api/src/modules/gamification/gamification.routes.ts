@@ -17,6 +17,7 @@ import type { AppEnv } from "../../types";
 import { attachSession, requireAuth, requireRole } from "../auth";
 import { GamificationService } from "./gamification.service";
 import { quizAuthoringRoute } from "./quiz-authoring.routes";
+import { createTopQuizzesRoute } from "./top-quizzes.routes";
 
 const episodeIdParam = z.object({ episodeId: z.string().uuid() });
 const quizIdParam = z.object({ quizId: z.string().uuid() });
@@ -109,6 +110,7 @@ export const publicQuizRoute = new Hono<AppEnv>()
   );
 
 export const meMissionRoute = new Hono<AppEnv>()
+  .route("/", createTopQuizzesRoute())
   .use("*", requireAuth)
   .get(
     "/weekly-missions",

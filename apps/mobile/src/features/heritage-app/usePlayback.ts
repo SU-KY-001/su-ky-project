@@ -12,6 +12,12 @@ export interface LivePlaybackState extends PlaybackState {
   retry: () => void;
 }
 
+export interface HistoryResumeRequest {
+  token: number;
+  narrationId: string;
+  positionMs: number;
+}
+
 const B64_CHARS = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
 
 function encodeBase64(bytes: Uint8Array): string {
@@ -54,6 +60,7 @@ export function usePlayback(
   autoplayToken: number,
   userId: string | null,
   onRequireAuth: () => void,
+  resumeRequest: HistoryResumeRequest | null = null,
 ): LivePlaybackState {
   const queryClient = useQueryClient();
   const [playRequested, setPlayRequested] = useState(false);
@@ -80,6 +87,8 @@ export function usePlayback(
   const ready = useRef(false);
   const lastSavedLocal = useRef(0);
   const handledToken = useRef(autoplayToken);
+  const restoreGeneration = useRef(0);
+  const appliedResumeToken = useRef<number | null>(null);
 
   const progressRef = useRef<{
     bits: Uint8Array;
@@ -127,34 +136,40 @@ export function usePlayback(
   }, [playbackQuery.data]);
 
   useEffect(() => {
+    restoreGeneration.current += 1;
     restored.current = false;
     ready.current = false;
     lastSavedLocal.current = 0;
     player.pause();
     void player.seekTo(0);
-  }, [narrationId, player]);
+  }, [narrationId, player, userId, resumeRequest?.token]);
 
   useEffect(() => {
-    if (restored.current || !status.isLoaded || totalDurationSeconds <= 0 || !narrationId) return;
+    if (restored.current || !playbackQuery.data || playbackQuery.data.narrationId !== narrationId || !status.isLoaded || totalDurationSeconds <= 0 || !narrationId) return;
     restored.current = true;
+    const generation = restoreGeneration.current;
     const serverPositionSeconds = (playbackQuery.data?.positionMs ?? 0) / 1000;
 
     void AsyncStorage.getItem(storageKey(narrationId))
-      .then((savedValue) => {
+      .then(async (savedValue) => {
+        if (generation !== restoreGeneration.current) return;
         const localSaved = Number(savedValue);
+        const requested = resumeRequest?.narrationId === narrationId && appliedResumeToken.current !== resumeRequest.token ? resumeRequest.positionMs / 1000 : null;
         const bestPosition =
-          Number.isFinite(localSaved) && localSaved > 1 && localSaved < totalDurationSeconds - 2
+          requested !== null
+            ? Number.isFinite(requested) && requested > 0 && requested < totalDurationSeconds - 2 ? requested : 0
+            : Number.isFinite(localSaved) && localSaved > 1 && localSaved < totalDurationSeconds - 2
             ? localSaved
             : serverPositionSeconds > 1 && serverPositionSeconds < totalDurationSeconds - 2
               ? serverPositionSeconds
               : 0;
 
-        if (bestPosition > 0) {
-          void player.seekTo(bestPosition);
-        }
+        await player.seekTo(bestPosition);
+        if (requested !== null && generation === restoreGeneration.current && resumeRequest) appliedResumeToken.current = resumeRequest.token;
       })
       .catch(() => undefined)
       .finally(() => {
+        if (generation !== restoreGeneration.current) return;
         ready.current = true;
         if (handledToken.current !== autoplayToken || playRequested) {
           handledToken.current = autoplayToken;
@@ -162,7 +177,7 @@ export function usePlayback(
           player.play();
         }
       });
-  }, [status.isLoaded, totalDurationSeconds, narrationId, playbackQuery.data?.positionMs, autoplayToken, playRequested, player]);
+  }, [status.isLoaded, totalDurationSeconds, narrationId, playbackQuery.data?.positionMs, autoplayToken, playRequested, player, resumeRequest]);
 
   useEffect(() => {
     const data = playbackQuery.data;
@@ -197,6 +212,7 @@ export function usePlayback(
         positionMs: state.positionMs,
         playedBitmap: bitmap,
       });
+      void queryClient.invalidateQueries({ queryKey: ["me", "listening-history", userId] });
       if (result.completedAt) {
         void queryClient.invalidateQueries({ queryKey: ["podcast"] });
       }
@@ -205,7 +221,7 @@ export function usePlayback(
     } finally {
       state.saving = false;
     }
-  }, [playbackQuery.data, narrationId, queryClient]);
+  }, [playbackQuery.data, narrationId, queryClient, userId]);
 
   useEffect(() => {
     if (!ready.current || totalDurationSeconds <= 0 || !narrationId) return;

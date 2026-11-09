@@ -11,4 +11,8 @@ const config = withTamagui(getDefaultConfig(__dirname), {
   config: tamaguiConfig,
 });
 
-module.exports = withNativeWind(config, { input: "./global.css" });
+module.exports = withNativeWind(config, {
+  input: path.join(__dirname, "global.css"),
+  configPath: path.join(__dirname, "tailwind.config.js"),
+  disableTypeScriptGeneration: true,
+});

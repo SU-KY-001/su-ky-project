@@ -1,4 +1,5 @@
 import { v2 as cloudinary } from "cloudinary";
+import { avatarPublicId } from "../domain/avatar-public-id";
 import { getSystemConfig } from "../../../core/config/system-config";
 import { env } from "../../../core/env";
 import type { MediaAsset, MediaKind } from "../domain/media.entity";
@@ -19,6 +20,24 @@ function formatOf(result: { format?: string }, publicId: string): string {
 }
 
 export class CloudinaryGateway implements MediaStorageGateway {
+  async uploadAvatar(userId: string, bytes: Uint8Array, mimeType: string): Promise<string> {
+    this.configured();
+    const result = await this.withTimeout(cloudinary.uploader.upload(`data:${mimeType};base64,${Buffer.from(bytes).toString("base64")}`, {
+      public_id: `${env.CLOUDINARY_FOLDER}/avatars/${userId}/${crypto.randomUUID()}`,
+      resource_type: "image", overwrite: true, invalidate: true,
+      allowed_formats: ["jpg", "jpeg", "png", "webp"],
+      transformation: [{ width: 512, height: 512, crop: "limit" }],
+    }));
+    return result.secure_url;
+  }
+
+  async deleteAvatar(userId: string, image?: string | null): Promise<void> {
+    const publicId = avatarPublicId(image, env.CLOUDINARY_CLOUD_NAME ?? "", env.CLOUDINARY_FOLDER, userId);
+    if (!publicId) return;
+    this.configured();
+    await this.withTimeout(cloudinary.uploader.destroy(publicId, { resource_type: "image", invalidate: true }));
+  }
+
   private configured(): void {
     if (!env.CLOUDINARY_CLOUD_NAME || !env.CLOUDINARY_API_KEY || !env.CLOUDINARY_API_SECRET) throw new MediaProviderError("Cloudinary is not configured");
     cloudinary.config({ cloud_name: env.CLOUDINARY_CLOUD_NAME, api_key: env.CLOUDINARY_API_KEY, api_secret: env.CLOUDINARY_API_SECRET, secure: true });

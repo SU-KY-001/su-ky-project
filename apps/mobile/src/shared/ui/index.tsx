@@ -206,9 +206,9 @@ export function MiniPlayer({ artwork, title, subtitle, playback, onOpen }: MiniP
   );
 }
 
-export function AppShell({ children, activeTab, onTabChange, hideTabs = false, dark = false, miniPlayer }: { children: ReactNode; activeTab: MainTab; onTabChange: (tab: MainTab) => void; hideTabs?: boolean; dark?: boolean; miniPlayer?: MiniPlayerData }): React.JSX.Element {
+export function AppShell({ children, activeTab, onTabChange, hideTabs = false, dark = false, extendBottom = false, miniPlayer }: { children: ReactNode; activeTab: MainTab; onTabChange: (tab: MainTab) => void; hideTabs?: boolean; dark?: boolean; extendBottom?: boolean; miniPlayer?: MiniPlayerData }): React.JSX.Element {
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: dark ? "#14110F" : "#F4ECDC" }}>
+    <SafeAreaView edges={extendBottom ? ["top", "left", "right"] : ["top", "bottom", "left", "right"]} style={{ flex: 1, backgroundColor: dark ? "#14110F" : "#F4ECDC" }}>
       <YStack f={1} bg={dark ? "$night" : "$paper"}>
         {children}
         {!hideTabs && miniPlayer ? <MiniPlayer {...miniPlayer} /> : null}

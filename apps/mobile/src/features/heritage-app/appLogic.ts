@@ -16,7 +16,7 @@ export function tabForScreen(screen: AppScreen): MainTab {
   if (["history", "event"].includes(screen)) return "history";
   if (["podcasts", "series", "player"].includes(screen)) return "podcast";
   if (["quizzes", "episodeQuiz"].includes(screen)) return "quiz";
-  if (["profile", "login", "schedule"].includes(screen)) return "profile";
+  if (["profile", "login", "schedule", "listeningHistory", "topQuizzes"].includes(screen)) return "profile";
   return "discovery";
 }
 
