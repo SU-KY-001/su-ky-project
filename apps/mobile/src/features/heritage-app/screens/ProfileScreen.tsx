@@ -1,12 +1,12 @@
 import { useQueryClient } from "@tanstack/react-query";
 import { MaterialIcons } from "@expo/vector-icons";
 import { Button, ScrollView, Spinner, Text, XStack, YStack, getTokens } from "tamagui";
-import { AppIcon, AppImage, Chip, PrimaryButton, SectionHeader } from "@/shared/ui";
+import { AppHeader, AppImage, Chip, PrimaryButton, SectionHeader } from "@/shared/ui";
 import { useAuthStore } from "@/lib/authStore";
 import background from "../../../assets/brand/profile-header-v2.png";
 import { ListeningHistoryRow, useListeningHistory, type ListeningHistoryItem } from "@/features/listening-history";
 import { useTopQuizzes, TopQuizRow, type TopQuizItem } from "@/features/top-quizzes";
-import { RankingSection, PlaylistPreview } from "@/features/personal-library";
+import { RankingSection } from "@/features/personal-library";
 
 interface ProfileScreenProps {
   onLogin: () => void;
@@ -50,6 +50,7 @@ export function ProfileScreen({ onLogin, onEditProfile, onPlayHistoryItem, onVie
 
   return (
     <ScrollView f={1} bg="$paper" showsVerticalScrollIndicator={false}>
+      <AppHeader title="Hồ sơ" />
       <YStack pb="$5">
         <YStack pos="relative" px="$4" pb="$4" overflow="hidden" bg="$paperDeep">
           <YStack pos="absolute" t={0} b={0} l={0} r={0} pointerEvents="none">
@@ -65,7 +66,6 @@ export function ProfileScreen({ onLogin, onEditProfile, onPlayHistoryItem, onVie
             <YStack f={1} minW={0} g="$1.5">
               <Text ff="$heading" fs="$4" lh="$4" fw="$7" color="$ink" numberOfLines={2}>{user?.name || "Người nghe Sử Ký"}</Text>
               <Text ff="$body" fs="$1" color="$inkSoft" numberOfLines={1}>{user?.email || "Bắt đầu hành trình của bạn"}</Text>
-              <XStack items="center" g="$1.5"><AppIcon name="book-open" size={14} color={tokens.color.vermilion.val} /><Text ff="$body" fs="$1" color="$inkSoft">Người kể chuyện thời gian</Text></XStack>
             </YStack>
             {user ? <YStack w="$4" h="$4" items="center" justify="center"><MaterialIcons name="chevron-right" size={32} color={tokens.color.ink.val} /></YStack> : null}
           </Button>
@@ -94,8 +94,7 @@ export function ProfileScreen({ onLogin, onEditProfile, onPlayHistoryItem, onVie
           <XStack g="$2"><Chip label="Tuần" selected={period === "week"} onPress={() => onPeriod("week")} /><Chip label="Tháng" selected={period === "month"} onPress={() => onPeriod("month")} /></XStack>
           <RankingSection scope="personal" period={period} onAll={() => onViewRanking("personal")} onPlay={onPlayRanking} onLogin={onLogin} />
           <RankingSection scope="system" period={period} onAll={() => onViewRanking("system")} onPlay={onPlayRanking} onLogin={onLogin} />
-          <PlaylistPreview onAll={onViewPlaylists} onOpen={onOpenPlaylist} onLogin={onLogin} />
-          {user ? <Button unstyled minH="$4" fd="row" items="center" justify="center" g="$2" onPress={() => void handleSignOut()} accessibilityRole="button" pressStyle={{ op: 0.75 }}><AppIcon name="log-out" size={17} color={tokens.color.vermilion.val} /><Text ff="$body" fs="$2" fw="$7" color="$vermilion">Đăng xuất</Text></Button> : null}
+          {user ? <PrimaryButton secondary icon="log-out" label="Đăng xuất" onPress={() => void handleSignOut()} /> : null}
         </YStack>
       </YStack>
     </ScrollView>

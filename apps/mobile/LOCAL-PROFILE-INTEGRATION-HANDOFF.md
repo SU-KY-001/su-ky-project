@@ -41,3 +41,10 @@ Chưa xác nhận end-to-end thành công trên Android với backend mới: ful
 4. Xác minh OpenAPI có GET /api/me/top-quizzes, GET /api/me/top-podcasts, nhóm /api/me/playlists và cặp sessionId/sessionPlayedBitmap trong PUT tiến độ. Kiểm tra API/worker health.
 5. Sau backend mới hoạt động mới phát hành/chạy mobile mới. Client khởi tạo phiên trước khi phát, do đó server cũ không trả listeningSession sẽ báo lỗi và không bắt đầu phát. Ranking rỗng cho tới khi có phiên mới đạt ngưỡng; không backfill progress cũ.
 6. Nghiệm thu Android: sync đầu không hiện lịch sử; đủ5 giây bắt đầu hiện; đạt ngưỡng phiên cập nhật ranking; pause/resume/retry không nhân lượt; replay/đổi tập đúng UUID; playlist thứ tự/next/previous/unavailable; đổi user không lẫn dữ liệu.
+
+## Production snapshot — 2026-11-09
+
+- OpenAPI production hiện công bố GET /api/me/top-quizzes, GET /api/me/top-podcasts, nhóm routes /api/me/playlists, cùng sessionId/sessionPlayedBitmap trong PUT progress và listeningSession trong response.
+- GET /health trả status=ok, database=connected, queue=running và releaseWorker=running.
+- Chưa xác minh migrations production đã áp dụng hoặc các API thành công bằng session đăng nhập. Health/OpenAPI không chứng minh bảng listening_sessions/playlists tồn tại hoặc truy vấn ranking/playlist chạy thành công.
+- Còn lại: xác nhận migration state theo deploy pipeline; sau đó kiểm tra Top quiz, session sync, ranking và playlist trên Android production bằng session đăng nhập. Không chạy deploy/migration từ agent.

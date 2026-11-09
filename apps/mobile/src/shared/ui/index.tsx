@@ -1,13 +1,15 @@
-import type { ComponentProps, ReactNode } from "react";
-import { type DimensionValue, type ImageSourcePropType } from "react-native";
+import { useEffect, useRef, type ComponentProps, type ReactNode } from "react";
+import { Animated, PanResponder, type DimensionValue, type ImageSourcePropType } from "react-native";
 import { Feather } from "@expo/vector-icons";
 import { Image as ExpoImage, type ImageProps } from "expo-image";
 import { Button, Input, ScrollView, Text, XStack, YStack } from "tamagui";
 import { SafeAreaView } from "react-native-safe-area-context";
 import brandImage from "../../assets/brand/brand-su-ky-viet-nam.png";
+import { useAuthStore } from "@/lib/authStore";
+import { shouldCaptureMiniPlayerDrag, shouldDismissMiniPlayer } from "./miniPlayerGesture";
 
 export type IconName = ComponentProps<typeof Feather>["name"];
-export type MainTab = "discovery" | "history" | "podcast" | "quiz" | "profile";
+export type MainTab = "discovery" | "playlist" | "podcast" | "quiz" | "profile";
 
 const colors = {
   ink: "#1C1714",
@@ -121,33 +123,40 @@ export function SectionHeader({ title, action = "Xem tất cả", onPress }: { t
 }
 
 export function AppHeader({ title, onBack, rightIcon, onRight }: { title?: string; onBack?: () => void; rightIcon?: IconName; onRight?: () => void }): React.JSX.Element {
+  const user = useAuthStore((state) => state.user);
   return (
     <XStack h="$4.5" px="$3" items="center" justify="space-between">
-      <YStack w="$4">{onBack ? <IconButton icon="chevron-left" label="Quay lại" onPress={onBack} /> : null}</YStack>
-      {title ? <Text color="$ink" fs="$2" fw="$7">{title}</Text> : <BrandMark compact />}
-      <YStack w="$4">{rightIcon && onRight ? <IconButton icon={rightIcon} label="Tác vụ" onPress={onRight} /> : null}</YStack>
+      <XStack f={1} items="center" g="$2">
+        {onBack ? <IconButton icon="chevron-left" label="Quay lại" onPress={onBack} /> : null}
+        <YStack w={32} h={32} rounded="$12" overflow="hidden" bg="$paperDeep" items="center" justify="center">
+          {user?.image ? <AppImage source={{ uri: user.image }} w={32} h={32} rounded={16} /> : <AppIcon name="user" size={18} color={colors.muted} />}
+        </YStack>
+        <Text color="$ink" fs="$3" fw="$7" f={1} numberOfLines={1}>{title ?? "Sử Ký"}</Text>
+      </XStack>
+      {rightIcon && onRight ? <IconButton icon={rightIcon} label="Tác vụ" onPress={onRight} /> : null}
+      <BrandMark compact />
     </XStack>
   );
 }
 
 const tabItems: { tab: MainTab; icon: IconName; label: string }[] = [
   { tab: "discovery", icon: "compass", label: "Khám phá" },
-  { tab: "history", icon: "book-open", label: "Lịch sử" },
+  { tab: "playlist", icon: "list", label: "Playlist" },
   { tab: "podcast", icon: "mic", label: "Podcast" },
   { tab: "quiz", icon: "award", label: "Quiz" },
   { tab: "profile", icon: "user", label: "Tôi" },
 ];
 
-export function BottomTabs({ active, onChange }: { active: MainTab; onChange: (tab: MainTab) => void }): React.JSX.Element {
+export function BottomTabs({ active, onChange, dark = false }: { active: MainTab; onChange: (tab: MainTab) => void; dark?: boolean }): React.JSX.Element {
   return (
-    <YStack bg="$paper" px="$2" py="$1.5">
-      <XStack h={58} items="center" p="$1" bg="$paperSoft" rounded="$12" bw="$0.25" bc="$line" boxShadow="0 6px 18px rgba(28, 23, 20, 0.14)">
+    <YStack bg={dark ? "$night" : "$paper"} px="$2" py="$1.5">
+      <XStack h={58} items="center" p="$1" bg={dark ? "$nightSoft" : "$paperSoft"} rounded="$12" bw="$0.25" bc={dark ? "$nightSoft" : "$line"} boxShadow="0 6px 18px rgba(28, 23, 20, 0.14)">
         {tabItems.map((item) => {
           const selected = active === item.tab;
           return (
             <Button key={item.tab} unstyled f={1} h={48} mx="$0.25" rounded="$10" bg={selected ? "$vermilion" : "transparent"} items="center" justify="center" g="$0.5" onPress={() => onChange(item.tab)} pressStyle={{ op: 0.72, scale: 0.97 }}>
-              <AppIcon name={item.icon} size={17} color={selected ? colors.cream : colors.muted} />
-              <Text color={selected ? "$paperSoft" : "$inkSoft"} fs={8.5} fw={selected ? "$7" : "$5"}>{item.label}</Text>
+              <AppIcon name={item.icon} size={17} color={selected || dark ? colors.cream : colors.muted} />
+              <Text color={selected || dark ? "$paperSoft" : "$inkSoft"} fs={8.5} fw={selected ? "$7" : "$5"}>{item.label}</Text>
             </Button>
           );
         })}
@@ -174,45 +183,63 @@ export function formatTime(totalSeconds: number): string {
 }
 
 interface MiniPlayerData {
+  episodeId: string;
   artwork: ImageSourcePropType;
   title: string;
   subtitle: string;
   playback: PlaybackState;
   onOpen: () => void;
+  onDismiss: () => void;
 }
 
-export function MiniPlayer({ artwork, title, subtitle, playback, onOpen }: MiniPlayerData): React.JSX.Element {
+export function MiniPlayer({ artwork, title, subtitle, playback, onOpen, onDismiss, dark = false }: MiniPlayerData & { dark?: boolean }): React.JSX.Element {
   const progress = playback.duration > 0 ? (playback.position / playback.duration) * 100 : 0;
+  const translateY = useRef(new Animated.Value(0)).current;
+  useEffect(() => () => translateY.stopAnimation(), [translateY]);
+  const dismissRef = useRef(onDismiss);
+  dismissRef.current = onDismiss;
+  const gesture = useRef(PanResponder.create({
+    onMoveShouldSetPanResponderCapture: (_, state) => shouldCaptureMiniPlayerDrag(state.dx, state.dy),
+    onPanResponderMove: (_, state) => translateY.setValue(Math.min(24, Math.max(0, state.dy) * 0.45)),
+    onPanResponderRelease: (_, state) => {
+      if (shouldDismissMiniPlayer(state.dy, state.vy)) {
+        Animated.timing(translateY, { toValue: 28, duration: 140, useNativeDriver: true }).start(({ finished }) => { if (finished) dismissRef.current(); });
+      } else Animated.spring(translateY, { toValue: 0, useNativeDriver: true }).start();
+    },
+    onPanResponderTerminate: () => { Animated.spring(translateY, { toValue: 0, useNativeDriver: true }).start(); },
+  })).current;
 
   return (
-    <YStack bg="$paper" px="$2" pb="$1">
-      <YStack pos="relative" bg="$paper" rounded="$6" overflow="hidden" bw="$0.25" bc="$bronze" boxShadow="0 6px 18px rgba(28, 23, 20, 0.14)">
+    <Animated.View {...gesture.panHandlers} style={{ transform: [{ translateY }], opacity: translateY.interpolate({ inputRange: [0, 28], outputRange: [1, 0] }) }}>
+    <YStack bg={dark ? "$night" : "$paper"} px="$2" pb="$1">
+      <YStack pos="relative" bg={dark ? "$nightSoft" : "$paper"} rounded="$6" overflow="hidden" bw="$0.25" bc="$bronze" boxShadow="0 6px 18px rgba(28, 23, 20, 0.14)">
         <XStack h={64} items="center" px="$2" g="$2">
-          <Button unstyled f={1} minW={0} fd="row" items="center" g="$2" onPress={onOpen} aria-label="Mở trình phát">
+          <Button unstyled f={1} minW={0} fd="row" items="center" g="$2" onPress={onOpen} aria-label="Mở trình phát" accessibilityHint="Kéo xuống để dừng phát và đóng trình phát thu nhỏ" accessibilityActions={[{ name: "dismiss", label: "Dừng phát và đóng" }]} onAccessibilityAction={(event) => { if (event.nativeEvent.actionName === "dismiss") onDismiss(); }}>
             <AppImage source={artwork} w={46} h={46} rounded={8} resizeMode="cover" />
             <YStack f={1} minW={0}>
-              <Text color="$ink" fs="$1" lh={18} fw="$7" numberOfLines={1}>{title}</Text>
-              <Text color="$bronzeDark" fs={11} lh={16} numberOfLines={1}>{subtitle}</Text>
+              <Text color={dark ? "$paperSoft" : "$ink"} fs="$1" lh={18} fw="$7" numberOfLines={1}>{title}</Text>
+              <Text color={dark ? "$paperDeep" : "$bronzeDark"} fs={11} lh={16} numberOfLines={1}>{subtitle}</Text>
             </YStack>
           </Button>
-          <Button unstyled w="$4" h="$4" items="center" justify="center" onPress={() => playback.seekBy(-15)} aria-label="Lùi 15 giây"><AppIcon name="rotate-ccw" size={19} color={colors.ink} /></Button>
+          <Button unstyled w="$4" h="$4" items="center" justify="center" onPress={() => playback.seekBy(-15)} aria-label="Lùi 15 giây"><AppIcon name="rotate-ccw" size={19} color={dark ? colors.cream : colors.ink} /></Button>
           <Button unstyled circular w="$4" h="$4" bg="$vermilion" items="center" justify="center" onPress={playback.toggle} aria-label={playback.isPlaying ? "Tạm dừng" : "Phát"} pressStyle={{ op: 0.8, scale: 0.96 }}>
             <AppIcon name={playback.isPlaying ? "pause" : "play"} size={20} color={colors.cream} />
           </Button>
         </XStack>
-        <XStack h={3} bg="$paperDeep"><YStack w={`${Math.min(100, progress)}%` as `${number}%`} h="100%" bg="$bronze" /></XStack>
+        <XStack h={3} bg={dark ? "$inkSoft" : "$paperDeep"}><YStack w={`${Math.min(100, progress)}%` as `${number}%`} h="100%" bg="$bronze" /></XStack>
       </YStack>
     </YStack>
+    </Animated.View>
   );
 }
 
-export function AppShell({ children, activeTab, onTabChange, hideTabs = false, dark = false, extendBottom = false, miniPlayer }: { children: ReactNode; activeTab: MainTab; onTabChange: (tab: MainTab) => void; hideTabs?: boolean; dark?: boolean; extendBottom?: boolean; miniPlayer?: MiniPlayerData }): React.JSX.Element {
+export function AppShell({ children, activeTab, onTabChange, hideTabs = false, hideMiniPlayer = false, dark = false, extendBottom = false, miniPlayer }: { children: ReactNode; activeTab: MainTab; onTabChange: (tab: MainTab) => void; hideTabs?: boolean; hideMiniPlayer?: boolean; dark?: boolean; extendBottom?: boolean; miniPlayer?: MiniPlayerData }): React.JSX.Element {
   return (
     <SafeAreaView edges={extendBottom ? ["top", "left", "right"] : ["top", "bottom", "left", "right"]} style={{ flex: 1, backgroundColor: dark ? "#14110F" : "#F4ECDC" }}>
       <YStack f={1} bg={dark ? "$night" : "$paper"}>
         {children}
-        {!hideTabs && miniPlayer ? <MiniPlayer {...miniPlayer} /> : null}
-        {!hideTabs ? <BottomTabs active={activeTab} onChange={onTabChange} /> : null}
+        {!hideMiniPlayer && miniPlayer ? <MiniPlayer key={miniPlayer.episodeId} {...miniPlayer} dark={dark} /> : null}
+        {!hideTabs ? <BottomTabs active={activeTab} onChange={onTabChange} dark={dark} /> : null}
       </YStack>
     </SafeAreaView>
   );

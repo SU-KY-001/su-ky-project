@@ -28,7 +28,7 @@ export function HistoryScreen({
 
   return (
     <ScreenScroll>
-      <AppHeader rightIcon="search" onRight={() => undefined} />
+      <AppHeader title="Lịch sử" />
       <YStack g="$1">
         <Text color="$ink" fs="$5" lh="$5" fw="$7">Dòng chảy lịch sử</Text>
         <Text color="$inkSoft" fs="$1" lh="$2">Khám phá những dấu mốc làm nên dân tộc Việt Nam qua các thời kỳ.</Text>
@@ -143,8 +143,7 @@ export function EventDetailScreen({
       <ZStack h="$18">
         <AppImage source={heroImage} w="100%" h="100%" resizeMode="cover" rounded={0} />
         <XStack pos="absolute" t="$2" l="$2" r="$2" justify="space-between">
-          <AppHeader onBack={onBack} />
-          <AppHeader rightIcon="share-2" onRight={() => undefined} />
+          <AppHeader title="Sự kiện" onBack={onBack} />
         </XStack>
       </ZStack>
       <YStack px="$3" py="$3" g="$2.5">

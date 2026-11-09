@@ -43,14 +43,9 @@ export function QuizListScreen({ onPlayEpisodeQuiz }: { onPlayEpisodeQuiz: (epis
   }, [allQuizzesQuery.data]);
 
   return (
-    <ScreenScroll>
-      <AppHeader rightIcon="search" onRight={() => undefined} />
-      <YStack g="$1">
-        <Text color="$bronzeDark" fs={10} fw="$7" ls="$1">HỌC BẰNG THỬ THÁCH</Text>
-        <Text color="$ink" fs="$5" lh="$5" fw="$7">Chọn một bộ quiz để bắt đầu</Text>
-        <Text color="$inkSoft" fs="$1" lh="$2">Dữ liệu quiz được cập nhật trực tiếp từ các tập podcast đã xuất bản.</Text>
-      </YStack>
-
+    <YStack f={1} bg="$paper">
+      <AppHeader title="Quiz" />
+      <ScreenScroll>
       {topics.length > 0 ? (
         <ScrollView horizontal showsHorizontalScrollIndicator={false}>
           <XStack g="$1.5">
@@ -104,7 +99,8 @@ export function QuizListScreen({ onPlayEpisodeQuiz }: { onPlayEpisodeQuiz: (epis
           <Text color="$inkSoft" fs="$1">Hãy chọn chủ đề khác để tiếp tục.</Text>
         </YStack>
       )}
-    </ScreenScroll>
+      </ScreenScroll>
+    </YStack>
   );
 }
 

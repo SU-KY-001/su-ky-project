@@ -1,10 +1,10 @@
 # Hồ sơ Mobile — Theo dõi triển khai theo từng bước
 
-**Trạng thái:** Bước 1 và Bước 2 đã nghiệm thu; Bước 3 đã triển khai code local nhưng production đang thiếu `GET /api/me/top-quizzes`, nên chưa thể nghiệm thu tích hợp dữ liệu thật.
+**Trạng thái hiện tại:** Bước 1–2 đã nghiệm thu. Code/UI/sync Task3–7 đã hoàn thiện local; PostgreSQL test riêng đã chạy 27 migrations và 61 API integration tests đạt. OpenAPI production hiện công bố APIs mới; `/health` báo DB connected và queue running. Migration state và authenticated end-to-end trên Android chưa xác nhận.
 **Spec:** `USER-PROFILE-FEATURES-SPEC-PLAN.md`.
 **Tích hợp local mới nhất:** xem `LOCAL-PROFILE-INTEGRATION-HANDOFF.md`: sync phiên, UI ranking/playlist đã nối; lịch sử chỉ hiện sau5 giây;27 migrations và61 API tests (không skip) đã chạy trên PostgreSQL test riêng. Image API local đã build; người dùng tự deploy production.
-**Ưu tiên mới đã hoàn thiện local:** API Task4–7, sync mobile và UI Tamagui ranking/playlist; migration đã apply trên PostgreSQL test riêng,61 API tests không skip đã đạt. Production chưa thay đổi; người dùng tự deploy. Xem `LOCAL-PROFILE-INTEGRATION-HANDOFF.md` để biết bằng chứng và giới hạn Android end-to-end.
-**Bước tiếp theo:** cập nhật backend production theo quy trình deploy được duyệt, rồi kiểm tra ranking/submit trên dữ liệu thật của Bước 3; dừng chờ người dùng review, không tự deploy hoặc bắt đầu Bước 4.
+**Bằng chứng tích hợp local:** `LOCAL-PROFILE-INTEGRATION-HANDOFF.md` ghi rõ migration, DB test, kiểm tra API, build mobile, ảnh và giới hạn end-to-end.
+**Bước tiếp theo:** xác nhận migrations session/playlist đã áp dụng trên production; sau đó kiểm tra API bằng session đăng nhập và chạy end-to-end Android cho Task3–7. Dừng chờ người dùng review; agent không tự deploy.
 
 ## Phạm vi đã hoàn tất
 
@@ -83,7 +83,7 @@ API lịch sử đã có phân trang và ba trạng thái trên. Ưu tiên tái 
 - Không thêm test hoặc dependency; không sửa UI/API/auth/player trong lần bảo trì test này.
 - Chạy lại trong `apps/mobile`: `bun run test` đạt **5 pass, 0 fail** (13 assertions, 2 file); `bun run check-types` đạt, exit code 0.
 
-## Bước 3 — Top quiz cá nhân + Xem tất cả (đã triển khai code, chờ nghiệm thu tích hợp)
+## Bước 3 — Top quiz cá nhân + Xem tất cả (local hoàn tất, route đã có trên production; E2E chờ xác minh)
 
 ### Mục tiêu
 
@@ -110,13 +110,15 @@ Hiển thị các quiz user đã làm nhiều nhất, dựa trên số lần n�
 - Profile overview hiển thị không quá 4 item và “Xem tất cả”. Mỗi item ghi tên quiz/tập và số lần đã làm.
 - Chọn item chỉ mở quiz nếu endpoint quiz hiện tại xác nhận nó còn khả dụng; không tạo luồng chấm điểm mới.
 
-### Review gate
+### Review gate Bước 3 — trạng thái cập nhật
 
 - Endpoint chỉ trả thống kê của user hiện tại và đã được ghi trong OpenAPI.
 - Counts, thứ tự tie-break, pagination, trường hợp quiz không còn công khai và empty state đúng quy tắc.
 - UI profile/màn mở rộng dùng Tamagui/token và điều hướng đúng quiz hiện có.
 - Cập nhật top quiz sau khi submit thành công.
-- Chạy các kiểm tra phù hợp, kiểm tra màn trên Android và chụp/xem ảnh. Báo rõ pass/fail và giới hạn; dừng để người dùng nghiệm thu trước Bước 4.
+- Code/API/UI và PostgreSQL integration local đã hoàn tất theo `LOCAL-PROFILE-INTEGRATION-HANDOFF.md`; OpenAPI production hiện có endpoint. Android end-to-end với session đăng nhập và dữ liệu thật còn chờ.
+- Sau khi người dùng deploy, kiểm tra Top quiz tải được và ranking/attempt count cập nhật sau submit; báo pass/fail và dừng chờ người dùng nghiệm thu.
+- Task 4–7 đã có code local; câu chỉ dẫn ban đầu “dừng trước Bước 4” đã được thay bằng quy trình production/end-to-end hiện tại.
 
 ### Code và quyết định triển khai
 
@@ -132,13 +134,12 @@ Hiển thị các quiz user đã làm nhiều nhất, dựa trên số lần n�
 ### Kiểm chứng và giới hạn Bước 3
 
 - TypeScript shared/API/mobile: đạt. Bộ test mobile hiện có: 5 pass, 0 fail.
-- API top-quizzes + OpenAPI: 11 pass, 0 fail; PostgreSQL integration: 1 skip (opt-in). Test route xác nhận ba role dùng owner session, guest401, query userId bị chặn, metadata pagination/no-store; test service kiểm tra tham số SQL và chuyển bigint.
-- Test DB opt-in có fixture transaction rollback để kiểm tra SQL thật: all-pass/fail counts, cross-user isolation, tie/lastSubmittedAt, hidden, page/beyond/empty, cập nhật lượt. Chưa chạy vì Docker daemon/DB local không hoạt động. Không đổi env, không seed hoặc migrate dữ liệu thật.
+- **Ảnh chụp kiểm tra API-only ban đầu (đã được cập nhật bởi local integration bên dưới):** API top-quizzes + OpenAPI 11 pass, 0 fail; PostgreSQL integration 1 skip. Đây là kết quả trước khi tạo PostgreSQL test riêng.
+- **Tình trạng mới nhất:** xem `LOCAL-PROFILE-INTEGRATION-HANDOFF.md`; 61 API integration tests chạy với DB test riêng, 0 skip. Các test top quiz cũng được chạy với integration bật.
 - Đã mở Android Expo Go emulator API35: khu vực top quiz, Xem tất cả, màn loading rồi lỗi và retry có giao diện đúng token. Đã chụp và tự xem ảnh trong artifacts/top-quizzes.
-- Mobile `.env` trỏ API remote chưa có route mới. Chưa deploy backend, chưa đổi API URL; chưa thể nghiệm thu trực tiếp dữ liệu ranking thành công, pagination có dữ liệu, empty/unavailable và submit cập nhật lượt trên Android. Các state đã được triển khai trong code; cần backend cập nhật trước khi kiểm tra luồng thật.
-- Review độc lập: không còn lỗi correctness/security quan trọng; giới hạn live-data như trên. Bước 4 chưa bắt đầu.
+- Snapshot lỗi tải ban đầu được chụp trước khi route production xuất hiện. OpenAPI/health hiện đã cập nhật, nhưng chưa xác nhận ranking/pagination/submit với session đăng nhập trên Android hoặc migration state của production.
+- Review độc lập ở snapshot Bước 3 ban đầu: không phát hiện lỗi correctness/security quan trọng; các giới hạn live-data khi đó được cập nhật bởi phần tích hợp local mới nhất bên dưới. Task 4–7 hiện đã có code local theo handoff; production end-to-end vẫn chờ deploy.
 - Android export cuối cùng: đạt, 2468 modules; output trong thư mục OS temp `suky-top-quizzes-verify-20261109`.
-- **Finding P1 — production thiếu API Top quiz:** Đối chiếu OpenAPI production `https://suky-api.the1struleoffightclub.top/openapi.json` với `openApiSpec` dựng từ source local ngày 2026-11-09: local có 227 operation, production có 223. Local có nhưng production chưa công bố: `GET /api/me/top-quizzes`, `PATCH /api/me`, `DELETE /api/me`, `POST /api/me/avatar`, `POST /api/studio/quiz-import/preview`, `POST /api/studio/quiz-import/extract`. Production có nhưng local không công bố: `POST /api/studio/historical-entities/{id}/review` và `POST /api/studio/historical-entities/{id}/submit-review`.
-- Nguyên nhân trực tiếp của lỗi Top quiz: mobile gọi `GET /api/me/top-quizzes`, nhưng production OpenAPI không có operation này. Production `/api/me` hiện chỉ có GET, nên API sửa/xóa hồ sơ và upload avatar từ Bước 1 cũng chưa được deploy.
-- GET `/api/me/top-quizzes` khi không đăng nhập trả 401, nhưng đây không chứng minh route tồn tại: middleware `requireAuth` bảo vệ namespace `/api/me`; OpenAPI production mới xác nhận operation bị thiếu. Chưa gọi endpoint bằng session production hay dùng credential người dùng để kiểm tra.
-- UI hiện nhận lỗi tải top quiz trên production. Không tuyên bố ranking/submit đã nghiệm thu trực tiếp với backend deploy. Cần đưa production backend lên revision tương ứng rồi kiểm tra API có auth và ranking trên Android; không tự deploy trong phạm vi review này.
+- Finding P1 trước đây về production thiếu APIs đã được giải quyết ở mức route publication: OpenAPI mới nhất liệt kê top quiz, top podcast, playlist và session fields trong progress PUT.
+- `/health` hiện trả `status=ok`, `database=connected`, `queue=running`, `releaseWorker=running`. Health/OpenAPI không chứng minh migrations session/playlist đã áp dụng hoặc truy vấn DB thành công.
+- Các endpoint riêng tư chưa được gọi bằng session đăng nhập. Chưa xác nhận ranking, session sync, playlist CRUD hoặc playback queue end-to-end trên Android production.

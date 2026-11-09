@@ -1,110 +1,11 @@
 import { useEffect, useRef, useState } from "react";
 import { Image, ImageBackground, Keyboard, KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text as NativeText, TextInput, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { useQuery } from "@tanstack/react-query";
-import { Text, XStack, YStack } from "tamagui";
-import {
-  AppCard,
-  AppHeader,
-  AppIcon,
-  IconButton,
-  PrimaryButton,
-  ScreenScroll,
-} from "@/shared/ui";
+import { AppIcon } from "@/shared/ui";
 import { useAuthStore } from "@/lib/authStore";
 import { authErrorMessage, validateAuthForm } from "../authForm";
-import { formatDateVi, podcastApi, type ReleaseItem } from "../podcastApi";
 import loginBackground from "../../../assets/brand/login-background-v2.png";
 import brandImage from "../../../assets/brand/brand-su-ky-viet-nam.png";
-
-export function ScheduleScreen({
-  onBack,
-  onPlayEpisode,
-}: {
-  onBack: () => void;
-  onPlayEpisode: (slug: string) => void;
-}): React.JSX.Element {
-  const [targetDate, setTargetDate] = useState(() => new Date());
-
-  const monthStart = new Date(targetDate.getFullYear(), targetDate.getMonth(), 1);
-  const monthEnd = new Date(targetDate.getFullYear(), targetDate.getMonth() + 1, 0, 23, 59, 59);
-
-  const releasesQuery = useQuery({
-    queryKey: ["podcast", "releases", monthStart.toISOString(), monthEnd.toISOString()],
-    queryFn: () => podcastApi.releases(monthStart, monthEnd),
-  });
-
-  const prevMonth = (): void => {
-    setTargetDate((d) => new Date(d.getFullYear(), d.getMonth() - 1, 1));
-  };
-  const nextMonth = (): void => {
-    setTargetDate((d) => new Date(d.getFullYear(), d.getMonth() + 1, 1));
-  };
-
-  const monthLabel = `Tháng ${targetDate.getMonth() + 1}, ${targetDate.getFullYear()}`;
-  const releases = releasesQuery.data ?? [];
-
-  return (
-    <ScreenScroll>
-      <AppHeader title="Lịch phát sóng" onBack={onBack} />
-      <XStack items="center" justify="space-between">
-        <IconButton icon="chevron-left" label="Tháng trước" onPress={prevMonth} />
-        <Text color="$ink" fs="$3" fw="$7">{monthLabel}</Text>
-        <IconButton icon="chevron-right" label="Tháng sau" onPress={nextMonth} />
-      </XStack>
-
-      {releasesQuery.isPending ? (
-        <YStack py="$6" items="center"><Text color="$inkSoft" fs="$1">Đang tải lịch phát sóng…</Text></YStack>
-      ) : releasesQuery.isError ? (
-        <YStack py="$6" items="center" g="$2">
-          <Text color="$inkSoft" fs="$1">Chưa tải được lịch phát sóng.</Text>
-          <PrimaryButton label="Thử lại" secondary onPress={() => void releasesQuery.refetch()} />
-        </YStack>
-      ) : releases.length === 0 ? (
-        <AppCard>
-          <YStack p="$4" items="center" g="$1.5">
-            <AppIcon name="calendar" size={32} color="#B58A3C" />
-            <Text color="$ink" fs="$2" fw="$7">Chưa có lịch phát trong tháng này</Text>
-            <Text color="$inkSoft" fs="$1" text="center">Vui lòng chọn tháng khác hoặc quay lại sau.</Text>
-          </YStack>
-        </AppCard>
-      ) : (
-        releases.map((item: ReleaseItem) => {
-          const dateStr = formatDateVi(new Date(item.scheduledAt));
-          return (
-            <YStack key={item.id} g="$1">
-              <Text color="$ink" fs="$2" fw="$7">{dateStr}</Text>
-              <AppCard>
-                <XStack p="$2" g="$2" overflow="hidden" items="center">
-                  <YStack w="$4" h="$4" rounded="$4" bg="$paperDeep" items="center" justify="center">
-                    <AppIcon name="headphones" size={20} color="#B8322A" />
-                  </YStack>
-                  <YStack f={1} minW={0} g="$0.5">
-                    <Text color="$ink" fs="$1" fw="$7" numberOfLines={2}>{item.title}</Text>
-                    <Text color="$inkSoft" fs={10} numberOfLines={1}>Series: {item.series.title}</Text>
-                  </YStack>
-                  <YStack shrink={0} items="flex-end" justify="space-between">
-                    <Text color={item.released ? "#55714A" : "$inkSoft"} fs={10} fw="$7">
-                      {item.released ? "Đã phát hành" : "Sắp ra mắt"}
-                    </Text>
-                    {item.released ? (
-                      <IconButton
-                        icon="play"
-                        label="Nghe"
-                        onPress={() => onPlayEpisode(item.episodeSlug)}
-                        light
-                      />
-                    ) : null}
-                  </YStack>
-                </XStack>
-              </AppCard>
-            </YStack>
-          );
-        })
-      )}
-    </ScreenScroll>
-  );
-}
 
 export function LoginScreen({
   onBack,
