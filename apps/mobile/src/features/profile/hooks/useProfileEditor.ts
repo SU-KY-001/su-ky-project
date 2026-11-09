@@ -20,7 +20,6 @@ interface ProfileEditorState {
   picking: boolean;
   pickAvatar: () => Promise<void>;
   save: UseMutationResult<void, Error, string>;
-  removeAccount: UseMutationResult<void, Error, string>;
 }
 
 export function useProfileEditor(onClose: () => void): ProfileEditorState {
@@ -42,14 +41,6 @@ export function useProfileEditor(onClose: () => void): ProfileEditorState {
       await apply(await profileService.update(input));
     }, onSuccess: onClose,
   });
-  const removeAccount = useMutation({
-    mutationFn: async (password: string): Promise<void> => {
-      await profileService.delete({ password, confirm: true });
-      await queryClient.cancelQueries();
-      await useAuthStore.getState().clearLocalSession();
-      queryClient.clear();
-    }, onSuccess: onClose,
-  });
   const pickAvatar = async (): Promise<void> => {
     if (pickLock.current) return;
     pickLock.current = true; setPicking(true); setPickerError(null);
@@ -65,5 +56,5 @@ export function useProfileEditor(onClose: () => void): ProfileEditorState {
     } catch (error) { setPickerError(profileError(error)); }
     finally { pickLock.current = false; setPicking(false); }
   };
-  return { profile, avatar, setAvatar, pickerError, picking, pickAvatar, save, removeAccount };
+  return { profile, avatar, setAvatar, pickerError, picking, pickAvatar, save };
 }

@@ -11,7 +11,6 @@ interface AuthState {
   signUp: (name: string, email: string, password: string) => Promise<void>;
   signOut: () => Promise<void>;
   updateUser: (user: SessionUser) => Promise<void>;
-  clearLocalSession: () => Promise<void>;
 }
 
 export const useAuthStore = create<AuthState>((set, get) => ({
@@ -22,10 +21,6 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     if (!token || get().user?.id !== user.id) return;
     await saveSession(token, user);
     set({ user });
-  },
-  clearLocalSession: async () => {
-    await clearSession();
-    set({ user: null });
   },
   hydrate: async () => {
     const session = await loadSession().catch(() => null);

@@ -23,7 +23,7 @@ const profileWriteOrigin: MiddlewareHandler<AppEnv> = async (c, next) => {
 };
 
 export function createCurrentUserRoute(service: Pick<ProfileService, "get" | "update" | "delete" | "uploadAvatar"> = new ProfileService(), guard: MiddlewareHandler<AppEnv> = requireAuth, writeLimit: MiddlewareHandler<AppEnv> = rateLimit("write"), uploadLimit: MiddlewareHandler<AppEnv> = rateLimit("media_upload")): Hono<AppEnv> {
-return new Hono<AppEnv>().use("*", guard).get("/", async (c) => {
+return new Hono<AppEnv>().use("/", guard).use("/avatar", guard).get("/", async (c) => {
   const { user, session } = c.get("session")!;
   c.header("Cache-Control", "private, no-store");
 
