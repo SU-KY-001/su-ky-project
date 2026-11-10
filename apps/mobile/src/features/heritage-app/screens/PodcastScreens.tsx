@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Alert, Modal, Platform, useWindowDimensions } from "react-native";
 import { useQuery } from "@tanstack/react-query";
 import { Image as ExpoImage, type ImageProps } from "expo-image";
@@ -314,6 +314,7 @@ interface AudioPlayerScreenProps {
   episode: PodcastEpisode;
   narrationId: string | null;
   onSelectNarration: (id: string) => void;
+  onQuiz: () => void;
   onBack: () => void;
   playback: LivePlaybackState;
 }
@@ -324,16 +325,23 @@ export function AudioPlayerScreen({
   episode,
   narrationId,
   onSelectNarration,
+  onQuiz,
   onBack,
   playback,
 }: AudioPlayerScreenProps): React.JSX.Element {
   const { width, height } = useWindowDimensions();
   const [contentHeight, setContentHeight] = useState(0);
   const [showFullScript, setShowFullScript] = useState(false);
+  const [showQuizInvitation, setShowQuizInvitation] = useState(false);
   const scriptQuery = useQuery({ queryKey: ["podcast", "episode", episode.slug], queryFn: () => podcastApi.getEpisode(episode.slug), staleTime: 5 * 60_000 });
   const script = scriptQuery.data?.narrations.find((item) => item.id === narrationId && item.available)?.scriptContent?.trim();
   const artworkSize = Math.min(width - 48, height * 0.42, 360);
   const remaining = Math.max(0, playback.duration - playback.position);
+
+  useEffect(() => setShowQuizInvitation(false), [episode.id]);
+  useEffect(() => {
+    if (playback.finishedSessionId) setShowQuizInvitation(true);
+  }, [playback.finishedSessionId]);
 
   return (
     <YStack f={1} pos="relative" overflow="hidden" px="$3" pb="$2">
@@ -467,6 +475,21 @@ export function AudioPlayerScreen({
           </XStack>
 
           {queueNavigation ? <YStack g="$2"><Text ff="$body" fs="$1" text="center" color="$paperDeep">Playlist · Tập {queueNavigation.index + 1}/{queueNavigation.total}</Text><XStack g="$2"><YStack f={1}><PrimaryButton secondary icon="skip-back" label="Tập trước" disabled={queueNavigation.busy || queueNavigation.index <= 0} onPress={queueNavigation.onPrevious} /></YStack><YStack f={1}><PrimaryButton secondary icon="skip-forward" label="Tập tiếp" disabled={queueNavigation.busy || queueNavigation.index >= queueNavigation.total - 1} onPress={queueNavigation.onNext} /></YStack></XStack></YStack> : null}
+          {showQuizInvitation ? (
+            <YStack bg="$paperSoft" rounded="$5" p="$3" g="$2" accessibilityRole="summary">
+              <XStack items="center" g="$2">
+                <AppIcon name="award" size={24} color="#B8322A" />
+                <YStack f={1}>
+                  <Text color="$ink" fs="$2" fw="$7">Bạn đã nghe xong tập này</Text>
+                  <Text color="$inkSoft" fs={10}>Ôn lại nội dung với quiz của tập podcast.</Text>
+                </YStack>
+              </XStack>
+              <XStack g="$2">
+                <YStack f={1}><PrimaryButton label="Để sau" secondary onPress={() => setShowQuizInvitation(false)} /></YStack>
+                <YStack f={1}><PrimaryButton label="Bắt đầu quiz" icon="edit-3" onPress={onQuiz} /></YStack>
+              </XStack>
+            </YStack>
+          ) : null}
           {libraryError ? <Text accessibilityRole="alert" ff="$body" fs="$2" lh="$3" color="$paperDeep">{libraryError}</Text> : null}
         </YStack>
       </YStack>

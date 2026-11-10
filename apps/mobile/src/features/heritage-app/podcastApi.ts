@@ -24,6 +24,12 @@ export type { HistoricalPeriodDto, PublicHistoricalEventDto };
 export type PublicQuiz = z.infer<typeof PublicQuizSchema>;
 export type PublicQuizCard = z.infer<typeof PublicQuizCatalogSchema>["items"][number];
 export type QuizAttemptResult = z.infer<typeof QuizAttemptResultSchema>;
+export type QuizAttemptAnswer = {
+  questionId: string;
+  optionId?: string | null;
+  optionIds?: string[];
+  text?: string | null;
+};
 export type MyWeeklyMissions = z.infer<typeof MyWeeklyMissionsSchema>;
 export type ListeningProgressResult = z.infer<typeof ListeningProgressUpdateResultSchema>;
 
@@ -287,7 +293,7 @@ export const podcastApi = {
     const { data } = await apiClient.get(`/api/episodes/${encodeURIComponent(episodeSlug)}/quiz`);
     return PublicQuizSchema.parse(data);
   },
-  async attempt(quizId: string, answers: { questionId: string; optionId: string | null }[], idempotencyKey: string): Promise<QuizAttemptResult> {
+  async attempt(quizId: string, answers: QuizAttemptAnswer[], idempotencyKey: string): Promise<QuizAttemptResult> {
     const { data } = await apiClient.post(`/api/quizzes/${quizId}/attempts`, { answers }, { headers: { "Idempotency-Key": idempotencyKey } });
     return QuizAttemptResultSchema.parse(data);
   },
