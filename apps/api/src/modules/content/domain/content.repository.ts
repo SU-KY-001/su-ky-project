@@ -100,7 +100,7 @@ export interface UpsertNarrationInput {
   /** Passed through verbatim: `undefined` keeps the stored content (Prisma semantics). */
   scriptContent?: string | null;
   scriptDocument?: EditorDocument | null;
-  /** Two-person script; when set, `scriptDocument` is null and `scriptContent` is its spoken text. */
+  /** Multi-speaker script; when set, `scriptDocument` is null and `scriptContent` is its spoken text. */
   dialogue?: Dialogue | null;
   narratorEntityId: string | null;
 }
@@ -154,7 +154,7 @@ export interface SeriesRepository {
   }>;
   publishSeries(id: string, publishedAt: Date): Promise<void>;
   hideSeries(id: string): Promise<void>;
-  trashSeries(id: string, statusBeforeDelete: ContentStatus): Promise<void>;
+  trashSeries(id: string, statusBeforeDelete: ContentStatus, moderatorId?: string): Promise<void>;
   restoreSeries(id: string, restoredStatus: ContentStatus): Promise<void>;
 
   listSeriesSources(seriesId: string): Promise<SeriesSourceWithSourceEntity[]>;
@@ -213,7 +213,7 @@ export interface EpisodeRepository {
   ): Promise<void>;
   publishEpisode(id: string, publishedAt: Date): Promise<void>;
   hideEpisode(id: string): Promise<void>;
-  trashEpisode(id: string, statusBeforeDelete: ContentStatus): Promise<void>;
+  trashEpisode(id: string, statusBeforeDelete: ContentStatus, moderatorId?: string): Promise<void>;
   restoreEpisode(id: string, restoredStatus: ContentStatus): Promise<void>;
 
   listEpisodeAttachments(episodeId: string): Promise<EpisodeAttachmentEntity[]>;

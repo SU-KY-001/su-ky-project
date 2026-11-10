@@ -39,7 +39,6 @@ import type {
   CatalogFilter,
 } from "../services/historicalCatalogService";
 import { HistoricalBranchDetailDialog } from "./HistoricalBranchDetailDialog";
-import { LibraryStatusBadge } from "./LibraryStatusBadge";
 import { cn } from "@/lib/utils";
 
 type TreeContext = {
@@ -107,27 +106,14 @@ function Cells({
           <span className="mt-1 block text-xs text-mod-danger">Đã xóa</span>
         ) : null}
       </TableCell>
-      <TableCell className={cn(tableCell, "align-middle")}>{node.sourceCount}</TableCell>
+      <TableCell className={cn(tableCell, "align-middle")}>{"sourceCount" in node ? node.sourceCount : "—"}</TableCell>
       <TableCell className={cn(tableCell, "align-middle")}>{node.podcastCount}</TableCell>
       <TableCell className={cn(tableCell, "align-middle")}>
-        {"displayStatus" in node ? (
-          <LibraryStatusBadge
-            status={
-              node.displayStatus === "COMPLETE"
-                ? "complete"
-                : node.displayStatus === "MISSING_SOURCE"
-                  ? "missing_source"
-                  : node.displayStatus === "DRAFT"
-                    ? "draft"
-                    : "needs_review"
-            }
-            compact
-          />
-        ) : (
+        {"childCount" in node && kind !== "entity" ? (
           <span className="text-xs text-mod-text-secondary">
             {node.childCount} {kind === "period" ? "giai đoạn" : "sự kiện"}
           </span>
-        )}
+        ) : null}
       </TableCell>
       <TableCell className={cn(tableCell, "align-middle")}>
         {kind === "period" && "phases" in node ? (
@@ -243,17 +229,7 @@ export function HistoricalLibraryWorkspace({
   const [detailRecord, setDetailRecord] = useState<HistoricalPeriodDetailDto>();
   const [q, setQ] = useState("");
   const [kindFilter, setKindFilter] = useState("all");
-  const [reviewStatus, setReviewStatus] = useState("all");
-  const filter: CatalogFilter = {
-    q,
-    reviewStatus:
-      reviewStatus === "DRAFT" ||
-      reviewStatus === "IN_REVIEW" ||
-      reviewStatus === "APPROVED" ||
-      reviewStatus === "CHANGES_REQUESTED"
-        ? reviewStatus
-        : undefined,
-  };
+  const filter: CatalogFilter = { q };
   const periods = useHistoricalPeriods({ q });
   const summary = useHistoricalSummary();
   const items = periods.data?.pages.flatMap((p) => p.items) ?? [];
@@ -337,19 +313,6 @@ export function HistoricalLibraryWorkspace({
                     { value: "period", label: "Thời kỳ" },
                     { value: "stage", label: "Giai đoạn" },
                     { value: "event", label: "Sự kiện" },
-                  ],
-                },
-                {
-                  id: "review",
-                  label: "Trạng thái",
-                  value: reviewStatus,
-                  onValueChange: setReviewStatus,
-                  options: [
-                    { value: "all", label: "Tất cả trạng thái" },
-                    { value: "DRAFT", label: "Bản nháp" },
-                    { value: "IN_REVIEW", label: "Chờ duyệt" },
-                    { value: "APPROVED", label: "Đã duyệt" },
-                    { value: "CHANGES_REQUESTED", label: "Cần chỉnh sửa" },
                   ],
                 },
               ]}

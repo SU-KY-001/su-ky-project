@@ -73,7 +73,7 @@ export async function collectHistoricalEvidence(
     throw new DomainError(
       422,
       "CONTENT_NOT_READY",
-      "Chọn sự kiện chính đã duyệt trước khi phát hành",
+      "Chọn sự kiện chính trước khi phát hành",
     );
   await lockNode(tx, "entity", series.primaryHistoricalEventId);
   const event = await tx.historicalEntity.findUniqueOrThrow({
@@ -99,15 +99,7 @@ export async function collectHistoricalEvidence(
       historicalCitation: true,
     },
   });
-  const eventSourceIds = (
-    await tx.historicalCitation.findMany({
-      where: { entityId: event.id },
-      select: { sourceId: true },
-    })
-  ).map((c) => c.sourceId);
-  for (const id of [
-    ...new Set([...sourceRows.map((c) => c.sourceId), ...eventSourceIds]),
-  ].sort())
+  for (const id of [...new Set(sourceRows.map((c) => c.sourceId))].sort())
     await tx.$queryRaw`SELECT id FROM sources WHERE id=${id}::uuid FOR UPDATE`;
   await requireLiveParent(tx, "phase", event.historicalPhaseId);
   const ready = await tx.$queryRaw<Array<{ id: string }>>(
@@ -223,8 +215,6 @@ export async function publishWithHistoricalEvidence(
       where: { id: seriesId },
       include: {
         episodes: { where: { deletedAt: null } },
-        coverImageAsset: { select: { status: true } },
-        coverLandscapeAsset: { select: { status: true } },
       },
     });
     const episode =
@@ -306,16 +296,12 @@ export async function publishWithHistoricalEvidence(
       series.endYear == null ||
       !series.episodes.some((e) => e.status === "PUBLISHED") ||
       !series.description?.trim() ||
-      !series.language.trim() ||
-      !(
-        series.coverImageAsset?.status === "READY" ||
-        series.coverLandscapeAsset?.status === "READY"
-      )
+      !series.language.trim()
     )
       throw new DomainError(
         422,
         "SERIES_NOT_PUBLISHABLE",
-        "Series chưa đủ thông tin phát hành (chủ đề, khoảng năm, mô tả, ảnh bìa, ngôn ngữ và ít nhất một tập đã phát hành)",
+        "Series chưa đủ thông tin phát hành (chủ đề, khoảng năm, mô tả, ngôn ngữ và ít nhất một tập đã phát hành)",
       );
     const evidence = await collectHistoricalEvidence(tx, seriesId);
     const preservePublished =

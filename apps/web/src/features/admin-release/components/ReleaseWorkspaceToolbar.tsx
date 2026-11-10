@@ -1,4 +1,4 @@
-import type { ReleaseScheduleStatus } from "@repo/shared";
+import type { ReleaseStatusGroup } from "@repo/shared";
 import { Kanban } from "@phosphor-icons/react/dist/icons/Kanban";
 import { List } from "@phosphor-icons/react/dist/icons/List";
 import { MagnifyingGlass } from "@phosphor-icons/react/dist/icons/MagnifyingGlass";
@@ -16,14 +16,11 @@ import {
 } from "@/shared/components/ui/select";
 import type { ReleaseWorkspaceViewMode } from "../releaseWorkspaceModel";
 
-const statusOptions: Array<{ value: ReleaseScheduleStatus | ""; label: string }> = [
+const statusOptions: Array<{ value: ReleaseStatusGroup | ""; label: string }> = [
   { value: "", label: "Tất cả trạng thái" },
-  { value: "SCHEDULED", label: "Đã lên lịch" },
-  { value: "READY_TO_PUBLISH", label: "Sẵn sàng phát hành" },
-  { value: "PUBLISHING", label: "Đang phát hành" },
+  { value: "IN_PROGRESS", label: "Đang xử lý" },
+  { value: "NEEDS_ATTENTION", label: "Cần xử lý" },
   { value: "RELEASED", label: "Đã phát hành" },
-  { value: "BLOCKED", label: "Bị chặn" },
-  { value: "FAILED", label: "Thất bại" },
   { value: "CANCELLED", label: "Đã hủy" },
 ];
 
@@ -47,14 +44,14 @@ export function ReleaseWorkspaceToolbar({
   view: ReleaseWorkspaceViewMode;
   search: string;
   moderatorId: string;
-  status: ReleaseScheduleStatus | "";
+  status: ReleaseStatusGroup | "";
   from: string;
   to: string;
   moderators: Array<{ id: string; name: string; email: string }>;
   onViewChange: (view: ReleaseWorkspaceViewMode) => void;
   onSearchChange: (value: string) => void;
   onModeratorChange: (value: string) => void;
-  onStatusChange: (value: ReleaseScheduleStatus | "") => void;
+  onStatusChange: (value: ReleaseStatusGroup | "") => void;
   onFromChange: (value: string) => void;
   onToChange: (value: string) => void;
   onCreate: () => void;
@@ -132,7 +129,7 @@ export function ReleaseWorkspaceToolbar({
         </label>
         <label className="grid gap-1 text-xs font-semibold text-mod-text-secondary">
           Trạng thái
-          <Select value={status || "all"} onValueChange={(value) => onStatusChange(value === "all" ? "" : value as ReleaseScheduleStatus)}>
+          <Select value={status || "all"} onValueChange={(value) => onStatusChange(value === "all" ? "" : value as ReleaseStatusGroup)}>
             <SelectTrigger aria-label="Trạng thái" className="border-mod-border bg-mod-canvas">
               <SelectValue placeholder="Tất cả trạng thái" />
             </SelectTrigger>

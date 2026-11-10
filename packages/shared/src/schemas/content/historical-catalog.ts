@@ -3,12 +3,6 @@ import { PaginationQuerySchema } from "../common";
 import { HistoricalTimeSchema } from "../historical-time";
 import { HistoricalEntityTypeSchema, SourceTierSchema } from "./catalog";
 
-export const HistoricalReviewStatusSchema = z.enum([
-  "DRAFT",
-  "IN_REVIEW",
-  "APPROVED",
-  "CHANGES_REQUESTED",
-]);
 export const SourceVerificationStatusSchema = z.enum([
   "PENDING",
   "VERIFIED",
@@ -69,7 +63,6 @@ export const HistoricalCatalogQuerySchema = PaginationQuerySchema.extend({
   periodId: z.string().uuid().optional(),
   historicalPhaseId: z.string().uuid().optional(),
   type: HistoricalEntityTypeSchema.optional(),
-  reviewStatus: HistoricalReviewStatusSchema.optional(),
 });
 export const HistoricalCitationInputSchema = z.object({
   sourceId: z.string().uuid(),
@@ -82,15 +75,6 @@ export const PatchHistoricalCitationSchema =
   HistoricalCitationInputSchema.partial().extend({
     baseVersion: z.number().int().positive(),
   });
-export const SubmitHistoricalReviewSchema = BaseVersionSchema.extend({
-  expectedStatus: HistoricalReviewStatusSchema,
-});
-export const HistoricalEntityReviewSchema = SubmitHistoricalReviewSchema.extend(
-  {
-    decision: z.enum(["APPROVE", "REQUEST_CHANGES"]),
-    note: z.string().trim().min(1).max(2000),
-  },
-);
 export const SourceReviewSchema = BaseVersionSchema.extend({
   expectedStatus: SourceVerificationStatusSchema,
   decision: z.enum(["VERIFY", "REJECT"]),
@@ -178,28 +162,16 @@ export const HistoricalPeriodDetailSchema = z.object({
   phases: z.array(HistoricalPhaseDetailSchema).default([]),
 });
 export const HistoricalEntityDetailSchema = z.object({
-  ...nodeFields,
+  ...z.object(nodeFields).omit({ sourceCount: true, citationCount: true, citations: true }).shape,
   entityType: HistoricalEntityTypeSchema,
   aliases: z.array(z.string()),
   historicalPhaseId: z.string().uuid().nullable(),
   historicalPhase: HistoricalPhaseDetailSchema.nullable(),
-  reviewStatus: HistoricalReviewStatusSchema,
-  reviewedVersion: z.number().nullable(),
-  reviewedAt: timestamp.nullable(),
-  reviewNote: z.string().nullable(),
-  displayStatus: z.enum([
-    "DRAFT",
-    "MISSING_SOURCE",
-    "NEEDS_REVIEW",
-    "COMPLETE",
-  ]),
-  readiness: HistoricalReadinessSchema,
 });
 export const CatalogSummarySchema = z.object({
   periods: z.number(),
   phases: z.number(),
   events: z.number(),
-  missingSources: z.number(),
   readyForPodcast: z.number(),
 });
 export const PublicHistoricalSourceSchema = CatalogSourceSchema.pick({
@@ -224,14 +196,6 @@ export const PublicHistoricalEventSchema = z.object({
   time: HistoricalTimeSchema,
   timeLabel: z.string(),
   parent: z.object({ period: parent, phase: parent }),
-  reviewedAt: timestamp,
-  citations: z.array(
-    z.object({
-      locator: z.string(),
-      excerpt: z.string().nullable(),
-      source: PublicHistoricalSourceSchema,
-    }),
-  ),
 });
 export type PublicHistoricalEventDto = z.infer<
   typeof PublicHistoricalEventSchema

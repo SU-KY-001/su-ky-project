@@ -5,14 +5,12 @@ import {
   LibraryEpisodeSchema,
   LibrarySeriesDetailSchema,
   LibrarySeriesSchema,
-  ListeningHistoryItemSchema,
   ListeningProgressUpdateResultSchema,
   MyWeeklyMissionsSchema,
   PlaybackSchema,
   PublicHistoricalEventSchema,
   PublicQuizSchema,
   PublicQuizCatalogSchema,
-  PublicReleasesSchema,
   QuizAttemptResultSchema,
   paginatedSchema,
   type HistoricalPeriodDto,
@@ -26,9 +24,14 @@ export type { HistoricalPeriodDto, PublicHistoricalEventDto };
 export type PublicQuiz = z.infer<typeof PublicQuizSchema>;
 export type PublicQuizCard = z.infer<typeof PublicQuizCatalogSchema>["items"][number];
 export type QuizAttemptResult = z.infer<typeof QuizAttemptResultSchema>;
+export type QuizAttemptAnswer = {
+  questionId: string;
+  optionId?: string | null;
+  optionIds?: string[];
+  text?: string | null;
+};
 export type MyWeeklyMissions = z.infer<typeof MyWeeklyMissionsSchema>;
 export type ListeningProgressResult = z.infer<typeof ListeningProgressUpdateResultSchema>;
-export type ReleaseItem = z.infer<typeof PublicReleasesSchema>["items"][number];
 
 export interface NarrationChoice {
   id: string;
@@ -81,18 +84,6 @@ export interface PlaybackInfo {
   positionMs: number;
   playedBitmap: string;
   syncIntervalMs: number;
-}
-
-export interface ListeningHistoryEntry {
-  episodeId: string;
-  episodeSlug: string;
-  episodeTitle: string;
-  seriesSlug: string;
-  seriesTitle: string;
-  lastNarrationId: string;
-  lastPositionMs: number;
-  percent: number;
-  isCompleted: boolean;
 }
 
 export interface CachedEpisodePayload {
@@ -164,13 +155,6 @@ const ExtendedSeriesDetailSchema = LibrarySeriesDetailSchema.extend({
   endYear: z.number().nullable().optional(),
 });
 const EventsPageSchema = paginatedSchema(PublicHistoricalEventSchema);
-const HistoryPageSchema = paginatedSchema(ListeningHistoryItemSchema);
-const HistoryEpisodeSchema = z.object({
-  id: z.string(),
-  slug: z.string(),
-  title: z.string(),
-  series: z.object({ slug: z.string(), title: z.string() }),
-});
 
 function toSeries(item: z.infer<typeof LibrarySeriesSchema>): PodcastSeries {
   const pick = hash(item.slug);
@@ -287,39 +271,13 @@ export const podcastApi = {
       syncIntervalMs: parsed.sync.intervalMs,
     };
   },
-  async saveProgress(narrationId: string, body: { assetId: string; positionMs: number; playedBitmap: string }): Promise<ListeningProgressResult> {
+  async saveProgress(narrationId: string, body: { assetId: string; positionMs: number; playedBitmap: string; sessionId?: string; sessionPlayedBitmap?: string }): Promise<ListeningProgressResult> {
     const { data } = await apiClient.put(`/api/me/listening-progress/${narrationId}`, body);
     return ListeningProgressUpdateResultSchema.parse(data);
-  },
-  async listeningHistory(): Promise<ListeningHistoryEntry[]> {
-    const { data } = await apiClient.get("/api/me/listening-history", { params: { page: 1, limit: 10, status: "all" } });
-    return HistoryPageSchema.parse(data)
-      .items.map<ListeningHistoryEntry | null>((item) => {
-        const ep = HistoryEpisodeSchema.safeParse(item.episode);
-        if (!ep.success) return null;
-        return {
-          episodeId: ep.data.id,
-          episodeSlug: ep.data.slug,
-          episodeTitle: ep.data.title,
-          seriesSlug: ep.data.series.slug,
-          seriesTitle: ep.data.series.title,
-          lastNarrationId: item.lastNarrationId,
-          lastPositionMs: item.lastPositionMs,
-          percent: item.percent,
-          isCompleted: item.isCompleted,
-        };
-      })
-      .filter((item): item is ListeningHistoryEntry => item !== null);
   },
   async weeklyMissions(): Promise<MyWeeklyMissions> {
     const { data } = await apiClient.get("/api/me/weekly-missions");
     return MyWeeklyMissionsSchema.parse(data);
-  },
-  async releases(from: Date, to: Date): Promise<ReleaseItem[]> {
-    const { data } = await apiClient.get("/api/showcase/releases", {
-      params: { from: from.toISOString(), to: to.toISOString() },
-    });
-    return PublicReleasesSchema.parse(data).items;
   },
   async periods(): Promise<HistoricalPeriodDto[]> {
     const { data } = await apiClient.get("/api/historical-periods");
@@ -335,7 +293,7 @@ export const podcastApi = {
     const { data } = await apiClient.get(`/api/episodes/${encodeURIComponent(episodeSlug)}/quiz`);
     return PublicQuizSchema.parse(data);
   },
-  async attempt(quizId: string, answers: { questionId: string; optionId: string | null }[], idempotencyKey: string): Promise<QuizAttemptResult> {
+  async attempt(quizId: string, answers: QuizAttemptAnswer[], idempotencyKey: string): Promise<QuizAttemptResult> {
     const { data } = await apiClient.post(`/api/quizzes/${quizId}/attempts`, { answers }, { headers: { "Idempotency-Key": idempotencyKey } });
     return QuizAttemptResultSchema.parse(data);
   },

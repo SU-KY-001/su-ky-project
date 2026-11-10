@@ -6,7 +6,6 @@ import type {
   CreateReleaseScheduleRecord,
   DecideEpisodeReviewRecord,
   EpisodeReviewEntity,
-  PendingOutboxEvent,
   ReleaseProgressEvent,
   ReleaseReassignmentTicketEntity,
   ReleaseRepository,
@@ -56,14 +55,6 @@ const ticketInclude = {
   schedule: { include: scheduleInclude },
 } satisfies Prisma.ReleaseReassignmentTicketInclude;
 
-function scheduleEventPayload(scheduleId: string, version: number, scheduledAt: Date) {
-  return {
-    scheduleId,
-    scheduleVersion: version,
-    scheduledAt: scheduledAt.toISOString(),
-  } satisfies Prisma.InputJsonObject;
-}
-
 function asSchedule(
   row: Prisma.ReleaseScheduleGetPayload<{ include: typeof scheduleInclude }>,
 ): ReleaseScheduleEntity {
@@ -78,9 +69,19 @@ function asTicket(
   return { ...ticket, schedule: asSchedule(schedule) };
 }
 
+async function lockReleaseEpisode(tx: Prisma.TransactionClient, episodeId: string): Promise<void> {
+  const episode = await tx.episode.findUnique({ where: { id: episodeId }, select: { seriesId: true } });
+  if (!episode) throw new DomainError(404, "NOT_FOUND", "Không tìm thấy tập podcast.");
+  await tx.$queryRaw`SELECT id FROM series WHERE id=${episode.seriesId}::uuid FOR UPDATE`;
+  await tx.$queryRaw`SELECT id FROM episodes WHERE id=${episodeId}::uuid FOR UPDATE`;
+  const active = await tx.episode.findFirst({ where: { id: episodeId, deletedAt: null, series: { deletedAt: null } }, select: { id: true } });
+  if (!active) throw new DomainError(409, "CONTENT_IN_TRASH", "Tập podcast hoặc series đã được chuyển vào thùng rác.");
+}
+
 export class PrismaReleaseRepository implements ReleaseRepository {
   async createSchedule(input: CreateReleaseScheduleRecord): Promise<ReleaseScheduleEntity> {
     const created = await prisma.$transaction(async (tx) => {
+      if (input.episodeId) await lockReleaseEpisode(tx, input.episodeId);
       const schedule = await tx.releaseSchedule.create({
         data: {
           title: input.title,
@@ -97,14 +98,6 @@ export class PrismaReleaseRepository implements ReleaseRepository {
         },
       });
 
-      await tx.outboxEvent.create({
-        data: {
-          eventType: "release.schedule.created",
-          aggregateType: "release_schedule",
-          aggregateId: schedule.id,
-          payload: scheduleEventPayload(schedule.id, schedule.version, schedule.scheduledAt),
-        },
-      });
       await tx.auditLog.create({
         data: {
           actorId: input.createdById,
@@ -147,9 +140,16 @@ export class PrismaReleaseRepository implements ReleaseRepository {
     input: UpdateReleaseScheduleRecord,
   ): Promise<ReleaseScheduleEntity | null> {
     const changed = await prisma.$transaction(async (tx) => {
+      await tx.$queryRaw`SELECT id FROM release_schedules WHERE id=${id}::uuid FOR UPDATE`;
       const current = await tx.releaseSchedule.findUnique({ where: { id } });
       if (!current || current.updatedAt.getTime() !== input.expectedUpdatedAt.getTime())
         return false;
+
+      if (input.episodeId !== undefined && input.episodeId !== current.episodeId) {
+        const pending = await tx.episodeReview.findFirst({ where: { scheduleId: id, status: "IN_REVIEW" }, select: { id: true } });
+        if (pending) throw new DomainError(409, "INVALID_REVIEW_STATE", "Hãy thu hồi hoặc hoàn tất lượt duyệt trước khi đổi podcast.");
+      }
+      if (input.episodeId) await lockReleaseEpisode(tx, input.episodeId);
 
       const isReschedule =
         input.scheduledAt !== undefined &&
@@ -169,16 +169,6 @@ export class PrismaReleaseRepository implements ReleaseRepository {
         },
       });
 
-      if (isReschedule) {
-        await tx.outboxEvent.create({
-          data: {
-            eventType: "release.schedule.rescheduled",
-            aggregateType: "release_schedule",
-            aggregateId: schedule.id,
-            payload: scheduleEventPayload(schedule.id, schedule.version, schedule.scheduledAt),
-          },
-        });
-      }
       await tx.auditLog.create({
         data: {
           actorId: input.actorId,
@@ -215,6 +205,7 @@ export class PrismaReleaseRepository implements ReleaseRepository {
     correlationId: string,
   ): Promise<void> {
     await prisma.$transaction(async (tx) => {
+      await tx.$queryRaw`SELECT id FROM release_schedules WHERE id=${scheduleId}::uuid FOR UPDATE`;
       const active = await tx.productionAssignment.findFirst({
         where: { scheduleId, removedAt: null },
         select: { moderatorId: true },
@@ -263,8 +254,9 @@ export class PrismaReleaseRepository implements ReleaseRepository {
    */
   async createReview(input: CreateEpisodeReviewRecord): Promise<EpisodeReviewEntity> {
     return prisma.$transaction(async (tx) => {
+      await tx.$queryRaw`SELECT id FROM release_schedules WHERE id=${input.scheduleId}::uuid FOR UPDATE`;
       await tx.$queryRaw`SELECT id FROM episodes WHERE id=${input.episodeId}::uuid FOR UPDATE`;
-      const [schedule, episode, existing] = await Promise.all([
+      const [schedule, episode, existing, assignment, pending] = await Promise.all([
         tx.releaseSchedule.findUnique({
           where: { id: input.scheduleId },
           select: { status: true, episodeId: true },
@@ -273,13 +265,14 @@ export class PrismaReleaseRepository implements ReleaseRepository {
           where: { id: input.episodeId },
           select: { contentRevision: true },
         }),
-        tx.episodeReview.findUnique({
-          where: {
-            episodeId_revision: { episodeId: input.episodeId, revision: input.revision },
-          },
+        tx.episodeReview.findFirst({
+          where: { episodeId: input.episodeId, revision: input.revision, status: { not: "WITHDRAWN" } },
           select: { id: true },
         }),
+        tx.productionAssignment.findFirst({ where: { scheduleId: input.scheduleId, moderatorId: input.submittedById, removedAt: null }, select: { moderatorId: true } }),
+        tx.episodeReview.findFirst({ where: { scheduleId: input.scheduleId, status: "IN_REVIEW" }, select: { id: true } }),
       ]);
+      if (!assignment) throw new DomainError(403, "FORBIDDEN", "Bạn không được phân công vào lịch phát hành này");
       if (
         !schedule ||
         schedule.episodeId !== input.episodeId ||
@@ -288,7 +281,7 @@ export class PrismaReleaseRepository implements ReleaseRepository {
         throw new DomainError(409, "INVALID_STATE_TRANSITION", "Lịch không còn nhận nội dung kiểm duyệt");
       if (episode.contentRevision !== input.revision)
         throw new DomainError(409, "STALE_WRITE", "Nội dung đã thay đổi; tải lại phiên bản mới trước khi gửi duyệt");
-      if (existing)
+      if (existing || pending)
         throw new DomainError(
           409,
           "INVALID_REVIEW_STATE",
@@ -331,6 +324,7 @@ export class PrismaReleaseRepository implements ReleaseRepository {
       const current = await tx.episodeReview.findUniqueOrThrow({
         where: { id: input.reviewId },
       });
+      await tx.$queryRaw`SELECT id FROM release_schedules WHERE id=${current.scheduleId}::uuid FOR UPDATE`;
       await tx.$queryRaw`SELECT id FROM episodes WHERE id=${current.episodeId}::uuid FOR UPDATE`;
       const episode = await tx.episode.findUniqueOrThrow({
         where: { id: current.episodeId },
@@ -398,8 +392,35 @@ export class PrismaReleaseRepository implements ReleaseRepository {
     });
   }
 
+  async withdrawReview(input: { scheduleId: string; reviewId: string; moderatorId: string; correlationId: string }): Promise<EpisodeReviewEntity> {
+    return prisma.$transaction(async (tx) => {
+      await tx.$queryRaw`SELECT id FROM release_schedules WHERE id=${input.scheduleId}::uuid FOR UPDATE`;
+      const [schedule, assignment, review] = await Promise.all([
+        tx.releaseSchedule.findUnique({ where: { id: input.scheduleId }, select: { id: true, episodeId: true, status: true } }),
+        tx.productionAssignment.findFirst({ where: { scheduleId: input.scheduleId, moderatorId: input.moderatorId, removedAt: null }, select: { moderatorId: true } }),
+        tx.episodeReview.findFirst({ where: { id: input.reviewId, scheduleId: input.scheduleId } }),
+      ]);
+      if (!schedule) throw new DomainError(404, "NOT_FOUND", "Không tìm thấy lịch phát hành.");
+      if (!assignment) throw new DomainError(403, "FORBIDDEN", "Bạn không được phân công vào lịch phát hành này.");
+      if (!review || review.episodeId !== schedule.episodeId || ["RELEASED", "CANCELLED", "PUBLISHING"].includes(schedule.status))
+        throw new DomainError(409, "INVALID_REVIEW_STATE", "Bản gửi không còn có thể thu hồi.");
+      await tx.$queryRaw`SELECT id FROM episodes WHERE id=${review.episodeId}::uuid FOR UPDATE`;
+      const changed = await tx.episodeReview.updateMany({ where: { id: review.id, status: "IN_REVIEW" }, data: { status: "WITHDRAWN" } });
+      if (changed.count !== 1) throw new DomainError(409, "INVALID_REVIEW_STATE", "Bản gửi không còn chờ duyệt.");
+      const withdrawnAt = new Date();
+      await tx.releaseSchedule.update({ where: { id: schedule.id }, data: { episodeId: null, status: "SCHEDULED", failureCode: null, failureMessage: null } });
+      await tx.auditLog.create({ data: {
+        actorId: input.moderatorId, actorType: "MODERATOR", action: "episode.review_withdrawn", resourceType: "release_schedule", resourceId: schedule.id,
+        changes: { reviewId: review.id, episodeId: review.episodeId, revision: review.revision, withdrawnAt: withdrawnAt.toISOString() },
+        correlationId: input.correlationId, fromStatus: "IN_REVIEW", toStatus: "WITHDRAWN", createdAt: withdrawnAt,
+      } });
+      return tx.episodeReview.findUniqueOrThrow({ where: { id: review.id } });
+    });
+  }
+
   async findLatestReview(scheduleId: string): Promise<EpisodeReviewEntity | null> {
-    return prisma.episodeReview.findFirst({
+    const pending = await prisma.episodeReview.findFirst({ where: { scheduleId, status: "IN_REVIEW" }, orderBy: { submittedAt: "desc" } });
+    return pending ?? prisma.episodeReview.findFirst({
       where: { scheduleId },
       orderBy: { submittedAt: "desc" },
     });
@@ -523,49 +544,6 @@ export class PrismaReleaseRepository implements ReleaseRepository {
     });
   }
 
-  async listPendingOutbox(limit = 100): Promise<PendingOutboxEvent[]> {
-    return prisma.outboxEvent.findMany({
-      where: { dispatchedAt: null },
-      orderBy: { createdAt: "asc" },
-      take: limit,
-    });
-  }
-
-  async markOutboxDispatched(id: string, dispatchedAt: Date): Promise<void> {
-    await prisma.outboxEvent.update({
-      where: { id },
-      data: { dispatchedAt, attempts: { increment: 1 }, lastError: null },
-    });
-  }
-
-  async markOutboxFailed(id: string, error: string): Promise<void> {
-    await prisma.outboxEvent.update({
-      where: { id },
-      data: { attempts: { increment: 1 }, lastError: error.slice(0, 10_000) },
-    });
-  }
-
-  listDueScheduleIds(now: Date, limit = 100) {
-    return prisma.releaseSchedule.findMany({
-      where: {
-        scheduledAt: { lte: now },
-        status: { in: ["SCHEDULED", "READY_TO_PUBLISH"] },
-      },
-      orderBy: { scheduledAt: "asc" },
-      take: limit,
-      select: { id: true, version: true },
-    });
-  }
-
-  listStuckPublishingIds(before: Date, limit = 100) {
-    return prisma.releaseSchedule.findMany({
-      where: { status: "PUBLISHING", updatedAt: { lte: before } },
-      orderBy: { updatedAt: "asc" },
-      take: limit,
-      select: { id: true, version: true },
-    });
-  }
-
   async dashboardCounts(now: Date, atRiskAfter: Date) {
     const [upcoming, ready, atRisk, needsAttention] = await prisma.$transaction([
       prisma.releaseSchedule.count({
@@ -642,11 +620,17 @@ export class PrismaReleaseRepository implements ReleaseRepository {
   }
 
   async listSchedules(filter: ReleaseScheduleListFilter) {
+    const groupedStatuses: Record<NonNullable<ReleaseScheduleListFilter["statusGroup"]>, NonNullable<ReleaseScheduleListFilter["status"]>[]> = {
+      IN_PROGRESS: ["SCHEDULED", "READY_TO_PUBLISH", "PUBLISHING"],
+      NEEDS_ATTENTION: ["BLOCKED", "FAILED"],
+      RELEASED: ["RELEASED"],
+      CANCELLED: ["CANCELLED"],
+    };
     const where: Prisma.ReleaseScheduleWhereInput = {
-      status: filter.status ?? (filter.scope === "HISTORY"
+      status: filter.status ?? (filter.statusGroup ? { in: groupedStatuses[filter.statusGroup] } : filter.scope === "HISTORY"
         ? { in: ["RELEASED", "CANCELLED"] }
         : filter.scope === "REVIEW_QUEUE"
-          ? { in: ["SCHEDULED", "BLOCKED"] }
+          ? { in: ["SCHEDULED", "BLOCKED", "FAILED", "READY_TO_PUBLISH"] }
           : undefined),
       title: filter.q
         ? { contains: filter.q, mode: "insensitive" }
@@ -679,11 +663,11 @@ export class PrismaReleaseRepository implements ReleaseRepository {
     return { items: items.map(asSchedule), total };
   }
 
-  async listAssignedSchedules(moderatorId: string) {
+  async listAssignedSchedules(moderatorId: string, statuses?: ReleaseScheduleStatus[]) {
     const items = await prisma.releaseSchedule.findMany({
       where: {
         assignments: { some: { moderatorId, removedAt: null } },
-        status: { notIn: ["CANCELLED"] },
+        status: statuses ? { in: statuses } : { notIn: ["CANCELLED"] },
       },
       include: scheduleInclude,
       orderBy: [{ productionDeadline: "asc" }, { scheduledAt: "asc" }],
@@ -710,14 +694,6 @@ export class PrismaReleaseRepository implements ReleaseRepository {
         },
       });
       if (changed.count !== 1) return false;
-      await tx.outboxEvent.create({
-        data: {
-          eventType: "release.retry_requested",
-          aggregateType: "release_schedule",
-          aggregateId: schedule.id,
-          payload: scheduleEventPayload(schedule.id, schedule.version, new Date()),
-        },
-      });
       await tx.auditLog.create({
         data: {
           actorId: input.actorId,
@@ -772,6 +748,7 @@ export class PrismaReleaseRepository implements ReleaseRepository {
     correlationId: string;
   }): Promise<ReleaseScheduleEntity | null> {
     const linked = await prisma.$transaction(async (tx) => {
+      await tx.$queryRaw`SELECT id FROM release_schedules WHERE id=${input.scheduleId}::uuid FOR UPDATE`;
       const assignment = await tx.productionAssignment.findFirst({
         where: {
           scheduleId: input.scheduleId,
@@ -780,6 +757,14 @@ export class PrismaReleaseRepository implements ReleaseRepository {
         },
       });
       if (!assignment) return false;
+      const pending = await tx.episodeReview.findFirst({ where: { scheduleId: input.scheduleId, status: "IN_REVIEW" }, select: { id: true } });
+      if (pending) throw new DomainError(409, "INVALID_REVIEW_STATE", "Hãy thu hồi bản gửi trước khi đổi podcast.");
+      const current = await tx.releaseSchedule.findUnique({ where: { id: input.scheduleId }, select: { status: true, episodeId: true } });
+      if (current?.status === "READY_TO_PUBLISH") {
+        const withdrawn = await tx.episodeReview.findFirst({ where: { scheduleId: input.scheduleId, episodeId: current.episodeId ?? undefined, status: "WITHDRAWN" }, select: { id: true } });
+        if (!current.episodeId || !withdrawn) return false;
+      }
+      await lockReleaseEpisode(tx, input.episodeId);
       const episode = await tx.episode.findFirst({
         where: {
           id: input.episodeId,
@@ -793,7 +778,7 @@ export class PrismaReleaseRepository implements ReleaseRepository {
       const changed = await tx.releaseSchedule.updateMany({
         where: {
           id: input.scheduleId,
-          status: { in: ["SCHEDULED", "BLOCKED", "FAILED"] },
+          status: { in: ["SCHEDULED", "BLOCKED", "FAILED", "READY_TO_PUBLISH"] },
         },
         data: {
           episodeId: input.episodeId,
@@ -822,7 +807,7 @@ export class PrismaReleaseRepository implements ReleaseRepository {
   async listReviewQueue(reviewerId: string) {
     const schedules = await prisma.releaseSchedule.findMany({
       where: {
-        status: { in: ["SCHEDULED", "BLOCKED"] },
+        status: { in: ["SCHEDULED", "BLOCKED", "FAILED", "READY_TO_PUBLISH"] },
         reviews: { some: { status: "IN_REVIEW" } },
         assignments: {
           none: { moderatorId: reviewerId, removedAt: null },
@@ -1089,6 +1074,7 @@ export class PrismaReleaseRepository implements ReleaseRepository {
         select: { scheduleId: true, requestedById: true, status: true },
       });
       if (!ticket || ticket.status !== "PENDING") return null;
+      await tx.$queryRaw`SELECT id FROM release_schedules WHERE id=${ticket.scheduleId}::uuid FOR UPDATE`;
       const replacement = await tx.user.findFirst({
         where: {
           id: input.replacementModeratorId,

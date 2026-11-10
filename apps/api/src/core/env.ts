@@ -7,6 +7,7 @@ const envSchema = z
       .enum(["development", "production", "test"])
       .default("development"),
     PORT: z.coerce.number().default(3005),
+    QUIZ_IMPORT_OFFICE_PATH: z.preprocess(emptyAsUndefined, z.string().min(1).optional()),
     DATABASE_URL: z.string().optional(),
     BETTER_AUTH_SECRET: z
       .string()
@@ -63,8 +64,10 @@ const envSchema = z
     AI_ANGLE_MAX_PER_USER: z.preprocess(emptyAsUndefined, z.coerce.number().int().positive().default(50)),
     // Gemini TTS voice generation (background job per episode). The free tier is ~10 requests a day: one request per chunk.
     TTS_MODEL: z.string().min(1).default("gemini-3.8-flash-lite-tts"),
-    // Two-speaker requests use the model Google recommends for dialogue; chunking reuses TTS_CHUNK_CHARS.
+    // Multi-speaker (exactly 2 speakers) and per-turn (any other count) dialogue requests use the model Google recommends for dialogue; chunking reuses TTS_CHUNK_CHARS.
     TTS_DIALOGUE_MODEL: z.string().min(1).default("gemini-3.8-flash-tts"),
+    // Silence inserted between per-turn clips: ffmpeg joins them back to back, so without it turns run together with no breath.
+    TTS_TURN_GAP_MS: z.preprocess(emptyAsUndefined, z.coerce.number().int().min(0).default(250)),
     TTS_CHUNK_CHARS: z.preprocess(emptyAsUndefined, z.coerce.number().int().min(500).default(3000)),
     TTS_CONCURRENCY: z.preprocess(emptyAsUndefined, z.coerce.number().int().positive().default(3)),
     TTS_REQUEST_TIMEOUT_MS: z.preprocess(emptyAsUndefined, z.coerce.number().int().positive().default(180000)),

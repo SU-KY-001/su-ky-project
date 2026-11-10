@@ -10,6 +10,7 @@ import {
   EpisodeReviewRecordSchema,
   type ReviewEpisodeRequest,
   type ReleaseScheduleStatus,
+  type ReleaseStatusGroup,
   type ReleaseScheduleScope,
 } from "@repo/shared";
 import { client } from "@/lib/client";
@@ -35,6 +36,7 @@ export interface ReleaseScheduleDraft {
 
 export interface ReleaseScheduleFilter {
   status?: ReleaseScheduleStatus;
+  statusGroup?: ReleaseStatusGroup;
   scope?: ReleaseScheduleScope;
   from?: string;
   to?: string;
@@ -65,6 +67,7 @@ export const adminReleaseService = {
       admin.$get({
         query: {
           status: filter.status,
+          statusGroup: filter.statusGroup,
           scope: filter.scope,
           from: filter.from,
           to: filter.to,

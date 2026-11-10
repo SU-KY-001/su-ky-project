@@ -1,15 +1,13 @@
 import axios from "axios";
 import { getToken } from "./session";
 
-const DEPLOYED_API_URL = "https://suky-api.the1struleoffightclub.top";
+const configuredApiUrl = process.env.EXPO_PUBLIC_API_URL?.trim();
 
-function resolveApiUrl(): string {
-  const configured = process.env.EXPO_PUBLIC_API_URL?.trim();
-  if (configured) return configured.replace(/\/$/, "");
-  return DEPLOYED_API_URL;
+if (!configuredApiUrl) {
+  throw new Error("EXPO_PUBLIC_API_URL is required. Set it in apps/mobile/.env.");
 }
 
-export const apiUrl = resolveApiUrl();
+export const apiUrl = configuredApiUrl.replace(/\/$/, "");
 
 export const apiClient = axios.create({
   baseURL: apiUrl,

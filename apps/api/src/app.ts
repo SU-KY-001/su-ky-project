@@ -26,6 +26,7 @@ import { meMissionRoute, publicQuizRoute, studioQuizRoute } from "./modules/gami
 import type { AppEnv } from "./types";
 import { showcaseRoute } from "./modules/showcase/showcase.routes";
 import { exhibitionRoute, publicExhibitionRoute } from "./modules/exhibition";
+import { playlistsRoute } from "./modules/playlists/playlists.routes";
 const MAX_REQUEST_BODY_BYTES = 10 * 1024 * 1024;
 
 export const app = new Hono<AppEnv>()
@@ -68,6 +69,7 @@ export const routes = app
   .route("/", docsRoute)
   .all("/api/auth/*", (c) => auth.handler(c.req.raw))
   .route("/api/me", currentUserRoute)
+  .route("/api/me/playlists", playlistsRoute)
   .route("/api", publicCatalogRoute)
   .route("/api", publicListeningRoute)
   .route("/api", publicExhibitionRoute)

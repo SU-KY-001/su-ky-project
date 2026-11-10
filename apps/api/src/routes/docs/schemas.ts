@@ -1,4 +1,5 @@
 import { CatalogSourceSchema } from "@repo/shared";
+import { ListeningSessionSyncSchema } from "@repo/shared";
 import { PublicPublicationInfoSchema, ReviewReadinessSnapshotSchema } from "@repo/shared";
 import { z } from "zod";
 import {
@@ -118,7 +119,7 @@ export const ReleaseDashboardDocSchema = z.object({
 export const ReleaseModeratorWorkloadDocSchema = ReleaseModeratorWorkloadSchema;
 
 export const ReleaseActionResultDocSchema = z.object({
-  result: z.enum(["WAITING", "BLOCKED", "IGNORED", "RELEASED", "RETRY", "FAILED"]),
+  result: z.enum(["WAITING", "BLOCKED", "IGNORED", "RELEASED", "FAILED"]),
 });
 
 export const ReleaseStatusResultDocSchema = z.object({
@@ -381,7 +382,7 @@ export const PublicEpisodeDetailDocSchema = z.object({
       .describe("Trích dẫn thuộc series; mọi tập của series dùng chung"),
   }),
   narrations: z.array(
-    PublicNarrationSchema.extend({ narrator: PublicEntitySchema.nullable() }),
+    PublicNarrationSchema.extend({ narrator: PublicEntitySchema.nullable(), scriptContent: z.string().nullable().describe("Kịch bản của bản thu có audio sẵn sàng") }),
   ),
   entities: z
     .array(PublicEntitySchema)
@@ -443,6 +444,7 @@ export const PlaybackDocSchema = z.object({
 });
 
 export const ListeningProgressUpdateDocSchema = z.object({
+  listeningSession: ListeningSessionSyncSchema.optional(),
   narrationId: uuid,
   positionMs: z.number().int(),
   playedSeconds: z.number().int(),

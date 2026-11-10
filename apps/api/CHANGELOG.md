@@ -5,6 +5,19 @@ Nhãn: `BREAKING` (code cũ gọi sẽ lỗi hoặc sai), `ADDITIVE` (mới, kh�
 
 ## [Unreleased]
 
+### ADDITIVE — Hội thoại nhiều người nói, tối đa 30 (2026-11-04)
+- `dialogue.speakers` nay nhận 2..30 người; `key` là chuỗi chữ-số tối đa 8 ký tự (người mới dùng `S3`, `S4`…; `A`/`B` cũ vẫn hợp lệ, không cần migration). Voice dựng sẵn tăng từ 4 lên 30, kể cả `voice` của tập một người kể (`AiVoiceSchema`).
+- **Lưu ý client:** server từ chối lượt có `speaker` không thuộc `speakers` (trước đây enum A/B che việc này), và từ chối khoá, tên (không phân biệt hoa thường) hoặc giọng trùng.
+- `POST /api/studio/episodes/:id/ai/voice`: đúng 2 người thực sự có lượt thì giữ một request multi-speaker mỗi chunk; số khác 2 thì gọi từng lượt và `job.total` = số lượt, chèn `TTS_TURN_GAP_MS` giữa các lượt. Log `voice job done` có `path: "multi" | "per-turn"`.
+- Env mới `TTS_TURN_GAP_MS` (mặc định 250).
+- Quay lại bản cũ: tập có hơn 2 người hoặc key `S3…` sẽ không đọc lại được bằng server cũ.
+
+### CHANGED — Phát hành podcast do Admin chủ động (2026-11-03)
+- Gỡ job phát hành theo giờ, outbox phát hành, tự động thử lại và đối soát PUBLISHING bị treo. Worker chỉ còn nhắc hạn sản xuất; trường health `releaseWorker` giữ tên để tương thích và phản ánh worker nhắc hạn.
+- Tạo/sửa lịch, phân công, gửi duyệt, kiểm duyệt, kiểm tra sẵn sàng, hủy lịch và audit log giữ nguyên. `POST /api/admin/releases/:id/publish-now` vẫn kiểm tra quyền, phiên bản duyệt, checklist và claim chống phát hành trùng; lỗi kỹ thuật trả `FAILED`, không trả `RETRY`.
+- `POST /api/admin/releases/:id/retry` đưa lịch FAILED về READY_TO_PUBLISH; Admin tiếp tục bấm Phát hành ngay. Không tạo job nền.
+- Cần thay thế tiến trình API/worker cũ bằng bản mới. Worker mới gỡ hai cron cũ khi khởi động và không tiêu thụ hàng đợi phát hành cũ. Không cần migration hoặc xóa dữ liệu lịch sử/outbox.
+
 ### ADDITIVE — Kịch bản hội thoại hai người (2026-10-27)
 - `PUT /api/studio/episodes/:id/narrations/THIRD_PERSON` nhận `dialogue` (`speakers` A/B + `turns`); narration của workspace trả thêm `dialogue` (null với tập một người kể). Migration `20261027120000_episode_dialogue` (additive, nullable `episode_narrations.dialogue`).
 - `POST /api/studio/episodes/:id/ai/voice`: `voice` nay tùy chọn. Tập hội thoại phải **bỏ** `voice`; tập một người kể vẫn phải gửi. `VoiceJob` thêm `mode` và `voice` nullable. FE đã cập nhật; client khác đọc `voice` cần chấp nhận null.

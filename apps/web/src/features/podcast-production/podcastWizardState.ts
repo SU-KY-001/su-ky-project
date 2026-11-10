@@ -18,7 +18,7 @@ export interface PodcastWizardState {
   description: string;
   historicalEventId: string;
   scriptDocument: EditorDocument | null;
-  /** Two-person script; when set the episode is a dialogue and `scriptDocument` is unused. */
+  /** Multi-speaker script; when set the episode is a dialogue and `scriptDocument` is unused. */
   dialogue: Dialogue | null;
   scriptText: string;
   scriptDirty: boolean;

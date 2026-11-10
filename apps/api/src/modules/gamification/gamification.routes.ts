@@ -17,10 +17,12 @@ import type { AppEnv } from "../../types";
 import { attachSession, requireAuth, requireRole } from "../auth";
 import { GamificationService } from "./gamification.service";
 import { quizAuthoringRoute } from "./quiz-authoring.routes";
+import { createTopQuizzesRoute } from "./top-quizzes.routes";
 
 const episodeIdParam = z.object({ episodeId: z.string().uuid() });
 const quizIdParam = z.object({ quizId: z.string().uuid() });
 const slugParam = z.object({ slug: z.string().min(1) });
+const quizFormatQuery = z.object({ format: z.literal("2").optional() });
 
 export const gamificationService = new GamificationService();
 
@@ -79,10 +81,11 @@ export const publicQuizRoute = new Hono<AppEnv>()
     "/episodes/:slug/quiz",
     requireAuth,
     zValidator("param", slugParam, throwOnInvalid),
+    zValidator("query", quizFormatQuery, throwOnInvalid),
     async (c) =>
       c.json(
         PublicQuizSchema.parse(
-          await gamificationService.getPublishedQuiz(c.req.valid("param").slug),
+          await gamificationService.getPublishedQuiz(c.req.valid("param").slug, c.req.valid("query").format === "2"),
         ),
       ),
   )
@@ -107,6 +110,7 @@ export const publicQuizRoute = new Hono<AppEnv>()
   );
 
 export const meMissionRoute = new Hono<AppEnv>()
+  .route("/", createTopQuizzesRoute())
   .use("*", requireAuth)
   .get(
     "/weekly-missions",

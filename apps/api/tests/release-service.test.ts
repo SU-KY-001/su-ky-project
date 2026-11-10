@@ -141,7 +141,13 @@ class FakeReleaseRepository {
   decisions: Array<{ status: string; reviewer: string; actorType: string }> = [];
   snapshots: Array<{ expectedRevision: number; readinessSnapshot: ReviewReadinessSnapshot }> = [];
   workloadArgs: Array<{ now: Date; nearDeadlineBefore: Date }> = [];
+  assignedScheduleArgs: Array<{ moderatorId: string; statuses?: string[] }> = [];
   ticket: ReleaseReassignmentTicketEntity | null = null;
+
+  async listAssignedSchedules(moderatorId: string, statuses?: string[]) {
+    this.assignedScheduleArgs.push({ moderatorId, statuses });
+    return [];
+  }
 
   async createSchedule(input: Parameters<ReleaseRepository["createSchedule"]>[0]) {
     this.current = schedule({
@@ -294,6 +300,12 @@ function service(
 }
 
 describe("release service", () => {
+  it("limits the moderator schedule list to their assignments and four statuses", async () => {
+    const { releaseService, repository } = service();
+    await releaseService.assignedSchedules(session("mod-author", "moderator"));
+    expect(repository.assignedScheduleArgs).toEqual([{ moderatorId: "mod-author", statuses: ["SCHEDULED", "READY_TO_PUBLISH", "RELEASED", "CANCELLED"] }]);
+    await expect(releaseService.assignedSchedules(session("admin", "admin"))).rejects.toMatchObject({ status: 403 });
+  });
   it("allows only Admin to create a release schedule", async () => {
     const { releaseService } = service();
     await expect(releaseService.createSchedule(session("mod", "moderator"), {
@@ -303,6 +315,13 @@ describe("release service", () => {
       scheduledAt: new Date("2026-10-20T13:00:00.000Z"),
       moderatorId: "mod-author",
     }, "correlation-1")).rejects.toMatchObject({ status: 403 });
+  });
+
+  it("rejects creation when either time is in the past", async () => {
+    const { releaseService } = service();
+    const input = { title: "Lịch", moderatorId: "mod-author", productionDeadline: new Date(now.getTime() - 60_000), scheduledAt: new Date(now.getTime() + 60_000) };
+    await expect(releaseService.createSchedule(session("admin", "admin"), input, "test")).rejects.toMatchObject({ status: 400 });
+    await expect(releaseService.createSchedule(session("admin", "admin"), { ...input, productionDeadline: new Date(now.getTime() + 60_000), scheduledAt: new Date(now.getTime() - 60_000) }, "test")).rejects.toMatchObject({ status: 400 });
   });
 
   it("returns Admin workload for the next 24 hours", async () => {
@@ -363,7 +382,7 @@ describe("release service", () => {
       releaseService.reviewEpisode(
         session("mod-reviewer", "moderator"),
         "schedule-1",
-        { decision: "APPROVE", contentRevision: 3, reviewNote: null, assessment },
+        { decision: "APPROVE", reviewId: "review-1", contentRevision: 3, reviewNote: null, assessment },
         "correlation-checklist-approve",
       ),
     ).rejects.toMatchObject({ status: 422, code: "CHECKLIST_INCOMPLETE" });
@@ -376,7 +395,7 @@ describe("release service", () => {
     await expect(releaseService.reviewEpisode(
       session("mod-author", "moderator"),
       "schedule-1",
-      { decision: "APPROVE", contentRevision: 3, reviewNote: null, assessment },
+      { decision: "APPROVE", reviewId: "review-1", contentRevision: 3, reviewNote: null, assessment },
       "correlation-4",
     )).rejects.toMatchObject({ status: 403 });
   });
@@ -388,7 +407,7 @@ describe("release service", () => {
     await releaseService.reviewEpisode(
       session("mod-reviewer", "moderator"),
       "schedule-1",
-      { decision: "APPROVE", contentRevision: 3, reviewNote: null, assessment },
+      { decision: "APPROVE", reviewId: "review-1", contentRevision: 3, reviewNote: null, assessment },
       "correlation-5",
     );
     expect(repository.statusTransitions.at(-1)).toEqual({
@@ -403,10 +422,20 @@ describe("release service", () => {
     repository.current = schedule({ status: "SCHEDULED" });
     repository.latestReview = { ...approvedReview(), status: "IN_REVIEW" };
     await releaseService.reviewEpisode(session("admin-1", "admin"), "schedule-1", {
-      decision: "APPROVE", contentRevision: 3, assessment,
+      decision: "APPROVE", reviewId: "review-1", contentRevision: 3, assessment,
     }, "admin-review");
     expect(repository.decisions).toEqual([{ status: "APPROVED", reviewer: "admin-1", actorType: "ADMIN" }]);
     expect(repository.current.status).toBe("READY_TO_PUBLISH");
+  });
+
+  it("rejects a decision for a withdrawn submission even after the same revision is resubmitted", async () => {
+    const { releaseService, repository } = service();
+    repository.current = schedule({ status: "SCHEDULED" });
+    repository.latestReview = { ...approvedReview(), id: "review-new", status: "IN_REVIEW" };
+    await expect(releaseService.reviewEpisode(session("admin-1", "admin"), "schedule-1", {
+      decision: "APPROVE", reviewId: "review-old", contentRevision: 3, assessment,
+    }, "stale-submission")).rejects.toMatchObject({ status: 409, code: "INVALID_REVIEW_STATE" });
+    expect(repository.decisions).toHaveLength(0);
   });
 
   it("rejects an Admin decision for content changed after submission", async () => {
@@ -414,7 +443,7 @@ describe("release service", () => {
     repository.current = schedule({ status: "SCHEDULED" });
     repository.latestReview = { ...approvedReview(2), status: "IN_REVIEW" };
     await expect(releaseService.reviewEpisode(session("admin-1", "admin"), "schedule-1", {
-      decision: "APPROVE", contentRevision: 2, assessment,
+      decision: "APPROVE", reviewId: "review-1", contentRevision: 2, assessment,
     }, "stale-admin-review")).rejects.toMatchObject({ status: 409, code: "STALE_WRITE" });
     expect(repository.decisions).toHaveLength(0);
   });
@@ -424,7 +453,7 @@ describe("release service", () => {
     repository.current = schedule({ status: "SCHEDULED" });
     repository.latestReview = { ...approvedReview(), status: "IN_REVIEW" };
     await releaseService.reviewEpisode(session("admin-1", "admin"), "schedule-1", {
-      decision: "APPROVE", contentRevision: 3, assessment,
+      decision: "APPROVE", reviewId: "review-1", contentRevision: 3, assessment,
     }, "snapshot");
     expect(repository.snapshots).toHaveLength(1);
     expect(repository.snapshots[0]).toMatchObject({ expectedRevision: 3, readinessSnapshot: { assessment, readiness: { contentRevision: 3 } } });
@@ -435,7 +464,7 @@ describe("release service", () => {
     repository.current = schedule({ status: "SCHEDULED" });
     repository.latestReview = { ...approvedReview(), status: "IN_REVIEW" };
     await releaseService.reviewEpisode(session("admin-1", "admin"), "schedule-1", {
-      decision: "REQUEST_CHANGES", contentRevision: 3, reviewNote: "Cần sửa phần mở đầu",
+      decision: "REQUEST_CHANGES", reviewId: "review-1", contentRevision: 3, reviewNote: "Cần sửa phần mở đầu",
     }, "changes");
     expect(repository.snapshots[0]?.readinessSnapshot.assessment).toBeNull();
     expect(repository.snapshots[0]?.readinessSnapshot.readiness.contentRevision).toBe(3);
@@ -446,7 +475,7 @@ describe("release service", () => {
     repository.current = schedule({ status: "SCHEDULED" });
     repository.latestReview = { ...approvedReview(), status: "IN_REVIEW" };
     await releaseService.reviewEpisode(session("admin-1", "admin"), "schedule-1", {
-      decision: "APPROVE", contentRevision: 3, assessment: { ...assessment, aiDisclosure: null },
+      decision: "APPROVE", reviewId: "review-1", contentRevision: 3, assessment: { ...assessment, aiDisclosure: null },
     }, "ai-disclosure");
     expect(repository.snapshots[0]?.readinessSnapshot.assessment?.aiDisclosure).toContain("AI");
   });
@@ -456,7 +485,7 @@ describe("release service", () => {
     repository.current = schedule({ status: "SCHEDULED" });
     repository.latestReview = { ...approvedReview(), status: "IN_REVIEW" };
     await releaseService.reviewEpisode(session("admin-1", "admin"), "schedule-1", {
-      decision: "APPROVE", contentRevision: 3, assessment,
+      decision: "APPROVE", reviewId: "review-1", contentRevision: 3, assessment,
     }, "warning");
     expect(repository.snapshots[0]?.readinessSnapshot.assessment?.warningAcceptance).toContain("cảnh báo");
   });
@@ -466,10 +495,10 @@ describe("release service", () => {
     repository.current = schedule({ status: "SCHEDULED" });
     repository.latestReview = { ...approvedReview(), status: "IN_REVIEW" };
     await expect(releaseService.reviewEpisode(session("admin-1", "admin"), "schedule-1", {
-      decision: "APPROVE", contentRevision: 3, assessment: { ...assessment, rightsExpiresAt: "2026-10-19" },
+      decision: "APPROVE", reviewId: "review-1", contentRevision: 3, assessment: { ...assessment, rightsExpiresAt: "2026-10-19" },
     }, "expired")).rejects.toMatchObject({ status: 422, code: "RIGHTS_EXPIRED" });
     await releaseService.reviewEpisode(session("admin-1", "admin"), "schedule-1", {
-      decision: "APPROVE", contentRevision: 3, assessment: { ...assessment, rightsExpiresAt: "2026-10-20" },
+      decision: "APPROVE", reviewId: "review-1", contentRevision: 3, assessment: { ...assessment, rightsExpiresAt: "2026-10-20" },
     }, "valid-through-today");
     expect(repository.decisions).toHaveLength(1);
   });
@@ -481,7 +510,7 @@ describe("release service", () => {
       .rejects.toMatchObject({ status: 409, code: "STALE_WRITE" });
     repository.latestReview = { ...approvedReview(), status: "IN_REVIEW" };
     await expect(releaseService.reviewEpisode(session("admin-1", "admin"), "schedule-1", {
-      decision: "APPROVE", contentRevision: 3, assessment,
+      decision: "APPROVE", reviewId: "review-1", contentRevision: 3, assessment,
     }, "stale-approve")).rejects.toMatchObject({ status: 409, code: "STALE_WRITE" });
     expect(repository.decisions).toHaveLength(0);
   });
@@ -571,26 +600,43 @@ describe("release service", () => {
   it("blocks a due schedule when approval belongs to an older revision", async () => {
     const { releaseService, repository, publishCount } = service();
     repository.latestReview = approvedReview(2);
-    const result = await releaseService.publishDueSchedule(
-      "schedule-1",
-      1,
-      "correlation-6",
-      "job-1",
-    );
+    const result = await releaseService.publishNow(session("admin-1", "admin"), "schedule-1", "correlation-6");
     expect(result).toBe("BLOCKED");
     expect(repository.statusTransitions.at(-1)?.to).toBe("BLOCKED");
     expect(publishCount()).toBe(0);
   });
 
-  it("publishes at most once when two workers race for one schedule", async () => {
+  it("publishes at most once when two Admin requests race for one schedule", async () => {
     const { releaseService, repository, publishCount } = service();
     const results = await Promise.all([
-      releaseService.publishDueSchedule("schedule-1", 1, "correlation-7", "job-a"),
-      releaseService.publishDueSchedule("schedule-1", 1, "correlation-8", "job-b"),
+      releaseService.publishNow(session("admin-1", "admin"), "schedule-1", "correlation-7"),
+      releaseService.publishNow(session("admin-1", "admin"), "schedule-1", "correlation-8"),
     ]);
     expect(results.sort()).toEqual(["IGNORED", "RELEASED"]);
     expect(publishCount()).toBe(1);
     expect(repository.statusTransitions.at(-1)?.to).toBe("RELEASED");
+  });
+
+  it("records a manual technical failure without scheduling an automatic retry", async () => {
+    const repository = new FakeReleaseRepository();
+    let calls = 0;
+    const releaseService = new ReleaseService(repository as unknown as ReleaseRepository, {
+      checklistReady: async () => true,
+      reviewContent: async () => reviewContentFor(true, {}),
+      publishEpisode: async () => { calls += 1; throw new Error("publication unavailable"); },
+    }, () => now);
+
+    expect(await releaseService.publishNow(session("admin-1", "admin"), "schedule-1", "manual-failure")).toBe("FAILED");
+    expect(calls).toBe(1);
+    expect(repository.current.status).toBe("FAILED");
+    expect(repository.statusTransitions.at(-1)?.action).toBe("release.failed");
+    expect(repository.statusTransitions.some(({ action }) => action === "release.retry_scheduled")).toBe(false);
+  });
+
+  it("forbids manual publication by a Moderator", async () => {
+    const { releaseService, publishCount } = service();
+    await expect(releaseService.publishNow(session("mod-author", "moderator"), "schedule-1", "forbidden-publish")).rejects.toMatchObject({ status: 403 });
+    expect(publishCount()).toBe(0);
   });
 
   it("lets only the active assignee create a pending reassignment ticket", async () => {

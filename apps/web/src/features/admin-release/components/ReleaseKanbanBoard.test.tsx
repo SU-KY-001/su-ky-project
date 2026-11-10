@@ -4,6 +4,7 @@ import { createRoot, type Root } from "react-dom/client";
 import type { ReleaseScheduleRecord } from "@repo/shared";
 import { ReleaseKanbanBoard, type ReleaseKanbanColumns } from "./ReleaseKanbanBoard";
 import type { ReleaseBoardStatus, ReleaseDropCommand } from "../releaseWorkspaceModel";
+import { releaseReviewFixture } from "@/test/releaseReviewFixtures";
 
 let root: Root | undefined;
 
@@ -55,8 +56,8 @@ function columns(): ReleaseKanbanColumns {
   return {
     SCHEDULED: { items: [schedule("scheduled", "SCHEDULED")], total: 3, page: 1 },
     READY_TO_PUBLISH: { items: [schedule("ready", "READY_TO_PUBLISH")], total: 1, page: 1 },
-    PUBLISHING: { items: [schedule("publishing", "PUBLISHING")], total: 1, page: 1 },
     RELEASED: { items: [schedule("released", "RELEASED")], total: 1, page: 1 },
+    FAILED: { items: [schedule("failed", "FAILED")], total: 1, page: 1 },
   };
 }
 
@@ -111,13 +112,15 @@ it("renders four columns, server totals, badges, dates and editable cards", () =
   expect([...host.querySelectorAll("section")].map((node) => node.getAttribute("aria-label"))).toEqual([
     "Đã lên lịch",
     "Sẵn sàng phát hành",
-    "Đang phát hành",
     "Đã phát hành",
+    "Phát hành thất bại",
   ]);
   expect(host.querySelector('[aria-label="Đã lên lịch"]')?.textContent).toContain("3");
   expect(host.querySelectorAll('[data-card-badge-type="name"]')).toHaveLength(8);
   expect(host.textContent).toContain("Hạn sản xuất");
-  expect(host.textContent).toContain("Quá hạn sản xuất");
+  expect(host.textContent).not.toContain("Quá hạn sản xuất");
+  expect(host.querySelector('[data-release-column="FAILED"] [data-release-id="failed"] [data-card-badge-type="status"]')?.textContent).toBe("Phát hành thất bại");
+  expect(host.querySelector('[data-release-column="PUBLISHING"]')).toBeNull();
 
   const card = host.querySelector('[data-release-id="scheduled"]')!;
   act(() => card.dispatchEvent(new MouseEvent("click", { bubbles: true })));
@@ -143,10 +146,10 @@ it("fires only policy-backed drag transitions without mutating columns", async (
   );
   drag(
     host.querySelector('[data-release-id="ready"]')!,
-    host.querySelector('[aria-label="Đang phát hành"]')!,
+    host.querySelector('[aria-label="Phát hành thất bại"]')!,
   );
   drag(
-    host.querySelector('[data-release-id="publishing"]')!,
+    host.querySelector('[data-release-id="failed"]')!,
     host.querySelector('[aria-label="Đã phát hành"]')!,
   );
   drag(
@@ -159,9 +162,8 @@ it("fires only policy-backed drag transitions without mutating columns", async (
   );
   await act(async () => { await Promise.resolve(); });
 
-  expect(onTransition).toHaveBeenCalledTimes(2);
+  expect(onTransition).toHaveBeenCalledTimes(1);
   expect(onTransition.mock.calls[0]?.slice(1)).toEqual(["check-readiness", "READY_TO_PUBLISH"]);
-  expect(onTransition.mock.calls[1]?.slice(1)).toEqual(["publish-now", "PUBLISHING"]);
   for (const [status, column] of Object.entries(sourceColumns))
     expect(column.items).toEqual(snapshots[status]);
 });
@@ -217,4 +219,44 @@ it("shows four cards by default and expands or collapses one busy column", () =>
   const collapse = column.querySelector<HTMLButtonElement>('[aria-label="Thu gọn Đã lên lịch"]')!;
   act(() => collapse.click());
   expect(column.querySelectorAll("[data-release-id]")).toHaveLength(4);
+});
+
+it.each(["SCHEDULED", "READY_TO_PUBLISH", "RELEASED", "FAILED"] as const)(
+  "uses submission time rather than the current time for %s production deadlines",
+  (status) => {
+    const { schedule: item } = releaseReviewFixture();
+    item.status = status;
+    item.productionDeadline = new Date("2026-01-01T09:04:00Z");
+    item.reviews[0]!.submittedAt = new Date("2026-01-01T09:03:00Z");
+    item.reviews[0]!.reviewedAt = new Date("2026-01-01T10:00:00Z");
+    const sourceColumns = columns();
+    sourceColumns[status] = { items: [item], total: 1, page: 1 };
+    const { host } = renderBoard({ columns: sourceColumns });
+    const card = host.querySelector(`[data-release-id="${item.id}"]`)!;
+    expect(card.textContent).not.toContain("Quá hạn sản xuất");
+
+    item.reviews[0]!.submittedAt = new Date("2026-01-01T09:05:00Z");
+    act(() => root?.render(<ReleaseKanbanBoard columns={sourceColumns} pendingIds={new Set()} onOpenEdit={() => undefined} onTransition={() => undefined} onPageChange={() => undefined} />));
+    expect(card.textContent).toContain("Quá hạn sản xuất");
+
+    item.reviews[0]!.submittedAt = new Date(item.productionDeadline);
+    act(() => root?.render(<ReleaseKanbanBoard columns={sourceColumns} pendingIds={new Set()} onOpenEdit={() => undefined} onTransition={() => undefined} onPageChange={() => undefined} />));
+    expect(card.textContent).not.toContain("Quá hạn sản xuất");
+  },
+);
+
+it("does not infer late completion from withdrawn or obsolete submissions", () => {
+  const { schedule: item } = releaseReviewFixture();
+  item.status = "READY_TO_PUBLISH";
+  item.productionDeadline = new Date("2026-01-01T09:04:00Z");
+  const review = { ...item.reviews[0]!, submittedAt: new Date("2026-01-01T09:05:00Z") };
+  item.reviews = [
+    { ...review, status: "WITHDRAWN" },
+    { ...review, revision: review.revision - 1 },
+    { ...review, episodeId: "previous-episode" },
+  ];
+  const sourceColumns = columns();
+  sourceColumns.READY_TO_PUBLISH = { items: [item], total: 1, page: 1 };
+  const { host } = renderBoard({ columns: sourceColumns });
+  expect(host.querySelector(`[data-release-id="${item.id}"]`)?.textContent).not.toContain("Quá hạn sản xuất");
 });

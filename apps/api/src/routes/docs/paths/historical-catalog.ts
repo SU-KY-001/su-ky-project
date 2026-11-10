@@ -14,8 +14,6 @@ import {
   HistoricalCitationSchema,
   HistoricalCitationInputSchema,
   PatchHistoricalCitationSchema,
-  HistoricalEntityReviewSchema,
-  SubmitHistoricalReviewSchema,
   SourceReviewSchema,
   CatalogSourceSchema,
   CatalogSummarySchema,
@@ -161,6 +159,7 @@ for (const r of resources) {
       id: `list${r.name}Citations`,
       tag: "Studio Catalog",
       summary: `Trích dẫn của ${r.label}`,
+      description: "Sự kiện không có nguồn tư liệu riêng; loại EVENT bị từ chối với VALIDATION_ERROR. Nguồn podcast được quản lý độc lập.",
       access: "studio",
       pathParams: id,
       ok: {
@@ -213,10 +212,6 @@ for (const r of resources) {
     }),
   };
 }
-const entity = {
-  name: "HistoricalEntityDetail",
-  schema: HistoricalEntityDetailSchema,
-};
 historicalCatalogPaths["/api/studio/historical-summary"] = {
   get: operation({
     id: "historicalCatalogSummary",
@@ -227,45 +222,6 @@ historicalCatalogPaths["/api/studio/historical-summary"] = {
       status: 200,
       description: "Tổng toàn database",
       schema: { name: "CatalogSummary", schema: CatalogSummarySchema },
-    },
-  }),
-};
-historicalCatalogPaths["/api/studio/historical-entities/{id}/submit-review"] = {
-  post: operation({
-    id: "submitHistoricalEntityReview",
-    tag: "Studio Catalog",
-    summary: "Gửi sự kiện để kiểm duyệt",
-    access: "studio",
-    pathParams: id,
-    rate: "write",
-    body: {
-      name: "SubmitHistoricalReview",
-      schema: SubmitHistoricalReviewSchema,
-    },
-    ok: { status: 200, description: "Sự kiện đang chờ duyệt", schema: entity },
-    errors: {
-      409: "STALE_WRITE hoặc INVALID_REVIEW_STATE",
-      422: "CONTENT_NOT_READY",
-    },
-  }),
-};
-historicalCatalogPaths["/api/studio/historical-entities/{id}/review"] = {
-  post: operation({
-    id: "reviewHistoricalEntity",
-    tag: "Studio Catalog",
-    summary: "Duyệt hoặc yêu cầu sửa sự kiện",
-    access: "studio",
-    pathParams: id,
-    rate: "write",
-    body: {
-      name: "HistoricalEntityReview",
-      schema: HistoricalEntityReviewSchema,
-    },
-    ok: { status: 200, description: "Kết quả duyệt phiên bản", schema: entity },
-    errors: {
-      403: "SELF_REVIEW_FORBIDDEN",
-      409: "STALE_WRITE hoặc INVALID_REVIEW_STATE",
-      422: "CONTENT_NOT_READY",
     },
   }),
 };
@@ -319,7 +275,7 @@ historicalCatalogPaths["/api/historical-events"] = {
   get: operation({
     id: "publicHistoricalEvents",
     tag: "Catalog",
-    summary: "Sự kiện đã kiểm duyệt",
+    summary: "Danh sách sự kiện công khai",
     access: "public",
     query: HistoricalCatalogQuerySchema.extend({
       phaseId: z.string().uuid().optional(),
@@ -338,17 +294,17 @@ historicalCatalogPaths["/api/historical-events/{slug}"] = {
   get: operation({
     id: "publicHistoricalEvent",
     tag: "Catalog",
-    summary: "Sự kiện và trích dẫn công khai",
+    summary: "Thông tin sự kiện công khai",
     access: "public",
     pathParams: z.object({ slug: z.string().min(1) }),
     ok: {
       status: 200,
-      description: "Không có ghi chú nội bộ hoặc email reviewer",
+      description: "Tên, phân kỳ, mốc thời gian và mô tả sự kiện",
       schema: {
         name: "PublicHistoricalEvent",
         schema: PublicHistoricalEventSchema,
       },
     },
-    errors: { 404: "Sự kiện chưa công khai hoặc nguồn không còn hợp lệ" },
+    errors: { 404: "Sự kiện chưa công khai hoặc phân kỳ không còn hoạt động" },
   }),
 };

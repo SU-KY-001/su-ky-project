@@ -17,6 +17,7 @@
   --color-secondary-foreground: var(--secondary-foreground);
   --color-muted: var(--muted);
   --color-muted-foreground: var(--muted-foreground);
+  --color-placeholder: var(--placeholder);
   --color-accent: var(--accent);
   --color-accent-foreground: var(--accent-foreground);
   --color-destructive: var(--destructive);
@@ -90,6 +91,7 @@
   --secondary-foreground: #1c1714;
   --muted: #e9dcc2;
   --muted-foreground: #5b4e44;
+  --placeholder: color-mix(in srgb, var(--foreground) 62%, var(--background));
   --accent: #b58a3c;
   --accent-foreground: #14110f;
   --destructive: #b8322a;
@@ -134,7 +136,7 @@
 }
 
 * {
-  scrollbar-color: var(--accent) var(--background);
+  scrollbar-color: var(--accent) transparent;
 }
 
 *::-webkit-scrollbar {
@@ -143,12 +145,13 @@
 }
 
 *::-webkit-scrollbar-track {
-  background: var(--background);
+  background: transparent;
 }
 
 *::-webkit-scrollbar-thumb {
-  border: 2px solid var(--background);
+  border: 2px solid transparent;
   background: var(--accent);
+  background-clip: padding-box;
 }
 
 *::-webkit-scrollbar-thumb:hover {
@@ -387,12 +390,12 @@ html.workspace-scroll-lock {
 }
 
 .app-toast[data-state="open"] {
-  animation: toast-enter 220ms cubic-bezier(0.22, 1, 0.36, 1) both;
+  animation: toast-enter 320ms cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
 .app-toast[data-state="closed"] {
   pointer-events: none;
-  animation: toast-exit 180ms ease-in both;
+  animation: toast-exit 240ms cubic-bezier(0.4, 0, 1, 1) both;
 }
 
 .app-toast[data-swipe="move"] {
@@ -406,15 +409,11 @@ html.workspace-scroll-lock {
 }
 
 .app-toast[data-swipe="end"] {
-  animation: toast-swipe-exit 180ms ease-in both;
+  animation: toast-swipe-exit 240ms cubic-bezier(0.4, 0, 1, 1) both;
 }
 
 .toast-spinner {
   animation: toast-spin 900ms linear infinite;
-}
-
-.toast-timeout {
-  animation: toast-timeout var(--toast-duration) linear forwards;
 }
 
 @keyframes toast-enter {
@@ -433,14 +432,10 @@ html.workspace-scroll-lock {
 }
 
 @keyframes toast-spin { to { transform: rotate(360deg); } }
-@keyframes toast-timeout { to { transform: scaleX(0); } }
-
 @media (prefers-reduced-motion: reduce) {
-  .toast-timeout {
-    animation-duration: var(--toast-duration) !important;
-  }
+  .app-toast[data-state], .app-toast[data-swipe] { animation-duration: 1ms; transition-duration: 1ms; }
+  .toast-spinner { animation-duration: 1800ms; }
 }
-
 body {
   overflow-x: clip;
   color: var(--foreground);
@@ -460,6 +455,20 @@ button {
 
 button:disabled {
   cursor: not-allowed;
+}
+
+@layer base {
+  :where(input, textarea)::placeholder {
+    color: var(--placeholder);
+    font-weight: 400;
+    opacity: 1;
+  }
+}
+
+.mod-layout-root,
+.mod-dashboard-sheet,
+.font-moderator {
+  --placeholder: color-mix(in srgb, var(--modText) 60%, var(--modSurface));
 }
 
 :where(input, textarea, select):disabled,
@@ -482,11 +491,6 @@ img {
   width: 100%;
   max-width: 100%;
   overflow-x: clip;
-}
-
-:focus-visible:not(input):not(textarea):not(select):not([role="combobox"]):not([contenteditable="true"]) {
-  outline: 3px solid #2866a1;
-  outline-offset: 3px;
 }
 
 :where(input, textarea, select, [role="combobox"], [contenteditable="true"]):focus {
@@ -1210,6 +1214,11 @@ img {
 
 /* The editor responds to its available panel width rather than the viewport. */
 .quiz-editor { container: quiz-editor / inline-size; }
+.quiz-editor,
+.quiz-dialog {
+  --accent: color-mix(in srgb, var(--modText) 7%, var(--modSurface));
+  --accent-foreground: var(--modText);
+}
 .quiz-question-link.is-selected { border-color: var(--modPrimary); background: color-mix(in srgb, var(--modPrimary) 5%, var(--modSurface)); }
 .quiz-answer-row.is-correct .quiz-answer-letter { background: color-mix(in srgb, var(--modSuccess) 10%, var(--modSurface)); }
 .quiz-answer-row.is-correct > textarea { border-color: color-mix(in srgb, var(--modSuccess) 50%, var(--modBorder)); background: color-mix(in srgb, var(--modSuccess) 5%, var(--modSurface)); }
@@ -1261,7 +1270,8 @@ html[data-audio-toolbar="true"] #landing-content { padding-bottom: 100px; }
   color-scheme: light;
 }
 .exhibition { position: fixed; inset: 0; height: 100dvh; overflow: hidden; background: var(--exhibit-soft); isolation: isolate; }
-.exhibition-preview .exhibition-room-label { top: 64px; }
+html:has(.exhibition:not(.exhibition-preview)) { overflow: hidden; scrollbar-gutter: auto; }
+.exhibition.exhibition-preview { top: 44px; height: calc(100dvh - 44px); }
 .exhibition-stage canvas { display: block; outline: none; }
 .exhibition button, .exhibition-dialog button { cursor: pointer; }
 .exhibition button:focus-visible, .exhibition-dialog button:focus-visible, .exhibition-dialog a:focus-visible, .exhibition-dialog summary:focus-visible { outline: 2px solid var(--exhibit-ink); outline-offset: 5px; }
@@ -1366,14 +1376,15 @@ html[data-audio-toolbar="true"] #landing-content { padding-bottom: 100px; }
 /* The entrance uses the public Sử Ký palette while the gallery retains its own scene theme. */
 .exhibition-entrance { position: absolute; inset: 0; z-index: 1; display: block; padding: 0; background: transparent; pointer-events: none; }
 .exhibition-stage-cover { left: 44%; }
-.exhibition-cover-panel { position: relative; display: flex; flex-direction: column; width: 48%; height: 100%; overflow-y: auto; padding: clamp(28px, 3.3vw, 60px) clamp(50px, 5vw, 88px) clamp(28px, 3.3vw, 60px) clamp(28px, 3.3vw, 60px); color: var(--color-ink); background-color: var(--color-paper); background-image: radial-gradient(color-mix(in srgb, var(--color-bronze) 10%, transparent) 0.6px, transparent 0.8px); background-size: 5px 5px; clip-path: polygon(0 0, 96% 0, 97% 7%, 96% 15%, 98% 25%, 97% 37%, 98% 47%, 97% 58%, 98% 69%, 97% 80%, 99% 90%, 98% 100%, 0 100%); pointer-events: auto; }
+img.exhibition-stage-cover { width: 56%; }
+.exhibition-cover-panel { position: relative; display: flex; flex-direction: column; width: 48%; height: 100%; overflow-y: auto; padding: clamp(20px, 2.5vh, 32px) clamp(50px, 5vw, 88px) clamp(20px, 2.5vh, 32px) clamp(28px, 3.3vw, 60px); color: var(--color-ink); background-color: var(--color-paper); background-image: radial-gradient(color-mix(in srgb, var(--color-bronze) 10%, transparent) 0.6px, transparent 0.8px); background-size: 5px 5px; clip-path: polygon(0 0, 96% 0, 97% 7%, 96% 15%, 98% 25%, 97% 37%, 98% 47%, 97% 58%, 98% 69%, 97% 80%, 99% 90%, 98% 100%, 0 100%); pointer-events: auto; }
 .exhibition-cover-brand { display: flex; align-items: center; gap: 22px; flex-shrink: 0; }
 .exhibition-cover-brand img { display: block; width: clamp(130px, 12vw, 180px); height: auto; }
 .exhibition-cover-brand span { border-left: 1px solid var(--color-line); padding-left: 20px; color: var(--color-ink-soft); font-size: 10px; font-weight: 600; letter-spacing: .13em; text-transform: uppercase; }
-.exhibition-cover-copy { width: 100%; max-width: 590px; margin-block: auto; padding-block: 24px; }
+.exhibition-cover-copy { width: 100%; max-width: 590px; margin-block: auto; padding-block: 16px; }
 .exhibition-cover-eyebrow { display: flex; align-items: center; gap: 14px; margin-bottom: 24px; color: var(--color-bronze-dark); font-size: 11px; font-weight: 700; letter-spacing: .16em; text-transform: uppercase; }
 .exhibition-cover-eyebrow span { width: 24px; height: 1px; background: var(--color-bronze); }
-.exhibition-cover-copy h1 { margin: 0; color: var(--color-ink); font-size: clamp(40px, 4.4vw, 72px); line-height: 1.08; font-weight: 700; letter-spacing: -.055em; overflow-wrap: anywhere; }
+.exhibition-cover-copy h1 { margin: 0; color: var(--color-ink); font-size: clamp(32px, min(3.5vw, 6vh), 56px); line-height: 1.08; font-weight: 700; letter-spacing: -.045em; overflow-wrap: anywhere; }
 .exhibition-cover-title-accent { display: block; color: var(--color-vermilion); }
 .exhibition-cover-subtitle { margin-top: 20px; color: var(--color-ink); font-size: clamp(16px, 1.3vw, 20px); line-height: 1.5; font-weight: 600; }
 .exhibition-cover-description { max-width: 52ch; margin-top: 25px; padding-top: 20px; border-top: 1px solid var(--color-line); color: var(--color-ink-soft); font-size: 14px; line-height: 1.9; }
@@ -1388,6 +1399,7 @@ html[data-audio-toolbar="true"] #landing-content { padding-bottom: 100px; }
 @media (max-width: 760px) {
   .exhibition-entrance { padding: 0; background: transparent; }
   .exhibition-stage-cover { left: 0; }
+  img.exhibition-stage-cover { width: 100%; }
   .exhibition-cover-panel { width: 100%; height: auto; max-height: 72dvh; padding: 22px 24px; border-right: 0; border-bottom: 1px solid var(--color-bronze); clip-path: none; }
   .exhibition-cover-brand img { width: 125px; }
   .exhibition-cover-brand span { padding-left: 14px; font-size: 9px; }
@@ -1404,7 +1416,7 @@ html[data-audio-toolbar="true"] #landing-content { padding-bottom: 100px; }
   .exhibition-cover-panel { padding-block: 22px; }
   .exhibition-cover-copy { padding-block: 20px; }
   .exhibition-cover-eyebrow { margin-bottom: 12px; }
-  .exhibition-cover-copy h1 { font-size: clamp(36px, 4.1vw, 58px); }
+  .exhibition-cover-copy h1 { font-size: clamp(30px, min(3.5vw, 6vh), 48px); }
   .exhibition-cover-description { margin-top: 14px; padding-top: 12px; }
   .exhibition .exhibition-cover-enter { margin-top: 16px; height: 46px; }
 }

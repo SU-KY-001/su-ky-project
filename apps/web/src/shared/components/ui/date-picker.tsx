@@ -25,6 +25,10 @@ function localDateValue(value: Date): string {
   return `${year}-${month}-${day}`;
 }
 
+function earliestDate(): Date {
+  return new Date(Math.floor(Date.now() / 60_000) * 60_000 + 60_000);
+}
+
 function displayDate(value: string): string {
   const date = parseLocalDate(value);
   return date
@@ -69,6 +73,8 @@ export function DatePicker({
   placeholder = "Chọn ngày",
   clearable = false,
   className,
+  disablePast = false,
+  disabled = false,
 }: {
   value: string;
   onChange: (value: string) => void;
@@ -77,6 +83,8 @@ export function DatePicker({
   placeholder?: string;
   clearable?: boolean;
   className?: string;
+  disablePast?: boolean;
+  disabled?: boolean;
 }) {
   const [open, setOpen] = useState(false);
   const [draft, setDraft] = useState(displayDate(value));
@@ -90,7 +98,7 @@ export function DatePicker({
       return;
     }
     const nextValue = typedDateValue(draft);
-    if (!nextValue) {
+    if (!nextValue || (disablePast && nextValue < localDateValue(earliestDate()))) {
       setDraft(displayDate(value));
       return;
     }
@@ -108,6 +116,7 @@ export function DatePicker({
       <div className={cn("relative h-10 w-full", className)}>
         <Input
           id={id}
+          disabled={disabled}
           value={draft}
           inputMode="numeric"
           autoComplete="off"
@@ -124,6 +133,7 @@ export function DatePicker({
             variant="ghost"
             size="icon-sm"
             aria-label={ariaLabel}
+            disabled={disabled}
             data-slot="date-picker-trigger"
             className="absolute right-1 top-1/2 -translate-y-1/2 text-mod-text-muted hover:bg-mod-canvas-accent hover:text-mod-text"
           >
@@ -136,9 +146,11 @@ export function DatePicker({
           mode="single"
           selected={selected}
           defaultMonth={selected}
+          disabled={disablePast ? { before: new Date(earliestDate().setHours(0, 0, 0, 0)) } : undefined}
           onSelect={(date) => {
             if (!date) return;
             const nextValue = localDateValue(date);
+            if (disablePast && nextValue < localDateValue(earliestDate())) return;
             setDraft(displayDate(nextValue));
             onChange(nextValue);
             setOpen(false);
@@ -172,14 +184,26 @@ export function DateTimePicker({
   ariaLabel,
   id,
   placeholder,
+  disablePast = false,
+  disabled = false,
 }: {
   value: string;
   onChange: (value: string) => void;
   ariaLabel: string;
   id?: string;
   placeholder: string;
+  disablePast?: boolean;
+  disabled?: boolean;
 }) {
   const [date = "", time = ""] = value.split("T");
+  const getMinTime = () => {
+    if (!disablePast) return undefined;
+    const minimum = earliestDate();
+    const minimumDate = localDateValue(minimum);
+    if (date < minimumDate) return "99:99";
+    if (date !== minimumDate) return undefined;
+    return String(minimum.getHours()).padStart(2, "0") + ":" + String(minimum.getMinutes()).padStart(2, "0");
+  };
 
   return (
     <div className="grid grid-cols-[minmax(0,1fr)_7.5rem] gap-2">
@@ -188,12 +212,20 @@ export function DateTimePicker({
         id={id}
         ariaLabel={ariaLabel}
         placeholder={placeholder}
-        onChange={(nextDate) => onChange(`${nextDate}T${time || "09:00"}`)}
+        disabled={disabled}
+        disablePast={disablePast}
+        onChange={(nextDate) => {
+          const minimum = earliestDate();
+          const minimumTime = `${String(minimum.getHours()).padStart(2, "0")}:${String(minimum.getMinutes()).padStart(2, "0")}`;
+          const chosen = time || "09:00";
+          onChange(`${nextDate}T${disablePast && nextDate === localDateValue(minimum) && chosen < minimumTime ? minimumTime : chosen}`);
+        }}
       />
       <TimePicker
         aria-label={`${ariaLabel} - giờ`}
         value={time}
-        disabled={!date}
+        getMinTime={getMinTime}
+        disabled={disabled || !date}
         onChange={(nextTime) => onChange(`${date}T${nextTime}`)}
       />
     </div>
@@ -204,22 +236,26 @@ export function TimePicker({
   value,
   onChange,
   disabled = false,
+  getMinTime,
   "aria-label": ariaLabel,
 }: {
   value: string;
   onChange: (value: string) => void;
   disabled?: boolean;
+  getMinTime?: () => string | undefined;
   "aria-label": string;
 }) {
   const [open, setOpen] = useState(false);
   const [draft, setDraft] = useState(value);
   const [selectedHour = "09", selectedMinute = "00"] = value.split(":");
+  const minTime = getMinTime?.();
 
   useEffect(() => setDraft(value), [value]);
 
   const commitDraft = () => {
     const nextValue = validTimeValue(draft);
-    if (!nextValue) {
+    const minimum = getMinTime?.();
+    if (!nextValue || (minimum && nextValue < minimum)) {
       setDraft(value);
       return;
     }
@@ -232,6 +268,8 @@ export function TimePicker({
     commitDraft();
   };
   const selectTime = (nextValue: string) => {
+    const minimum = getMinTime?.();
+    if (minimum && nextValue < minimum) return;
     setDraft(nextValue);
     onChange(nextValue);
   };
@@ -281,7 +319,8 @@ export function TimePicker({
                 role="option"
                 aria-label={`Chọn giờ ${hour}`}
                 aria-selected={selectedHour === hour}
-                onClick={() => selectTime(`${hour}:${selectedMinute}`)}
+                disabled={Boolean(minTime && hour < minTime.slice(0, 2))}
+                onClick={() => selectTime(minTime && `${hour}:${selectedMinute}` < minTime ? minTime : `${hour}:${selectedMinute}`)}
                 className="mb-0.5 w-full justify-center tabular-nums text-mod-text aria-selected:bg-mod-primary aria-selected:font-bold aria-selected:text-white"
               >
                 {hour}
@@ -298,6 +337,7 @@ export function TimePicker({
                 role="option"
                 aria-label={`Chọn phút ${minute}`}
                 aria-selected={selectedMinute === minute}
+                disabled={Boolean(minTime && `${selectedHour}:${minute}` < minTime)}
                 onClick={() => {
                   selectTime(`${selectedHour}:${minute}`);
                   setOpen(false);

@@ -179,12 +179,6 @@ export function seriesChecklist(series: SeriesDetailEntity) {
       ok: series.episodes.some((episode) => episode.status === "PUBLISHED"),
     },
     { key: "DESCRIPTION", ok: Boolean(series.description?.trim()) },
-    {
-      key: "COVER",
-      ok:
-        series.coverImageAsset?.status === "READY" ||
-        series.coverLandscapeAsset?.status === "READY",
-    },
     { key: "LANGUAGE", ok: Boolean(series.language.trim()) },
   ];
   return { ready: items.every((item) => item.ok), items };

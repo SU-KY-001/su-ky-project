@@ -1,12 +1,15 @@
-import { useState } from "react";
-import { Alert, Platform, useWindowDimensions } from "react-native";
+import { useEffect, useRef, useState } from "react";
+import { Alert, Modal, Platform, useWindowDimensions } from "react-native";
 import { useQuery } from "@tanstack/react-query";
 import { Image as ExpoImage, type ImageProps } from "expo-image";
 import { StatusBar } from "expo-status-bar";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Button, ScrollView, Separator, Text, XStack, YStack, ZStack } from "tamagui";
-import { AppCard, AppIcon, AppImage, BrandMark, Chip, IconButton, PrimaryButton, ScreenScroll, SectionHeader, formatTime } from "@/shared/ui";
+import { AppCard, AppHeader, AppIcon, AppImage, Chip, IconButton, PrimaryButton, ScreenScroll, SectionHeader, formatTime } from "@/shared/ui";
 import { formatDateVi, formatDuration, podcastApi, type PodcastEpisode, type SeriesDetail } from "../podcastApi";
 import type { LivePlaybackState } from "../usePlayback";
+import { AddToPlaylistModal } from "@/features/personal-library";
+import { useAuthStore } from "@/lib/authStore";
 
 function LoadingBlock({ label = "Đang tải…" }: { label?: string }): React.JSX.Element {
   return (
@@ -30,9 +33,15 @@ interface PodcastLibraryProps {
   onSeries: (slug: string) => void;
   onPlay: (episode: PodcastEpisode) => void;
   onEpisodeQuiz: (episode: PodcastEpisode) => void;
+  onRequireAuth: () => void;
 }
 
-export function PodcastLibraryScreen({ currentEpisode, onSeries, onPlay, onEpisodeQuiz }: PodcastLibraryProps): React.JSX.Element {
+export function PodcastLibraryScreen({ currentEpisode, onSeries, onPlay, onEpisodeQuiz, onRequireAuth }: PodcastLibraryProps): React.JSX.Element {
+  const user = useAuthStore((state) => state.user);
+  const insets = useSafeAreaInsets();
+  const [menuEpisode, setMenuEpisode] = useState<PodcastEpisode | null>(null);
+  const [addingEpisode, setAddingEpisode] = useState<PodcastEpisode | null>(null);
+  const pendingPicker = useRef<PodcastEpisode | null>(null);
   const seriesQuery = useQuery({ queryKey: ["podcast", "series"], queryFn: () => podcastApi.listSeries() });
   const latestQuery = useQuery({
     queryKey: ["podcast", "latest", seriesQuery.data?.map((item) => item.id).join(",")],
@@ -42,16 +51,9 @@ export function PodcastLibraryScreen({ currentEpisode, onSeries, onPlay, onEpiso
   const featured = seriesQuery.data?.find((item) => item.slug === "viet-nam-thoi-phong-kien") ?? seriesQuery.data?.[0];
 
   return (
-    <ScreenScroll>
-      <XStack pt="$1" items="center" justify="space-between">
-        <BrandMark compact />
-        <IconButton icon="search" label="Tìm podcast" onPress={() => undefined} />
-      </XStack>
-      <YStack>
-        <Text color="$ink" fs="$5" fw="$7">Podcast</Text>
-        <Text color="$inkSoft" fs="$1">Những câu chuyện Việt, kể bằng hôm nay.</Text>
-      </YStack>
-
+    <YStack f={1} bg="$paper">
+      <AppHeader title="Podcast" />
+      <ScreenScroll>
       {seriesQuery.isPending ? (
         <LoadingBlock label="Đang tải danh sách series…" />
       ) : seriesQuery.isError || !featured ? (
@@ -104,17 +106,17 @@ export function PodcastLibraryScreen({ currentEpisode, onSeries, onPlay, onEpiso
               py="$1.5"
               items="center"
               g="$2"
-              onPress={() => onPlay(episode)}
-              pressStyle={{ op: 0.75 }}
             >
-              <AppImage source={episode.image} w={56} h={56} resizeMode="cover" rounded={8} />
-              <YStack f={1} minW={0}>
-                <Text color="$ink" fs="$1" fw="$7" numberOfLines={2}>{episode.title}</Text>
-                <Text color="$inkSoft" fs={10} numberOfLines={1}>
-                  {episode.seriesTitle} · Tập {episode.number} · {formatDuration(episode.durationMs)}
-                </Text>
-              </YStack>
-              <IconButton icon="play" label="Phát" onPress={() => onPlay(episode)} light />
+              <Button unstyled f={1} minW={0} fd="row" items="center" g="$2" onPress={() => onPlay(episode)} accessibilityRole="button" accessibilityLabel={`Phát ${episode.title}`} pressStyle={{ op: 0.75 }}>
+                <AppImage source={episode.image} w={56} h={56} resizeMode="cover" rounded={8} />
+                <YStack f={1} minW={0}>
+                  <Text color="$ink" fs="$1" fw="$7" numberOfLines={2}>{episode.title}</Text>
+                  <Text color="$inkSoft" fs={10} numberOfLines={1}>
+                    {episode.seriesTitle} · Tập {episode.number} · {formatDuration(episode.durationMs)}
+                  </Text>
+                </YStack>
+              </Button>
+              <IconButton icon="more-vertical" label={`Tùy chọn ${episode.title}`} onPress={() => setMenuEpisode(episode)} />
             </XStack>
           ))
         )}
@@ -145,7 +147,23 @@ export function PodcastLibraryScreen({ currentEpisode, onSeries, onPlay, onEpiso
           </YStack>
         </AppCard>
       ) : null}
-    </ScreenScroll>
+      </ScreenScroll>
+      <Modal visible={Boolean(menuEpisode)} transparent statusBarTranslucent navigationBarTranslucent animationType="slide" onDismiss={() => { if (pendingPicker.current) { setAddingEpisode(pendingPicker.current); pendingPicker.current = null; } }} onRequestClose={() => setMenuEpisode(null)}>
+        <YStack f={1} justify="flex-end" bg="rgba(0,0,0,0.55)">
+          <Button unstyled f={1} onPress={() => setMenuEpisode(null)} accessibilityLabel="Đóng tùy chọn" />
+          <YStack bg="$nightSoft" borderTopLeftRadius="$6" borderTopRightRadius="$6" pb={Math.max(insets.bottom, 16)}>
+            <YStack w={36} h={4} rounded="$10" bg="$inkSoft" self="center" mt="$2" />
+            <XStack p="$4" g="$3" items="center" borderBottomWidth={1} bc="$inkSoft">
+              {menuEpisode ? <AppImage source={menuEpisode.image} w={48} h={48} rounded={4} /> : null}
+              <YStack f={1} minW={0} g="$0.5"><Text color="$paperSoft" fs="$2" fw="$7" numberOfLines={2}>{menuEpisode?.title}</Text><Text color="$paperDeep" fs="$1" numberOfLines={1}>{menuEpisode?.seriesTitle}</Text></YStack>
+            </XStack>
+            <Button unstyled minH={56} px="$4" fd="row" items="center" g="$3" onPress={() => { if (menuEpisode) onPlay(menuEpisode); setMenuEpisode(null); }} accessibilityRole="button"><AppIcon name="play-circle" color="#FAF6ED" /><Text color="$paperSoft" fs="$2">Phát podcast</Text></Button>
+            <Button unstyled minH={56} px="$4" fd="row" items="center" g="$3" onPress={() => { const item = menuEpisode; setMenuEpisode(null); if (!user) { onRequireAuth(); return; } if (item) { if (Platform.OS === "ios") pendingPicker.current = item; else setAddingEpisode(item); } }} accessibilityRole="button"><AppIcon name="plus-circle" color="#FAF6ED" /><Text color="$paperSoft" fs="$2">Thêm vào playlist</Text></Button>
+          </YStack>
+        </YStack>
+      </Modal>
+      {addingEpisode ? <AddToPlaylistModal episodeId={addingEpisode.id} onClose={() => setAddingEpisode(null)} /> : null}
+    </YStack>
   );
 }
 
@@ -291,25 +309,39 @@ function SeekBar({ playback }: { playback: LivePlaybackState }): React.JSX.Eleme
 }
 
 interface AudioPlayerScreenProps {
+  queueNavigation?: { index: number; total: number; busy: boolean; onPrevious: () => void; onNext: () => void };
+  libraryError?: string | null;
   episode: PodcastEpisode;
   narrationId: string | null;
   onSelectNarration: (id: string) => void;
-  onBack: () => void;
   onQuiz: () => void;
+  onBack: () => void;
   playback: LivePlaybackState;
 }
 
 export function AudioPlayerScreen({
+  queueNavigation,
+  libraryError,
   episode,
   narrationId,
   onSelectNarration,
-  onBack,
   onQuiz,
+  onBack,
   playback,
 }: AudioPlayerScreenProps): React.JSX.Element {
   const { width, height } = useWindowDimensions();
-  const artworkSize = Math.min(width - 64, height < 760 ? 230 : 300);
+  const [contentHeight, setContentHeight] = useState(0);
+  const [showFullScript, setShowFullScript] = useState(false);
+  const [showQuizInvitation, setShowQuizInvitation] = useState(false);
+  const scriptQuery = useQuery({ queryKey: ["podcast", "episode", episode.slug], queryFn: () => podcastApi.getEpisode(episode.slug), staleTime: 5 * 60_000 });
+  const script = scriptQuery.data?.narrations.find((item) => item.id === narrationId && item.available)?.scriptContent?.trim();
+  const artworkSize = Math.min(width - 48, height * 0.42, 360);
   const remaining = Math.max(0, playback.duration - playback.position);
+
+  useEffect(() => setShowQuizInvitation(false), [episode.id]);
+  useEffect(() => {
+    if (playback.finishedSessionId) setShowQuizInvitation(true);
+  }, [playback.finishedSessionId]);
 
   return (
     <YStack f={1} pos="relative" overflow="hidden" px="$3" pb="$2">
@@ -331,7 +363,7 @@ export function AudioPlayerScreen({
           cachePolicy="memory-disk"
         />
         {/* Lớp phủ chuyển sắc tối tạo chiều sâu sơn mài và bảo đảm độ tương phản tối ưu */}
-        <YStack pos="absolute" t={0} l={0} r={0} b={0} bg="rgba(18, 14, 12, 0.78)" />
+        <YStack pos="absolute" t={0} l={0} r={0} b={0} bg="rgba(18, 14, 12, 0.62)" />
       </YStack>
 
       <XStack h="$4.5" items="center" justify="space-between">
@@ -345,9 +377,12 @@ export function AudioPlayerScreen({
         <YStack w="$4" />
       </XStack>
 
-      <YStack f={1} justify="space-around" items="center">
-        <YStack rounded={14} bw={1} bc="$bronzeDark" boxShadow="0 14px 36px rgba(0, 0, 0, 0.55)">
-          <AppImage source={episode.image} w={artworkSize} h={artworkSize} resizeMode="cover" rounded={13} />
+      <ScrollView f={1} showsVerticalScrollIndicator={false} onLayout={(event) => setContentHeight(event.nativeEvent.layout.height)}>
+      <YStack minH={contentHeight} items="center" g="$4" pt="$3" pb="$5">
+        <YStack f={1} minH={artworkSize} items="center" justify="center">
+          <YStack rounded={14} bw={1} bc="$bronzeDark" boxShadow="0 14px 36px rgba(0, 0, 0, 0.55)">
+            <AppImage source={episode.image} w={artworkSize} h={artworkSize} resizeMode="cover" rounded={13} />
+          </YStack>
         </YStack>
 
         <YStack w="100%" g="$2">
@@ -439,16 +474,33 @@ export function AudioPlayerScreen({
             </Button>
           </XStack>
 
-          <XStack g="$2">
-            <YStack f={1}>
-              <PrimaryButton label="Nghe lại" icon="skip-back" secondary onPress={playback.restart} />
+          {queueNavigation ? <YStack g="$2"><Text ff="$body" fs="$1" text="center" color="$paperDeep">Playlist · Tập {queueNavigation.index + 1}/{queueNavigation.total}</Text><XStack g="$2"><YStack f={1}><PrimaryButton secondary icon="skip-back" label="Tập trước" disabled={queueNavigation.busy || queueNavigation.index <= 0} onPress={queueNavigation.onPrevious} /></YStack><YStack f={1}><PrimaryButton secondary icon="skip-forward" label="Tập tiếp" disabled={queueNavigation.busy || queueNavigation.index >= queueNavigation.total - 1} onPress={queueNavigation.onNext} /></YStack></XStack></YStack> : null}
+          {showQuizInvitation ? (
+            <YStack bg="$paperSoft" rounded="$5" p="$3" g="$2" accessibilityRole="summary">
+              <XStack items="center" g="$2">
+                <AppIcon name="award" size={24} color="#B8322A" />
+                <YStack f={1}>
+                  <Text color="$ink" fs="$2" fw="$7">Bạn đã nghe xong tập này</Text>
+                  <Text color="$inkSoft" fs={10}>Ôn lại nội dung với quiz của tập podcast.</Text>
+                </YStack>
+              </XStack>
+              <XStack g="$2">
+                <YStack f={1}><PrimaryButton label="Để sau" secondary onPress={() => setShowQuizInvitation(false)} /></YStack>
+                <YStack f={1}><PrimaryButton label="Bắt đầu quiz" icon="edit-3" onPress={onQuiz} /></YStack>
+              </XStack>
             </YStack>
-            <YStack f={1}>
-              <PrimaryButton label="Làm quiz" icon="edit-3" onPress={onQuiz} />
-            </YStack>
-          </XStack>
+          ) : null}
+          {libraryError ? <Text accessibilityRole="alert" ff="$body" fs="$2" lh="$3" color="$paperDeep">{libraryError}</Text> : null}
         </YStack>
       </YStack>
+      <YStack bg="$paperDeep" rounded="$5" p="$4" mb="$5" g="$3">
+        <Text color="$ink" fs="$3" fw="$7">Kịch bản tập podcast</Text>
+        {scriptQuery.isPending ? <Text color="$inkSoft" fs="$2">Đang tải kịch bản…</Text> : scriptQuery.isError ? <><Text color="$inkSoft" fs="$2">Chưa tải được kịch bản.</Text><PrimaryButton secondary label="Thử lại" onPress={() => void scriptQuery.refetch()} /></> : script ? <>
+          <Text color="$ink" fs="$3" lh="$4" numberOfLines={showFullScript ? undefined : 5}>{script}</Text>
+          <Button unstyled self="flex-start" bg="$paperSoft" rounded="$8" px="$3" py="$2" onPress={() => setShowFullScript(!showFullScript)} accessibilityRole="button" accessibilityState={{ expanded: showFullScript }}><Text color="$ink" fs="$2" fw="$7">{showFullScript ? "Thu gọn" : "Xem toàn bộ kịch bản"}</Text></Button>
+        </> : <Text color="$inkSoft" fs="$2">Kịch bản chưa có sẵn cho bản thu này.</Text>}
+      </YStack>
+      </ScrollView>
     </YStack>
   );
 }

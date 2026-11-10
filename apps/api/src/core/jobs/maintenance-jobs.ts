@@ -1,14 +1,17 @@
 import { PgBoss } from "pg-boss";
+import { z } from "zod";
 import { prisma, type Prisma } from "@repo/db";
 import { getSystemConfig } from "../config/system-config";
 import { logger } from "../logger";
 import type { MediaStorageGateway } from "../../modules/media";
 import { reapStaleAiChecks } from "../../modules/ai-assist";
+import { sessionRetentionCutoff } from "../../modules/listening/application/listening-session-policy";
 
 const MEDIA_QUEUE = "maintenance.media-cleanup";
 const IDEMPOTENCY_QUEUE = "maintenance.idempotency-purge";
 const RATE_LIMIT_QUEUE = "maintenance.rate-limit-purge";
 const AI_CHECK_REAPER_QUEUE = "maintenance.ai-check-reaper";
+const LISTENING_SESSION_PURGE_QUEUE = "maintenance.listening-session-purge";
 const MEDIA_CLEANUP_CRON = "*/30 * * * *";
 const IDEMPOTENCY_PURGE_CRON = "0 * * * *";
 const RATE_LIMIT_PURGE_CRON = "15 * * * *";
@@ -17,11 +20,32 @@ const RATE_LIMIT_RETENTION_MS = 24 * 60 * 60 * 1000;
 
 let maintenanceBoss: PgBoss | null = null;
 
+const exhibitionMediaSchema = z.object({
+  metadata: z.object({ coverAssetId: z.string().nullable().optional() }),
+  audioAssetId: z.string().nullable().optional(),
+  items: z.array(z.object({ imageAssetId: z.string() })),
+});
+
+export function exhibitionMediaIds(exhibitions: { draftDocument: unknown; publishedDocument: unknown }[]): string[] {
+  const ids = new Set<string>();
+  for (const exhibition of exhibitions) {
+    for (const value of [exhibition.draftDocument, exhibition.publishedDocument]) {
+      if (value === null) continue;
+      const document = exhibitionMediaSchema.parse(value);
+      if (document.metadata.coverAssetId) ids.add(document.metadata.coverAssetId);
+      if (document.audioAssetId) ids.add(document.audioAssetId);
+      for (const item of document.items) ids.add(item.imageAssetId);
+    }
+  }
+  return [...ids];
+}
+
 export async function cleanupDetachedMedia(storage: MediaStorageGateway): Promise<void> {
   const graceHours = await getSystemConfig("media.cleanup_grace_hours");
   const batchSize = await getSystemConfig("media.cleanup_batch_size");
   const cutoff = new Date(Date.now() - graceHours * 60 * 60 * 1000);
-  const assets = await prisma.mediaAsset.findMany({ where: detachedMediaWhere(cutoff), take: batchSize, orderBy: { createdAt: "asc" } });
+  const exhibitions = await prisma.exhibition.findMany({ select: { draftDocument: true, publishedDocument: true } });
+  const assets = await prisma.mediaAsset.findMany({ where: { ...detachedMediaWhere(cutoff), id: { notIn: exhibitionMediaIds(exhibitions) } }, take: batchSize, orderBy: { createdAt: "asc" } });
   for (const asset of assets) {
     try {
       await storage.destroy(asset.publicId, asset.kind);
@@ -45,7 +69,11 @@ export async function startMaintenanceJobs(connectionString: string, storage: Me
   const boss = new PgBoss({ connectionString });
   boss.on("error", (error: Error) => logger.error({ err: error }, "Maintenance queue error"));
   await boss.start();
-  for (const queue of [MEDIA_QUEUE, IDEMPOTENCY_QUEUE, RATE_LIMIT_QUEUE, AI_CHECK_REAPER_QUEUE]) await boss.createQueue(queue);
+  for (const queue of [MEDIA_QUEUE, IDEMPOTENCY_QUEUE, RATE_LIMIT_QUEUE, AI_CHECK_REAPER_QUEUE, LISTENING_SESSION_PURGE_QUEUE]) await boss.createQueue(queue);
+  await boss.schedule(LISTENING_SESSION_PURGE_QUEUE, "30 2 * * *");
+  await boss.work(LISTENING_SESSION_PURGE_QUEUE, async () => {
+    await prisma.listeningSession.deleteMany({ where: { startedAt: { lt: sessionRetentionCutoff(new Date()) } } });
+  });
   await boss.schedule(MEDIA_QUEUE, MEDIA_CLEANUP_CRON);
   await boss.schedule(IDEMPOTENCY_QUEUE, IDEMPOTENCY_PURGE_CRON);
   await boss.schedule(RATE_LIMIT_QUEUE, RATE_LIMIT_PURGE_CRON);

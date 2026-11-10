@@ -52,7 +52,7 @@ export function ReleaseScheduleDialog({
   onPublishNow,
   onCancel,
 }: {
-  mode: "create" | "edit";
+  mode: "create" | "edit" | "view";
   schedule: ReleaseScheduleRecord | null;
   currentStatus?: ReleaseScheduleRecord["status"];
   moderators: ReleaseModeratorOption[];
@@ -71,7 +71,7 @@ export function ReleaseScheduleDialog({
   const status = currentStatus ?? schedule?.status ?? "SCHEDULED";
   const locked = status === "PUBLISHING" || status === "RELEASED" || status === "CANCELLED";
   const initialValues = useMemo<ReleaseScheduleDraft | undefined>(() => {
-    if (mode !== "edit" || !schedule) return undefined;
+    if (mode === "create" || !schedule) return undefined;
     return {
       title: schedule.title,
       episodeId: schedule.episodeId,
@@ -81,6 +81,7 @@ export function ReleaseScheduleDialog({
     };
   }, [mode, schedule]);
   const submit = async (draft: ReleaseScheduleDraft) => {
+    if (mode === "view") return;
     if (mode === "edit" && locked) return;
     try {
       if (mode === "edit" && schedule) await onUpdate(schedule, draft);
@@ -97,15 +98,15 @@ export function ReleaseScheduleDialog({
       <DialogContent className="grid max-h-[min(760px,calc(100dvh-2rem))] max-w-[720px] grid-rows-[auto_minmax(0,1fr)_auto] gap-0 overflow-hidden bg-mod-surface p-0 sm:p-0">
         <DialogHeader className="border-b border-mod-border px-5 py-4 sm:px-6 sm:py-5">
           <div className="flex flex-wrap items-center gap-2">
-            <DialogTitle>{mode === "edit" ? "Cập nhật lịch phát hành" : "Tạo lịch phát hành"}</DialogTitle>
-            {mode === "edit" && schedule ? (
+            <DialogTitle>{mode === "view" ? "Chi tiết lịch phát hành" : mode === "edit" ? "Cập nhật lịch phát hành" : "Tạo lịch phát hành"}</DialogTitle>
+            {mode !== "create" && schedule ? (
               <CardBadge type="status" tone={cardBadgeToneForStatus(status)}>
-                {statusLabels[status]}
+                {mode === "view" && status === "READY_TO_PUBLISH" ? "Đủ điều kiện" : statusLabels[status]}
               </CardBadge>
             ) : null}
           </div>
           <DialogDescription>
-            {mode === "edit"
+            {mode === "view" ? "Xem thông tin lịch và người phụ trách." : mode === "edit"
               ? "Chỉnh sửa trực tiếp thông tin lịch và người phụ trách."
               : "Lập thời gian phát hành và giao trọn công đoạn sản xuất cho Moderator."}
           </DialogDescription>
@@ -133,17 +134,18 @@ export function ReleaseScheduleDialog({
             ) : null}
 
             <ReleaseScheduleForm
-              mode={mode}
+              mode={mode === "view" ? "edit" : mode}
+              readOnly={mode === "view"}
               moderators={moderators}
               initialValues={initialValues}
-              initialValuesKey={schedule?.id ?? "create"}
+              initialValuesKey={mode === "view" && schedule ? `${schedule.id}:${schedule.updatedAt.toISOString()}` : schedule?.id ?? "create"}
               isSubmitting={busy}
               onSubmit={submit}
               formId={releaseScheduleFormId}
               showSubmitAction={false}
             />
 
-            {mode === "edit" && schedule ? (
+            {mode !== "create" && schedule ? (
               <details className="rounded-xl border border-mod-border bg-mod-canvas-accent/35 p-3">
                 <summary className="cursor-pointer text-sm font-bold text-mod-text">Tiến độ phát hành</summary>
                 <div className="mt-4"><ReleaseProgressTimeline events={progress} /></div>
@@ -153,10 +155,11 @@ export function ReleaseScheduleDialog({
         </div>
 
         <DialogFooter className="border-t border-mod-border bg-mod-surface px-5 py-4 sm:px-6">
+          {mode === "view" ? <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>Đóng</Button> : <>
           {mode === "edit" && schedule ? (
             <>
               {["SCHEDULED", "READY_TO_PUBLISH", "BLOCKED", "FAILED"].includes(status) ? <Button type="button" variant="ghost" disabled={busy} className="text-vermilion" onClick={() => onCancel(schedule)}><X /> Hủy lịch</Button> : null}
-              {status === "FAILED" ? <Button type="button" variant="outline" disabled={busy} onClick={() => onRetry(schedule)}><ArrowClockwise /> Thử lại</Button> : null}
+              {status === "FAILED" ? <Button type="button" variant="outline" disabled={busy} onClick={() => onRetry(schedule)}><ArrowClockwise /> Chuẩn bị thử lại</Button> : null}
               {["BLOCKED", "FAILED", "READY_TO_PUBLISH"].includes(status) ? <Button type="button" variant="outline" disabled={busy} onClick={() => onPublishNow(schedule)}><PaperPlaneTilt /> Phát hành ngay</Button> : null}
             </>
           ) : null}
@@ -171,6 +174,7 @@ export function ReleaseScheduleDialog({
               ? mode === "edit" ? "Đang lưu" : "Đang tạo lịch"
               : mode === "edit" ? "Lưu thay đổi" : "Tạo lịch phát hành"}
           </Button>
+          </>}
         </DialogFooter>
       </DialogContent>
     </Dialog>

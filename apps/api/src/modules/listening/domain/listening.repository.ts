@@ -41,6 +41,7 @@ export interface ApplyProgressCommand {
   now: Date;
   xpPerEpisodeCompletion: number;
   completionRatio: number;
+  session?: { id: string; bitmap: Uint8Array; durationMs: number; maxRate: number };
   /** Elapsed seconds since the last listen -> how many new bits may be accepted. */
   budget: (elapsedSeconds: number) => number;
   /** (stored bits, allowed budget) -> merged bitmap with `playedSeconds` counted. */
@@ -52,6 +53,7 @@ export interface ApplyProgressResult {
   playedSeconds: number;
   completedAt: Date | null;
   completion: CompletionAward | null;
+  listeningSession?: { id: string; startedAt: Date; qualifiedAt: Date | null; playedMs: number; playedBitmap: string };
 }
 
 export interface ListeningRepository {

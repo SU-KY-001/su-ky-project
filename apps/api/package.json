@@ -17,7 +17,9 @@
     "seed:content": "bun --env-file=../../.env src/scripts/seed-content.ts",
     "seed:demo": "bun --env-file=../../.env src/scripts/seed-demo.ts",
     "seed:vietnam-podcasts": "bun --env-file=../../.env src/scripts/seed-vietnam-podcasts.ts",
-    "source-pages:load": "bun --env-file=../../.env src/scripts/load-source-pages.ts"
+    "seed:weekly-missions": "bun --env-file=../../.env src/scripts/seed-weekly-missions.ts",
+    "source-pages:load": "bun --env-file=../../.env src/scripts/load-source-pages.ts",
+    "source-pages:import-book": "bun --env-file=../../.env src/scripts/import-book-source.ts"
   },
   "dependencies": {
     "@earendil-works/pi-coding-agent": "^1.1.0",
@@ -28,7 +30,9 @@
     "@scalar/hono-api-reference": "^0.12.8",
     "better-auth": "^1.7.7",
     "cloudinary": "2.11.0",
+    "fflate": "^0.8.3",
     "hono": "catalog:",
+    "mammoth": "^1.13.0",
     "pg-boss": "^12.35.0",
     "pi-web-access": "0.37.0",
     "pino": "^10.3.1",

@@ -1,3 +1,4 @@
+import { HistoricalEntityDetailSchema } from "@repo/shared";
 import type {
   HistoricalNodeKind,
   HistoricalNodeRecord,
@@ -37,7 +38,7 @@ export function createHistoricalPresenter(
     const node = await catalog.detail(kind, id);
     const common = {
       ...node,
-      citations: detail ? await citations.listCitations({ kind, id }) : [],
+      citations: kind !== "entity" && detail ? await citations.listCitations({ kind, id }) : [],
     };
     if (kind === "period") return { ...common, phases: [] };
     if (kind === "phase") {
@@ -56,17 +57,7 @@ export function createHistoricalPresenter(
     const period = phase?.periodId
       ? await catalog.getNode("period", phase.periodId)
       : null;
-    const readiness = await review.getEntityReadiness(id);
-    const displayStatus =
-      readiness.reasons.includes("MISSING_TIME") ||
-      readiness.reasons.includes("MISSING_INFO")
-        ? "DRAFT"
-        : readiness.reasons.includes("MISSING_SOURCE")
-          ? "MISSING_SOURCE"
-          : readiness.ready
-            ? "COMPLETE"
-            : "NEEDS_REVIEW";
-    return {
+    return HistoricalEntityDetailSchema.parse({
       ...common,
       warnings: phase ? outside(node, phase) : [],
       historicalPhase: phase
@@ -75,8 +66,6 @@ export function createHistoricalPresenter(
             period: period ? { id: period.id, name: period.name } : undefined,
           }
         : null,
-      readiness,
-      displayStatus,
-    };
+    });
   };
 }

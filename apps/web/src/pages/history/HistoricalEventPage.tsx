@@ -1,7 +1,6 @@
 import { useParams } from "react-router";
 import { useQuery } from "@tanstack/react-query";
 import { historicalCatalogService } from "@/features/historical-library/services/historicalCatalogService";
-import { PublicHistoricalSources } from "@/features/historical-library/components/PublicHistoricalSources";
 export function HistoricalEventPage() {
   const { slug = "" } = useParams();
   const q = useQuery({
@@ -14,7 +13,7 @@ export function HistoricalEventPage() {
         <p>Đang tải sự kiện…</p>
       ) : q.error ? (
         <p role="alert">
-          Không tìm thấy sự kiện đã duyệt hoặc sự kiện chưa sẵn sàng công khai.
+          Không tìm thấy sự kiện hoặc sự kiện chưa sẵn sàng công khai.
         </p>
       ) : (
         <>
@@ -24,15 +23,10 @@ export function HistoricalEventPage() {
             </p>
             <h1 className="mt-3 text-3xl font-bold">{q.data.name}</h1>
             <p className="mt-2">{q.data.timeLabel}</p>
-            <p className="mt-2 text-sm text-muted-foreground">
-              Nội dung được duyệt ngày{" "}
-              {q.data.reviewedAt.toLocaleDateString("vi-VN")}
-            </p>
           </header>
           <p className="whitespace-pre-wrap leading-relaxed">
             {q.data.summary}
           </p>
-          <PublicHistoricalSources citations={q.data.citations} />
         </>
       )}
     </main>

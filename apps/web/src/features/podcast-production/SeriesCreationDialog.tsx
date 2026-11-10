@@ -1,6 +1,6 @@
 import { useState, type FormEvent, type ReactElement } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { DEFAULT_SERIES_LANGUAGE, LanguageTagSchema } from "@repo/shared";
+import { DEFAULT_SERIES_LANGUAGE } from "@repo/shared";
 import { Button } from "@/shared/components/ui/button";
 import {
   DialogContent,
@@ -25,16 +25,12 @@ import {
   useHistoricalPhases,
 } from "@/features/historical-library/hooks/useHistoricalCatalog";
 import { useIdempotentMutation } from "@/lib/useIdempotentMutation";
-import { newIdempotencyKey } from "@/lib/idempotency";
 import { notify } from "@/shared/lib/notifications";
 import { usePodcastInvalidation } from "./hooks/usePodcastProduction";
 import {
   NATIONAL_HISTORY_TOPIC_SLUG,
   podcastProductionService as api,
 } from "./services/podcastProductionService";
-
-/** Matches the server's BCP 47 tag length limit. */
-const LANGUAGE_INPUT_MAX_CHARS = 35;
 
 interface SeriesCreationDialogProps {
   onBack: () => void;
@@ -47,17 +43,14 @@ export function SeriesCreationDialog({
 }: SeriesCreationDialogProps): ReactElement {
   const [eventId, setEventId] = useState("");
   const [phaseId, setPhaseId] = useState("");
-  const [q, setQ] = useState("");
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
-  const [language, setLanguage] = useState<string>(DEFAULT_SERIES_LANGUAGE);
-  const [chosen, setChosen] = useState<Set<string>>(new Set());
   const [savedId, setSavedId] = useState<string>();
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
   const phases = useHistoricalPhases(undefined, {}, true);
   const events = useHistoricalEntities(
-    { q, historicalPhaseId: phaseId },
+    { historicalPhaseId: phaseId },
     Boolean(phaseId),
   );
   const event = useHistoricalEvent(eventId);
@@ -80,10 +73,6 @@ export function SeriesCreationDialog({
       );
       return;
     }
-    if (!LanguageTagSchema.safeParse(language).success) {
-      setError("Ngôn ngữ phải là mã BCP 47 hợp lệ, ví dụ vi hoặc en-US.");
-      return;
-    }
     if (!topic) {
       setError("Chưa có chủ đề Lịch sử dân tộc trong hệ thống.");
       return;
@@ -100,7 +89,7 @@ export function SeriesCreationDialog({
             primaryHistoricalEventId: eventId,
             historicalPhaseId: phaseId,
             topicId: topic.id,
-            language: language.trim(),
+            language: DEFAULT_SERIES_LANGUAGE,
             startYear: event.data?.startYear,
             endYear: event.data?.endYear,
           })
@@ -114,24 +103,9 @@ export function SeriesCreationDialog({
           description: description.trim(),
           primaryHistoricalEventId: eventId,
           topicId: topic.id,
-          language: language.trim(),
+          language: DEFAULT_SERIES_LANGUAGE,
           baseUpdatedAt: current.updatedAt,
         });
-      }
-      const current = await api.detail(id);
-      for (const citationId of chosen) {
-        const citation = event.data?.citations.find(
-          (item) => item.id === citationId,
-        );
-        if (
-          citation &&
-          !current.sources.some(
-            (source) =>
-              source.source.id === citation.sourceId &&
-              source.locator === citation.locator,
-          )
-        )
-          await api.addCitation(id, citationId, newIdempotencyKey());
       }
       await invalidate();
       notify.success({ title: "Đã tạo series." });
@@ -150,7 +124,7 @@ export function SeriesCreationDialog({
       <DialogHeader className="shrink-0 border-b border-mod-border px-5 py-4 pr-16">
         <DialogTitle>Tạo series</DialogTitle>
         <DialogDescription className="text-mod-text-secondary">
-          Tạo series từ một sự kiện lịch sử và chọn nguồn tư liệu sử dụng chung cho các tập.
+          Tạo series từ một sự kiện lịch sử.
         </DialogDescription>
       </DialogHeader>
       <form
@@ -199,12 +173,10 @@ export function SeriesCreationDialog({
               id="series-language"
               aria-label="Ngôn ngữ series"
               className={formField}
-              value={language}
-              disabled={busy}
-              maxLength={LANGUAGE_INPUT_MAX_CHARS}
-              onChange={(changeEvent) => setLanguage(changeEvent.target.value)}
+              value="Tiếng Việt"
+              disabled
+              readOnly
             />
-            <p className="mt-1 text-xs text-mod-text-secondary">Mã ngôn ngữ BCP 47, ví dụ vi hoặc en-US. Mặc định vi (tiếng Việt).</p>
           </FormField>
           <FormField label="Giai đoạn" htmlFor="series-phase">
             <ModeratorSelect
@@ -215,8 +187,6 @@ export function SeriesCreationDialog({
               onValueChange={(value) => {
                 setPhaseId(value);
                 setEventId("");
-                setQ("");
-                setChosen(new Set());
               }}
               options={
                 phases.data?.pages.flatMap((page) =>
@@ -242,19 +212,7 @@ export function SeriesCreationDialog({
               Tải thêm giai đoạn
             </Button>
           ) : null}
-          <div className="grid items-end gap-4 sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)]">
-            <FormField label="Tìm sự kiện" htmlFor="series-event-search">
-              <Input
-                id="series-event-search"
-                type="search"
-                aria-label="Tìm sự kiện"
-                className={formField}
-                value={q}
-                disabled={!phaseId || busy}
-                onChange={(changeEvent) => setQ(changeEvent.target.value)}
-              />
-            </FormField>
-            <FormField label="Sự kiện lịch sử" htmlFor="series-event">
+          <FormField label="Sự kiện lịch sử" htmlFor="series-event">
               <ModeratorSelect
                 id="series-event"
                 label="Sự kiện lịch sử"
@@ -262,7 +220,6 @@ export function SeriesCreationDialog({
                 disabled={!phaseId || busy}
                 onValueChange={(value) => {
                   setEventId(value);
-                  setChosen(new Set());
                 }}
                 options={
                   events.data?.pages.flatMap((page) =>
@@ -280,8 +237,7 @@ export function SeriesCreationDialog({
                   phaseId ? "Chọn sự kiện lịch sử" : "Chọn giai đoạn trước"
                 }
               />
-            </FormField>
-          </div>
+          </FormField>
           {phaseId && events.hasNextPage ? (
             <Button
               type="button"
@@ -294,42 +250,6 @@ export function SeriesCreationDialog({
             >
               Tải thêm sự kiện
             </Button>
-          ) : null}
-          {event.data ? (
-            <section className="space-y-3 border-t border-mod-border pt-4">
-              <div>
-                <h2 className="font-semibold">Nguồn tư liệu của sự kiện</h2>
-                <p className="mt-1 text-xs text-mod-text-secondary">
-                  {event.data.readiness.ready
-                    ? "Sự kiện đủ điều kiện làm cơ sở phát hành."
-                    : "Có thể tạo nháp; sự kiện cần hoàn tất kiểm duyệt trước khi phát hành."}
-                </p>
-              </div>
-              {event.data.citations.length ? (
-                event.data.citations.map((citation) => (
-                  <label key={citation.id} className="flex items-start gap-2 text-sm">
-                    <input
-                      type="checkbox"
-                      disabled={busy}
-                      checked={chosen.has(citation.id)}
-                      onChange={(changeEvent) =>
-                        setChosen((current) => {
-                          const next = new Set(current);
-                          if (changeEvent.target.checked) next.add(citation.id);
-                          else next.delete(citation.id);
-                          return next;
-                        })
-                      }
-                    />
-                    <span>
-                      {citation.source.title} · {citation.locator || "Chưa có vị trí trích"}
-                    </span>
-                  </label>
-                ))
-              ) : (
-                <p className="text-sm text-mod-text-secondary">Sự kiện chưa có nguồn tư liệu.</p>
-              )}
-            </section>
           ) : null}
           {phases.error || events.error || event.error || topics.error ? (
             <p role="alert" className="text-sm text-mod-danger">

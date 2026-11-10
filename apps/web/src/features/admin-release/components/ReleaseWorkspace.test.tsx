@@ -25,8 +25,8 @@ it("creates a schedule with a release time, production deadline and moderator", 
         moderators={[{ id: "mod-1", name: "Nguyễn An", email: "an@example.org" }]}
         initialValues={{
           title: "",
-          productionDeadline: "2026-10-19T20:00",
-          scheduledAt: "2026-10-20T20:00",
+          productionDeadline: "2099-10-19T20:00",
+          scheduledAt: "2099-10-20T20:00",
           moderatorId: "",
         }}
         onSubmit={submit}
@@ -71,6 +71,17 @@ it("creates a schedule with a release time, production deadline and moderator", 
   expect(submitted?.moderatorId).toBe("mod-1");
   expect(new Date(submitted?.productionDeadline ?? "").getTime())
     .toBeLessThan(new Date(submitted?.scheduledAt ?? "").getTime());
+});
+
+it("prevents creating schedules with past dates", async () => {
+  const submit = mock(() => Promise.resolve());
+  const host = document.createElement("div");
+  document.body.append(host);
+  root = createRoot(host);
+  await act(async () => root?.render(<ReleaseScheduleForm moderators={[{ id: "mod-1", name: "An", email: "an@example.org" }]} initialValues={{ title: "Lịch", productionDeadline: "2000-01-01T10:00", scheduledAt: "2000-01-02T10:00", moderatorId: "mod-1" }} onSubmit={submit} />));
+  await act(async () => host.querySelector("form")?.dispatchEvent(new Event("submit", { bubbles: true, cancelable: true })));
+  expect(submit).not.toHaveBeenCalled();
+  expect(host.querySelector('[role="alert"]')?.textContent).toContain("thời gian hiện tại");
 });
 
 it("translates technical progress events into release language", async () => {
@@ -125,13 +136,13 @@ it("does not render release action errors as a full-width page alert", async () 
     setTo: mock(() => undefined),
     tablePage: 1,
     setTablePage: mock(() => undefined),
-    boardPages: { SCHEDULED: 1, READY_TO_PUBLISH: 1, PUBLISHING: 1, RELEASED: 1 },
+    boardPages: { SCHEDULED: 1, READY_TO_PUBLISH: 1, RELEASED: 1, FAILED: 1 },
     setBoardPage: mock(() => undefined),
     board: {
       columns: {
         SCHEDULED: emptyColumn,
         READY_TO_PUBLISH: emptyColumn,
-        PUBLISHING: emptyColumn,
+        FAILED: emptyColumn,
         RELEASED: emptyColumn,
       },
       isPending: false,
@@ -153,7 +164,7 @@ it("does not render release action errors as a full-width page alert", async () 
     retry: mock(() => Promise.resolve()),
     publishNow: mock(() => Promise.resolve()),
     cancel: mock(() => Promise.resolve()),
-    boardStatuses: ["SCHEDULED", "READY_TO_PUBLISH", "PUBLISHING", "RELEASED"],
+    boardStatuses: ["SCHEDULED", "READY_TO_PUBLISH", "RELEASED", "FAILED"],
     busy: false,
   } as unknown as ReturnType<typeof useReleaseWorkspace>;
   const host = document.createElement("div");

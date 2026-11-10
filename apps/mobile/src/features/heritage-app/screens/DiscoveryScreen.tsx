@@ -2,14 +2,13 @@ import { useQuery } from "@tanstack/react-query";
 import { Button, Text, XStack, YStack, ZStack } from "tamagui";
 import {
   AppCard,
+  AppHeader,
   AppIcon,
   AppImage,
-  BrandMark,
   IconButton,
   PrimaryButton,
   ProgressBar,
   ScreenScroll,
-  SearchBar,
   SectionHeader,
   formatTime,
 } from "@/shared/ui";
@@ -28,7 +27,6 @@ interface DiscoveryScreenProps {
   onHistory: (periodId?: string) => void;
   onPodcast: () => void;
   onPlayer: () => void;
-  onSchedule: () => void;
 }
 
 export function DiscoveryScreen({
@@ -37,7 +35,6 @@ export function DiscoveryScreen({
   onHistory,
   onPodcast,
   onPlayer,
-  onSchedule,
 }: DiscoveryScreenProps): React.JSX.Element {
   const periodsQuery = useQuery({
     queryKey: ["history", "periods"],
@@ -51,12 +48,9 @@ export function DiscoveryScreen({
   const ratio = playback.duration > 0 ? (playback.position / playback.duration) * 100 : 0;
 
   return (
-    <ScreenScroll>
-      <XStack pt="$1" items="center" g="$2">
-        <BrandMark />
-        <YStack f={1}><SearchBar /></YStack>
-        <IconButton icon="user" label="Tài khoản" onPress={onSchedule} light />
-      </XStack>
+    <YStack f={1} bg="$paper">
+      <AppHeader title="Khám phá" />
+      <ScreenScroll>
 
       <AppCard dark onPress={() => onHistory()}>
         <ZStack h="$16">
@@ -131,19 +125,6 @@ export function DiscoveryScreen({
                   >
                     <AppIcon name="rotate-cw" size={19} />
                     <Text pos="absolute" color="$ink" fs={7} fw="$7">15</Text>
-                  </Button>
-                  <Button
-                    unstyled
-                    pos="absolute"
-                    r={-8}
-                    w={44}
-                    h={44}
-                    items="center"
-                    justify="center"
-                    onPress={onPlayer}
-                    aria-label="Tùy chọn"
-                  >
-                    <AppIcon name="more-horizontal" size={20} />
                   </Button>
                 </ZStack>
               </YStack>
@@ -226,7 +207,8 @@ export function DiscoveryScreen({
           </XStack>
         </ZStack>
       </YStack>
-    </ScreenScroll>
+      </ScreenScroll>
+    </YStack>
   );
 }
 

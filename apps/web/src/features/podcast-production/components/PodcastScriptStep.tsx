@@ -19,6 +19,7 @@ import {
 import { uploadCatalogMedia } from "@/features/historical-library/services/catalogMediaService";
 import { newIdempotencyKey } from "@/lib/idempotency";
 import { Button } from "@/shared/components/ui/button";
+import { notify } from "@/shared/lib/notifications";
 import { cn } from "@/lib/utils";
 import type { PodcastCreationWizard } from "../hooks/usePodcastCreationWizard";
 import {
@@ -89,16 +90,19 @@ export function PodcastScriptStep({
   const wordsPerMinute = useWordsPerMinute();
   const dockWide = dock === "wide" || rewriteRange !== null || aiTab === "draft";
 
-  const persistScript = async (): Promise<void> => {
+  const persistScript = async (manual = false): Promise<void> => {
     setSaving(true);
     setError("");
     try {
       await wizard.saveScript(wizard.state.scriptDocument ?? emptyScriptDocument());
       setSaveState("saved");
       setSavedAt(new Date());
+      if (manual) notify.success({ title: "Đã lưu kịch bản" });
     } catch (caught) {
       setSaveState("error");
-      setError(caught instanceof Error ? caught.message : "Không lưu được kịch bản.");
+      const message = caught instanceof Error ? caught.message : "Không lưu được kịch bản.";
+      setError(message);
+      if (manual) notify.error({ title: "Không thể lưu kịch bản", description: message });
     } finally {
       setSaving(false);
     }
@@ -130,7 +134,9 @@ export function PodcastScriptStep({
         current.filter((entry) => entry.id !== item.id),
       );
       await invalidate();
+      notify.success({ title: "Đã thêm tài liệu", description: item.file.name });
     } catch (caught) {
+      notify.error({ title: "Không thể thêm tài liệu", description: caught instanceof Error ? caught.message : "Không tải được tài liệu." });
       setPendingDocuments((current) =>
         current.map((entry) =>
           entry.id === item.id
@@ -154,7 +160,10 @@ export function PodcastScriptStep({
       accepted.push({ id: crypto.randomUUID(), file, status: "waiting" });
     }
     setPendingDocuments((current) => [...current, ...accepted]);
-    if (rejected.length) setError("Chỉ hỗ trợ tài liệu PDF, DOC hoặc DOCX.");
+    if (rejected.length) {
+      setError("Chỉ hỗ trợ tài liệu PDF, DOC hoặc DOCX.");
+      notify.warning({ title: "Định dạng tài liệu không được hỗ trợ", description: "Chỉ hỗ trợ tài liệu PDF, DOC hoặc DOCX." });
+    }
     accepted.forEach((item) => void processDocument(item));
     event.target.value = "";
   };
@@ -164,8 +173,11 @@ export function PodcastScriptStep({
     try {
       await api.removeDocument(wizard.state.episodeId, attachmentId);
       await invalidate();
+      notify.success({ title: "Đã gỡ tài liệu" });
     } catch (caught) {
-      setError(caught instanceof Error ? caught.message : "Không gỡ được tài liệu.");
+      const message = caught instanceof Error ? caught.message : "Không gỡ được tài liệu.";
+      setError(message);
+      notify.error({ title: "Không thể gỡ tài liệu", description: message });
     }
   };
 
@@ -202,7 +214,7 @@ export function PodcastScriptStep({
           <p className="mt-1 text-sm text-mod-text-secondary">Soạn nội dung, gắn nguồn và tải tài liệu bổ sung.</p>
           {characterCount === 0 ? (
             <Button type="button" variant="outline" size="sm" className="mt-2" onClick={() => wizard.dispatch({ type: "setDialogue", value: newDialogue() })}>
-              Chuyển sang hội thoại hai người
+              Chuyển sang hội thoại nhiều người
             </Button>
           ) : null}
         </div>
@@ -233,7 +245,7 @@ export function PodcastScriptStep({
                   <PopoverTrigger asChild>
                     <Button type="button" size="sm" variant="outline">Nguồn ({sources.length})</Button>
                   </PopoverTrigger>
-                  <PopoverContent align="end" className="w-80 p-3.5">
+                  <PopoverContent align="end" className="max-h-[min(32rem,var(--radix-popover-content-available-height))] w-80 overflow-y-auto p-3.5">
                     <ScriptSourcesPanel sources={sources} onInsert={(sourceId) => editorRef.current?.insertCitation(sourceId)} />
                   </PopoverContent>
                 </Popover>
@@ -266,7 +278,7 @@ export function PodcastScriptStep({
             </p>
           ) : null}
           <div className="flex justify-end">
-            <Button type="button" variant="outline" disabled={saving} onClick={() => void persistScript()}>
+            <Button type="button" variant="outline" disabled={saving} onClick={() => void persistScript(true)}>
               {saving ? <LoaderCircle className="animate-spin" aria-hidden="true" /> : <Save aria-hidden="true" />}
               Lưu kịch bản
             </Button>

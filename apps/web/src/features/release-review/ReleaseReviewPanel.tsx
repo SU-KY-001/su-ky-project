@@ -1,38 +1,18 @@
-import { useState, type ReactElement } from "react";
+import { type ReactElement } from "react";
 import { ArrowSquareOut } from "@phosphor-icons/react/dist/icons/ArrowSquareOut";
 import { CheckCircle } from "@phosphor-icons/react/dist/icons/CheckCircle";
 import { FileText } from "@phosphor-icons/react/dist/icons/FileText";
-import { Info } from "@phosphor-icons/react/dist/icons/Info";
-import { Warning } from "@phosphor-icons/react/dist/icons/Warning";
 import { XCircle } from "@phosphor-icons/react/dist/icons/XCircle";
-import type { AudioOrigin, EpisodeReadiness, EpisodeWorkspaceDto, ReadinessItem, ReviewContent, ReviewEpisodeRequest } from "@repo/shared";
+import type { EpisodeWorkspaceDto, ReviewContent, ReviewEpisodeRequest } from "@repo/shared";
 import { Button } from "@/shared/components/ui/button";
 import { Textarea } from "@/shared/components/ui/textarea";
-import { cn } from "@/lib/utils";
 import { useCurrentUser } from "@/shared/hooks/useCurrentUser";
-import { voiceName } from "@/features/podcast-production/voice/voiceLabels";
 import { CollapsibleScript } from "./CollapsibleScript";
-import { AI_READINESS_KEYS, formatClock, readinessLabels, STATE_LABEL } from "./readinessLabels";
+import { ReviewAudio } from "./ReviewAudio";
 
 export type ReviewDecisionInput = ReviewEpisodeRequest;
 
-/** Which file and which voice/model made the recording, so the reviewer judges AI audio as AI audio. */
-function AudioOriginLine({ origin }: { origin: AudioOrigin | undefined }): ReactElement {
-  if (origin?.kind === "AI_VOICE") {
-    return <p className="text-xs font-semibold text-mod-attention">Giọng đọc AI: {voiceName(origin.voice)} · mô hình {origin.model} · {origin.chars.toLocaleString("vi-VN")} ký tự. Người nghe cần được thông báo.</p>;
-  }
-  if (origin?.kind === "UPLOAD") return <p className="text-xs text-mod-text-secondary">Tải lên từ máy: {origin.fileName}</p>;
-  return <p className="text-xs text-mod-text-secondary">Chưa ghi nhận nguồn của bản thu (gắn trước khi hệ thống lưu thông tin này).</p>;
-}
-
-const NARRATION_TITLE = { THIRD_PERSON: "Lời kể ngôi thứ ba", FIRST_PERSON: "Lời kể ngôi thứ nhất" } as const;
 const NOTE_MAX_CHARS = 5000;
-
-const STATE_PILL_CLASS = {
-  ok: "bg-mod-success/10 text-mod-success",
-  warn: "bg-mod-attention/10 text-mod-attention",
-  missing: "bg-mod-danger/10 text-mod-danger",
-} as const;
 
 export function EpisodeReviewBody({ episode }: { episode: EpisodeWorkspaceDto }): ReactElement {
   return (
@@ -45,16 +25,12 @@ export function EpisodeReviewBody({ episode }: { episode: EpisodeWorkspaceDto })
       {episode.narrations.length ? (
         episode.narrations.map((narration) => (
           <section key={narration.id} className="space-y-3 border-t border-mod-border pt-5">
-            <h3 className="text-sm font-semibold">{NARRATION_TITLE[narration.type]}{narration.narrator ? ` · ${narration.narrator.name}` : ""}</h3>
+            <h3 className="text-sm font-semibold">Bản thu âm podcast</h3>
             <div className="space-y-2">
-              <h4 className="text-xs font-semibold text-mod-text-secondary">Bản thu âm</h4>
               {narration.audio?.previewUrl ? (
                 <>
-                  <audio controls preload="none" src={narration.audio.previewUrl} className="w-full" aria-label={`Nghe bản thu ${narration.type === "THIRD_PERSON" ? "ngôi thứ ba" : "ngôi thứ nhất"}`} />
-                  {narration.audio.durationMs ? <p className="text-xs text-mod-text-secondary">{formatClock(narration.audio.durationMs)}</p> : null}
-                  <AudioOriginLine origin={narration.audioAnalysis?.origin} />
+                  <ReviewAudio key={narration.audio.previewUrl} src={narration.audio.previewUrl} />
                   {narration.warnings.some(({ key }) => key === "SCRIPT_CHANGED_AFTER_AUDIO") ? <p role="alert" className="text-xs font-semibold text-mod-attention">Kịch bản đã sửa sau khi gắn âm thanh: hãy nghe lại và ghi kết luận bản nghe.</p> : null}
-                  <p className="text-xs text-mod-text-secondary">Hệ thống không biết bạn đã nghe bao nhiêu, nên không có ô tick nghe xong.</p>
                 </>
               ) : <p className="text-sm text-mod-text-secondary">Chưa có bản thu âm để nghe.</p>}
             </div>
@@ -91,44 +67,6 @@ export function EpisodeReviewBody({ episode }: { episode: EpisodeWorkspaceDto })
   );
 }
 
-const STATE_ICON: Record<ReadinessItem["state"], ReactElement> = {
-  OK: <CheckCircle size={16} weight="fill" className="shrink-0 text-mod-success" aria-label="Đạt" />,
-  MISSING: <XCircle size={16} weight="fill" className="shrink-0 text-mod-danger" aria-label="Thiếu" />,
-  WARN: <Warning size={16} weight="fill" className="shrink-0 text-mod-attention" aria-label="Cần xem" />,
-  INFO: <Info size={16} className="shrink-0 text-mod-text-secondary" aria-label="Thông tin" />,
-};
-
-function Group({ title, items }: { title: string; items: Array<{ item: ReadinessItem; text: string }> }): ReactElement | null {
-  if (!items.length) return null;
-  return (
-    <section aria-label={title} className="space-y-2">
-      <h4 className="text-xs font-bold uppercase tracking-wide text-mod-text-secondary">{title}</h4>
-      <ul className="space-y-1.5">
-        {items.map(({ item, text }, index) => (
-          <li key={`${item.key}-${index}`} className="flex items-start gap-2 text-sm leading-5">{STATE_ICON[item.state]}<span className="min-w-0 flex-1">{text}</span>{STATE_LABEL[item.state] ? <span className={cn("shrink-0 rounded-full px-2 py-0.5 text-xs font-bold", STATE_PILL_CLASS[STATE_LABEL[item.state]!.tone])}>{STATE_LABEL[item.state]!.text}</span> : null}</li>
-        ))}
-      </ul>
-    </section>
-  );
-}
-
-export function ReadinessColumn({ readiness }: { readiness: EpisodeReadiness }): ReactElement {
-  const rows = readiness.items.flatMap((item) => {
-    const text = readinessLabels[item.key](item);
-    return text ? [{ item, text }] : [];
-  });
-  const plain = rows.filter(({ item }) => !AI_READINESS_KEYS.has(item.key));
-  return (
-    <div className="grid gap-x-8 gap-y-4 md:grid-cols-2">
-      <h3 className="text-sm font-bold md:col-span-2">Tình trạng tập</h3>
-      <Group title="Cần có" items={plain.filter(({ item }) => item.level === "REQUIRED")} />
-      <Group title="Cần xem" items={plain.filter(({ item }) => item.level === "WARNING")} />
-      <Group title="Thông tin" items={plain.filter(({ item }) => item.level === "INFO")} />
-      <Group title="AI hỗ trợ (nghi ngờ, chưa xác minh)" items={rows.filter(({ item }) => AI_READINESS_KEYS.has(item.key))} />
-    </div>
-  );
-}
-
 interface Props {
   content: ReviewContent;
   /** False when the pending review is for an older revision than the episode now has. */
@@ -144,8 +82,7 @@ export function ReleaseReviewPanel({ content, validRevision, pending, note, onNo
   const { data: user } = useCurrentUser();
   return (
     <div className="space-y-6">
-      {user ? <p className="text-xs text-mod-text-secondary">Người duyệt: <b className="text-mod-text">{user.name}</b> (không phải người sản xuất, không phải AI)</p> : null}
-      <div className="rounded-xl border border-mod-border p-4"><ReadinessColumn readiness={content.readiness} /></div>
+      {user ? <p className="text-xs text-mod-text-secondary">Người duyệt: <b className="text-mod-text">{user.name}</b></p> : null}
       <EpisodeReviewBody episode={content.episode} />
       {validRevision ? (
         <div className="space-y-2 border-t border-mod-border pt-5 font-moderator">
@@ -172,21 +109,22 @@ interface DecisionProps {
   ready: boolean;
   validRevision: boolean;
   reviewRevision: number;
+  reviewId: string;
   pending: boolean;
   note: string;
   onDecide: (input: ReviewDecisionInput) => void;
 }
 
 /** The two review decisions, rendered in the dialog footer next to "Đóng". */
-export function ReviewDecisionButtons({ ready, validRevision, reviewRevision, pending, note, onDecide }: DecisionProps): ReactElement | null {
+export function ReviewDecisionButtons({ ready, validRevision, reviewRevision, reviewId, pending, note, onDecide }: DecisionProps): ReactElement | null {
   if (!validRevision) return null;
   const trimmed = note.trim();
   return (
     <>
-      <Button type="button" variant="outline" disabled={pending || !trimmed} onClick={() => onDecide({ decision: "REQUEST_CHANGES", contentRevision: reviewRevision, reviewNote: trimmed })}>
+      <Button type="button" variant="outline" disabled={pending || !trimmed} onClick={() => onDecide({ decision: "REQUEST_CHANGES", reviewId, contentRevision: reviewRevision, reviewNote: trimmed })}>
         <XCircle size={17} />Yêu cầu chỉnh sửa
       </Button>
-      <Button type="button" disabled={pending || !ready} onClick={() => onDecide({ decision: "APPROVE", contentRevision: reviewRevision, reviewNote: trimmed || null })}>
+      <Button type="button" className="bg-mod-success text-white hover:bg-mod-success/90" disabled={pending || !ready} onClick={() => onDecide({ decision: "APPROVE", reviewId, contentRevision: reviewRevision, reviewNote: trimmed || null })}>
         <CheckCircle size={17} />{pending ? "Đang xử lý…" : "Duyệt nội dung"}
       </Button>
     </>

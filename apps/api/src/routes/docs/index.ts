@@ -18,6 +18,7 @@ import { adminPaths } from "./paths/admin";
 import { gamificationPaths } from "./paths/gamification";
 import { showcasePaths } from "./paths/showcase";
 import { exhibitionPaths } from "./paths/exhibitions";
+import { playlistPaths } from "./paths/playlists";
 
 const SCALAR_THEME = "saturn";
 
@@ -73,9 +74,10 @@ const TAGS = [
   { name: "System", description: "Kiểm tra trạng thái hệ thống" },
   { name: "Authentication", description: "Better Auth, phiên đăng nhập và tài khoản hiện tại" },
   { name: "Admin", description: "Endpoint riêng cho Admin" },
-  { name: "Release Coordination", description: "Điều phối, kiểm duyệt và tự động phát hành podcast" },
+  { name: "Release Coordination", description: "Điều phối, kiểm duyệt và phát hành podcast thủ công" },
   { name: "Catalog", description: "Danh mục công khai: chủ đề và giai đoạn lịch sử" },
   { name: "Listening", description: "Duyệt nội dung, phát audio, đồng bộ tiến độ và lịch sử nghe" },
+  { name: "Playlists", description: "Playlist riêng tư gồm các tập podcast của tài khoản hiện tại" },
   { name: "Quiz", description: "Moderator biên tập quiz; người nghe làm và nhận XP" },
   { name: "Missions", description: "Nhiệm vụ tuần và tiến độ game hóa của người nghe" },
   { name: "Studio Series", description: "Moderator biên tập Series: tạo, sửa, xuất bản, ẩn, thùng rác, sắp xếp tập, nguồn tham khảo của Series" },
@@ -83,12 +85,13 @@ const TAGS = [
   { name: "Studio Catalog", description: "Kho nguồn tham khảo và thực thể lịch sử dùng chung" },
   { name: "Studio Media", description: "Upload và xác minh audio, ảnh, PDF qua Cloudinary" },
   { name: "Studio AI", description: "Trợ lý AI cho moderator: rà kịch bản đối chiếu nguồn đã xác minh (cảnh báo mềm, không tự sửa)" },
+  { name: "Exhibitions", description: "Triển lãm 3D đã công khai cho người nghe" },
   { name: "Studio Exhibitions", description: "Moderator quản lý triển lãm 3D" },
 ] as const;
 
 const TAG_GROUPS = [
   { name: "Hệ thống và tài khoản", tags: ["System", "Authentication", "Admin", "Release Coordination"] },
-  { name: "Người nghe", tags: ["Catalog", "Listening", "Quiz", "Missions"] },
+  { name: "Người nghe", tags: ["Catalog", "Listening", "Quiz", "Missions", "Playlists", "Exhibitions"] },
   { name: "Studio (Moderator)", tags: ["Studio Series", "Studio Episodes", "Studio Catalog", "Studio Media", "Studio AI", "Studio Exhibitions"] },
 ] as const;
 
@@ -100,6 +103,7 @@ const allPaths: Paths = {
   ...gamificationPaths,
   ...showcasePaths,
   ...exhibitionPaths,
+  ...playlistPaths,
   ...catalogPaths,
   ...historicalCatalogPaths,
   ...listeningPaths,

@@ -7,7 +7,7 @@ function catalog(createdById: string | null): HistoricalCatalogService {
     id: "11111111-1111-4111-8111-111111111111", name: "Nội dung lịch sử", slug: "noi-dung-lich-su", summary: "Dữ liệu ban đầu",
     time: { kind: "UNKNOWN", note: "Chưa xác định" }, startYear: null, endYear: null, version: 1, createdById,
     updatedAt: new Date(), deletedAt: null, isActive: true, sortOrder: 0, periodId: null, historicalPhaseId: null,
-    entityType: null, aliases: [], reviewStatus: "DRAFT", reviewedVersion: null, reviewedAt: null, reviewNote: null,
+    entityType: null, aliases: [],
   };
   const repository: HistoricalCatalogRepository = {
     get: async () => node,

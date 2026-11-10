@@ -32,7 +32,7 @@ export function Textarea({ autoGrow = false, className, onInput, ref, rows, valu
       onInput?.(event);
     }}
     className={cn(
-      "flex min-h-24 w-full min-w-0 rounded-md border border-input bg-transparent px-3 py-2 text-base shadow-xs outline-none transition-[color,background-color,box-shadow,border-color] placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/50 disabled:cursor-not-allowed disabled:border-border disabled:bg-muted disabled:text-muted-foreground disabled:opacity-100 read-only:cursor-not-allowed read-only:border-border read-only:bg-muted read-only:text-muted-foreground read-only:shadow-none aria-invalid:border-destructive md:text-sm",
+      "flex min-h-24 w-full min-w-0 rounded-md border border-input bg-transparent px-3 py-2 text-base shadow-xs outline-none transition-[color,background-color,box-shadow,border-color] placeholder:text-placeholder placeholder:font-normal focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/50 disabled:cursor-not-allowed disabled:border-border disabled:bg-muted disabled:text-muted-foreground disabled:opacity-100 read-only:cursor-not-allowed read-only:border-border read-only:bg-muted read-only:text-muted-foreground read-only:shadow-none aria-invalid:border-destructive md:text-sm",
       autoGrow && "resize-none overflow-hidden",
       className,
     )}

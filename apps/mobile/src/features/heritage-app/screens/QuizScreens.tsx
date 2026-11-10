@@ -1,9 +1,10 @@
 import { useMemo, useRef, useState } from "react";
 import type { ImageSourcePropType } from "react-native";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Button, ScrollView, Text, XStack, YStack, ZStack } from "tamagui";
+import { Button, Input, ScrollView, Text, XStack, YStack, ZStack } from "tamagui";
 import { AppCard, AppHeader, AppIcon, AppImage, Chip, PrimaryButton, ProgressBar, ScreenScroll } from "@/shared/ui";
 import { createUuid, fallbackEventImage, podcastApi, type PublicQuizCard, type QuizAttemptResult } from "../podcastApi";
+import { buildQuizAttemptAnswers, hasQuizAnswer, toggleMultipleAnswer, type QuizAnswer } from "../quizAnswers";
 
 const CORRECT = "#55714A";
 
@@ -43,14 +44,9 @@ export function QuizListScreen({ onPlayEpisodeQuiz }: { onPlayEpisodeQuiz: (epis
   }, [allQuizzesQuery.data]);
 
   return (
-    <ScreenScroll>
-      <AppHeader rightIcon="search" onRight={() => undefined} />
-      <YStack g="$1">
-        <Text color="$bronzeDark" fs={10} fw="$7" ls="$1">HỌC BẰNG THỬ THÁCH</Text>
-        <Text color="$ink" fs="$5" lh="$5" fw="$7">Chọn một bộ quiz để bắt đầu</Text>
-        <Text color="$inkSoft" fs="$1" lh="$2">Dữ liệu quiz được cập nhật trực tiếp từ các tập podcast đã xuất bản.</Text>
-      </YStack>
-
+    <YStack f={1} bg="$paper">
+      <AppHeader title="Quiz" />
+      <ScreenScroll>
       {topics.length > 0 ? (
         <ScrollView horizontal showsHorizontalScrollIndicator={false}>
           <XStack g="$1.5">
@@ -104,7 +100,8 @@ export function QuizListScreen({ onPlayEpisodeQuiz }: { onPlayEpisodeQuiz: (epis
           <Text color="$inkSoft" fs="$1">Hãy chọn chủ đề khác để tiếp tục.</Text>
         </YStack>
       )}
-    </ScreenScroll>
+      </ScreenScroll>
+    </YStack>
   );
 }
 
@@ -118,7 +115,7 @@ interface EpisodeQuizScreenProps {
 export function EpisodeQuizScreen({ episode, signedIn, onBack, onRequireAuth }: EpisodeQuizScreenProps): React.JSX.Element {
   const queryClient = useQueryClient();
   const [currentIndex, setCurrentIndex] = useState(0);
-  const [answers, setAnswers] = useState<Record<string, string>>({});
+  const [answers, setAnswers] = useState<Record<string, QuizAnswer>>({});
   const idempotencyKey = useRef(createUuid());
   const quizQuery = useQuery({
     queryKey: ["podcast", "quiz", episode.slug],
@@ -131,7 +128,7 @@ export function EpisodeQuizScreen({ episode, signedIn, onBack, onRequireAuth }: 
       if (!quiz) throw new Error("Chưa có dữ liệu quiz");
       return podcastApi.attempt(
         quiz.id,
-        quiz.questions.map((question) => ({ questionId: question.id, optionId: answers[question.id] ?? null })),
+        buildQuizAttemptAnswers(quiz.questions, answers),
         idempotencyKey.current,
       );
     },
@@ -203,14 +200,25 @@ export function EpisodeQuizScreen({ episode, signedIn, onBack, onRequireAuth }: 
             <Text color="$ink" fs="$3" fw="$7">Đáp án và lời giải</Text>
             {result.answers.map((answer, index) => {
               const question = quiz.questions.find((item) => item.id === answer.questionId);
-              const selected = question?.options.find((item) => item.id === answer.selectedOptionId);
-              const correct = question?.options.find((item) => item.id === answer.correctOptionId);
+              const selectedIds = answer.selectedOptionIds ?? (answer.selectedOptionId ? [answer.selectedOptionId] : []);
+              const correctIds = answer.correctOptionIds ?? [answer.correctOptionId];
               return (
                 <AppCard key={answer.questionId}>
                   <YStack p="$3" g="$1">
                     <Text color="$ink" fs="$2" fw="$7">{index + 1}. {question?.text}</Text>
-                    <Text color={answer.isCorrect ? CORRECT : "$vermilion"} fs="$1">Bạn chọn: {selected?.label}. {selected?.text}</Text>
-                    {!answer.isCorrect ? <Text color="$ink" fs="$1">Đáp án đúng: {correct?.label}. {correct?.text}</Text> : null}
+                    {question?.kind === "TEXT" ? (
+                      <>
+                        <Text color={answer.isCorrect ? CORRECT : "$vermilion"} fs="$1">Bạn trả lời: {answer.selectedText || "Chưa trả lời"}</Text>
+                        {!answer.isCorrect ? <Text color="$ink" fs="$1">Đáp án được chấp nhận: {answer.acceptedAnswers?.join(" · ")}</Text> : null}
+                      </>
+                    ) : (
+                      <>
+                        <Text color={answer.isCorrect ? CORRECT : "$vermilion"} fs="$1">
+                          Bạn chọn: {question?.options.filter((item) => selectedIds.includes(item.id)).map((item) => `${item.label}. ${item.text}`).join(" · ") || "Chưa chọn"}
+                        </Text>
+                        {!answer.isCorrect ? <Text color="$ink" fs="$1">Đáp án đúng: {question?.options.filter((item) => correctIds.includes(item.id)).map((item) => `${item.label}. ${item.text}`).join(" · ")}</Text> : null}
+                      </>
+                    )}
                     {answer.explanation ? <Text color="$inkSoft" fs={11} lh={16}>{answer.explanation}</Text> : null}
                   </YStack>
                 </AppCard>
@@ -224,7 +232,8 @@ export function EpisodeQuizScreen({ episode, signedIn, onBack, onRequireAuth }: 
   }
 
   const currentQuestion = quiz.questions[currentIndex];
-  const selectedOptionId = answers[currentQuestion.id];
+  const currentAnswer = answers[currentQuestion.id];
+  const answered = hasQuizAnswer(currentAnswer);
   const isLastQuestion = currentIndex === quiz.questions.length - 1;
   const progressPercent = Math.round(((currentIndex + 1) / quiz.questions.length) * 100);
 
@@ -245,23 +254,48 @@ export function EpisodeQuizScreen({ episode, signedIn, onBack, onRequireAuth }: 
           <XStack items="center" justify="space-between"><Text color="$inkSoft" fs={11} fw="$6">Câu {currentIndex + 1} / {quiz.questions.length}</Text><Text color="$inkSoft" fs={11}>{progressPercent}%</Text></XStack>
           <ProgressBar value={progressPercent} />
           <Text color="$ink" fs="$4" lh={24} fw="$7">{currentQuestion.text}</Text>
-          <YStack g="$2">
+          {currentQuestion.kind === "MULTIPLE" ? <Text color="$inkSoft" fs={11}>Chọn tất cả đáp án đúng.</Text> : null}
+          {currentQuestion.kind === "TEXT" ? (
+            <Input
+              value={typeof currentAnswer === "string" ? currentAnswer : ""}
+              onChangeText={(value) => setAnswers((previous) => {
+                const next = { ...previous };
+                if (value) next[currentQuestion.id] = value;
+                else delete next[currentQuestion.id];
+                return next;
+              })}
+              maxLength={1000}
+              placeholder="Nhập câu trả lời của bạn"
+              bg="$paperSoft"
+              color="$ink"
+              bc="$line"
+              minH={54}
+              accessibilityLabel="Câu trả lời"
+            />
+          ) : <YStack g="$2">
             {currentQuestion.options.map((option) => {
-              const selected = selectedOptionId === option.id;
+              const selected = Array.isArray(currentAnswer) ? currentAnswer.includes(option.id) : currentAnswer === option.id;
               return (
-                <Button key={option.id} unstyled minH={54} px="$3" py="$2.5" fd="row" items="center" g="$2.5" rounded="$5" bg={selected ? "$paperDeep" : "$paperSoft"} bw={selected ? 1.5 : 1} bc={selected ? "$vermilion" : "$line"} onPress={() => setAnswers((previous) => ({ ...previous, [currentQuestion.id]: option.id }))} pressStyle={{ op: 0.8 }}>
-                  <YStack w={30} h={30} rounded={8} bg={selected ? "$vermilion" : "$paper"} items="center" justify="center"><Text color={selected ? "$paperSoft" : "$inkSoft"} fs={12} fw="$7">{option.label}</Text></YStack>
+                <Button key={option.id} unstyled minH={54} px="$3" py="$2.5" fd="row" items="center" g="$2.5" rounded="$5" bg={selected ? "$paperDeep" : "$paperSoft"} bw={selected ? 1.5 : 1} bc={selected ? "$vermilion" : "$line"} onPress={() => setAnswers((previous) => {
+                  if (currentQuestion.kind !== "MULTIPLE") return { ...previous, [currentQuestion.id]: option.id };
+                  const nextIds = toggleMultipleAnswer(previous[currentQuestion.id], option.id);
+                  const next = { ...previous };
+                  if (nextIds.length) next[currentQuestion.id] = nextIds;
+                  else delete next[currentQuestion.id];
+                  return next;
+                })} pressStyle={{ op: 0.8 }} accessibilityRole={currentQuestion.kind === "MULTIPLE" ? "checkbox" : "radio"} accessibilityState={{ checked: selected }}>
+                  <YStack w={30} h={30} rounded={currentQuestion.kind === "MULTIPLE" ? 6 : 15} bg={selected ? "$vermilion" : "$paper"} items="center" justify="center"><Text color={selected ? "$paperSoft" : "$inkSoft"} fs={12} fw="$7">{selected && currentQuestion.kind === "MULTIPLE" ? "✓" : option.label}</Text></YStack>
                   <Text f={1} color="$ink" fs="$2" fw={selected ? "$7" : "$5"}>{option.text}</Text>
                 </Button>
               );
             })}
-          </YStack>
+          </YStack>}
           {submitMutation.isError ? <Text color="$vermilion" fs={11}>Chưa gửi được bài thi. Vui lòng thử lại.</Text> : null}
         </YStack>
       </ScrollView>
       <XStack px="$3" py="$2.5" bg="$paperSoft" borderTopWidth={1} bc="$line" items="center" justify="space-between" g="$2">
         <Button unstyled h="$4" px="$3" disabled={currentIndex === 0} op={currentIndex === 0 ? 0.4 : 1} onPress={() => setCurrentIndex((value) => Math.max(0, value - 1))}><Text color="$ink" fs="$1" fw="$6">Câu trước</Text></Button>
-        {!isLastQuestion ? <PrimaryButton label="Câu tiếp theo" disabled={!selectedOptionId} onPress={() => setCurrentIndex((value) => value + 1)} /> : <PrimaryButton label={submitMutation.isPending ? "Đang chấm bài…" : "Nộp bài"} disabled={!selectedOptionId || submitMutation.isPending} onPress={() => submitMutation.mutate()} />}
+        {!isLastQuestion ? <PrimaryButton label="Câu tiếp theo" disabled={!answered} onPress={() => setCurrentIndex((value) => value + 1)} /> : <PrimaryButton label={submitMutation.isPending ? "Đang chấm bài…" : "Nộp bài"} disabled={!quiz.questions.every((question) => hasQuizAnswer(answers[question.id])) || submitMutation.isPending} onPress={() => submitMutation.mutate()} />}
       </XStack>
     </YStack>
   );

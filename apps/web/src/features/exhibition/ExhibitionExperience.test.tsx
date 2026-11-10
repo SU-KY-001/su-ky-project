@@ -5,6 +5,7 @@ import type { ResolvedExhibition } from "@repo/shared";
 
 let sceneReady: (() => void) | undefined;
 let sceneUnavailable: (() => void) | undefined;
+let scenePause: (() => void) | undefined;
 await import("@react-three/fiber");
 const sceneModule = await import("./components/GalleryScene");
 const { ExhibitionExperience } = await import("./ExhibitionExperience");
@@ -17,14 +18,20 @@ afterEach(() => {
   if (fonts) Object.defineProperty(document, "fonts", fonts);
   else Reflect.deleteProperty(document, "fonts");
   sceneReady = undefined;
+  scenePause = undefined;
 });
 
 it("does not mount a gallery on the poster, supports cancel, then enters after the first frame", async () => {
-  spyOn(sceneModule, "GalleryScene").mockImplementation(({ onReady, onUnavailable }) => { sceneReady = onReady; sceneUnavailable = onUnavailable; return <canvas data-testid="gallery" />; });
+  spyOn(sceneModule, "GalleryScene").mockImplementation(({ onReady, onUnavailable, onPause }) => { sceneReady = onReady; sceneUnavailable = onUnavailable; scenePause = onPause; return <canvas data-testid="gallery" />; });
+  const play = spyOn(HTMLMediaElement.prototype, "play").mockImplementation(async function (this: HTMLMediaElement) { Object.defineProperty(this, "paused", { configurable: true, value: false }); });
+  const pause = spyOn(HTMLMediaElement.prototype, "pause").mockImplementation(function (this: HTMLMediaElement) { Object.defineProperty(this, "paused", { configurable: true, value: true }); });
   Object.defineProperty(document, "fonts", { configurable: true, value: { load: async () => [] } });
-  const exhibition: ResolvedExhibition = { metadata: { title: "Ký ức", subtitle: "", description: "Tư liệu", coverAssetId: null }, chapters: [{ id: "chapter", roomKey: "room-1", title: "Chương một", period: "", description: "" }], items: [] };
+  const exhibition: ResolvedExhibition = { metadata: { title: "Ký ức", subtitle: "", description: "Tư liệu", coverAssetId: null }, chapters: [{ id: "chapter", roomKey: "room-1", title: "Chương một", period: "", description: "" }], items: [], audio: { url: "https://example.com/audio.mp3" } };
   const host = document.createElement("div"); document.body.append(host); root = createRoot(host);
-  await act(async () => { root?.render(<ExhibitionExperience exhibition={exhibition} />); });
+  await act(async () => { root?.render(<ExhibitionExperience exhibition={exhibition} preview />); });
+  expect(host.querySelector(".exhibition-preview")).not.toBeNull();
+  expect(play).not.toHaveBeenCalled();
+  expect(host.querySelector('a[href="/"]')?.textContent).toContain("Về trang chủ");
   expect(host.querySelector("canvas")).toBeNull();
   expect(sceneReady).toBeUndefined();
   const button = (text: string): HTMLButtonElement => {
@@ -32,6 +39,12 @@ it("does not mount a gallery on the poster, supports cancel, then enters after t
     if (!element) throw new Error(`Missing button: ${text}`);
     return element;
   };
+  await act(async () => { button("Bước vào triển lãm").click(); });
+  expect(host.textContent).toContain("Đang chuẩn bị không gian");
+  expect(document.body.textContent).not.toContain("Hành trình triển lãm");
+  expect(play).not.toHaveBeenCalled();
+  await act(async () => { button("Quay lại giới thiệu").click(); });
+  await act(async () => { root?.render(<ExhibitionExperience exhibition={exhibition} />); });
   await act(async () => { button("Bước vào triển lãm").click(); });
   expect(document.body.textContent).toContain("Hành trình triển lãm");
   expect(host.querySelector("canvas")).toBeNull();
@@ -41,11 +54,20 @@ it("does not mount a gallery on the poster, supports cancel, then enters after t
   await act(async () => { button("Bước vào triển lãm").click(); });
   await act(async () => { button("Chương một").click(); });
   expect(host.textContent).toContain("Đang chuẩn bị không gian");
+  expect(host.querySelector('a[href="/"]')?.textContent).toContain("Về trang chủ");
   await act(async () => { button("Quay lại giới thiệu").click(); });
   expect(host.querySelector("canvas")).toBeNull();
   await act(async () => { button("Bước vào triển lãm").click(); });
   await act(async () => { button("Chương một").click(); });
+  expect(play).not.toHaveBeenCalled();
   await act(async () => { sceneReady?.(); });
+  expect(play).toHaveBeenCalledTimes(1);
+  await act(async () => { scenePause?.(); });
+  expect(host.querySelector('a[href="/"]')?.textContent).toContain("Về trang chủ");
+  expect(pause).toHaveBeenCalled();
+  expect(host.querySelector("audio")?.paused).toBe(true);
+  await act(async () => { button("Tiếp tục tham quan").click(); });
+  expect(play).toHaveBeenCalledTimes(2);
   expect(host.querySelector("canvas")).not.toBeNull();
   expect(host.textContent).not.toContain("Bước vào triển lãm");
   await act(async () => { sceneUnavailable?.(); });

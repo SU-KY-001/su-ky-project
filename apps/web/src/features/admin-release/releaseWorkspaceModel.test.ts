@@ -25,8 +25,8 @@ describe("release workspace model", () => {
     expect(RELEASE_BOARD_COLUMNS).toEqual([
       { status: "SCHEDULED", label: "Đã lên lịch" },
       { status: "READY_TO_PUBLISH", label: "Sẵn sàng phát hành" },
-      { status: "PUBLISHING", label: "Đang phát hành" },
       { status: "RELEASED", label: "Đã phát hành" },
+      { status: "FAILED", label: "Phát hành thất bại" },
     ]);
   });
 
@@ -47,17 +47,17 @@ describe("release workspace model", () => {
       "scheduled-old",
     ]);
     expect(grouped.columns.READY_TO_PUBLISH.map(({ id }) => id)).toEqual(["ready"]);
-    expect(grouped.columns.PUBLISHING.map(({ id }) => id)).toEqual(["publishing"]);
+    expect(grouped.columns.FAILED.map(({ id }) => id)).toEqual(["failed"]);
     expect(grouped.columns.RELEASED.map(({ id }) => id)).toEqual(["released"]);
-    expect(grouped.attention.map(({ id }) => id)).toEqual(["blocked", "failed"]);
+    expect(grouped.attention.map(({ id }) => id)).toEqual(["blocked"]);
   });
 
   it("permits only policy-backed forward drop commands", () => {
     expect(getReleaseDropCommand("SCHEDULED", "READY_TO_PUBLISH")).toBe("check-readiness");
-    expect(getReleaseDropCommand("READY_TO_PUBLISH", "PUBLISHING")).toBe("publish-now");
+    expect(getReleaseDropCommand("READY_TO_PUBLISH", "FAILED")).toBeNull();
     expect(getReleaseDropCommand("SCHEDULED", "SCHEDULED")).toBeNull();
     expect(getReleaseDropCommand("READY_TO_PUBLISH", "SCHEDULED")).toBeNull();
     expect(getReleaseDropCommand("PUBLISHING", "RELEASED")).toBeNull();
-    expect(getReleaseDropCommand("RELEASED", "PUBLISHING")).toBeNull();
+    expect(getReleaseDropCommand("RELEASED", "FAILED")).toBeNull();
   });
 });

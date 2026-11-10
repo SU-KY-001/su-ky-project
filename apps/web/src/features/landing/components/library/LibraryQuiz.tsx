@@ -1,6 +1,6 @@
 import { useState, type ReactElement } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { useNavigate } from "react-router";
+import { useNavigate, useSearchParams } from "react-router";
 import type { z } from "zod";
 import { PublicQuizCardSchema } from "@repo/shared";
 import { Headphones } from "@phosphor-icons/react/dist/icons/Headphones";
@@ -25,16 +25,19 @@ export function LibraryQuiz(): ReactElement {
   const [topic, setTopic] = useState("all");
   const [page, setPage] = useState(1);
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const episodeSlug = searchParams.get("quizEpisode") || undefined;
   const user = useCurrentUser();
   const { requestAccess, accessDialog } = usePodcastAccess("quiz");
   const topics = useQuery({ queryKey: ["quiz-topics"], queryFn: ({ signal }) => libraryService.topics(signal) });
-  const quizzes = useQuery({ queryKey: ["quiz-catalog", user.data?.id ?? "guest", topic, page], queryFn: ({ signal }) => libraryService.quizzes({ page, topicId: topic === "all" ? undefined : topic }, signal), enabled: !user.isPending });
+  const quizzes = useQuery({ queryKey: ["quiz-catalog", user.data?.id ?? "guest", topic, page, episodeSlug], queryFn: ({ signal }) => libraryService.quizzes({ page: episodeSlug ? 1 : page, topicId: episodeSlug || topic === "all" ? undefined : topic, episodeSlug }, signal), enabled: !user.isPending });
 
   return <div className="min-w-0">{accessDialog}
     <div className="mb-7 flex flex-col items-start justify-between gap-7 md:flex-row md:items-end">
       <div><p className="mb-2 text-xs font-semibold uppercase tracking-widest text-vermilion">Học bằng thử thách</p><h3 className="text-2xl font-bold tracking-tight sm:text-3xl">Chọn một bộ quiz để bắt đầu</h3><p className="mt-2 text-sm leading-7 text-ink-soft">Ôn tập kiến thức qua những câu chuyện trong podcast.</p></div>
       <div className="w-full max-w-60"><label htmlFor="quiz-topic-select" className="mb-2 block text-xs font-semibold text-ink-soft">Lọc theo chủ đề</label><Select value={topic} onValueChange={value => { setTopic(value); setPage(1); }}><SelectTrigger id="quiz-topic-select" className="w-full border-line bg-paper-soft"><SelectValue /></SelectTrigger><SelectContent className="border-line bg-paper-soft text-ink"><SelectItem value="all">Tất cả chủ đề</SelectItem>{topics.data?.items.map(item => <SelectItem key={item.id} value={item.id}>{item.name}</SelectItem>)}</SelectContent></Select>{topics.isError && <p className="mt-2 text-xs text-ink-soft">Chưa tải được chủ đề.</p>}</div>
     </div>
+    {episodeSlug && <div className="mb-5 flex flex-wrap items-center gap-3 text-sm text-ink-soft"><span>Quiz của tập: {quizzes.data?.items[0]?.episodeTitle ?? "đang chọn"}</span><Button variant="link" size="sm" onClick={() => { const next = new URLSearchParams(searchParams); next.delete("quizEpisode"); setSearchParams(next, { replace: true, preventScrollReset: true }); setPage(1); }}>Xem tất cả quiz</Button></div>}
     {quizzes.isPending ? <LibraryState loading /> : quizzes.isError ? <LibraryState error title="Chưa tải được danh sách quiz" retry={() => { void quizzes.refetch(); }} /> : quizzes.data.items.length === 0 ? <LibraryState title="Chưa có quiz phù hợp" description="Hãy quay lại sau hoặc chọn chủ đề khác." /> : <>
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">{quizzes.data.items.map(quiz => <QuizCard key={`${quiz.id}-${quiz.posterUrl}`} quiz={quiz} onStart={() => { void (async () => { if (await requestAccess()) navigate(`/quiz/${encodeURIComponent(quiz.episodeSlug)}`); })(); }} />)}</div>
       {quizzes.data.total > quizzes.data.limit && <div className="mt-6 flex items-center justify-center gap-4"><Button variant="outline" disabled={page === 1} onClick={() => setPage(value => value - 1)}>Trang trước</Button><span className="text-sm text-ink-soft">Trang {page}</span><Button variant="outline" disabled={page * quizzes.data.limit >= quizzes.data.total} onClick={() => setPage(value => value + 1)}>Trang sau</Button></div>}

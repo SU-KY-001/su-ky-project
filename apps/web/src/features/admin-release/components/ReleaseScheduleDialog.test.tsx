@@ -1,4 +1,4 @@
-import { afterEach, expect, it, mock } from "bun:test";
+import { afterEach, expect, it, mock, setSystemTime } from "bun:test";
 import { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import type { ReleaseScheduleRecord } from "@repo/shared";
@@ -10,6 +10,7 @@ let root: Root | undefined;
 afterEach(() => {
   act(() => root?.unmount());
   document.body.innerHTML = "";
+  setSystemTime();
 });
 
 const moderators = [
@@ -72,20 +73,21 @@ async function submit(form: HTMLFormElement) {
 }
 
 async function chooseDate(ariaLabel: string, day: string) {
-  const trigger = document.body.querySelector<HTMLButtonElement>(`button[aria-label="${ariaLabel}"]`)!;
-  await act(async () => trigger.click());
-  const dayButton = document.body.querySelector<HTMLButtonElement>(`[data-day="${day}"] button`)!;
-  await act(async () => dayButton.click());
+  // Picker dropdown interactions are covered by date-picker.test.tsx. Use its
+  // typed-input path here so form validation does not depend on exit animations.
+  const input = document.body.querySelector<HTMLInputElement>(`input[aria-label="${ariaLabel} - nhập ngày"]`)!;
+  await setInput(input, day.split("-").reverse().join("/"));
+  await act(async () => input.dispatchEvent(new KeyboardEvent("keydown", { key: "Enter", bubbles: true })));
 }
 
 async function chooseTime(ariaLabel: string, hour: string, minute: string) {
-  const trigger = document.body.querySelector<HTMLButtonElement>(`button[aria-label="Mở ${ariaLabel} - giờ"]`)!;
-  await act(async () => trigger.click());
-  await act(async () => document.body.querySelector<HTMLButtonElement>(`button[aria-label="Chọn giờ ${hour}"]`)?.click());
-  await act(async () => document.body.querySelector<HTMLButtonElement>(`button[aria-label="Chọn phút ${minute}"]`)?.click());
+  const input = document.body.querySelector<HTMLInputElement>(`input[aria-label="${ariaLabel} - giờ"]`)!;
+  await setInput(input, `${hour}:${minute}`);
+  await act(async () => input.dispatchEvent(new KeyboardEvent("keydown", { key: "Enter", bubbles: true })));
 }
 
 it("validates create values and closes only after a successful create", async () => {
+  setSystemTime(new Date(2026, 9, 1, 10, 0));
   const onCreate = mock(() => Promise.resolve());
   const onOpenChange = mock(() => undefined);
   renderDialog({ onCreate, onOpenChange });
@@ -101,6 +103,8 @@ it("validates create values and closes only after a successful create", async ()
   await chooseDate("Chọn ngày phát hành", "2026-10-20");
   await chooseTime("Chọn hạn hoàn thành sản xuất", "20", "00");
   await chooseTime("Chọn ngày phát hành", "19", "00");
+  expect(document.querySelector<HTMLInputElement>('[aria-label="Chọn hạn hoàn thành sản xuất - giờ"]')?.value).toBe("20:00");
+  expect(document.querySelector<HTMLInputElement>('[aria-label="Chọn ngày phát hành - giờ"]')?.value).toBe("19:00");
   const moderatorTrigger = document.body.querySelector<HTMLButtonElement>('[data-slot="select-trigger"][aria-label="Moderator phụ trách"]')!;
   await act(async () => {
     moderatorTrigger.focus();
@@ -187,10 +191,28 @@ it("keeps edit values on stale writes and separates exception actions", async ()
   expect(document.body.textContent).toContain("Tiến độ phát hành");
   const footer = document.body.querySelector('[data-slot="dialog-footer"]');
   expect(footer).not.toBeNull();
-  for (const label of ["Thử lại", "Phát hành ngay", "Hủy lịch", "Lưu thay đổi"]) {
+  for (const label of ["Chuẩn bị thử lại", "Phát hành ngay", "Hủy lịch", "Lưu thay đổi"]) {
     expect(document.body.textContent).toContain(label);
     const action = [...document.body.querySelectorAll<HTMLButtonElement>("button")]
       .find((button) => button.textContent?.trim() === label)!;
     expect(action.closest('[data-slot="dialog-footer"]')).toBe(footer);
   }
+});
+
+it("shows the admin schedule details read-only to moderators", async () => {
+  const { props } = renderDialog({ mode: "view", schedule: schedule(), open: true });
+  const dialog = document.body.querySelector('[role="dialog"]')!;
+  expect(dialog.textContent).toContain("Chi tiết lịch phát hành");
+  expect(dialog.textContent).toContain("Podcast Trường Sơn");
+  const title = dialog.querySelector<HTMLInputElement>("#release-title")!;
+  expect(title.matches(":disabled")).toBe(true);
+  expect(dialog.querySelector<HTMLButtonElement>('[aria-label="Chọn ngày phát hành"]')?.matches(":disabled")).toBe(true);
+  expect(dialog.querySelector<HTMLButtonElement>('[aria-label="Moderator phụ trách"]')?.matches(":disabled")).toBe(true);
+  expect(dialog.textContent).not.toContain("Lưu thay đổi");
+  expect(dialog.textContent).not.toContain("Hủy lịch");
+  await submit(dialog.querySelector("form")!);
+  expect(props.onUpdate).not.toHaveBeenCalled();
+  const updated = { ...schedule(), title: "Lịch đã cập nhật", updatedAt: new Date("2026-10-16T08:00:00Z") };
+  await act(async () => root?.render(<ReleaseScheduleDialog {...props} schedule={updated} />));
+  expect(dialog.querySelector<HTMLInputElement>("#release-title")?.value).toBe("Lịch đã cập nhật");
 });

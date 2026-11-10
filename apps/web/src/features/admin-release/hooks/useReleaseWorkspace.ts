@@ -1,6 +1,6 @@
 import { useDeferredValue, useEffect, useMemo, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import type { ReleaseScheduleRecord, ReleaseScheduleStatus } from "@repo/shared";
+import type { ReleaseScheduleRecord, ReleaseStatusGroup } from "@repo/shared";
 import { notify } from "@/shared/lib/notifications";
 import { useConfirmationDialog } from "@/shared/hooks/useConfirmationDialog";
 import {
@@ -40,15 +40,15 @@ export function useReleaseWorkspace({
   const [search, setSearch] = useState("");
   const deferredSearch = useDeferredValue(search);
   const [moderatorId, setModeratorId] = useState("");
-  const [status, setStatus] = useState<ReleaseScheduleStatus | "">("");
+  const [status, setStatus] = useState<ReleaseStatusGroup | "">("");
   const [from, setFrom] = useState("");
   const [to, setTo] = useState("");
   const [tablePage, setTablePage] = useState(1);
   const [boardPages, setBoardPages] = useState<Record<ReleaseBoardStatus, number>>({
     SCHEDULED: 1,
     READY_TO_PUBLISH: 1,
-    PUBLISHING: 1,
     RELEASED: 1,
+    FAILED: 1,
   });
   const [selectedSchedule, setSelectedSchedule] = useState<ReleaseScheduleRecord | null>(null);
   const [dialogMode, setDialogMode] = useState<"create" | "edit" | null>(
@@ -70,7 +70,7 @@ export function useReleaseWorkspace({
   }), [deferredSearch, moderatorId, from, to]);
   const tableFilter = useMemo<ReleaseScheduleFilter>(() => ({
     ...baseFilter,
-    status: status || undefined,
+    statusGroup: status || undefined,
     page: tablePage,
   }), [baseFilter, status, tablePage]);
 
@@ -79,8 +79,8 @@ export function useReleaseWorkspace({
     setBoardPages({
       SCHEDULED: 1,
       READY_TO_PUBLISH: 1,
-      PUBLISHING: 1,
       RELEASED: 1,
+      FAILED: 1,
     });
   }, [deferredSearch, moderatorId, status, from, to]);
 
@@ -92,7 +92,14 @@ export function useReleaseWorkspace({
   const progress = useReleaseProgress(selectedSchedule?.id ?? null, service);
   const actions = useAdminReleaseActions(service);
 
-  const setView = (next: ReleaseWorkspaceViewMode) => setViewState(next);
+  const setView = (next: ReleaseWorkspaceViewMode) => {
+    if (next === "kanban") setStatus("");
+    setViewState(next);
+  };
+  const setStatusFilter = (next: ReleaseStatusGroup | "") => {
+    setStatus(next);
+    if (next) setViewState("table");
+  };
   const markPending = (id: string, pending: boolean) =>
     setPendingIds((current) => {
       const next = new Set(current);
@@ -133,7 +140,7 @@ export function useReleaseWorkspace({
   ) => {
     if (
       command === "publish-now" &&
-      !await requestConfirmation({ title: "Phát hành podcast ngay?", description: `Podcast “${schedule.title}” sẽ được phát hành ngay, thay vì chờ đến thời gian đã lên lịch.`, confirmLabel: "Phát hành ngay" })
+      !await requestConfirmation({ title: "Phát hành podcast ngay?", description: `Podcast “${schedule.title}” sẽ được phát hành ngay sau khi hệ thống kiểm tra đủ điều kiện.`, confirmLabel: "Phát hành ngay" })
     ) return;
     return runScheduleAction(schedule, () =>
       command === "check-readiness"
@@ -171,13 +178,13 @@ export function useReleaseWorkspace({
     return updated;
   });
   const publishNow = async (schedule: ReleaseScheduleRecord) => {
-    if (!await requestConfirmation({ title: "Phát hành podcast ngay?", description: `Podcast “${schedule.title}” sẽ được phát hành ngay, thay vì chờ đến thời gian đã lên lịch.`, confirmLabel: "Phát hành ngay" })) return;
+    if (!await requestConfirmation({ title: "Phát hành podcast ngay?", description: `Podcast “${schedule.title}” sẽ được phát hành ngay sau khi hệ thống kiểm tra đủ điều kiện.`, confirmLabel: "Phát hành ngay" })) return;
     return runScheduleAction(schedule, () => actions.publishNow.mutateAsync(schedule.id));
   };
   const retry = (schedule: ReleaseScheduleRecord) =>
     runScheduleAction(schedule, () => actions.retry.mutateAsync(schedule.id));
   const cancel = async (schedule: ReleaseScheduleRecord) => {
-    if (!await requestConfirmation({ title: "Hủy lịch phát hành?", description: `Lịch “${schedule.title}” sẽ bị hủy và không tự động phát hành podcast.`, confirmLabel: "Hủy lịch", destructive: true })) return;
+    if (!await requestConfirmation({ title: "Hủy lịch phát hành?", description: `Lịch “${schedule.title}” sẽ bị hủy và không còn được phép phát hành podcast.`, confirmLabel: "Hủy lịch", destructive: true })) return;
     return runScheduleAction(schedule, () => actions.cancel.mutateAsync(schedule.id));
   };
   const openEdit = (schedule: ReleaseScheduleRecord) => {
@@ -207,7 +214,7 @@ export function useReleaseWorkspace({
     moderatorId,
     setModeratorId,
     status,
-    setStatus,
+    setStatus: setStatusFilter,
     from,
     setFrom,
     to,

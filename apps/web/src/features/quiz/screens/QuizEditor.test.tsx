@@ -3,7 +3,7 @@ import { act, type ReactElement } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { createMemoryRouter, RouterProvider } from "react-router";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import type { QuizDraftData, QuizWorkspace } from "@repo/shared";
+import { parseQuizDocument, type QuizDraftData, type QuizWorkspace } from "@repo/shared";
 import { QuizEditor } from "./QuizEditor";
 import { QuizPreview } from "../components/QuizPreview";
 import { quizService } from "../services/quizService";
@@ -34,11 +34,109 @@ async function render(element: ReactElement): Promise<HTMLDivElement> {
   return host;
 }
 
+it("shows one answer field for a new fill-in question without choice letters", async () => {
+  const initial = { ...workspace, data: { ...workspace.data, questions: [{ ...workspace.data.questions[0], options: ["", "", "", ""], correctIndex: null }] } };
+  client = new QueryClient({ defaultOptions: { queries: { staleTime: Infinity, retry: false } } });
+  client.setQueryData(["quiz", "workspace", "e"], initial);
+  const router = createMemoryRouter([{ path: "/", element: <QueryClientProvider client={client}><QuizEditor initial={initial} onBack={() => {}} /></QueryClientProvider> }]);
+  const host = await render(<RouterProvider router={router} />);
+  await act(async () => host.querySelector("#quiz-kind")!.dispatchEvent(new KeyboardEvent("keydown", { key: "Enter", bubbles: true })));
+  await act(async () => document.querySelector<HTMLElement>('[role="option"][data-value="TEXT"]')!.click());
+  expect(host.querySelectorAll("#quiz-text-answer")).toHaveLength(1);
+  expect(host.querySelector<HTMLTextAreaElement>("#quiz-text-answer")?.value).toBe("");
+  expect(host.querySelector(".quiz-answer-letter")).toBeNull();
+  expect(host.textContent).not.toContain("Điền đáp án ngắn");
+});
+
+it("keeps multiple existing accepted text answers in the single answer field", async () => {
+  const initial = { ...workspace, data: { ...workspace.data, questions: [{ ...workspace.data.questions[0], kind: "TEXT" as const, options: ["Nguyễn Huệ", "Quang Trung"], correctIndex: null }] } };
+  client = new QueryClient({ defaultOptions: { queries: { staleTime: Infinity, retry: false } } });
+  client.setQueryData(["quiz", "workspace", "e"], initial);
+  const router = createMemoryRouter([{ path: "/", element: <QueryClientProvider client={client}><QuizEditor initial={initial} onBack={() => {}} /></QueryClientProvider> }]);
+  const host = await render(<RouterProvider router={router} />);
+  expect(host.querySelector<HTMLTextAreaElement>("#quiz-text-answer")?.value).toBe("Nguyễn Huệ\nQuang Trung");
+  expect(host.querySelector(".quiz-answer-letter")).toBeNull();
+});
+
 function button(container: ParentNode, text: string): HTMLButtonElement {
   const found = [...container.querySelectorAll("button")].find(item => item.textContent?.includes(text));
   if (!found) throw new Error(`Missing button: ${text}`);
   return found;
 }
+
+async function renderEditor(initial: QuizWorkspace): Promise<HTMLDivElement> {
+  client = new QueryClient({ defaultOptions: { queries: { staleTime: Infinity, retry: false } } });
+  client.setQueryData(["quiz", "workspace", "e"], initial);
+  const router = createMemoryRouter([{ path: "/", element: <QueryClientProvider client={client}><QuizEditor initial={initial} onBack={() => {}} /></QueryClientProvider> }]);
+  return render(<RouterProvider router={router} />);
+}
+
+async function importIntoEditor(host: ParentNode, text: string): Promise<void> {
+  const result = parseQuizDocument({ fileName: "quiz.txt", format: "txt", blocks: text.split("\n").map((text, i) => ({ text, line: i + 1, page: null })) }, 20);
+  const preview = spyOn(quizService, "previewDocument").mockResolvedValue(result);
+  try {
+    if (!document.querySelector('[role="dialog"]')) await act(async () => button(host, "Import File").click());
+    const input = document.querySelector<HTMLInputElement>('input[type="file"]')!;
+    await act(async () => { Object.defineProperty(input, "files", { configurable: true, value: [new File([text], "quiz.txt")] }); input.dispatchEvent(new Event("change", { bubbles: true })); });
+    await act(async () => button(document, "Đưa vào trình soạn").click());
+  } finally { preview.mockRestore(); }
+}
+
+function blankWorkspace(): QuizWorkspace {
+  return { ...workspace, data: { ...workspace.data, questions: [{ ...workspace.data.questions[0], text: "", options: ["", "", "", ""], correctIndex: null, explanation: "", evidence: null }] } };
+}
+
+it("replaces the blank placeholder directly and uses only the existing preview on demand", async () => {
+  const save = spyOn(quizService, "save");
+  const activate = spyOn(quizService, "activate");
+  restore = () => { save.mockRestore(); activate.mockRestore(); };
+  const host = await renderEditor(blankWorkspace());
+  expect(button(host, "Xem thử").disabled).toBe(true);
+  await importIntoEditor(host, "Câu 1: Ai lãnh đạo khởi nghĩa Lam Sơn?\nĐáp án: Lê Lợi");
+  expect(document.querySelector('[role="dialog"]')).toBeNull();
+  expect(host.querySelectorAll(".quiz-question-link")).toHaveLength(1);
+  expect(host.querySelector<HTMLTextAreaElement>("#quiz-question")?.value).toBe("Ai lãnh đạo khởi nghĩa Lam Sơn?");
+  expect(host.querySelector<HTMLTextAreaElement>("#quiz-text-answer")?.value).toBe("Lê Lợi");
+  expect(button(host, "Xem thử").disabled).toBe(false);
+  expect(save).not.toHaveBeenCalled();
+  expect(activate).not.toHaveBeenCalled();
+  await act(async () => button(host, "Xem thử").click());
+  expect(document.querySelector('[role="dialog"]')?.textContent).toContain("Xem thử bộ quiz");
+});
+
+it("keeps incomplete imports out of the editor until the corrected file is uploaded", async () => {
+  const host = await renderEditor(blankWorkspace());
+  await importIntoEditor(host, "Câu 1: Ai lãnh đạo?\nĐáp án: Lê Lợi\nCâu 2: Chọn số hai\nA. Một\nB. Hai");
+  expect(host.querySelectorAll(".quiz-question-link")).toHaveLength(1);
+  expect(host.querySelector<HTMLTextAreaElement>("#quiz-question")?.value).toBe("");
+  expect(button(document, "Đưa vào trình soạn").disabled).toBe(true);
+  await importIntoEditor(host, "Câu 1: Ai lãnh đạo?\nĐáp án: Lê Lợi\nCâu 2: Chọn số hai\nA. Một\nB. Hai\nĐáp án: B");
+  expect(host.querySelectorAll(".quiz-question-link")).toHaveLength(2);
+  expect(button(host, "Xem thử").disabled).toBe(false);
+});
+
+it("shows contradictory imports only in the report and never saves them", async () => {
+  const save = spyOn(quizService, "save").mockImplementation(async (_id, _revision, data) => ({ ...workspace, revision: 2, data }));
+  restore = () => save.mockRestore();
+  const host = await renderEditor(blankWorkspace());
+  await importIntoEditor(host, "Câu 1: Chọn số hai\nA. Một\nB. Hai\nĐáp án: B. Ba");
+  expect(document.querySelector('[role="dialog"]')?.textContent).toContain("không khớp");
+  expect(button(document, "Đưa vào trình soạn").disabled).toBe(true);
+  expect(save).not.toHaveBeenCalled();
+  expect(document.querySelector("details pre")?.textContent).toContain("Đáp án: B. Ba");
+  expect(host.querySelector<HTMLTextAreaElement>("#quiz-question")?.value).toBe("");
+});
+
+it("closing an invalid preview keeps the current questions unchanged", async () => {
+  const save = spyOn(quizService, "save");
+  restore = () => save.mockRestore();
+  const host = await renderEditor(blankWorkspace());
+  await importIntoEditor(host, "Câu 1: Chọn số hai\nA. Một\nB. Hai\nĐáp án: B. Ba");
+  await act(async () => document.querySelector<HTMLButtonElement>('[aria-label="Đóng hộp thoại"]')!.click());
+  expect(host.querySelectorAll(".quiz-question-link")).toHaveLength(1);
+  expect(host.querySelector<HTMLTextAreaElement>("#quiz-question")?.value).toBe("");
+  expect(save).not.toHaveBeenCalled();
+});
 
 it("applies the chosen time to every question and newly added questions in the saved draft", async () => {
   let savedData: QuizDraftData | undefined;

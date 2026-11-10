@@ -60,7 +60,7 @@ it("renders the review queue as a complete dashboard table", async () => {
   expect(host.querySelector('[data-dashboard-table-card="true"]')).not.toBeNull();
   expect(host.querySelector("table")).not.toBeNull();
   expect(host.textContent).toContain("Người sản xuất");
-  expect(host.textContent).toContain("Phiên bản");
+  expect(host.textContent).not.toContain("Phiên bản");
   expect(host.querySelector('input[placeholder="Tìm podcast chờ duyệt"]')).not.toBeNull();
   expect(host.querySelector('nav[aria-label="Phân trang"]')).not.toBeNull();
   expect(host.textContent).toContain("Thao tác");

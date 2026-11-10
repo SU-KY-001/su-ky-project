@@ -27,7 +27,7 @@ su-ky-project/
 │   ├── shared/       # Zod schemas, domain types, contracts
 │   └── tsconfig/     # Shared tsconfig presets
 ├── docs/             # Toàn bộ tài liệu kỹ thuật & kiến trúc
-├── compose.yaml      # PostgreSQL 17 container
+├── compose.yaml      # PostgreSQL 18 container
 ├── bunfig.toml       # Bun workspace configuration (isolated linker)
 └── turbo.json        # Turborepo task pipeline
 ```
@@ -36,21 +36,50 @@ su-ky-project/
 
 ## Khởi Động Nhanh (Quickstart)
 
-### 1. Khởi động Database PostgreSQL
+### 1. Cấu hình riêng trên máy (chỉ lần đầu)
+
+Nếu đã có `.env` và database local của nhóm, giữ nguyên chúng. Nếu chưa có:
+
 ```bash
-docker compose up -d
+cp .env.example .env
 ```
 
-### 2. Cài đặt Dependencies (dùng Bun v1.4.0)
+Điền `DATABASE_URL` của database **local đang có trên máy bạn** và các khóa dịch vụ cần dùng.
+Không copy database của người khác, không reset hay seed lại database đã có dữ liệu.
+Có thể đặt `LOCAL_DATABASE_URL` trong `.env.local` (Git bỏ qua) để chọn DB riêng cho lệnh local.
+
+### 2. Khởi động PostgreSQL nếu nó chưa chạy
+
+Nếu bạn đã dùng PostgreSQL native hoặc container riêng thì bỏ qua bước này. Với Docker Compose của repo:
+
 ```bash
-bun install
+docker compose up -d --wait postgres
 ```
 
-### 3. Khởi tạo Database Schema & Dữ Liệu Mẫu
+### 3. Cài dependencies sau khi pull code
 ```bash
-bun run db:deploy
-bun run db:seed
+bun install --frozen-lockfile
 ```
+
+### 4. Một lệnh chạy cả FE + BE + worker local
+
+```bash
+bun run dev:local
+```
+
+Lệnh tự sinh Prisma Client, chạy migration còn thiếu rồi khởi động ba tiến trình trong cùng terminal.
+FE luôn trỏ BE local, cookie/CORS được đồng bộ; không phụ thuộc `VITE_API_URL` của chế độ deploy.
+Không reset DB, không tạo series/podcast/quiz mẫu. `Ctrl+C` dừng các tiến trình do lệnh này tạo.
+
+- **Web**: http://localhost:3000
+- **API**: http://localhost:3005 — **health**: http://localhost:3005/health
+- Chuẩn bị schema mà chưa mở web: `bun run dev:local:prepare`.
+- Chỉ chạy FE nối BE deploy đã có: `bun run dev:deploy` (**không phải lệnh deploy server**).
+- Chi tiết môi trường, lỗi kết nối và cập nhật server: [Chạy local](docs/local-development.md).
+- Nhập quiz bằng văn bản/tài liệu: [Hướng dẫn nhập câu hỏi](docs/quiz-text-import.md).
+
+Database trống hoàn toàn có thể nạp cấu hình nền và phân kỳ lịch sử bằng `bun run db:seed`.
+Đây là bước tùy chọn, không chạy lại trên database của nhóm chỉ để test quiz.
 
 ### Podcast: cổng duyệt và ngoại lệ Admin
 
@@ -74,15 +103,15 @@ Ghi thẳng vào DB, cần `CLOUDINARY_CLOUD_NAME`, `CLOUDINARY_API_KEY`, `CLOUD
 
 Nguồn tạo/sửa bằng PDF upload được tự tách text từng trang vào PostgreSQL trước khi lưu thành công. `SOURCE_PDF_TIMEOUT_MS` mặc định `120000` giới hạn thời gian download, extract và transaction; dung lượng dùng cấu hình `media.document.max_bytes`. PDF scan không có text layer cần OCR ngoài luồng (chưa hỗ trợ).
 
-### 4. Khởi động Môi trường Development
+### Chạy workspace dev tổng quát (không tự chuẩn bị DB)
 ```bash
 bun run dev
 ```
-- **Web Client**: http://localhost:5173
+- **Web Client**: http://localhost:3000
 - **API Server**: http://localhost:3005
 - **API Health**: http://localhost:3005/health
 
-Moderator dùng URL riêng cho từng màn: `/moderator/quizzes` mở quiz bản xem trước (dữ liệu mẫu), `/moderator/angles` mở quản lý góc kể. Sidebar điều hướng theo URL; có thể mở trực tiếp hoặc tải lại từng đường dẫn.
+Moderator dùng URL riêng cho từng màn: `/moderator/quizzes` soạn quiz trên series/tập của tài khoản đang đăng nhập; `/moderator/angles` quản lý góc kể. Sidebar điều hướng theo URL; có thể mở trực tiếp hoặc tải lại từng đường dẫn. Mỗi tập có tối đa một quiz; tập đã có quiz cần mở từ danh sách để tiếp tục soạn.
 
 ---
 
@@ -119,5 +148,4 @@ Xem trong thư mục [`docs/`](./docs/):
 - [`docs/code-standards.md`](./docs/code-standards.md) — Quy chuẩn code & type safety
 - [`docs/design-guidelines.md`](./docs/design-guidelines.md) — Hướng dẫn giao diện cho Frontend Team
 - [`docs/wireframe/index.html`](./docs/wireframe/index.html) — Wireframe tương tác mẫu
-
 

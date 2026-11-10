@@ -104,7 +104,8 @@ it("does not request separate attention lists", async () => {
   await renderController(service);
   const requestedStatuses = service.list.mock.calls.map(([filter]) => filter?.status);
   expect(requestedStatuses).not.toContain("BLOCKED");
-  expect(requestedStatuses).not.toContain("FAILED");
+  expect(requestedStatuses).toContain("FAILED");
+  expect(requestedStatuses).not.toContain("PUBLISHING");
 });
 
 it("preserves filters across temporary view changes without persisting the table view", async () => {
@@ -120,6 +121,15 @@ it("preserves filters across temporary view changes without persisting the table
   expect(result.workspace.moderatorId).toBe("mod-1");
   expect(localStorage.getItem("admin-release-workspace-view")).toBeNull();
   expect(result.service.list.mock.calls.some(([filter]) => filter?.q === "Trường Sơn" && filter.moderatorId === "mod-1")).toBe(true);
+});
+
+it("opens the paginated list when filtering a status group", async () => {
+  const result = await renderController();
+  await act(async () => { result.workspace.setStatus("NEEDS_ATTENTION"); });
+  expect(result.workspace.view).toBe("table");
+  expect(result.service.list.mock.calls.some(([filter]) => filter?.statusGroup === "NEEDS_ATTENTION" && filter.page === 1)).toBe(true);
+  act(() => result.workspace.setView("kanban"));
+  expect(result.workspace.status).toBe("");
 });
 
 it("refetches and reports a transition error while direct selection opens edit", async () => {
@@ -156,11 +166,11 @@ it("publishes an error toast when a release action fails", async () => {
   expect(notification?.description).toBe("Dữ liệu lịch đã được đồng bộ lại từ hệ thống.");
 });
 
-it("waits for the shadcn confirmation before publishing a dragged schedule", async () => {
+it("waits for the shadcn confirmation before publishing a schedule from details", async () => {
   const result = await renderController();
   const ready = { ...scheduled, status: "READY_TO_PUBLISH" as const };
   let operation: Promise<unknown> | undefined;
-  await act(async () => { operation = result.workspace.transition(ready, "publish-now", "PUBLISHING"); });
+  await act(async () => { operation = result.workspace.publishNow(ready); });
   const dialog = document.querySelector('[role="alertdialog"]');
   expect(dialog?.textContent).toContain("Phát hành podcast ngay?");
   expect(dialog?.textContent).toContain(ready.title);
@@ -232,14 +242,14 @@ it("automatically follows worker transitions without overwriting the open edit s
   });
   current = { ...current, status: "PUBLISHING", updatedAt: new Date("2026-10-20T13:00:00Z") };
   await act(async () => { await new Promise((resolve) => setTimeout(resolve, 2_250)); });
-  expect(result.workspace.board.columns.PUBLISHING.items[0]?.id).toBe(scheduled.id);
+  expect(result.workspace.board.columns.FAILED.items).toHaveLength(0);
   expect(result.workspace.board.columns.READY_TO_PUBLISH.items).toHaveLength(0);
   expect(result.workspace.liveSchedule.data?.status).toBe("PUBLISHING");
   expect(result.workspace.selectedSchedule?.status).toBe("READY_TO_PUBLISH");
   expect(result.workspace.selectedSchedule?.updatedAt).toEqual(scheduled.updatedAt);
   current = { ...current, status: "RELEASED" };
   await act(async () => { await new Promise((resolve) => setTimeout(resolve, 2_250)); });
-  expect(result.workspace.board.columns.PUBLISHING.items).toHaveLength(0);
+  expect(result.workspace.board.columns.FAILED.items).toHaveLength(0);
   expect(result.workspace.board.columns.RELEASED.items[0]?.id).toBe(scheduled.id);
   expect(result.workspace.liveSchedule.data?.status).toBe("RELEASED");
   expect(service.publishNow).not.toHaveBeenCalled();

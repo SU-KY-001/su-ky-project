@@ -55,7 +55,7 @@ suite("release repository", () => {
     await prisma.user.deleteMany({ where: { id: { in: [adminId, firstModeratorId, secondModeratorId] } } });
   });
 
-  it("creates a schedule with assignments, outbox and immutable progress", async () => {
+  it("creates a schedule with assignments and immutable progress without a publication outbox event", async () => {
     const repository = new PrismaReleaseRepository();
     const created = await repository.createSchedule({
       title: "Dấu chân Trường Sơn",
@@ -71,7 +71,7 @@ suite("release repository", () => {
 
     expect(created.status).toBe("SCHEDULED");
     expect(created.assignments.map((item) => item.moderatorId)).toEqual([firstModeratorId]);
-    expect(await prisma.outboxEvent.count({ where: { aggregateId: created.id, eventType: "release.schedule.created" } })).toBe(1);
+    expect(await prisma.outboxEvent.count({ where: { aggregateId: created.id } })).toBe(0);
     expect((await repository.listProgress(created.id)).map((event) => event.action)).toEqual(["release_schedule.created"]);
   });
 
@@ -150,7 +150,9 @@ suite("release repository", () => {
     const repository = new PrismaReleaseRepository();
 
     const byTitle = await repository.listSchedules({
-      q: "tRƯỜnG sƠn",
+      // PostgreSQL's case-folding of accented letters depends on LC_CTYPE.
+      // Verify ILIKE's ASCII case handling on both C and UTF-8 locale databases.
+      q: "tRường sơn",
       status: "SCHEDULED",
       page: 1,
       limit: 20,
@@ -165,6 +167,11 @@ suite("release repository", () => {
     });
     expect(byModerator.items.map(({ title }) => title)).toEqual(["Dòng chảy biển đảo"]);
 
+    const inProgress = await repository.listSchedules({ q: "Biên niên Trường Sơn", statusGroup: "IN_PROGRESS", page: 1, limit: 20 });
+    expect(inProgress.items.map(({ title }) => title)).toEqual(["Biên niên Trường Sơn"]);
+    const releasedGroup = await repository.listSchedules({ q: "Trường Sơn", statusGroup: "RELEASED", page: 1, limit: 20 });
+    expect(releasedGroup.items.map(({ title }) => title)).toEqual(["Trường Sơn đã phát"]);
+
     const history = await repository.listSchedules({
       scope: "HISTORY",
       page: 1,
@@ -172,6 +179,7 @@ suite("release repository", () => {
     });
     expect(history.items.map(({ title }) => title)).toEqual(["Trường Sơn đã phát"]);
 
+    await prisma.releaseSchedule.update({ where: { id: scheduleId }, data: { status: "BLOCKED" } });
     const reviewQueue = await repository.listSchedules({
       scope: "REVIEW_QUEUE",
       page: 1,
@@ -225,5 +233,47 @@ suite("release repository", () => {
       `Sort ${suffix} newer`,
       `Sort ${suffix} older`,
     ]);
+  });
+
+  it("lists cancelled schedules only for the moderator currently assigned", async () => {
+    const fixtures = await Promise.all([firstModeratorId, secondModeratorId].map((moderatorId) => prisma.releaseSchedule.create({
+      data: {
+        title: `Cancelled ${moderatorId}`,
+        productionDeadline: new Date("2026-10-19T10:00:00.000Z"),
+        scheduledAt: new Date("2026-10-20T13:00:00.000Z"),
+        status: "CANCELLED",
+        createdById: adminId,
+        assignments: { create: { moderatorId, assignedById: adminId } },
+      },
+    })));
+    scheduleIds.push(...fixtures.map(({ id }) => id));
+    const repository = new PrismaReleaseRepository();
+    const schedules = await repository.listAssignedSchedules(firstModeratorId, ["SCHEDULED", "READY_TO_PUBLISH", "RELEASED", "CANCELLED"]);
+    expect(schedules.some(({ id }) => id === fixtures[0]!.id)).toBe(true);
+    expect(schedules.some(({ id }) => id === fixtures[1]!.id)).toBe(false);
+    expect((await repository.listAssignedSchedules(firstModeratorId)).some(({ id }) => id === fixtures[0]!.id)).toBe(false);
+  });
+
+  it("does not remind or automatically publish schedules already ready for manual publication", async () => {
+    const now = new Date("2026-10-20T14:00:00.000Z");
+    const base = {
+      productionDeadline: new Date("2026-10-21T02:00:00.000Z"),
+      scheduledAt: new Date("2026-10-21T13:00:00.000Z"),
+      status: "READY_TO_PUBLISH" as const,
+      createdById: adminId,
+      assignments: { create: { moderatorId: firstModeratorId, assignedById: adminId } },
+    };
+    const [clean, retrying, abandoned] = await Promise.all([
+      prisma.releaseSchedule.create({ data: { ...base, title: `Clean ${suffix}` } }),
+      prisma.releaseSchedule.create({ data: { ...base, title: `Retrying ${suffix}`, failureCode: "INTERNAL_SERVER_ERROR", updatedAt: now } }),
+      prisma.releaseSchedule.create({ data: { ...base, title: `Failed ${suffix}`, status: "FAILED", failureCode: "INTERNAL_SERVER_ERROR" } }),
+    ]);
+    scheduleIds.push(clean.id, retrying.id, abandoned.id);
+    await new PrismaReleaseRepository().issueDueReminders(now, new Date(now.getTime() + 24 * 60 * 60_000));
+    const ids = [clean.id, retrying.id, abandoned.id];
+    expect(await prisma.releaseReminder.count({ where: { scheduleId: { in: ids } } })).toBe(0);
+    const schedules = await prisma.releaseSchedule.findMany({ where: { id: { in: ids } } });
+    expect(schedules.filter(item => item.status === "READY_TO_PUBLISH")).toHaveLength(2);
+    expect(schedules.find(item => item.id === abandoned.id)?.status).toBe("FAILED");
   });
 });

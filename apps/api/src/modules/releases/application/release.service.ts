@@ -31,7 +31,6 @@ export type PublishReleaseResult =
   | "BLOCKED"
   | "IGNORED"
   | "RELEASED"
-  | "RETRY"
   | "FAILED";
 
 function assertAdmin(session: Session): void {
@@ -53,8 +52,7 @@ function requireSchedule(
 }
 
 /**
- * Application-level orchestration. Queue jobs and HTTP routes both call this
- * service, so permission/state rules have one implementation.
+ * Application-level orchestration for release coordination and Admin publication.
  */
 export class ReleaseService {
   constructor(
@@ -69,6 +67,10 @@ export class ReleaseService {
     correlationId: string,
   ) {
     assertAdmin(session);
+    const now = this.clock().getTime();
+    if (input.productionDeadline.getTime() <= now || input.scheduledAt.getTime() <= now) {
+      throw new DomainError(400, "VALIDATION_ERROR", "Hạn hoàn thành và thời gian phát hành phải sau thời gian hiện tại.");
+    }
     return this.repository.createSchedule({
       ...input,
       episodeId: input.episodeId ?? null,
@@ -298,6 +300,7 @@ export class ReleaseService {
     const review = await this.repository.findLatestReview(scheduleId);
     if (
       !review ||
+      review.id !== input.reviewId ||
       review.status !== "IN_REVIEW" ||
       review.revision !== input.contentRevision
     )
@@ -360,6 +363,11 @@ export class ReleaseService {
       });
     }
     return decided;
+  }
+
+  async withdrawReview(session: Session, scheduleId: string, reviewId: string, correlationId: string): Promise<EpisodeReviewEntity> {
+    assertModerator(session);
+    return this.repository.withdrawReview({ scheduleId, reviewId, moderatorId: session.user.id, correlationId });
   }
 
   /** Read-only content for the reviewer: full episode + readiness + AI counts. Never for the assigned producer. */
@@ -445,12 +453,11 @@ export class ReleaseService {
     return requireSchedule(await this.repository.findSchedule(scheduleId));
   }
 
-  async publishDueSchedule(
+  private async publishSchedule(
     scheduleId: string,
     expectedVersion: number,
     correlationId: string,
     jobId?: string,
-    attempt = 1,
   ): Promise<PublishReleaseResult> {
     const schedule = await this.repository.findSchedule(scheduleId);
     if (!schedule) return "IGNORED";
@@ -539,25 +546,20 @@ export class ReleaseService {
     } catch (error) {
       const businessFailure =
         error instanceof DomainError && error.status >= 400 && error.status < 500;
-      const shouldRetry = !businessFailure && attempt <= 3;
       await this.repository.setStatus({
         scheduleId,
         from: ["PUBLISHING"],
-        to: businessFailure ? "BLOCKED" : shouldRetry ? "READY_TO_PUBLISH" : "FAILED",
+        to: businessFailure ? "BLOCKED" : "FAILED",
         actorId: null,
         actorType: "SYSTEM",
-        action: businessFailure
-          ? "release.blocked"
-          : shouldRetry
-            ? "release.retry_scheduled"
-            : "release.failed",
+        action: businessFailure ? "release.blocked" : "release.failed",
         correlationId,
         jobId,
         failureCode:
           error instanceof DomainError ? error.code : "INTERNAL_SERVER_ERROR",
         failureMessage: error instanceof Error ? error.message : "Unknown error",
       });
-      return businessFailure ? "BLOCKED" : shouldRetry ? "RETRY" : "FAILED";
+      return businessFailure ? "BLOCKED" : "FAILED";
     }
   }
 
@@ -581,7 +583,7 @@ export class ReleaseService {
         failureMessage: null,
       });
     }
-    return this.publishDueSchedule(
+    return this.publishSchedule(
       scheduleId,
       schedule.version,
       correlationId,
@@ -611,6 +613,7 @@ export class ReleaseService {
     session: Session,
     filter: {
       status?: Parameters<ReleaseRepository["listSchedules"]>[0]["status"];
+      statusGroup?: Parameters<ReleaseRepository["listSchedules"]>[0]["statusGroup"];
       scope?: Parameters<ReleaseRepository["listSchedules"]>[0]["scope"];
       from?: Date;
       to?: Date;
@@ -670,6 +673,11 @@ export class ReleaseService {
   async assignedWork(session: Session) {
     assertModerator(session);
     return this.repository.listAssignedSchedules(session.user.id);
+  }
+
+  async assignedSchedules(session: Session) {
+    assertModerator(session);
+    return this.repository.listAssignedSchedules(session.user.id, ["SCHEDULED", "READY_TO_PUBLISH", "RELEASED", "CANCELLED"]);
   }
 
   async assignableEpisodes(session: Session) {

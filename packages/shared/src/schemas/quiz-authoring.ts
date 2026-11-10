@@ -1,12 +1,16 @@
 import { z } from "zod";
 import { UpsertQuizSchema } from "./quiz-mission";
 
+export const QuizImportDocumentSchema = z.object({ fileName: z.string(), text: z.string().min(1).max(200_000) });
+
 export const QuizEvidenceSchema = z.object({ quote: z.string().max(4000), scriptHash: z.string().max(128) });
 export const QuizDraftQuestionSchema = z.object({
   id: z.string().min(1).max(100),
   text: z.string().max(2000),
-  options: z.array(z.string().max(1000)).length(4),
-  correctIndex: z.number().int().min(0).max(3).nullable(),
+  kind: z.enum(["SINGLE", "MULTIPLE", "TEXT"]).optional(),
+  options: z.array(z.string().max(1000)).min(1).max(6),
+  correctIndex: z.number().int().min(0).max(5).nullable(),
+  correctIndexes: z.array(z.number().int().min(0).max(5)).max(6).optional(),
   explanation: z.string().max(4000),
   timeLimit: z.number().int().min(10).max(120).default(20),
   evidence: QuizEvidenceSchema.nullable().default(null),
@@ -45,13 +49,15 @@ export function validateReadyQuiz(input: QuizDraftData): z.infer<typeof UpsertQu
   if (!draft.title.trim()) throw new Error("Vui lòng nhập tên bộ quiz.");
   for (const [index, q] of draft.questions.entries()) {
     const options = q.options.map(o => o.trim().normalize("NFC").toLocaleLowerCase("vi"));
-    if (!q.text.trim() || q.correctIndex === null || options.some(o => !o) || new Set(options).size !== 4)
-      throw new Error(`Câu ${index + 1} cần nội dung, bốn đáp án khác nhau và một đáp án đúng.`);
+    const kind = q.kind ?? "SINGLE";
+    const indices = kind === "TEXT" ? options.map((_, i) => i) : kind === "MULTIPLE" ? q.correctIndexes ?? [] : q.correctIndex === null ? [] : [q.correctIndex];
+    if (!q.text.trim() || (kind !== "TEXT" && options.length < 2) || options.some(o => !o) || new Set(options).size !== options.length || !indices.length || new Set(indices).size !== indices.length || indices.some(i => i >= options.length))
+      throw new Error(`Câu ${index + 1} cần nội dung, đáp án hợp lệ và đáp án đúng.`);
     if (q.evidence && !q.explanation.trim()) throw new Error(`Câu ${index + 1} cần giải thích đáp án.`);
   }
   return UpsertQuizSchema.parse({
     passScorePercent: draft.passScorePercent,
-    questions: draft.questions.map(q => ({ text: q.text, explanation: q.explanation || null, timeLimit: q.timeLimit,
-      options: q.options.map((text, i) => ({ label: "ABCD"[i], text, isCorrect: i === q.correctIndex })) })),
+    questions: draft.questions.map(q => ({ text: q.text, kind: q.kind, explanation: q.explanation || null, timeLimit: q.timeLimit,
+      options: q.options.map((text, i) => ({ label: "ABCDEF"[i], text, isCorrect: q.kind === "TEXT" || (q.kind === "MULTIPLE" ? (q.correctIndexes ?? []).includes(i) : i === q.correctIndex) })) })),
   });
 }

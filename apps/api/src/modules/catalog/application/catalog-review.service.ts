@@ -1,7 +1,6 @@
 import type { CatalogActor, HistoricalReadinessDto } from "@repo/shared";
 import type {
   HistoricalEvidenceRepository,
-  HistoricalNodeRecord,
 } from "../domain/historical-catalog.repository";
 import type { HistoricalCatalogService } from "./historical-catalog.service";
 import type { HistoricalCitationService } from "./historical-citation.service";
@@ -50,97 +49,7 @@ export class CatalogReviewService {
       !period.isActive
     )
       reasons.push("MISSING_PARENT");
-    const rows = await this.repository.citations({ kind: "entity", id });
-    if (!rows.length) reasons.push("MISSING_SOURCE");
-    for (const c of rows) {
-      if (!c.locator.trim()) reasons.push("MISSING_LOCATOR");
-      if (c.source.archivedAt) reasons.push("SOURCE_ARCHIVED");
-      if (c.source.version !== c.sourceVersion) reasons.push("SOURCE_OUTDATED");
-      if (
-        c.source.verificationStatus !== "VERIFIED" ||
-        c.source.verifiedVersion !== c.sourceVersion
-      )
-        reasons.push("SOURCE_UNVERIFIED");
-    }
-    if (
-      node.reviewStatus !== "APPROVED" ||
-      node.reviewedVersion !== node.version
-    )
-      reasons.push("CONTENT_NOT_APPROVED");
     return { ready: reasons.length === 0, reasons: [...new Set(reasons)] };
-  }
-  async submitEntityReview(
-    actor: CatalogActor,
-    id: string,
-    input: {
-      baseVersion: number;
-      expectedStatus: HistoricalNodeRecord["reviewStatus"];
-    },
-  ) {
-    const node = await this.catalog.assertOwner(actor, "entity", id);
-    this.assertEvent(node);
-    if (!["DRAFT", "CHANGES_REQUESTED"].includes(input.expectedStatus))
-      throw new DomainError(
-        409,
-        "INVALID_REVIEW_STATE",
-        "Nội dung không ở trạng thái gửi duyệt",
-      );
-    const readiness = await this.getEntityReadiness(id);
-    if (readiness.reasons.some((r) => r !== "CONTENT_NOT_APPROVED"))
-      throw new DomainError(
-        422,
-        "CONTENT_NOT_READY",
-        readiness.reasons
-          .filter((r) => r !== "CONTENT_NOT_APPROVED")
-          .join(", "),
-      );
-    await this.repository.reviewEntity(
-      actor.userId,
-      id,
-      input.baseVersion,
-      input.expectedStatus,
-      "IN_REVIEW",
-      "",
-    );
-    return this.catalog.detail("entity", id);
-  }
-  async reviewEntity(
-    actor: CatalogActor,
-    id: string,
-    input: {
-      baseVersion: number;
-      expectedStatus: HistoricalNodeRecord["reviewStatus"];
-      decision: "APPROVE" | "REQUEST_CHANGES";
-      note: string;
-    },
-  ) {
-    const node = await this.catalog.getNode("entity", id);
-    this.assertEvent(node);
-    this.assertReviewer(actor, node.createdById);
-    if (input.expectedStatus !== "IN_REVIEW")
-      throw new DomainError(
-        409,
-        "INVALID_REVIEW_STATE",
-        "Nội dung chưa được gửi duyệt",
-      );
-    if (input.decision === "APPROVE") {
-      const ready = await this.getEntityReadiness(id);
-      if (ready.reasons.some((r) => r !== "CONTENT_NOT_APPROVED"))
-        throw new DomainError(
-          422,
-          "CONTENT_NOT_READY",
-          ready.reasons.join(", "),
-        );
-    }
-    await this.repository.reviewEntity(
-      actor.userId,
-      id,
-      input.baseVersion,
-      input.expectedStatus,
-      input.decision === "APPROVE" ? "APPROVED" : "CHANGES_REQUESTED",
-      input.note,
-    );
-    return this.catalog.detail("entity", id);
   }
   async reviewSource(
     actor: CatalogActor,
@@ -173,14 +82,6 @@ export class CatalogReviewService {
       input.decision === "VERIFY" ? "VERIFIED" : "REJECTED",
       input.note,
     );
-  }
-  private assertEvent(node: HistoricalNodeRecord) {
-    if (node.entityType !== "EVENT")
-      throw new DomainError(
-        422,
-        "VALIDATION_ERROR",
-        "Luồng kiểm duyệt này chỉ dành cho sự kiện",
-      );
   }
   private assertReviewer(actor: CatalogActor, creator: string | null) {
     if (!["moderator", "admin"].includes(actor.role ?? ""))
