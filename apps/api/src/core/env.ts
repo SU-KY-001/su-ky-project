@@ -45,6 +45,9 @@ const envSchema = z
     PI_API_KEY: z.string().min(1).optional(),
     GEMINI_API_KEY: z.string().min(1).optional(),
     OPENCODE_API_KEY: z.string().min(1).optional(),
+    // PI_PROVIDER=commandcode; PI_API_KEY overrides it, like the other providers.
+    COMMAND_CODE_API_KEY: z.string().min(1).optional(),
+    PI_COMMAND_CODE_BASE_URL: z.string().url().default("https://api.commandcode.ai/provider/v1"),
     PI_THINKING_LEVEL: z
       .enum(["off", "minimal", "low", "medium", "high", "xhigh", "max"])
       .default("medium"),

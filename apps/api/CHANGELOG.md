@@ -11,6 +11,12 @@ Nhãn: `BREAKING` (code cũ gọi sẽ lỗi hoặc sai), `ADDITIVE` (mới, kh�
 - `GET /api/admin/membership/transactions` nhận thêm filter `provider`; mỗi giao dịch trả `provider` + `externalId` thay cho `sepayId`. Admin FE phải đổi field.
 - Thêm provider mới = viết một adapter chuẩn hoá payload về `PaymentEvent` và đăng ký trong `modules/membership/index.ts`; không sửa service đối soát/kích hoạt.
 
+### ADDITIVE — Provider AI `commandcode` (2026-11-10)
+- `PI_PROVIDER=commandcode` dùng endpoint OpenAI-compatible `https://api.commandcode.ai/provider/v1` với `COMMAND_CODE_API_KEY` (hoặc `PI_API_KEY`, key này thắng mọi provider). Model mặc định `deepseek/deepseek-v4.1-flash`; đặt model khác (vd. `deepseek/deepseek-v4.1-pro`) bằng `PI_MODEL`.
+- Base URL đổi được bằng `PI_COMMAND_CODE_BASE_URL` (mặc định `https://api.commandcode.ai/provider/v1`).
+- `isReady` (cờ mà `assertAiReady` và `runStructuredAgent` dùng để chặn call) nay đọc `getProviderAuthStatus().configured` thay vì chỉ dựa vào OAuth đã lưu / key env của provider cũ. Không đổi endpoint, DTO hay hành vi của `google` / `openai` / `opencode-go`; log khởi động in thêm dòng `Registered provider` với provider, model, baseUrl.
+- Phải khởi động lại API (và worker) vì `PiRuntime` là singleton lazy, chỉ đọc env một lần mỗi process.
+
 ### ADDITIVE — Hội thoại nhiều người nói, tối đa 30 (2026-11-04)
 - `dialogue.speakers` nay nhận 2..30 người; `key` là chuỗi chữ-số tối đa 8 ký tự (người mới dùng `S3`, `S4`…; `A`/`B` cũ vẫn hợp lệ, không cần migration). Voice dựng sẵn tăng từ 4 lên 30, kể cả `voice` của tập một người kể (`AiVoiceSchema`).
 - **Lưu ý client:** server từ chối lượt có `speaker` không thuộc `speakers` (trước đây enum A/B che việc này), và từ chối khoá, tên (không phân biệt hoa thường) hoặc giọng trùng.
