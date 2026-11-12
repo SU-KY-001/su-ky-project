@@ -377,6 +377,8 @@ export class PrismaSeriesRepository implements SeriesRepository {
         startYear: input.startYear,
         endYear: input.endYear,
         coverImageAssetId: input.coverImageAssetId,
+        coverLandscapeAssetId: input.coverLandscapeAssetId,
+        isPremium: input.isPremium,
         ...primary,
       });
       if (row.coverImageAssetId)

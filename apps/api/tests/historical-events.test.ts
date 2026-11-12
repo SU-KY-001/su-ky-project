@@ -53,6 +53,24 @@ describe.skipIf(!RUN_INTEGRATION)("historical event CRUD", () => {
       }),
     ).toBe(1);
   });
+  it("persists the premium flag when creating a series", async () => {
+    const content = new ContentService(
+      new PrismaSeriesRepository(),
+      new PrismaEpisodeRepository(),
+    );
+    const session = makeSession(actor.userId, "moderator");
+    const created = await content.createSeries(
+      session,
+      { title: `Premium ${crypto.randomUUID()}`, isPremium: true },
+      null,
+    );
+    expect(
+      (await prisma.series.findUnique({
+        where: { id: created.id },
+        select: { isPremium: true },
+      }))?.isPremium,
+    ).toBe(true);
+  });
   it("cannot attach a deleted historical entity as a tag or narrator", async () => {
     const figure = await svc.createNode(actor, "entity", {
       entityType: "FIGURE",

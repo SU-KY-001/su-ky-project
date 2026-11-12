@@ -276,6 +276,7 @@ export class ContentService {
       endYear?: number | null;
       coverImageAssetId?: string | null;
       coverLandscapeAssetId?: string | null;
+      isPremium?: boolean;
       language?: string;
     },
     ipAddress: string | null,

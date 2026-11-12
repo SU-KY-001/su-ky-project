@@ -34,6 +34,7 @@ export interface CreateSeriesDraftInput {
   endYear?: number | null;
   coverImageAssetId?: string | null;
   coverLandscapeAssetId?: string | null;
+  isPremium?: boolean;
 }
 
 export interface CreateSeriesInput extends CreateSeriesDraftInput {
