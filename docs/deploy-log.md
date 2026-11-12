@@ -39,3 +39,4 @@ docker ps --format '{{.Names}} {{.Image}} {{.Status}}'
 | 2026-10-28 17:09 | ee12409+dirty | staging | staging + dev merge (quiz authoring, 3 migrations); Makefile.prod uncommitted | 🔵 api |
 | 2026-10-29 00:29 | 9fcdd34 | staging | docs(api): voice job dialogue mode in OpenAPI | 🔵 api |
 | 2026-10-29 11:21 | f2c2fba | staging | Merge remote-tracking branch 'origin/dev' into staging | 🔵 api |
+| 2026-11-09 17:46 | f5c28e5 | staging | Merge pull request #44 from SU-KY-001/fix/mobile | 🔵 api |
