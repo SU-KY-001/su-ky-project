@@ -280,6 +280,8 @@ export const PublicSeriesListItemDocSchema = z.object({
   slug: z.string(),
   title: z.string(),
   description: z.string().nullable(),
+  isPremium: z.boolean().describe("Series thuộc gói trả phí"),
+  locked: z.boolean().describe("`true` khi series premium và người xem chưa có membership"),
   startYear: z.number().int().nullable(),
   endYear: z.number().int().nullable(),
   cover: PublicCoverSchema,
@@ -317,6 +319,7 @@ export const PublicSeriesDetailDocSchema = z.object({
   slug: z.string(),
   title: z.string(),
   description: z.string().nullable(),
+  isPremium: z.boolean().describe("Series thuộc gói trả phí"),
   startYear: z.number().int().nullable(),
   endYear: z.number().int().nullable(),
   cover: PublicCoverSchema,
@@ -329,6 +332,8 @@ export const PublicSeriesDetailDocSchema = z.object({
       title: z.string(),
       sortOrder: z.number().int(),
       description: z.string().nullable(),
+      isPremium: z.boolean().describe("Tập thuộc gói trả phí"),
+      locked: z.boolean().describe("`true` khi series hoặc tập premium và người xem chưa có membership"),
       poster: PublicCoverSchema.describe("Poster IMAGE đã sẵn sàng; null nếu chưa có"),
       publishedAt: timestamp.nullable(),
       narrations: z.array(PublicNarrationSchema),
@@ -364,6 +369,8 @@ export const PublicEpisodeDetailDocSchema = z.object({
   title: z.string(),
   description: z.string().nullable(),
   publishedAt: timestamp.nullable(),
+  isPremium: z.boolean().describe("Tập thuộc gói trả phí"),
+  locked: z.boolean().describe("`true` khi series hoặc tập premium và người xem chưa có membership"),
   series: z.object({
     evidenceAsOf: z.string().nullable(),
     evidenceWarning: z
@@ -382,7 +389,7 @@ export const PublicEpisodeDetailDocSchema = z.object({
       .describe("Trích dẫn thuộc series; mọi tập của series dùng chung"),
   }),
   narrations: z.array(
-    PublicNarrationSchema.extend({ narrator: PublicEntitySchema.nullable(), scriptContent: z.string().nullable().describe("Kịch bản của bản thu có audio sẵn sàng") }),
+    PublicNarrationSchema.extend({ narrator: PublicEntitySchema.nullable(), scriptContent: z.string().nullable().describe("Kịch bản của bản thu có audio sẵn sàng; `null` khi bị khoá premium hoặc audio chưa `READY`") }),
   ),
   entities: z
     .array(PublicEntitySchema)

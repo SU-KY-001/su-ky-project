@@ -28,6 +28,7 @@ const idParams = { pathParams: idParam, pathParamDocs: { id: "ID đơn mua gói"
 
 export const MembershipOrderDocSchema = MembershipOrderSchema;
 export const MembershipPlanDocSchema = MembershipPlanSchema;
+const AdminMembershipPlanDocSchema = MembershipPlanSchema.extend({ isActive: z.boolean() });
 
 export const AdminMembershipOrderDocSchema = z.object({
   id: z.string().uuid(),
@@ -111,7 +112,9 @@ export const AdminMembershipOrderDetailDocSchema = AdminMembershipOrderDocSchema
 });
 
 const planListSchema = z.array(MembershipPlanSchema);
+const adminPlanListSchema = z.array(AdminMembershipPlanDocSchema);
 const plan = (description: string) => ({ status: 200 as const, description, schema: { name: "MembershipPlan", schema: MembershipPlanSchema } });
+const adminPlan = (description: string) => ({ status: 200 as const, description, schema: { name: "AdminMembershipPlan", schema: AdminMembershipPlanDocSchema } });
 const order = (description: string) => ({ status: 200 as const, description, schema: { name: "MembershipOrder", schema: MembershipOrderSchema } });
 
 export const membershipPaths: Paths = {
@@ -224,7 +227,7 @@ export const membershipPaths: Paths = {
       tag: TAG,
       summary: "Admin: danh sách gói",
       access: "admin",
-      ok: { status: 200, description: "Mọi gói, kể cả đã tắt", schema: { name: "MembershipPlanList", schema: planListSchema } },
+      ok: { status: 200, description: "Mọi gói, kể cả đã tắt", schema: { name: "AdminMembershipPlanList", schema: adminPlanListSchema } },
     }),
   },
   "/api/admin/membership/plans/{code}": {
@@ -238,7 +241,7 @@ export const membershipPaths: Paths = {
       pathParamDocs: { code: "Mã gói: free, monthly, yearly" },
       body: { name: "AdminPlanPatchRequest", schema: AdminPlanPatchSchema },
       rate: "write",
-      ok: plan("Gói sau khi sửa"),
+      ok: adminPlan("Gói sau khi sửa"),
       errors: { 404: "`PLAN_NOT_FOUND`", 422: "`PLAN_NOT_PURCHASABLE`: bật bán nhưng giá hoặc số ngày không dương" },
     }),
   },

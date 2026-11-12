@@ -10,15 +10,48 @@ Nhãn: `BREAKING` (code cũ gọi sẽ lỗi hoặc sai), `ADDITIVE` (mới, kh�
 - Từ chối đơn và bỏ qua giao dịch dùng cập nhật có điều kiện, không ghi đè trạng thái webhook vừa chuyển sang `paid`/`matched` (trả `409 ORDER_NOT_PENDING`). Gán một giao dịch đã bỏ qua cũng trả `409` thay vì im lặng không làm gì.
 - `GET /api/admin/membership/transactions` và `GET /api/admin/membership/report`: tham số `to` tính trọn ngày theo giờ VN.
 - Đơn `rejected` trả `expiresAt = null`; chỉ đơn `pending`/`needs_review` mới hiện hạn dự kiến được cộng thêm.
-- Bằng chứng chuyển khoản phải là ảnh (`422 MEDIA_TYPE_NOT_ALLOWED`); production bắt buộc `BANK_SHORT_CODE` và `BANK_NAME`, không còn tự mặc định MB.
+- Bằng chứng chuyển khoản phải là ảnh (`422 MEDIA_TYPE_NOT_ALLOWED`); production bắt buộc `BANK_SHORT_CODE`, `BANK_NAME`, `BANK_ACCOUNT_NUMBER`, `BANK_ACCOUNT_NAME` và `SEPAY_WEBHOOK_API_KEY` (thiếu key webhook trả `503 PAYMENT_PROVIDER_NOT_CONFIGURED`).
 - Báo cáo doanh thu đọc `SUM` bằng `bigint` rồi chuyển số, tránh tràn `int` khi tổng vượt 2,1 tỷ đồng.
 - Migration `20261113110000_payment_transaction_indexes` thêm index `order_id`, `transaction_at`, `(provider, transaction_at)` cho sổ giao dịch.
+- `POST /api/studio/series` lưu đúng `isPremium` và `coverLandscapeAssetId` (trước đó schema nhận nhưng create bỏ qua).
+- OpenAPI public Series/Episode bổ sung `isPremium`/`locked`; `scriptContent` ghi rõ `null` khi bị khoá premium. OpenAPI admin plan bổ sung `isActive`.
 
 ### BREAKING — Sổ giao dịch thanh toán đa provider (2026-11-13)
 - Bảng `sepay_transactions` đổi thành `payment_transactions`: thêm `provider`, đổi `sepay_id` → `external_id` (chuỗi), unique theo `(provider, external_id)`. Migration `20261113100000_payment_providers` giữ nguyên dữ liệu SePay cũ với `provider='sepay'`.
 - Webhook đổi sang `POST /api/payments/:provider/webhook`; URL SePay cũ `/api/payments/sepay/webhook` không đổi. Provider chưa đăng ký trả `404 PAYMENT_PROVIDER_UNSUPPORTED`; lỗi xác thực đổi mã thành `401 PAYMENT_UNAUTHORIZED` / `503 PAYMENT_PROVIDER_NOT_CONFIGURED`.
 - `GET /api/admin/membership/transactions` nhận thêm filter `provider`; mỗi giao dịch trả `provider` + `externalId` thay cho `sepayId`. Admin FE phải đổi field.
 - Thêm provider mới = viết một adapter chuẩn hoá payload về `PaymentEvent` và đăng ký trong `modules/membership/index.ts`; không sửa service đối soát/kích hoạt.
+
+### ADDITIVE — Premium membership: gói, SePay QR, khoá nội dung (2026-11-12)
+
+**Người nghe / public**
+- `GET /api/membership/plans`: mọi gói đang bật, kể cả gói free (`isPurchasable=false`) để dựng bảng so sánh. Mỗi gói có `code`, `name`, `priceVnd`, `durationDays`, `isPurchasable`, `sortOrder`; thứ tự đã sắp sẵn.
+- `GET /api/me/membership`: nguồn quyết định quyền lợi. `tier` là `free`/`premium`; `expiresAt`, `daysLeft`, `planCode` chỉ có khi premium; `pendingOrderId` là đơn `pending`/`needs_review` gần nhất. Không suy quyền từ `MembershipOrder.expiresAt`.
+- `POST /api/me/membership/orders`: bắt buộc `Idempotency-Key` UUID v4; body `{ planCode }`; trả `201` kèm order + `bank`. Gọi lại cùng gói trả đúng đơn cũ; đang có đơn `needs_review` thì trả đơn đó bất kể `planCode` mới. Đổi gói/giá khi đang có đơn `pending` và tạo đơn mới thành công sẽ khiến đơn cũ thành `rejected` với `rejectionReason=PLAN_PRICE_CHANGED`. Vượt trần cộng dồn trả `422 STACK_LIMIT_REACHED`.
+- `GET /api/me/membership/orders?page&limit` và `GET /api/me/membership/orders/:id`: lịch sử/chi tiết. Client polling chi tiết mỗi 3–5 giây tới khi `status` là `paid`, `needs_review` hoặc `rejected`.
+- `MembershipOrder.status`: `pending` → `paid` | `needs_review` | `rejected`; `needs_review` cần admin đối soát. `expiresAt` là hạn dự kiến với đơn đang mở, hạn thật với đơn `paid`, và `null` với đơn `rejected`. `bank` luôn có `bankName`, `accountNumber`, `accountName`, `qrUrl`, `amount`, `transferContent` — hiển thị QR/chuyển khoản đúng các giá trị này, không tự đổi nội dung.
+- Mỗi order list/detail có `planCode`, `planName`, `priceVnd`, `durationDays`, `status`, `reviewReason`, `rejectionReason`, `proofUploaded`, `expiresAt`, `createdAt`, `paidAt`.
+- Ảnh chuyển khoản: `POST /api/me/membership/orders/:id/proof-ticket` body `{ kind, fileName, sizeBytes, mimeType }` tạo ticket Cloudinary (server luôn ép `IMAGE`, chỉ đơn `pending`/`needs_review`); upload file theo `upload.url` + `upload.fields`, rồi `POST /api/me/membership/orders/:id/proof` với `{ assetId, publicId }`. `publicId` lấy từ `public_id` trong response upload Cloudinary. Ảnh cũ bị thay; sai loại ảnh trả `422 MEDIA_TYPE_NOT_ALLOWED`, upload hỏng trả `422 MEDIA_INVALID`.
+
+**Khoá nội dung premium**
+- Series/tập có cờ `isPremium`: `POST/PATCH /api/studio/series` nhận `isPremium`; `PATCH /api/studio/episodes/:id` nhận `isPremium`.
+- Public `GET /api/series` trả `isPremium`, `locked`; `GET /api/series/:slug` trả `isPremium` và từng tập có `locked`; `GET /api/episodes/:slug` trả `isPremium`, `locked`, và `narrations[].scriptContent=null` khi bị khoá.
+- `GET /api/narrations/:narrationId/playback` và `PUT /api/me/listening-progress/:narrationId` trả `403 PREMIUM_REQUIRED` với nội dung premium nếu user free. Admin/Moderator được phát không cần mua; cờ `locked` ở API public chỉ xét membership nên admin/mod vẫn có thể thấy `locked=true` tại đó.
+- Audio premium dùng URL Cloudinary có TTL (khi cấu hình auth token); luôn lấy URL mới từ playback, không cache URL quá lâu hoặc dùng lại sau khi hết hạn.
+
+**Admin**
+- `GET /api/admin/membership/plans` trả cả gói đã tắt, kèm `isActive`; `PATCH /api/admin/membership/plans/:code` sửa `name`, `priceVnd`, `durationDays`, `isPurchasable`, `isActive`, `sortOrder`. Đơn cũ giữ giá snapshot.
+- `GET /api/admin/membership/orders` lọc `status=pending|needs_review|paid|rejected`, `q` (email/tên/mã chuyển khoản), phân trang; mỗi dòng có `user`, `proofUrl`, `proofUploaded`, `canApprove`, `expiresAt`. `GET /api/admin/membership/orders/:id` kèm `transactions`.
+- `POST /api/admin/membership/orders/:id/verify`: body `{ action: "approve" }` hoặc `{ action: "reject", reason }` (10–500 ký tự); `approve` kích hoạt qua cùng đường webhook. Đơn đã đóng trả `409 ORDER_NOT_PENDING`; vượt trần trả `422 STACK_LIMIT_REACHED`.
+- `GET /api/admin/membership/transactions`: lọc `provider`, `status=unmatched|needs_review|matched|ignored`, `from`, `to`; `to` tính cả ngày. Mỗi giao dịch có `provider`, `externalId`, `accumulated` (string), `order` (nếu khớp); không trả `rawPayload`.
+- `POST /api/admin/membership/transactions/:id/resolve`: body `{ action: "assign", orderId, note? }` hoặc `{ action: "ignore", note? }`; `assign` yêu cầu số tiền khớp giá đơn; `ignore` chỉ áp dụng giao dịch chưa khớp. Giao dịch đã `matched`/`ignored` trả `409 ORDER_NOT_PENDING`; `note` chỉ vào audit.
+- `GET /api/admin/membership/members`: `status=active|expired|all`, `q`; mỗi user một dòng với kỳ hạn xa nhất (`planCode`, `planName`, `startsAt`, `expiresAt`, `revokedAt`).
+- `POST /api/admin/membership/members/:userId/grant`: bắt buộc `Idempotency-Key`; body `{ planCode: "monthly"|"yearly", reason }`; tạo đơn comp giá 0 và kích hoạt atomic.
+- `POST /api/admin/membership/members/:userId/revoke`: body `{ reason }` 10–500 ký tự; thu hồi mọi kỳ hạn còn hiệu lực, trả `{ userId, revoked }`; không có kỳ hạn hiệu lực trả `404`.
+- `GET /api/admin/membership/report`: `from`, `to` tính cả ngày theo giờ VN, `groupBy=day|month`, tối đa 366 ngày; trả `summary` (`revenueVnd`, `paidOrders`, `compGrants`, `activeMembers`, `expiringIn7Days`, `pendingOver24h`, `needsReviewOrders`, `unmatchedTransactions`, `unmatchedAmountVnd`) và `series` doanh thu theo bucket/`byPlan`.
+
+**Lỗi thường gặp**
+- `404 PLAN_NOT_FOUND`, `422 PLAN_NOT_PURCHASABLE`, `422 STACK_LIMIT_REACHED`, `404 MEMBERSHIP_ORDER_NOT_FOUND`, `409 ORDER_NOT_PENDING`, `403 PREMIUM_REQUIRED`, `422 MEDIA_TYPE_NOT_ALLOWED`/`MEDIA_INVALID`. Schema field đầy đủ và mã/status chi tiết theo tag `Membership` trong OpenAPI `/docs`.
 
 ### ADDITIVE — Provider AI `commandcode` (2026-11-10)
 - `PI_PROVIDER=commandcode` dùng endpoint OpenAI-compatible `https://api.commandcode.ai/provider/v1` với `COMMAND_CODE_API_KEY` (hoặc `PI_API_KEY`, key này thắng mọi provider). Model mặc định `deepseek/deepseek-v4.1-flash`; đặt model khác (vd. `deepseek/deepseek-v4.1-pro`) bằng `PI_MODEL`.
