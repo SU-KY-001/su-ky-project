@@ -54,6 +54,7 @@ export interface SeriesPatch {
   endYear?: number | null;
   coverImageAssetId?: string | null;
   coverLandscapeAssetId?: string | null;
+  isPremium?: boolean;
 }
 
 export interface UpdateSeriesInput {
@@ -92,6 +93,7 @@ export interface EpisodePatch {
   title?: string;
   slug?: string;
   description?: string | null;
+  isPremium?: boolean;
 }
 
 export interface UpsertNarrationInput {

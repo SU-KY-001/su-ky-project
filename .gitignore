@@ -50,3 +50,5 @@ apps/api/spike-tts/out/
 tmp/
 .env.prod
 .commandcode/
+Seed-rv3
+.drawio-tmp

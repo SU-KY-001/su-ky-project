@@ -102,7 +102,36 @@ export class CloudinaryGateway implements MediaStorageGateway {
     }
   }
 
-  deliveryUrl(asset: MediaAsset): string {
+  /**
+   * Token-based URL for authenticated audio. Cloudinary only expires authenticated delivery through
+   * a token (`__cld_token__`), which needs the account's auth-token key; without it the URL is signed
+   * but permanent, so we say so instead of pretending the TTL works.
+   */
+  audioDeliveryUrl(asset: Pick<MediaAsset, "publicId" | "kind" | "version" | "format">, ttlSeconds: number): string {
+    this.configured();
+    const key = env.CLOUDINARY_AUTH_TOKEN_KEY;
+    if (!key) {
+      logger.warn({ publicId: asset.publicId }, "CLOUDINARY_AUTH_TOKEN_KEY missing; premium audio URL has no expiry");
+      return this.deliveryUrl(asset);
+    }
+    const expiresAt = Math.floor(Date.now() / 1000) + ttlSeconds;
+    const token = cloudinary.utils.generate_auth_token({
+      key,
+      acl: `/video/authenticated/${asset.publicId}`,
+      expiration: expiresAt,
+    });
+    const base = cloudinary.url(asset.publicId, {
+      resource_type: "video",
+      type: "authenticated",
+      sign_url: true,
+      secure: true,
+      version: asset.version ? Number(asset.version) : undefined,
+      format: asset.format ?? undefined,
+    });
+    return `${base}?__cld_token__=${token}`;
+  }
+
+  deliveryUrl(asset: Pick<MediaAsset, "publicId" | "kind" | "version" | "format">): string {
     this.configured();
     if (asset.kind === "DOCUMENT") {
       return cloudinary.utils.private_download_url(asset.publicId, asset.format ?? "pdf", {

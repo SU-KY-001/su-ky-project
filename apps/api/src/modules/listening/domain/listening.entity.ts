@@ -63,6 +63,7 @@ export interface SeriesEntity {
   adminLockedById: string | null;
   publishedAt: Date | null;
   deletedAt: Date | null;
+  isPremium: boolean;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -81,6 +82,7 @@ export interface EpisodeEntity {
   publicationApproval?: unknown;
   publishedAt: Date | null;
   deletedAt: Date | null;
+  isPremium: boolean;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -162,6 +164,8 @@ export interface SeriesWithCoverAndCount extends SeriesEntity {
 /** Narration row with its (optional) READY-filtered audio asset. */
 export interface NarrationWithAudio extends EpisodeNarrationEntity {
   audioAsset: MediaAssetEntity | null;
+  /** Episode or its series is premium; populated by `findPublicNarration` only. */
+  isPremium?: boolean;
 }
 
 export interface EpisodeWithNarrations extends EpisodeEntity {

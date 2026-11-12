@@ -44,6 +44,10 @@ export const SYSTEM_CONFIGS = {
   "rate_limit.listening_progress": { schema: rateLimitSchema, defaultValue: { limit: 20, windowSeconds: 60 } },
   "rate_limit.ai_check": { schema: rateLimitSchema, defaultValue: { limit: 10, windowSeconds: 3600 } },
   "rate_limit.ai_generate": { schema: rateLimitSchema, defaultValue: { limit: 60, windowSeconds: 3600 } },
+  "rate_limit.membership_order": { schema: rateLimitSchema, defaultValue: { limit: 10, windowSeconds: 3600 } },
+  "premium.reminder_days": { schema: z.number().int().nonnegative(), defaultValue: 3 },
+  "premium.max_stack_days": { schema: z.number().int().positive(), defaultValue: 365 },
+  "media.audio_delivery_ttl_seconds": { schema: z.number().int().positive(), defaultValue: 3600 },
   "ai_assist.enabled": { schema: z.boolean(), defaultValue: true },
 } as const;
 

@@ -130,6 +130,7 @@ function toSeries(row: PrismaSeries) {
     adminLockedById: row.adminLockedById,
     publishedAt: row.publishedAt,
     deletedAt: row.deletedAt,
+    isPremium: row.isPremium,
     createdAt: row.createdAt,
     updatedAt: row.updatedAt,
   };
@@ -164,6 +165,7 @@ function toEpisode(row: PrismaEpisode) {
     adminLockedById: row.adminLockedById,
     publishedAt: row.publishedAt,
     deletedAt: row.deletedAt,
+    isPremium: row.isPremium,
     createdAt: row.createdAt,
     updatedAt: row.updatedAt,
   };
@@ -405,9 +407,9 @@ export class PrismaListeningRepository implements ListeningRepository {
         },
         audioAsset: { status: "READY" as const },
       },
-      include: { audioAsset: true },
+      include: { audioAsset: true, episode: { select: { isPremium: true, series: { select: { isPremium: true } } } } },
     });
-    return row ? toNarrationWithAudio(row) : null;
+    return row ? { ...toNarrationWithAudio(row), isPremium: row.episode.isPremium || row.episode.series.isPremium } : null;
   }
 
   async findProgress(

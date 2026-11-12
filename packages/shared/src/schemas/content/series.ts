@@ -26,6 +26,7 @@ const seriesFields = z.object({
   endYear: HistoricalYearSchema.nullish(),
   coverImageAssetId: nullableUuid.optional(),
   coverLandscapeAssetId: nullableUuid.optional(),
+  isPremium: z.boolean().optional(),
 });
 const validYearRange = (value: {
   startYear?: number | null;

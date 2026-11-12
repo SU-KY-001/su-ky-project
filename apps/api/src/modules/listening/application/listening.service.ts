@@ -11,6 +11,7 @@ import { DomainError } from "../../../core/errors/domain-error";
 import { audioMimeType, type MediaStorageGateway } from "../../media";
 import type { SeriesSourceWithSource } from "../domain/listening.entity";
 import type { ListeningRepository } from "../domain/listening.repository";
+import { hasActiveMembership } from "../../membership/application/entitlement";
 
 const BASE64_PATTERN =
   /^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$/;
@@ -112,9 +113,20 @@ export class ListeningService {
     };
   }
 
-  async playback(narrationId: string, userId: string | null) {
+  /** Admins and moderators review premium audio without buying it. */
+  private async assertPremiumAccess(isPremium: boolean | undefined, userId: string | null, role: string | null) {
+    if (!isPremium) return;
+    if (role === "admin" || role === "moderator") return;
+    if (userId && (await hasActiveMembership(userId))) return;
+    throw new DomainError(403, "PREMIUM_REQUIRED", "A premium membership is required to listen to this episode");
+  }
+
+  async playback(narrationId: string, userId: string | null, role: string | null = null) {
     const narration = await this.repo.findPublicNarration(narrationId);
-    if (!narration?.audioAsset?.durationMs)
+    if (!narration)
+      throw new DomainError(404, "CONTENT_UNAVAILABLE", "Narration audio is not available");
+    await this.assertPremiumAccess(narration.isPremium, userId, role);
+    if (!narration.audioAsset?.durationMs)
       throw new DomainError(
         404,
         "CONTENT_UNAVAILABLE",
@@ -154,12 +166,19 @@ export class ListeningService {
       getSystemConfig("listening.sync_interval_ms"),
       getSystemConfig("listening.completion_ratio"),
     ]);
+    const audioUrl =
+      narration.isPremium && this.storage.audioDeliveryUrl
+        ? this.storage.audioDeliveryUrl(
+            narration.audioAsset,
+            await getSystemConfig("media.audio_delivery_ttl_seconds"),
+          )
+        : this.storage.deliveryUrl(narration.audioAsset);
     return {
       narrationId,
       episodeId: narration.episodeId,
       audio: {
         assetId: narration.audioAsset.id,
-        url: this.storage.deliveryUrl(narration.audioAsset),
+        url: audioUrl,
         mimeType: audioMimeType(narration.audioAsset.format),
         durationMs: narration.audioAsset.durationMs,
       },
@@ -191,8 +210,10 @@ export class ListeningService {
     narrationId: string,
     userId: string,
     input: UpdateProgressInput,
+    role: string | null = null,
   ) {
     const narration = await this.repo.findPublicNarration(narrationId);
+    if (narration) await this.assertPremiumAccess(narration.isPremium, userId, role);
     if (!narration?.audioAsset?.durationMs)
       throw new DomainError(
         404,
@@ -302,10 +323,15 @@ export class ListeningService {
     };
   }
 
-  async listSeries(query: SeriesListQuery) {
+  async listSeries(query: SeriesListQuery, userId: string | null = null) {
     const { items, total } = await this.repo.listPublicSeries(query);
+    const hasPremium = userId && items.some((series) => series.isPremium)
+      ? await hasActiveMembership(userId)
+      : false;
     return {
       items: items.map((series) => ({
+        isPremium: series.isPremium,
+        locked: series.isPremium && !hasPremium,
         id: series.id,
         slug: series.slug,
         title: series.title,
@@ -330,6 +356,8 @@ export class ListeningService {
   async getSeriesDetail(slug: string, userId: string | null) {
     const series = await this.repo.findPublicSeriesBySlug(slug);
     if (!series) throw new DomainError(404, "NOT_FOUND", "Series not found");
+    const premium = series.isPremium || series.episodes.some((episode) => episode.isPremium);
+    const hasPremium = premium && userId ? await hasActiveMembership(userId) : false;
     const progress = userId
       ? await this.repo.findProgressByEpisodeIds(
           userId,
@@ -341,6 +369,7 @@ export class ListeningService {
       slug: series.slug,
       title: series.title,
       description: series.description,
+      isPremium: series.isPremium,
       creator: series.creator ?? null,
       publishedAt: series.publishedAt,
       startYear: series.startYear,
@@ -356,6 +385,8 @@ export class ListeningService {
         id: episode.id,
         slug: episode.slug,
         title: episode.title,
+        isPremium: episode.isPremium,
+        locked: (series.isPremium || episode.isPremium) && !hasPremium,
         publishedAt: episode.publishedAt,
         description: episode.description,
         poster: episode.posterAsset ? { url: this.storage.deliveryUrl(episode.posterAsset) } : null,
@@ -393,12 +424,17 @@ export class ListeningService {
     const saved = userId
       ? await this.repo.findProgressForEpisode(userId, episode.id)
       : [];
+    const locked =
+      (episode.isPremium || episode.series.isPremium) &&
+      !(userId ? await hasActiveMembership(userId) : false);
     return {
       id: episode.id,
       slug: episode.slug,
       title: episode.title,
       description: episode.description,
       publishedAt: episode.publishedAt,
+      isPremium: episode.isPremium,
+      locked,
       series: {
         id: episode.series.id,
         slug: episode.series.slug,
@@ -419,7 +455,7 @@ export class ListeningService {
         narrator: item.narratorEntity,
         durationMs: item.audioAsset?.durationMs ?? null,
         available: item.audioAsset?.status === "READY",
-        scriptContent: item.audioAsset?.status === "READY" ? item.scriptContent : null,
+        scriptContent: locked ? null : item.audioAsset?.status === "READY" ? item.scriptContent : null,
       })),
       entities: episode.entityTags.map((item) => item.entity),
       previousEpisode: index > 0 ? episode.series.episodes[index - 1] : null,

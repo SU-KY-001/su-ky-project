@@ -14,6 +14,7 @@ export * from "./schemas/health";
 export * from "./schemas/release";
 export * from "./schemas/common";
 export * from "./schemas/problem";
+export * from "./schemas/membership";
 export * from "./schemas/content/catalog";
 export * from "./schemas/content/historical-catalog";
 export * from "./schemas/content/series";

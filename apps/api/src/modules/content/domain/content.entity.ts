@@ -46,6 +46,7 @@ export interface SeriesEntity {
   adminLockedById: string | null;
   publishedAt: Date | null;
   deletedAt: Date | null;
+  isPremium: boolean;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -66,6 +67,7 @@ export interface EpisodeEntity {
   publicationApproval?: unknown;
   publishedAt: Date | null;
   deletedAt: Date | null;
+  isPremium: boolean;
   createdAt: Date;
   updatedAt: Date;
 }

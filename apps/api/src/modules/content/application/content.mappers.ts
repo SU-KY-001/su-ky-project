@@ -200,6 +200,7 @@ export function mapSeriesDetail(
     description: series.description,
     language: series.language,
     status: series.status,
+    isPremium: series.isPremium,
     isDeleted: Boolean(series.deletedAt),
     lock: series.adminLockedAt
       ? { lockedAt: series.adminLockedAt, lockedBy: series.adminLockedById }
@@ -258,6 +259,7 @@ export function mapSeriesListItem(
     title: series.title,
     slug: series.slug,
     status: series.status,
+    isPremium: series.isPremium,
     isDeleted: Boolean(series.deletedAt),
     lock: series.adminLockedAt
       ? { lockedAt: series.adminLockedAt, lockedBy: series.adminLockedById }
@@ -308,6 +310,7 @@ export async function mapWorkspace(
     description: episode.description,
     sortOrder: episode.sortOrder,
     status: episode.status,
+    isPremium: episode.isPremium,
     isDeleted: Boolean(episode.deletedAt),
     lock: episode.adminLockedAt
       ? { lockedAt: episode.adminLockedAt, lockedBy: episode.adminLockedById }

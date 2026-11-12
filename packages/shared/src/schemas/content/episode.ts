@@ -11,6 +11,7 @@ export const PatchEpisodeSchema = z.object({
   title: z.string().trim().min(1).max(255).optional(),
   slug: z.string().trim().min(1).max(280).optional(),
   description: z.string().trim().max(5000).nullish(),
+  isPremium: z.boolean().optional(),
   baseUpdatedAt: z.coerce.date().optional(),
 });
 export const PutNarrationSchema = z.object({

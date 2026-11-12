@@ -14,12 +14,12 @@ const narrationParam = z.object({ narrationId: z.string().uuid() });
 export function createPublicListeningRoute(service: ListeningService) {
   return new Hono<AppEnv>()
     .use("*", attachSession)
-    .get("/series", zValidator("query", PublicSeriesListQuerySchema, throwOnInvalid), async (c) => c.json(await service.listSeries(c.req.valid("query"))))
+    .get("/series", zValidator("query", PublicSeriesListQuerySchema, throwOnInvalid), async (c) => c.json(await service.listSeries(c.req.valid("query"), c.get("session")?.user.id ?? null)))
     .get("/series/:slug", zValidator("param", slugParam, throwOnInvalid), async (c) => c.json(await service.getSeriesDetail(c.req.valid("param").slug, c.get("session")?.user.id ?? null)))
     .get("/episodes/:slug", zValidator("param", slugParam, throwOnInvalid), async (c) => c.json(await service.getEpisodeDetail(c.req.valid("param").slug, c.get("session")?.user.id ?? null)))
     .get("/narrations/:narrationId/playback", zValidator("param", narrationParam, throwOnInvalid), async (c) => {
       c.header("Cache-Control", "private, no-store");
-      return c.json(await service.playback(c.req.valid("param").narrationId, c.get("session")?.user.id ?? null));
+      return c.json(await service.playback(c.req.valid("param").narrationId, c.get("session")?.user.id ?? null, c.get("session")?.user.role ?? null));
     });
 }
 
@@ -28,6 +28,6 @@ export function createMeListeningRoute(service: ListeningService) {
     .route("/", createPodcastRankingRoute())
     .use("*", requireAuth)
     .get("/listening-progress/:narrationId", zValidator("param", narrationParam, throwOnInvalid), async (c) => c.json(await service.getProgress(c.req.valid("param").narrationId, c.get("session")!.user.id)))
-    .put("/listening-progress/:narrationId", rateLimit("listening_progress"), zValidator("param", narrationParam, throwOnInvalid), zValidator("json", UpdateListeningProgressRequestSchema, throwOnInvalid), async (c) => c.json(await service.updateProgress(c.req.valid("param").narrationId, c.get("session")!.user.id, c.req.valid("json"))))
+    .put("/listening-progress/:narrationId", rateLimit("listening_progress"), zValidator("param", narrationParam, throwOnInvalid), zValidator("json", UpdateListeningProgressRequestSchema, throwOnInvalid), async (c) => c.json(await service.updateProgress(c.req.valid("param").narrationId, c.get("session")!.user.id, c.req.valid("json"), c.get("session")!.user.role)))
     .get("/listening-history", zValidator("query", ListeningHistoryQuerySchema, throwOnInvalid), async (c) => c.json(await service.getHistory(c.get("session")!.user.id, c.req.valid("query"))));
 }

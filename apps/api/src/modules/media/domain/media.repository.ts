@@ -14,6 +14,8 @@ export interface MediaStorageGateway {
   fetchResource(publicId: string, kind: MediaKind): Promise<StoredResource | null>;
   destroy(publicId: string, kind: MediaKind): Promise<"deleted" | "not_found">;
   deliveryUrl(asset: Pick<MediaAsset, "publicId" | "kind" | "version" | "format">): string;
+  /** Authenticated-delivery URL with an expiry; optional so test stubs need no media account. */
+  audioDeliveryUrl?(asset: Pick<MediaAsset, "publicId" | "kind" | "version" | "format">, ttlSeconds: number): string;
 }
 
 export class MediaProviderError extends Error {

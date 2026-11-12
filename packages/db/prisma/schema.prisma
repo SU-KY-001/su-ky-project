@@ -116,6 +116,24 @@ enum XpSourceType {
   @@map("xp_source_type")
 }
 
+enum MembershipOrderStatus {
+  pending
+  paid
+  needs_review
+  rejected
+
+  @@map("membership_order_status")
+}
+
+enum PaymentTransactionStatus {
+  unmatched
+  needs_review
+  matched
+  ignored
+
+  @@map("payment_transaction_status")
+}
+
 model User {
   id            String    @id @db.VarChar(36)
   name          String    @db.VarChar(255)
@@ -162,6 +180,8 @@ model User {
   requestedReleaseReassignments ReleaseReassignmentTicket[] @relation("ReleaseReassignmentRequester")
   replacementReleaseReassignments ReleaseReassignmentTicket[] @relation("ReleaseReassignmentReplacement")
   resolvedReleaseReassignments ReleaseReassignmentTicket[] @relation("ReleaseReassignmentResolver")
+  membershipOrders MembershipOrder[] @relation("MembershipOrders")
+  memberships      Membership[]      @relation("Memberships")
 
   @@map("users")
 }
@@ -409,6 +429,7 @@ model Series {
   historicalEntityRevisionId String?                   @map("historical_entity_revision_id") @db.Uuid
   historicalEntityRevision   HistoricalEntityRevision? @relation(fields: [historicalEntityRevisionId], references: [id], onDelete: Restrict)
   publicationEvidence        Json?                     @map("publication_evidence")
+  isPremium                  Boolean                   @default(false) @map("is_premium")
 
   @@index([ownerId], map: "series_owner_id_idx")
   @@index([topicId], map: "series_topic_id_idx")
@@ -448,6 +469,7 @@ model Episode {
   aiChecks           AiCheck[]
   /// Canonical approval `{contentRevision, assessment, approvedById, approvedAt, exceptionReason}`; valid only while contentRevision matches.
   publicationApproval Json?         @map("publication_approval")
+  isPremium          Boolean           @default(false) @map("is_premium")
 
   @@index([seriesId, sortOrder], map: "episodes_series_id_sort_order_idx")
   @@map("episodes")
@@ -620,6 +642,7 @@ model MediaAsset {
   sourceRevisions   SourceRevision[]    @relation("SourceRevisionFile")
   episodeAttachment EpisodeAttachment?  @relation("EpisodeAttachmentMedia")
   quizPosters       Quiz[]              @relation("QuizPoster")
+  orderProof        MembershipOrder?    @relation("OrderProof")
   quizDraftPosters  QuizWorkspaceDraft[] @relation("QuizDraftPoster")
 
   @@index([status, createdAt], map: "media_assets_status_created_at_idx")
@@ -1139,4 +1162,98 @@ model AiNarrativeAngle {
 
   @@index([userId], map: "ai_narrative_angles_user_id_idx")
   @@map("ai_narrative_angles")
+}
+
+model MembershipPlan {
+  id            String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  code          String    @unique @db.VarChar(32)
+  name          String    @db.VarChar(100)
+  priceVnd      Int       @map("price_vnd")
+  durationDays  Int       @map("duration_days")
+  isPurchasable Boolean   @default(true) @map("is_purchasable")
+  isActive      Boolean   @default(true) @map("is_active")
+  sortOrder     Int       @default(0) @map("sort_order")
+  createdAt     DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt     DateTime  @updatedAt @map("updated_at") @db.Timestamptz(3)
+  orders        MembershipOrder[]
+  memberships   Membership[]
+
+  @@map("membership_plans")
+}
+
+model MembershipOrder {
+  id                String                @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId            String                @map("user_id") @db.VarChar(36)
+  planId            String                @map("plan_id") @db.Uuid
+  planCodeSnapshot  String                @map("plan_code_snapshot") @db.VarChar(32)
+  planNameSnapshot  String                @map("plan_name_snapshot") @db.VarChar(100)
+  priceVnd          Int                   @map("price_vnd")
+  durationDays      Int                   @map("duration_days")
+  currency          String                @default("VND") @db.VarChar(3)
+  transferContent   String                @unique @map("transfer_content") @db.VarChar(32)
+  status            MembershipOrderStatus @default(pending)
+  proofAssetId      String?               @unique @map("proof_asset_id") @db.Uuid
+  rejectionReason   String?               @map("rejection_reason") @db.Text
+  bankTransactionId String?               @map("bank_transaction_id") @db.VarChar(64)
+  paidAt            DateTime?             @map("paid_at") @db.Timestamptz(3)
+  verifiedBy        String?               @map("verified_by") @db.VarChar(36)
+  reviewReason      String?               @map("review_reason") @db.VarChar(100)
+  adminNote         String?               @map("admin_note") @db.Text
+  createdAt         DateTime              @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt         DateTime              @updatedAt @map("updated_at") @db.Timestamptz(3)
+  user              User                  @relation("MembershipOrders", fields: [userId], references: [id], onDelete: Restrict)
+  plan              MembershipPlan        @relation(fields: [planId], references: [id], onDelete: Restrict)
+  proofAsset        MediaAsset?           @relation("OrderProof", fields: [proofAssetId], references: [id], onDelete: SetNull)
+  membership        Membership?
+  transactions      PaymentTransaction[]
+
+  @@index([userId, createdAt(sort: Desc)], map: "membership_orders_user_created_idx")
+  @@index([status, createdAt], map: "membership_orders_status_created_idx")
+  @@index([paidAt], map: "membership_orders_paid_at_idx")
+  @@map("membership_orders")
+}
+
+model Membership {
+  id           String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId       String    @map("user_id") @db.VarChar(36)
+  planId       String    @map("plan_id") @db.Uuid
+  orderId      String    @unique @map("order_id") @db.Uuid
+  priceVnd     Int       @map("price_vnd")
+  durationDays Int       @map("duration_days")
+  startsAt     DateTime  @map("starts_at") @db.Timestamptz(3)
+  expiresAt    DateTime  @map("expires_at") @db.Timestamptz(3)
+  revokedAt    DateTime? @map("revoked_at") @db.Timestamptz(3)
+  revokeReason String?   @map("revoke_reason") @db.VarChar(500)
+  createdAt    DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
+  user         User      @relation("Memberships", fields: [userId], references: [id], onDelete: Restrict)
+  plan         MembershipPlan @relation(fields: [planId], references: [id], onDelete: Restrict)
+  order        MembershipOrder @relation(fields: [orderId], references: [id], onDelete: Restrict)
+
+  @@index([userId, expiresAt(sort: Desc)], map: "memberships_user_expires_idx")
+  @@map("memberships")
+}
+
+model PaymentTransaction {
+  id              String                   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  provider        String                   @db.VarChar(32)
+  externalId      String                   @map("external_id") @db.VarChar(64)
+  referenceCode   String?                  @map("reference_code") @db.VarChar(64)
+  amount          Int
+  accumulated     BigInt?
+  content         String                @db.Text
+  code            String?               @db.VarChar(32)
+  gateway         String?               @db.VarChar(32)
+  accountNumber   String?               @map("account_number") @db.VarChar(32)
+  subAccount      String?               @map("sub_account") @db.VarChar(32)
+  transactionAt   DateTime              @map("transaction_at") @db.Timestamptz(3)
+  status          PaymentTransactionStatus @default(unmatched)
+  orderId         String?               @map("order_id") @db.Uuid
+  reason          String?               @db.VarChar(100)
+  rawPayload      Json                  @map("raw_payload")
+  createdAt       DateTime              @default(now()) @map("created_at") @db.Timestamptz(3)
+  order           MembershipOrder?      @relation(fields: [orderId], references: [id], onDelete: Restrict)
+
+  @@unique([provider, externalId], map: "payment_transactions_provider_external_id_key")
+  @@index([status, createdAt(sort: Desc)], map: "payment_transactions_status_created_idx")
+  @@map("payment_transactions")
 }

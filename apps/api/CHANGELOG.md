@@ -5,6 +5,12 @@ Nhãn: `BREAKING` (code cũ gọi sẽ lỗi hoặc sai), `ADDITIVE` (mới, kh�
 
 ## [Unreleased]
 
+### BREAKING — Sổ giao dịch thanh toán đa provider (2026-11-13)
+- Bảng `sepay_transactions` đổi thành `payment_transactions`: thêm `provider`, đổi `sepay_id` → `external_id` (chuỗi), unique theo `(provider, external_id)`. Migration `20261113100000_payment_providers` giữ nguyên dữ liệu SePay cũ với `provider='sepay'`.
+- Webhook đổi sang `POST /api/payments/:provider/webhook`; URL SePay cũ `/api/payments/sepay/webhook` không đổi. Provider chưa đăng ký trả `404 PAYMENT_PROVIDER_UNSUPPORTED`; lỗi xác thực đổi mã thành `401 PAYMENT_UNAUTHORIZED` / `503 PAYMENT_PROVIDER_NOT_CONFIGURED`.
+- `GET /api/admin/membership/transactions` nhận thêm filter `provider`; mỗi giao dịch trả `provider` + `externalId` thay cho `sepayId`. Admin FE phải đổi field.
+- Thêm provider mới = viết một adapter chuẩn hoá payload về `PaymentEvent` và đăng ký trong `modules/membership/index.ts`; không sửa service đối soát/kích hoạt.
+
 ### ADDITIVE — Hội thoại nhiều người nói, tối đa 30 (2026-11-04)
 - `dialogue.speakers` nay nhận 2..30 người; `key` là chuỗi chữ-số tối đa 8 ký tự (người mới dùng `S3`, `S4`…; `A`/`B` cũ vẫn hợp lệ, không cần migration). Voice dựng sẵn tăng từ 4 lên 30, kể cả `voice` của tập một người kể (`AiVoiceSchema`).
 - **Lưu ý client:** server từ chối lượt có `speaker` không thuộc `speakers` (trước đây enum A/B che việc này), và từ chối khoá, tên (không phân biệt hoa thường) hoặc giọng trùng.

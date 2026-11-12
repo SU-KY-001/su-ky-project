@@ -22,10 +22,16 @@ const envSchema = z
       emptyAsUndefined,
       z.coerce.number().int().positive().default(10000)
     ),
+    CLOUDINARY_AUTH_TOKEN_KEY: z.preprocess(emptyAsUndefined, z.string().min(1).optional()),
     CLOUDINARY_DOCUMENT_DELIVERY_TTL_SECONDS: z.preprocess(
       emptyAsUndefined,
       z.coerce.number().int().positive().default(3600)
     ),
+    BANK_SHORT_CODE: z.string().min(1).default("MB"),
+    BANK_NAME: z.string().min(1).default("MB Bank"),
+    BANK_ACCOUNT_NUMBER: z.preprocess(emptyAsUndefined, z.string().min(1).optional()),
+    BANK_ACCOUNT_NAME: z.preprocess(emptyAsUndefined, z.string().min(1).optional()),
+    SEPAY_WEBHOOK_API_KEY: z.preprocess(emptyAsUndefined, z.string().min(1).optional()),
     SOURCE_PDF_TIMEOUT_MS: z.preprocess(
       emptyAsUndefined,
       z.coerce.number().int().positive().default(120000)
@@ -111,6 +117,20 @@ const envSchema = z
           code: z.ZodIssueCode.custom,
           message: "All Cloudinary credentials must be configured together",
           path: ["CLOUDINARY_CLOUD_NAME"],
+        });
+      }
+      if (!data.BANK_ACCOUNT_NUMBER || !data.BANK_ACCOUNT_NAME) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: "BANK_ACCOUNT_NUMBER and BANK_ACCOUNT_NAME are required in production",
+          path: ["BANK_ACCOUNT_NUMBER"],
+        });
+      }
+      if (!data.SEPAY_WEBHOOK_API_KEY) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: "SEPAY_WEBHOOK_API_KEY is required in production",
+          path: ["SEPAY_WEBHOOK_API_KEY"],
         });
       }
     }
