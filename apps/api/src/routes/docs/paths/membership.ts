@@ -300,7 +300,7 @@ export const membershipPaths: Paths = {
       body: { name: "AdminResolveTransactionRequest", schema: AdminResolveTransactionSchema },
       rate: "write",
       ok: { status: 200, description: "Giao dịch sau xử lý và kết quả áp dụng", schema: { name: "AdminResolveTransactionResult", schema: z.object({ transaction: AdminTransactionDocSchema.nullable(), result: z.object({ status: z.enum(["matched", "needs_review"]), reason: z.string().nullable() }) }) } },
-      errors: { 404: "`NOT_FOUND` hoặc `MEMBERSHIP_ORDER_NOT_FOUND`", 409: "`ORDER_NOT_PENDING`: giao dịch đã khớp", 422: "`VALIDATION_ERROR`: thiếu đơn hoặc lệch số tiền" },
+      errors: { 404: "`NOT_FOUND` hoặc `MEMBERSHIP_ORDER_NOT_FOUND`", 409: "`ORDER_NOT_PENDING`: giao dịch đã khớp hoặc đã bỏ qua", 422: "`VALIDATION_ERROR`: thiếu đơn hoặc lệch số tiền" },
     }),
   },
   "/api/admin/membership/members": {
@@ -353,7 +353,7 @@ export const membershipPaths: Paths = {
       description: "Doanh thu theo ngày/tháng tại `Asia/Ho_Chi_Minh`, chỉ đơn `paid` có giá > 0; đơn comp đếm riêng. Khoảng tối đa 366 ngày.",
       access: "admin",
       query: AdminMembershipReportQuerySchema,
-      queryDocs: { from: "Ngày bắt đầu (YYYY-MM-DD, giờ VN, tính cả ngày)", to: "Ngày kết thúc (YYYY-MM-DD, giờ VN, không tính ngày này)", groupBy: "`day` hoặc `month`" },
+      queryDocs: { from: "Ngày bắt đầu (YYYY-MM-DD, giờ VN, tính cả ngày)", to: "Ngày kết thúc (YYYY-MM-DD, giờ VN, tính cả ngày)", groupBy: "`day` hoặc `month`" },
       ok: { status: 200, description: "Tổng hợp và chuỗi doanh thu", schema: { name: "MembershipReport", schema: MembershipReportDocSchema } },
       errors: { 422: "`VALIDATION_ERROR`: khoảng ngày sai hoặc quá 366 ngày" },
     }),

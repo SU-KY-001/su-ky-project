@@ -157,6 +157,8 @@ export class AdminMembershipService {
       return this.mapTransaction({ ...transaction, status: "ignored", reason: "MANUAL_IGNORE", order: null });
     }
 
+    if (transaction.status === "ignored")
+      throw new DomainError(409, "ORDER_NOT_PENDING", "Transaction is ignored");
     const orderId = body.orderId;
     if (!orderId) throw new DomainError(422, "VALIDATION_ERROR", "orderId is required to assign a transaction");
     const order = await this.repo.findOrder(orderId);
@@ -226,7 +228,8 @@ export class AdminMembershipService {
 
   async report(query: { from: string; to: string; groupBy: "day" | "month" }) {
     const from = new Date(`${query.from}T00:00:00+07:00`);
-    const to = new Date(`${query.to}T00:00:00+07:00`);
+    // `to` is a calendar day selected by the admin, so the report includes that whole day.
+    const to = new Date(new Date(`${query.to}T00:00:00+07:00`).getTime() + DAY_MS);
     if (Number.isNaN(from.getTime()) || Number.isNaN(to.getTime()) || to <= from)
       throw new DomainError(422, "VALIDATION_ERROR", "from must be before to");
     if (to.getTime() - from.getTime() > 366 * DAY_MS)

@@ -174,6 +174,38 @@ describe.skipIf(!RUN_INTEGRATION)("Membership orders", () => {
     expect(await prisma.membership.count({ where: { orderId: order.id } })).toBe(1);
   });
 
+  it("includes the whole to day in reports", async () => {
+    const order = await service.createOrder(userId, "monthly");
+    await repo.activateOrder({ orderId: order.id, now: new Date(), actorId: null, bankTransactionId: null, maxStackDays: 365 });
+    await prisma.membershipOrder.update({
+      where: { id: order.id },
+      data: { paidAt: new Date("2026-11-13T10:00:00+07:00") },
+    });
+    const report = await new AdminMembershipService(repo).report({ from: "2026-11-13", to: "2026-11-13", groupBy: "day" });
+    expect(report.summary.revenueVnd).toBe(order.priceVnd);
+    expect(report.summary.paidOrders).toBe(1);
+  });
+
+  it("rejects assigning a transaction an admin already ignored", async () => {
+    const order = await service.createOrder(userId, "monthly");
+    const transaction = await prisma.paymentTransaction.create({
+      data: {
+        provider: "sepay",
+        externalId: `test-${crypto.randomUUID()}`,
+        amount: order.priceVnd,
+        content: order.transferContent,
+        transactionAt: new Date(),
+        orderId: order.id,
+        rawPayload: {},
+      },
+    });
+    const admin = new AdminMembershipService(repo);
+    await admin.resolveTransaction(transaction.id, { action: "ignore" }, { actorId: userId, ipAddress: null });
+    await expect(
+      admin.resolveTransaction(transaction.id, { action: "assign", orderId: order.id }, { actorId: userId, ipAddress: null }),
+    ).rejects.toMatchObject({ status: 409, code: "ORDER_NOT_PENDING" });
+  });
+
   it("protects a proof image from the detached-media cleanup", async () => {
     const order = await service.createOrder(userId, "monthly");
     const asset = await prisma.mediaAsset.create({

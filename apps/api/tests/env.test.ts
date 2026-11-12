@@ -43,6 +43,23 @@ describe("Environment Configuration & Validation", () => {
     ).toThrow("Invalid environment configuration in production");
   });
 
+  it("throws in production if the VietQR bank code is missing", () => {
+    expect(() =>
+      validateEnv({
+        NODE_ENV: "production",
+        DATABASE_URL: "postgresql://postgres:password@localhost:5432/suky",
+        BETTER_AUTH_SECRET: "strong-prod-secret-987654321",
+        CLOUDINARY_CLOUD_NAME: "prod-cloud",
+        CLOUDINARY_API_KEY: "prod-api-key",
+        CLOUDINARY_API_SECRET: "prod-api-secret",
+        BANK_NAME: "BIDV",
+        BANK_ACCOUNT_NUMBER: "0123456789",
+        BANK_ACCOUNT_NAME: "SU KY",
+        SEPAY_WEBHOOK_API_KEY: "prod-sepay-key",
+      })
+    ).toThrow("Invalid environment configuration in production");
+  });
+
   it("validates successfully in production when required variables are provided", () => {
     const parsed = validateEnv({
       NODE_ENV: "production",
