@@ -5,6 +5,15 @@ Nhãn: `BREAKING` (code cũ gọi sẽ lỗi hoặc sai), `ADDITIVE` (mới, kh�
 
 ## [Unreleased]
 
+### FIX — Chốt chặn thanh toán và thành viên (2026-11-13)
+- `POST /api/admin/membership/members/{userId}/grant` bắt buộc header `Idempotency-Key` (UUID v4), tránh Admin bấm hai lần tạo hai kỳ hạn. Đơn comp và kỳ hạn được tạo trong một transaction; vượt trần cộng dồn thì không để lại đơn rác.
+- Từ chối đơn và bỏ qua giao dịch dùng cập nhật có điều kiện, không ghi đè trạng thái webhook vừa chuyển sang `paid`/`matched` (trả `409 ORDER_NOT_PENDING`).
+- `GET /api/admin/membership/transactions`: tham số `to` tính trọn ngày theo giờ VN, khớp với báo cáo.
+- Đơn `rejected` trả `expiresAt = null`; chỉ đơn `pending`/`needs_review` mới hiện hạn dự kiến được cộng thêm.
+- Bằng chứng chuyển khoản phải là ảnh (`422 MEDIA_TYPE_NOT_ALLOWED`); production bắt buộc `BANK_SHORT_CODE` và `BANK_NAME`, không còn tự mặc định MB.
+- Báo cáo doanh thu đọc `SUM` bằng `bigint` rồi chuyển số, tránh tràn `int` khi tổng vượt 2,1 tỷ đồng.
+- Migration `20261113110000_payment_transaction_indexes` thêm index `order_id`, `transaction_at`, `(provider, transaction_at)` cho sổ giao dịch.
+
 ### BREAKING — Sổ giao dịch thanh toán đa provider (2026-11-13)
 - Bảng `sepay_transactions` đổi thành `payment_transactions`: thêm `provider`, đổi `sepay_id` → `external_id` (chuỗi), unique theo `(provider, external_id)`. Migration `20261113100000_payment_providers` giữ nguyên dữ liệu SePay cũ với `provider='sepay'`.
 - Webhook đổi sang `POST /api/payments/:provider/webhook`; URL SePay cũ `/api/payments/sepay/webhook` không đổi. Provider chưa đăng ký trả `404 PAYMENT_PROVIDER_UNSUPPORTED`; lỗi xác thực đổi mã thành `401 PAYMENT_UNAUTHORIZED` / `503 PAYMENT_PROVIDER_NOT_CONFIGURED`.

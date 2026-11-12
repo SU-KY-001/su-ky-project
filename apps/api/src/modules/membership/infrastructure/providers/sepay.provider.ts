@@ -17,7 +17,9 @@ function sameSecret(actual: string | undefined, expected: string): boolean {
 
 function parseTransactionDate(value: string): Date {
   const iso = value.includes("T") ? value : value.replace(" ", "T");
-  const date = new Date(`${iso}+07:00`);
+  // SePay normally sends no zone; keep an explicit zone instead of appending a second one.
+  const hasZone = /(?:Z|[+-]\d{2}:?\d{2})$/.test(iso);
+  const date = new Date(hasZone ? iso : `${iso}+07:00`);
   if (Number.isNaN(date.getTime())) throw new DomainError(400, "VALIDATION_ERROR", "transactionDate is invalid");
   return date;
 }

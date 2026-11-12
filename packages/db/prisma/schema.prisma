@@ -1255,5 +1255,8 @@ model PaymentTransaction {
 
   @@unique([provider, externalId], map: "payment_transactions_provider_external_id_key")
   @@index([status, createdAt(sort: Desc)], map: "payment_transactions_status_created_idx")
+  @@index([orderId], map: "payment_transactions_order_idx")
+  @@index([transactionAt(sort: Desc)], map: "payment_transactions_time_idx")
+  @@index([provider, transactionAt(sort: Desc)], map: "payment_transactions_provider_time_idx")
   @@map("payment_transactions")
 }

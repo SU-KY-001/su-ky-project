@@ -1,5 +1,6 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "bun:test";
 import { prisma } from "@repo/db";
+import { AdminMembershipService } from "../src/modules/membership/application/admin-membership.service";
 import { MembershipService } from "../src/modules/membership/application/membership.service";
 import { PrismaMembershipRepository } from "../src/modules/membership/infrastructure/prisma-membership.repository";
 import { mediaService } from "../src/modules/media";
@@ -128,6 +129,49 @@ describe.skipIf(!RUN_INTEGRATION)("Membership orders", () => {
     const report = await repo.report({ from: new Date(Date.now() - 86400000), to: new Date(Date.now() + 86400000), groupBy: "day" }, new Date());
     expect(report.summary.activeMembers).toBe(1);
     expect(report.summary.expiringIn7Days).toBe(0);
+  });
+
+  it("creates and activates a comp grant in one transaction", async () => {
+    const plan = await prisma.membershipPlan.findUniqueOrThrow({ where: { code: "monthly" } });
+    const granted = await repo.grantCompMembership({
+      userId,
+      plan,
+      reason: "test comp",
+      now: new Date(),
+      actorId: null,
+      maxStackDays: 365,
+    });
+    expect(granted.result.status).toBe("activated");
+    const stored = await prisma.membershipOrder.findUniqueOrThrow({ where: { id: granted.orderId } });
+    expect(stored.status).toBe("paid");
+    expect(stored.priceVnd).toBe(0);
+  });
+
+  it("rolls back the comp order when the stack limit rejects the grant", async () => {
+    const plan = await prisma.membershipPlan.findUniqueOrThrow({ where: { code: "yearly" } });
+    const order = await service.createOrder(userId, "monthly");
+    await repo.activateOrder({ orderId: order.id, now: new Date(), actorId: null, bankTransactionId: null, maxStackDays: 365 });
+    await prisma.membership.update({
+      where: { orderId: order.id },
+      data: { startsAt: new Date(), expiresAt: new Date(Date.now() + 350 * 86400000) },
+    });
+    const before = await prisma.membershipOrder.count({ where: { userId } });
+    await expect(
+      repo.grantCompMembership({ userId, plan, reason: "too long", now: new Date(), actorId: null, maxStackDays: 365 }),
+    ).rejects.toMatchObject({ status: 422, code: "STACK_LIMIT_REACHED" });
+    expect(await prisma.membershipOrder.count({ where: { userId } })).toBe(before);
+  });
+
+  it("does not reject an order the webhook already paid", async () => {
+    const order = await service.createOrder(userId, "monthly");
+    await repo.activateOrder({ orderId: order.id, now: new Date(), actorId: null, bankTransactionId: null, maxStackDays: 365 });
+    const admin = new AdminMembershipService(repo);
+    await expect(
+      admin.verifyOrder(order.id, { action: "reject", reason: "late rejection reason" }, { actorId: userId, ipAddress: null }),
+    ).rejects.toMatchObject({ status: 409, code: "ORDER_NOT_PENDING" });
+    const stored = await prisma.membershipOrder.findUniqueOrThrow({ where: { id: order.id } });
+    expect(stored.status).toBe("paid");
+    expect(await prisma.membership.count({ where: { orderId: order.id } })).toBe(1);
   });
 
   it("protects a proof image from the detached-media cleanup", async () => {

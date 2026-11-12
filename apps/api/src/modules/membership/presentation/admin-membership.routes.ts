@@ -12,12 +12,13 @@ import {
 import { zValidator } from "@hono/zod-validator";
 import { Hono } from "hono";
 import { z } from "zod";
-import { rateLimit, throwOnInvalid } from "../../../core/middleware";
+import { idempotency, rateLimit, throwOnInvalid } from "../../../core/middleware";
 import { requestIpAddress } from "../../../core/audit";
 import type { AppEnv } from "../../../types";
 import { requireAdmin } from "../../auth";
 import type { AdminMembershipService } from "../application/admin-membership.service";
 
+const DAY_MS = 86_400_000;
 const idParam = z.object({ id: z.string().uuid() });
 const codeParam = z.object({ code: z.string().min(1).max(32) });
 const userParam = z.object({ userId: z.string().min(1).max(36) });
@@ -57,7 +58,8 @@ export function createAdminMembershipRoute(service: AdminMembershipService) {
         await service.listTransactions({
           ...query,
           ...(from ? { from: new Date(`${from}T00:00:00+07:00`) } : {}),
-          ...(to ? { to: new Date(`${to}T00:00:00+07:00`) } : {}),
+          // The filter includes the whole `to` day.
+          ...(to ? { to: new Date(new Date(`${to}T00:00:00+07:00`).getTime() + DAY_MS) } : {}),
         }),
       );
     })
@@ -73,6 +75,7 @@ export function createAdminMembershipRoute(service: AdminMembershipService) {
     )
     .post(
       "/members/:userId/grant",
+      idempotency(),
       rateLimit("write"),
       zValidator("param", userParam, throwOnInvalid),
       zValidator("json", AdminGrantMembershipSchema, throwOnInvalid),

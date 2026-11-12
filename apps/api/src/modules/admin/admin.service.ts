@@ -57,7 +57,6 @@ const configDescriptions: Record<keyof typeof SYSTEM_CONFIGS, string> = {
   "media.cleanup_grace_hours": "Thời gian chờ trước khi dọn media mồ côi",
   "media.cleanup_batch_size": "Số media xử lý mỗi lượt dọn",
   "media.audio_delivery_ttl_seconds": "Thời hạn URL audio premium (giây)",
-  "premium.reminder_days": "Số ngày còn lại để hiện nhắc gia hạn",
   "premium.max_stack_days": "Trần cộng dồn thời hạn thành viên (ngày)",
   "rate_limit.membership_order": "Số đơn mua gói mỗi khung giờ",
   "script.max_chars": "Số ký tự tối đa của kịch bản",

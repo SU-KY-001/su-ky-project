@@ -1,4 +1,4 @@
-import { mediaService, mediaStorage } from "../media";
+import { mediaService } from "../media";
 import { AdminMembershipService } from "./application/admin-membership.service";
 import { MembershipService } from "./application/membership.service";
 import { PaymentWebhookService } from "./application/payment-webhook.service";
@@ -21,4 +21,3 @@ export const publicMembershipRoute = createPublicMembershipRoute(membershipServi
 export const meMembershipRoute = createMeMembershipRoute(membershipService);
 export const paymentWebhookRoute = createPaymentWebhookRoute(paymentWebhookService);
 export const adminMembershipRoute = createAdminMembershipRoute(adminMembershipService);
-export { mediaStorage };

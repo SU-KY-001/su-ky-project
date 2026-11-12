@@ -3,7 +3,6 @@ import type {
   AdminMemberRow,
   AdminOrderRow,
   AdminTransactionRow,
-  MembershipEntity,
   MembershipOrderEntity,
   MembershipPlanEntity,
   MembershipReport,
@@ -21,6 +20,15 @@ export interface ActivateOrderInput {
   now: Date;
   actorId: string | null;
   bankTransactionId?: string | null;
+  maxStackDays: number;
+}
+
+export interface GrantCompMembershipInput {
+  userId: string;
+  plan: MembershipPlanEntity;
+  reason: string;
+  now: Date;
+  actorId: string | null;
   maxStackDays: number;
 }
 
@@ -79,7 +87,6 @@ export interface ReportQuery {
 export interface MembershipRepository {
   listPlans(): Promise<MembershipPlanEntity[]>;
   findPlanByCode(code: string): Promise<MembershipPlanEntity | null>;
-  findPlanById(id: string): Promise<MembershipPlanEntity | null>;
   updatePlan(id: string, patch: Partial<Pick<MembershipPlanEntity, "name" | "priceVnd" | "durationDays" | "isPurchasable" | "isActive" | "sortOrder">>): Promise<MembershipPlanEntity>;
 
   findActiveMembership(userId: string, now: Date): Promise<MembershipWithPlan | null>;
@@ -87,7 +94,7 @@ export interface MembershipRepository {
   findLatestOrder(userId: string, statuses: Array<"pending" | "needs_review">): Promise<MembershipOrderEntity | null>;
 
   createOrder(input: CreateOrderInput): Promise<MembershipOrderEntity>;
-  createCompOrder(userId: string, plan: MembershipPlanEntity, reason: string): Promise<MembershipOrderEntity>;
+  grantCompMembership(input: GrantCompMembershipInput): Promise<{ orderId: string; result: ActivationResult }>;
   listOrders(userId: string, page: number, limit: number): Promise<{ items: MembershipOrderEntity[]; total: number }>;
   findOrder(id: string, userId?: string): Promise<MembershipOrderEntity | null>;
   attachProof(orderId: string, assetId: string): Promise<MembershipOrderEntity>;
@@ -97,6 +104,8 @@ export interface MembershipRepository {
   findTransactionByProviderRef(provider: string, externalId: string): Promise<PaymentTransactionEntity | null>;
   findOrderByTransferContent(content: string): Promise<MembershipOrderEntity | null>;
   markTransaction(id: string, status: "unmatched" | "needs_review" | "matched" | "ignored", reason: string | null, orderId?: string | null): Promise<void>;
+  /** Ignores only a still-open transaction; false when the webhook already matched it. */
+  markTransactionIfOpen(id: string, reason: string): Promise<boolean>;
   applyTransaction(input: ApplyTransactionInput): Promise<{ status: "matched" | "needs_review"; reason: string | null; membershipId?: string }>;
 
   listOrdersForAdmin(query: OrderQuery): Promise<{ items: AdminOrderRow[]; total: number }>;
@@ -108,5 +117,4 @@ export interface MembershipRepository {
   findUser(userId: string): Promise<{ id: string; name: string; email: string } | null>;
   revokeActiveMemberships(userId: string, reason: string, now: Date): Promise<number>;
   report(query: ReportQuery, now: Date): Promise<MembershipReport>;
-  findMembership(orderId: string): Promise<MembershipEntity | null>;
 }

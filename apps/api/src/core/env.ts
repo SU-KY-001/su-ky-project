@@ -27,8 +27,8 @@ const envSchema = z
       emptyAsUndefined,
       z.coerce.number().int().positive().default(3600)
     ),
-    BANK_SHORT_CODE: z.string().min(1).default("MB"),
-    BANK_NAME: z.string().min(1).default("MB Bank"),
+    BANK_SHORT_CODE: z.preprocess(emptyAsUndefined, z.string().min(1).optional()),
+    BANK_NAME: z.preprocess(emptyAsUndefined, z.string().min(1).optional()),
     BANK_ACCOUNT_NUMBER: z.preprocess(emptyAsUndefined, z.string().min(1).optional()),
     BANK_ACCOUNT_NAME: z.preprocess(emptyAsUndefined, z.string().min(1).optional()),
     SEPAY_WEBHOOK_API_KEY: z.preprocess(emptyAsUndefined, z.string().min(1).optional()),
@@ -122,11 +122,11 @@ const envSchema = z
           path: ["CLOUDINARY_CLOUD_NAME"],
         });
       }
-      if (!data.BANK_ACCOUNT_NUMBER || !data.BANK_ACCOUNT_NAME) {
+      if (!data.BANK_SHORT_CODE || !data.BANK_NAME || !data.BANK_ACCOUNT_NUMBER || !data.BANK_ACCOUNT_NAME) {
         ctx.addIssue({
           code: z.ZodIssueCode.custom,
-          message: "BANK_ACCOUNT_NUMBER and BANK_ACCOUNT_NAME are required in production",
-          path: ["BANK_ACCOUNT_NUMBER"],
+          message: "BANK_SHORT_CODE, BANK_NAME, BANK_ACCOUNT_NUMBER and BANK_ACCOUNT_NAME are required in production",
+          path: ["BANK_SHORT_CODE"],
         });
       }
       if (!data.SEPAY_WEBHOOK_API_KEY) {

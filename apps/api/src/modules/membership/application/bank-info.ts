@@ -13,8 +13,10 @@ export interface BankBlock {
 }
 
 export function bankBlock(transferContent: string, amount: number): BankBlock {
+  const bankShortCode = env.BANK_SHORT_CODE ?? "MB";
+  const bankName = env.BANK_NAME ?? "MB Bank";
   const accountNumber = env.BANK_ACCOUNT_NUMBER ?? DEV_ACCOUNT_NUMBER;
   const accountName = env.BANK_ACCOUNT_NAME ?? DEV_ACCOUNT_NAME;
-  const qrUrl = `https://img.vietqr.io/image/${encodeURIComponent(env.BANK_SHORT_CODE)}-${encodeURIComponent(accountNumber)}-compact2.png?amount=${amount}&addInfo=${encodeURIComponent(transferContent)}&accountName=${encodeURIComponent(accountName)}`;
-  return { bankName: env.BANK_NAME, accountNumber, accountName, qrUrl, amount, transferContent };
+  const qrUrl = `https://img.vietqr.io/image/${encodeURIComponent(bankShortCode)}-${encodeURIComponent(accountNumber)}-compact2.png?amount=${amount}&addInfo=${encodeURIComponent(transferContent)}&accountName=${encodeURIComponent(accountName)}`;
+  return { bankName, accountNumber, accountName, qrUrl, amount, transferContent };
 }

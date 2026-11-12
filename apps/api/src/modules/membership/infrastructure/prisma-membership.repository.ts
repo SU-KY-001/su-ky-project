@@ -5,6 +5,7 @@ import type {
   ActivateOrderInput,
   ApplyTransactionInput,
   CreateOrderInput,
+  GrantCompMembershipInput,
   InsertTransactionInput,
   MemberQuery,
   MembershipRepository,
@@ -143,11 +144,6 @@ export class PrismaMembershipRepository implements MembershipRepository {
     return row ? toPlan(row) : null;
   }
 
-  async findPlanById(id: string): Promise<MembershipPlanEntity | null> {
-    const row = await this.db.membershipPlan.findUnique({ where: { id } });
-    return row ? toPlan(row) : null;
-  }
-
   async updatePlan(id: string, patch: Partial<Pick<MembershipPlanEntity, "name" | "priceVnd" | "durationDays" | "isPurchasable" | "isActive" | "sortOrder">>): Promise<MembershipPlanEntity> {
     const row = await this.db.membershipPlan.update({ where: { id }, data: patch });
     return toPlan(row);
@@ -222,24 +218,34 @@ export class PrismaMembershipRepository implements MembershipRepository {
     throw new DomainError(500, "INTERNAL_SERVER_ERROR", "Could not allocate a unique transfer code");
   }
 
-  async createCompOrder(userId: string, plan: MembershipPlanEntity, reason: string): Promise<MembershipOrderEntity> {
-    let code = transferCode(COMP_PREFIX);
-    while (await this.db.membershipOrder.findUnique({ where: { transferContent: code }, select: { id: true } }))
-      code = transferCode(COMP_PREFIX);
-    const row = await this.db.membershipOrder.create({
-      data: {
-        userId,
-        planId: plan.id,
-        planCodeSnapshot: plan.code,
-        planNameSnapshot: plan.name,
-        priceVnd: 0,
-        durationDays: plan.durationDays,
-        transferContent: code,
-        adminNote: reason,
-      },
-      include: { membership: true },
+  async grantCompMembership(input: GrantCompMembershipInput): Promise<{ orderId: string; result: ActivationResult }> {
+    // Create and activate in one transaction: a failed activation must not leave a comp order behind.
+    return this.db.$transaction(async (tx) => {
+      let code = transferCode(COMP_PREFIX);
+      while (await tx.membershipOrder.findUnique({ where: { transferContent: code }, select: { id: true } }))
+        code = transferCode(COMP_PREFIX);
+      const order = await tx.membershipOrder.create({
+        data: {
+          userId: input.userId,
+          planId: input.plan.id,
+          planCodeSnapshot: input.plan.code,
+          planNameSnapshot: input.plan.name,
+          priceVnd: 0,
+          durationDays: input.plan.durationDays,
+          transferContent: code,
+          adminNote: input.reason,
+        },
+      });
+      const result = await this.activateOrderTx(tx, {
+        orderId: order.id,
+        now: input.now,
+        actorId: input.actorId,
+        maxStackDays: input.maxStackDays,
+      });
+      if (result.status === "stack_limit")
+        throw new DomainError(422, "STACK_LIMIT_REACHED", "Membership would exceed the stacking limit");
+      return { orderId: order.id, result };
     });
-    return toOrder(row);
   }
 
   async listOrders(userId: string, page: number, limit: number): Promise<{ items: MembershipOrderEntity[]; total: number }> {
@@ -297,6 +303,14 @@ export class PrismaMembershipRepository implements MembershipRepository {
       where: { id },
       data: { status, reason, ...(orderId === undefined ? {} : { orderId }) },
     });
+  }
+
+  async markTransactionIfOpen(id: string, reason: string): Promise<boolean> {
+    const result = await this.db.paymentTransaction.updateMany({
+      where: { id, status: { in: ["unmatched", "needs_review"] } },
+      data: { status: "ignored", reason },
+    });
+    return result.count > 0;
   }
 
   async activateOrder(input: ActivateOrderInput): Promise<ActivationResult> {
@@ -517,18 +531,13 @@ export class PrismaMembershipRepository implements MembershipRepository {
     return result.count;
   }
 
-  async findMembership(orderId: string): Promise<MembershipEntity | null> {
-    const row = await this.db.membership.findUnique({ where: { orderId } });
-    return row ? toMembership(row) : null;
-  }
-
   async report(query: ReportQuery, now: Date): Promise<MembershipReport> {
     const from = query.from;
     const to = query.to;
     const paidWhere = Prisma.sql`status = 'paid' AND paid_at >= ${from} AND paid_at < ${to}`;
 
-    const [summary] = await this.db.$queryRaw<Array<{ revenueVnd: number; paidOrders: number; compGrants: number }>>(Prisma.sql`
-      SELECT COALESCE(SUM(price_vnd), 0)::int AS "revenueVnd",
+    const [summary] = await this.db.$queryRaw<Array<{ revenueVnd: bigint; paidOrders: number; compGrants: number }>>(Prisma.sql`
+      SELECT COALESCE(SUM(price_vnd), 0)::bigint AS "revenueVnd",
              COUNT(*) FILTER (WHERE price_vnd > 0)::int AS "paidOrders",
              COUNT(*) FILTER (WHERE price_vnd = 0)::int AS "compGrants"
       FROM membership_orders
@@ -550,24 +559,24 @@ export class PrismaMembershipRepository implements MembershipRepository {
              COUNT(*) FILTER (WHERE status = 'needs_review')::int AS "needsReviewOrders"
       FROM membership_orders
     `);
-    const [unmatched] = await this.db.$queryRaw<Array<{ unmatchedTransactions: number; unmatchedAmountVnd: number }>>(Prisma.sql`
-      SELECT COUNT(*)::int AS "unmatchedTransactions", COALESCE(SUM(amount), 0)::int AS "unmatchedAmountVnd"
+    const [unmatched] = await this.db.$queryRaw<Array<{ unmatchedTransactions: number; unmatchedAmountVnd: bigint }>>(Prisma.sql`
+      SELECT COUNT(*)::int AS "unmatchedTransactions", COALESCE(SUM(amount), 0)::bigint AS "unmatchedAmountVnd"
       FROM payment_transactions
       WHERE status = 'unmatched'
     `);
 
-    const buckets = await this.db.$queryRaw<Array<{ bucket: string; revenueVnd: number; paidOrders: number }>>(Prisma.sql`
+    const buckets = await this.db.$queryRaw<Array<{ bucket: string; revenueVnd: bigint; paidOrders: number }>>(Prisma.sql`
       SELECT to_char(date_trunc(${query.groupBy}, paid_at AT TIME ZONE 'Asia/Ho_Chi_Minh'), 'YYYY-MM-DD') AS bucket,
-             COALESCE(SUM(price_vnd), 0)::int AS "revenueVnd",
+             COALESCE(SUM(price_vnd), 0)::bigint AS "revenueVnd",
              COUNT(*)::int AS "paidOrders"
       FROM membership_orders
       WHERE ${paidWhere} AND price_vnd > 0
       GROUP BY 1 ORDER BY 1
     `);
-    const planBuckets = await this.db.$queryRaw<Array<{ bucket: string; planCode: string; revenueVnd: number; paidOrders: number }>>(Prisma.sql`
+    const planBuckets = await this.db.$queryRaw<Array<{ bucket: string; planCode: string; revenueVnd: bigint; paidOrders: number }>>(Prisma.sql`
       SELECT to_char(date_trunc(${query.groupBy}, paid_at AT TIME ZONE 'Asia/Ho_Chi_Minh'), 'YYYY-MM-DD') AS bucket,
              plan_code_snapshot AS "planCode",
-             COALESCE(SUM(price_vnd), 0)::int AS "revenueVnd",
+             COALESCE(SUM(price_vnd), 0)::bigint AS "revenueVnd",
              COUNT(*)::int AS "paidOrders"
       FROM membership_orders
       WHERE ${paidWhere} AND price_vnd > 0
@@ -577,7 +586,7 @@ export class PrismaMembershipRepository implements MembershipRepository {
     return {
       range: { from: query.from.toISOString(), to: query.to.toISOString(), groupBy: query.groupBy },
       summary: {
-        revenueVnd: summary?.revenueVnd ?? 0,
+        revenueVnd: Number(summary?.revenueVnd ?? 0),
         paidOrders: summary?.paidOrders ?? 0,
         compGrants: summary?.compGrants ?? 0,
         activeMembers: active?.activeMembers ?? 0,
@@ -585,15 +594,15 @@ export class PrismaMembershipRepository implements MembershipRepository {
         pendingOver24h: pending?.pendingOver24h ?? 0,
         needsReviewOrders: pending?.needsReviewOrders ?? 0,
         unmatchedTransactions: unmatched?.unmatchedTransactions ?? 0,
-        unmatchedAmountVnd: unmatched?.unmatchedAmountVnd ?? 0,
+        unmatchedAmountVnd: Number(unmatched?.unmatchedAmountVnd ?? 0),
       },
       series: buckets.map((bucket) => ({
         bucket: bucket.bucket,
-        revenueVnd: bucket.revenueVnd,
+        revenueVnd: Number(bucket.revenueVnd),
         paidOrders: bucket.paidOrders,
         byPlan: planBuckets
           .filter((row) => row.bucket === bucket.bucket)
-          .map((row) => ({ planCode: row.planCode, revenueVnd: row.revenueVnd, paidOrders: row.paidOrders })),
+          .map((row) => ({ planCode: row.planCode, revenueVnd: Number(row.revenueVnd), paidOrders: row.paidOrders })),
       })),
     };
   }

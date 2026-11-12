@@ -57,12 +57,6 @@ export const MembershipOrderSchema = z.object({
   bank: MembershipBankSchema,
 });
 
-export const ProofTicketSchema = z.object({
-  assetId: z.string().uuid(),
-  upload: z.object({ url: z.string(), fields: z.record(z.string()) }),
-  expiresAt: z.coerce.date(),
-});
-
 export const AttachProofSchema = z.object({
   assetId: z.string().uuid(),
   publicId: z.string().min(1),
@@ -85,7 +79,13 @@ export const SepayWebhookSchema = z
   })
   .passthrough();
 
-const isoDate = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Ngày phải có dạng YYYY-MM-DD");
+const isoDate = z
+  .string()
+  .regex(/^\d{4}-\d{2}-\d{2}$/, "Ngày phải có dạng YYYY-MM-DD")
+  .refine((value) => {
+    const date = new Date(`${value}T00:00:00Z`);
+    return !Number.isNaN(date.getTime()) && date.toISOString().slice(0, 10) === value;
+  }, "Ngày không hợp lệ");
 
 export const AdminMembershipOrderQuerySchema = PaginationQuerySchema.extend({
   status: MembershipOrderStatusSchema.optional(),

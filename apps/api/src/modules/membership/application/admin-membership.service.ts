@@ -88,18 +88,24 @@ export class AdminMembershipService {
     if (!order) throw new DomainError(404, "MEMBERSHIP_ORDER_NOT_FOUND", "Membership order not found");
     if (body.action === "reject") {
       if (!STATUS_TRANSITIONS.includes(order.status)) throw new DomainError(409, "ORDER_NOT_PENDING", "Order is no longer open");
-      await prisma.membershipOrder.update({
-        where: { id },
-        data: { status: "rejected", rejectionReason: body.reason ?? null, verifiedBy: ctx.actorId },
+      const rejected = await prisma.$transaction(async (tx) => {
+        // Conditional update: the webhook may activate the order between the read above and this write.
+        const result = await tx.membershipOrder.updateMany({
+          where: { id, status: { in: ["pending", "needs_review"] } },
+          data: { status: "rejected", rejectionReason: body.reason ?? null, verifiedBy: ctx.actorId },
+        });
+        if (result.count === 0) return false;
+        await writeAudit(tx, {
+          actorId: ctx.actorId,
+          action: "membership.order.reject",
+          resourceType: "membership_order",
+          resourceId: id,
+          changes: { before: { status: order.status }, after: { status: "rejected", reason: body.reason }, note: body.note },
+          ipAddress: ctx.ipAddress,
+        });
+        return true;
       });
-      await writeAudit(prisma, {
-        actorId: ctx.actorId,
-        action: "membership.order.reject",
-        resourceType: "membership_order",
-        resourceId: id,
-        changes: { before: { status: order.status }, after: { status: "rejected", reason: body.reason }, note: body.note },
-        ipAddress: ctx.ipAddress,
-      });
+      if (!rejected) throw new DomainError(409, "ORDER_NOT_PENDING", "Order is no longer open");
       return this.getOrder(id);
     }
 
@@ -134,7 +140,12 @@ export class AdminMembershipService {
     if (transaction.status === "matched") throw new DomainError(409, "ORDER_NOT_PENDING", "Transaction is already matched");
 
     if (body.action === "ignore") {
-      await this.repo.markTransaction(id, "ignored", "MANUAL_IGNORE");
+      // Conditional: the webhook may match the transaction between the read and this write.
+      if (!(await this.repo.markTransactionIfOpen(id, "MANUAL_IGNORE"))) {
+        const current = await this.repo.findTransactionById(id);
+        if (current?.status === "matched") throw new DomainError(409, "ORDER_NOT_PENDING", "Transaction is already matched");
+        return this.mapTransaction({ ...(current ?? transaction), order: null });
+      }
       await writeAudit(prisma, {
         actorId: ctx.actorId,
         action: "membership.transaction.resolve",
@@ -177,25 +188,24 @@ export class AdminMembershipService {
     const plan = await this.repo.findPlanByCode(body.planCode);
     if (!plan || !plan.isActive) throw new DomainError(422, "PLAN_NOT_PURCHASABLE", "Plan cannot be granted");
 
-    const now = new Date();
     const maxStackDays = await getSystemConfig("premium.max_stack_days");
-    const maxExpiry = await this.repo.findMaxExpiry(userId);
-    const start = maxExpiry && maxExpiry.getTime() > now.getTime() ? maxExpiry : now;
-    if (start.getTime() + plan.durationDays * DAY_MS > now.getTime() + maxStackDays * DAY_MS)
-      throw new DomainError(422, "STACK_LIMIT_REACHED", "Membership would exceed the stacking limit");
-
-    const order = await this.repo.createCompOrder(userId, plan, body.reason);
-    const result = await this.repo.activateOrder({ orderId: order.id, now, actorId: ctx.actorId, maxStackDays });
-    if (result.status === "stack_limit") throw new DomainError(422, "STACK_LIMIT_REACHED", "Membership would exceed the stacking limit");
+    const granted = await this.repo.grantCompMembership({
+      userId,
+      plan,
+      reason: body.reason,
+      now: new Date(),
+      actorId: ctx.actorId,
+      maxStackDays,
+    });
     await writeAudit(prisma, {
       actorId: ctx.actorId,
       action: "membership.grant",
       resourceType: "membership_order",
-      resourceId: order.id,
-      changes: { userId, planCode: body.planCode, reason: body.reason, membershipId: result.membershipId },
+      resourceId: granted.orderId,
+      changes: { userId, planCode: body.planCode, reason: body.reason, membershipId: granted.result.membershipId },
       ipAddress: ctx.ipAddress,
     });
-    return { orderId: order.id, membershipId: result.membershipId, userId, expiresAt: result.expiresAt };
+    return { orderId: granted.orderId, membershipId: granted.result.membershipId, userId, expiresAt: granted.result.expiresAt };
   }
 
   async revoke(userId: string, body: { reason: string }, ctx: AdminContext) {

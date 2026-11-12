@@ -324,6 +324,7 @@ export const membershipPaths: Paths = {
       pathParams: userIdParam,
       pathParamDocs: { userId: "ID user nhận gói" },
       body: { name: "AdminGrantMembershipRequest", schema: AdminGrantMembershipSchema },
+      idempotent: true,
       rate: "write",
       ok: { status: 200, description: "Kỳ hạn vừa tạo", schema: { name: "AdminGrantResult", schema: z.object({ orderId: z.string(), membershipId: z.string().optional(), userId: z.string(), expiresAt: z.coerce.date().optional() }) } },
       errors: { 404: "`NOT_FOUND`: user không tồn tại", 422: "`PLAN_NOT_PURCHASABLE` hoặc `STACK_LIMIT_REACHED`" },

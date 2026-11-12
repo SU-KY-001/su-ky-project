@@ -116,7 +116,8 @@ export class MembershipService {
 
   async attachProof(userId: string, orderId: string, assetId: string, publicId: string) {
     await this.openOrder(userId, orderId);
-    await this.media.verify(assetId, userId, false, publicId);
+    const asset = await this.media.verify(assetId, userId, false, publicId);
+    if (asset.kind !== "IMAGE") throw new DomainError(422, "MEDIA_TYPE_NOT_ALLOWED", "Proof must be an image");
     const order = await this.repo.attachProof(orderId, assetId);
     const maxExpiry = order.membership ? null : await this.repo.findMaxExpiry(userId);
     return mapOrder(order, maxExpiry ? previewExpiry(maxExpiry, order.durationDays) : null);

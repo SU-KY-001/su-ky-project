@@ -52,6 +52,8 @@ describe("Environment Configuration & Validation", () => {
       CLOUDINARY_CLOUD_NAME: "prod-cloud",
       CLOUDINARY_API_KEY: "prod-api-key",
       CLOUDINARY_API_SECRET: "prod-api-secret",
+      BANK_SHORT_CODE: "BIDV",
+      BANK_NAME: "BIDV",
       BANK_ACCOUNT_NUMBER: "0123456789",
       BANK_ACCOUNT_NAME: "SU KY",
       SEPAY_WEBHOOK_API_KEY: "prod-sepay-key",

@@ -34,7 +34,10 @@ export function mapOrder(order: MembershipOrderEntity, previewExpiresAt: Date | 
     reviewReason: order.reviewReason,
     createdAt: order.createdAt,
     paidAt: order.paidAt,
-    expiresAt: order.membership?.expiresAt ?? previewExpiresAt,
+    // Only an open order can still grant time; a rejected order must not look active.
+    expiresAt:
+      order.membership?.expiresAt ??
+      (order.status === "pending" || order.status === "needs_review" ? previewExpiresAt : null),
     rejectionReason: order.rejectionReason,
     proofUploaded: Boolean(order.proofAssetId),
     bank: bankBlock(order.transferContent, order.priceVnd),
