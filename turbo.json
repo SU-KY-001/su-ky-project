@@ -9,20 +9,21 @@
   ],
   "tasks": {
     "build": {
-      "dependsOn": ["^build"],
+      "dependsOn": ["^build", "@repo/db#db:generate"],
       "inputs": ["$TURBO_DEFAULT$", ".env*"],
       "outputs": ["dist/**"]
     },
     "dev": {
+      "dependsOn": ["@repo/db#db:generate"],
       "cache": false,
       "persistent": true
     },
     "check-types": {
-      "dependsOn": ["^build"],
+      "dependsOn": ["^build", "@repo/db#db:generate"],
       "cache": true
     },
     "test": {
-      "dependsOn": ["^build"],
+      "dependsOn": ["^build", "@repo/db#db:generate"],
       "cache": false
     },
     "db:generate": {
@@ -31,10 +32,7 @@
     "db:migrate": {
       "cache": false
     },
-    "db:push": {
-      "cache": false
-    },
-    "db:seed": {
+    "db:deploy": {
       "cache": false
     }
   }

@@ -1,9 +1,15 @@
 {
   "extends": "@repo/tsconfig/react.json",
   "compilerOptions": {
-    "rootDir": "src",
+    "rootDir": "../..",
     "outDir": "dist",
-    "types": ["vite/client", "node"]
+    "noEmit": true,
+    "declaration": false,
+    "declarationMap": false,
+    "paths": {
+      "@/*": ["./src/*"]
+    },
+    "types": ["vite/client", "node", "bun-types"]
   },
   "include": ["src/**/*"]
 }

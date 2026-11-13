@@ -1,0 +1,28 @@
+{
+  "expo": {
+    "name": "Sử Ký",
+    "slug": "su-ky-mobile",
+    "scheme": "suky",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "light",
+    "web": {
+      "bundler": "metro"
+    },
+    "plugins": [
+      "expo-router",
+      "expo-status-bar",
+      ["expo-image-picker", { "photosPermission": "Cho phép Sử Ký chọn ảnh đại diện từ thư viện của bạn.", "cameraPermission": false, "microphonePermission": false }]
+    ],
+    "experiments": {
+      "typedRoutes": true
+    },
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "vn.suky.mobile"
+    },
+    "android": {
+      "package": "vn.suky.mobile"
+    }
+  }
+}

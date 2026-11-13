@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="vi"><head><meta charset="utf-8"><title>Mẫu ERD kiểu draw.io</title>
+<style>
+  body{margin:0;background:#121212;color:#fff;font-family:Helvetica,Arial,sans-serif}
+  svg{display:block;margin:24px auto}
+  .t{fill:none;stroke:#fff;stroke-width:2}
+  .rel{fill:none;stroke:#4fc3f7;stroke-width:2}
+  .h{font-weight:bold;font-size:16px}
+  .pk{font-weight:bold;text-decoration:underline}
+  .note{fill:#bbb}
+</style></head><body>
+<svg viewBox="0 0 900 470" width="900" height="470" xmlns="http://www.w3.org/2000/svg" font-size="14" fill="#fff">
+  <rect class="t" x="30" y="50" width="280" height="190"/>
+  <text class="h" x="170" y="82" text-anchor="middle">release_schedules</text>
+  <line class="t" x1="30" y1="100" x2="310" y2="100"/>
+  <line class="t" x1="90" y1="100" x2="90" y2="240"/>
+  <text x="60" y="128" text-anchor="middle" font-weight="bold">PK</text>
+  <text class="pk" x="105" y="128">id</text>
+  <line class="t" x1="30" y1="140" x2="310" y2="140"/>
+  <text x="105" y="168">title</text>
+  <text x="105" y="198">scheduled_at</text>
+  <text x="105" y="228">status</text>
+
+  <rect class="t" x="560" y="140" width="310" height="220"/>
+  <text class="h" x="715" y="172" text-anchor="middle">episode_reviews</text>
+  <line class="t" x1="560" y1="190" x2="870" y2="190"/>
+  <line class="t" x1="640" y1="190" x2="640" y2="360"/>
+  <text x="600" y="218" text-anchor="middle" font-weight="bold">PK</text>
+  <text class="pk" x="655" y="218">id</text>
+  <line class="t" x1="560" y1="230" x2="870" y2="230"/>
+  <text x="600" y="258" text-anchor="middle" font-weight="bold">FK</text>
+  <text x="655" y="258">schedule_id</text>
+  <text x="655" y="288">revision</text>
+  <text x="655" y="318">status</text>
+  <text x="655" y="348">submitted_at</text>
+
+  <path class="rel" d="M310 120 H435 V252 H560"/>
+  <line class="rel" x1="325" y1="112" x2="325" y2="128"/>
+  <line class="rel" x1="333" y1="112" x2="333" y2="128"/>
+  <path class="rel" d="M560 252 L540 238 M560 252 L540 266 M560 252 H540"/>
+  <text x="440" y="190" fill="#4fc3f7">1</text>
+  <text x="520" y="232" fill="#4fc3f7">N</text>
+
+  <text x="30" y="300" font-weight="bold">Quy ước</text>
+  <text class="note" x="30" y="324">• Hàng 1: tên bảng, in đậm, căn giữa</text>
+  <text class="note" x="30" y="346">• Cột trái: PK / FK / PK,FK. Cột phải: tên cột</text>
+  <text class="note" x="30" y="368">• PK gạch chân + đậm; đường kẻ ngang ngăn PK với cột thường</text>
+  <text class="note" x="30" y="390">• Dây nối đúng hàng (id ↔ schedule_id), không nối cả bảng</text>
+  <text class="note" x="30" y="412">• Dây vuông góc, cha bên trái, con bên phải</text>
+</svg>
+</body></html>
