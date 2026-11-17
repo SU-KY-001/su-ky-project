@@ -111,8 +111,9 @@ export class MembershipService {
   async getOrder(userId: string, orderId: string) {
     const order = await this.repo.findOrder(orderId, userId);
     if (!order) throw new DomainError(404, "MEMBERSHIP_ORDER_NOT_FOUND", "Membership order not found");
-    const maxExpiry = order.membership ? null : await this.repo.findMaxExpiry(userId);
-    return mapOrder(order, maxExpiry ? previewExpiry(maxExpiry, order.durationDays) : null);
+    const maxExpiry = await this.repo.findMaxExpiry(userId);
+    // `mapOrder` prefers the real membership expiry; the preview only fills open orders.
+    return mapOrder(order, previewExpiry(maxExpiry, order.durationDays));
   }
 
   private async openOrder(userId: string, orderId: string): Promise<MembershipOrderEntity> {
@@ -133,7 +134,7 @@ export class MembershipService {
     const asset = await this.media.verify(assetId, userId, false, publicId);
     if (asset.kind !== "IMAGE") throw new DomainError(422, "MEDIA_TYPE_NOT_ALLOWED", "Proof must be an image");
     const order = await this.repo.attachProof(orderId, assetId);
-    const maxExpiry = order.membership ? null : await this.repo.findMaxExpiry(userId);
-    return mapOrder(order, maxExpiry ? previewExpiry(maxExpiry, order.durationDays) : null);
+    const maxExpiry = await this.repo.findMaxExpiry(userId);
+    return mapOrder(order, previewExpiry(maxExpiry, order.durationDays));
   }
 }
