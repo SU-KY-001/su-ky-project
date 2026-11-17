@@ -133,7 +133,7 @@ export const membershipPaths: Paths = {
       id: "getMyMembership",
       tag: TAG,
       summary: "Trạng thái thành viên của tôi",
-      description: "`tier=premium` khi còn kỳ hạn hiệu lực. `daysLeft` chỉ có khi còn hạn; `pendingOrderId` là đơn đang chờ/đối soát gần nhất.",
+      description: "`tier=premium` khi còn kỳ hạn hiệu lực. `daysLeft` chỉ có khi còn hạn; `pendingOrderId` là đơn đang chờ/đối soát gần nhất. `quota` là giới hạn lượt nghe/ngày của tài khoản Free (`enforced`, `limit`, `usedToday`, `remaining`, `resetsAt` theo giờ Việt Nam); `null` với Premium và admin/moderator.",
       access: "user",
       ok: { status: 200, description: "Quyền lợi hiện tại", schema: { name: "MembershipEntitlement", schema: MembershipEntitlementSchema } },
     }),

@@ -19,6 +19,7 @@ import {
   throwOnInvalid,
 } from "../../../core/middleware";
 import type { AppEnv } from "../../../types";
+import { requestIpAddress } from "../../../core/audit";
 import { getSystemConfig } from "../../../core/config/system-config";
 import { requireAuth, requireRole } from "../../auth";
 import type { MediaStorageGateway } from "../../media";
@@ -29,8 +30,6 @@ import {
   mapWorkspace,
 } from "../application/content.mappers";
 import type { ContentService } from "../application/content.service";
-import { requestIpAddress } from "../../../core/audit";
-              requestIpAddress(c.req.raw.headers),
 
 const idParam = z.object({ id: z.string().uuid() });
 const seriesParam = z.object({ seriesId: z.string().uuid() });
@@ -94,6 +93,7 @@ export function createEpisodeRoute(
               session,
               c.req.valid("param").id,
               c.req.valid("json"),
+              requestIpAddress(c.req.raw.headers),
             ),
             storage,
           ),

@@ -184,7 +184,7 @@ export class AdminMembershipService {
     return this.repo.listMembersForAdmin(query);
   }
 
-  async grant(userId: string, body: { planCode: "monthly" | "yearly"; reason: string }, ctx: AdminContext) {
+  async grant(userId: string, body: { planCode: "monthly"; reason: string }, ctx: AdminContext) {
     const user = await this.repo.findUser(userId);
     if (!user) throw new DomainError(404, "NOT_FOUND", "User not found");
     const plan = await this.repo.findPlanByCode(body.planCode);

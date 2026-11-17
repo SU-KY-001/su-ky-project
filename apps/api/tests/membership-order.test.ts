@@ -63,7 +63,7 @@ describe.skipIf(!RUN_INTEGRATION)("Membership orders", () => {
     await expect(service.createOrder(userId, "nope")).rejects.toMatchObject({ status: 404, code: "PLAN_NOT_FOUND" });
   });
 
-  it("blocks a yearly purchase that would exceed the stacking horizon", async () => {
+  it("blocks a purchase that would exceed the stacking horizon", async () => {
     const monthly = await prisma.membershipPlan.findUniqueOrThrow({ where: { code: "monthly" } });
     const order = await service.createOrder(userId, "monthly");
     const activation = await repo.activateOrder({ orderId: order.id, now: new Date(), actorId: null, bankTransactionId: null, maxStackDays: 365 });
@@ -72,7 +72,7 @@ describe.skipIf(!RUN_INTEGRATION)("Membership orders", () => {
       where: { orderId: order.id },
       data: { startsAt: new Date(), expiresAt: new Date(Date.now() + 350 * 86400000), planId: monthly.id },
     });
-    await expect(service.createOrder(userId, "yearly")).rejects.toMatchObject({ status: 422, code: "STACK_LIMIT_REACHED" });
+    await expect(service.createOrder(userId, "monthly")).rejects.toMatchObject({ status: 422, code: "STACK_LIMIT_REACHED" });
   });
 
   it("returns 404 for another user's order", async () => {

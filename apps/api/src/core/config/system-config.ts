@@ -2,8 +2,6 @@ import { prisma } from "@repo/db";
 import { SCRIPT_MAX_CHARACTERS } from "@repo/shared";
 import { z } from "zod";
 import { logger } from "../logger";
-  "premium.free_daily_plays": { schema: z.number().int().min(1).max(50), defaultValue: 4 },
-  "premium.enforce_daily_quota": { schema: z.boolean(), defaultValue: true },
 
 const rateLimitSchema = z.object({
   limit: z.number().int().positive(),
@@ -48,6 +46,8 @@ export const SYSTEM_CONFIGS = {
   "rate_limit.ai_generate": { schema: rateLimitSchema, defaultValue: { limit: 60, windowSeconds: 3600 } },
   "rate_limit.membership_order": { schema: rateLimitSchema, defaultValue: { limit: 10, windowSeconds: 3600 } },
   "premium.max_stack_days": { schema: z.number().int().positive(), defaultValue: 365 },
+  "premium.free_daily_plays": { schema: z.number().int().min(1).max(50), defaultValue: 4 },
+  "premium.enforce_daily_quota": { schema: z.boolean(), defaultValue: true },
   "media.audio_delivery_ttl_seconds": { schema: z.number().int().positive(), defaultValue: 3600 },
   "ai_assist.enabled": { schema: z.boolean(), defaultValue: true },
 } as const;

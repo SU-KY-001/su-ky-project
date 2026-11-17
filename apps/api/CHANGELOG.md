@@ -5,6 +5,18 @@ Nhãn: `BREAKING` (code cũ gọi sẽ lỗi hoặc sai), `ADDITIVE` (mới, kh�
 
 ## [Unreleased]
 
+### BREAKING — Lượt nghe miễn phí theo ngày + nhãn Premium chỉ admin (2026-11-17)
+- **`GET /api/narrations/{narrationId}/playback` bắt buộc đăng nhập.** Khách chưa đăng nhập nhận `401 AUTH_REQUIRED` (trước đây nghe được nội dung Free). Browse danh sách/chi tiết vẫn công khai.
+- **Tài khoản Free bị giới hạn số tập mỗi ngày**; quá hạn mức trả `403 DAILY_LISTEN_LIMIT_REACHED`. Nghe lại cùng một tập trong ngày không tính thêm lượt; sang ngày mới tính lại (không khoá nội dung cũ). Premium và admin/moderator không giới hạn.
+- **Audio URL luôn có thời hạn** (`media.audio_delivery_ttl_seconds`) chứ không chỉ nội dung Premium. FE không được cache URL; mỗi lần phát gọi lại playback.
+- **`GET /api/me/membership` thêm `quota`**: `{ enforced, limit, usedToday, remaining, resetsAt } | null`. `null` với Premium và admin/moderator; reset theo 00:00 giờ Việt Nam.
+- **`GET /api/me/membership` thêm `renewSoon`** (boolean): `true` khi Premium còn ≤ 5 ngày (`daysLeft <= 5`) để FE hiện nhắc gia hạn; Free luôn `false`.
+- **Chỉ bán gói tháng.** Migration `20261117130000_disable_yearly_plan` tắt gói `yearly` (`is_active=false`, `is_purchasable=false`); `GET /api/membership/plans` không còn trả gói năm, đơn cũ giữ nguyên snapshot. Admin vẫn thấy gói năm trong danh sách quản trị ở trạng thái tắt. `POST /api/admin/membership/members/{userId}/grant` chỉ nhận `planCode: "monthly"`; gửi `yearly` trả `422 VALIDATION_ERROR`.
+- **Nhãn `isPremium` chỉ admin được đặt** khi tạo/sửa Series hoặc sửa Tập; moderator nhận `403 PREMIUM_ADMIN_ONLY` khi đổi giá trị. Mọi thay đổi nhãn Premium của Tập ghi audit `episode.premium_changed`; Series đã có audit `series.updated` từ trước.
+- Config mới (admin sửa qua `PATCH /api/admin/configs/{key}`): `premium.free_daily_plays` (1–50, mặc định 4) và `premium.enforce_daily_quota` (bool, mặc định true).
+- Migration `20261117120000_listening_daily_plays` thêm bảng `listening_daily_plays`.
+- Lưu ý vận hành: phải cấu hình `CLOUDINARY_AUTH_TOKEN_KEY` thì URL audio mới thực sự hết hạn; thiếu key, URL công khai vẫn vượt được quota.
+
 ### FIX — Chốt chặn thanh toán và thành viên (2026-11-13)
 - `POST /api/admin/membership/members/{userId}/grant` bắt buộc header `Idempotency-Key` (UUID v4), tránh Admin bấm hai lần tạo hai kỳ hạn. Đơn comp và kỳ hạn được tạo trong một transaction; vượt trần cộng dồn thì không để lại đơn rác.
 - Từ chối đơn và bỏ qua giao dịch dùng cập nhật có điều kiện, không ghi đè trạng thái webhook vừa chuyển sang `paid`/`matched` (trả `409 ORDER_NOT_PENDING`). Gán một giao dịch đã bỏ qua cũng trả `409` thay vì im lặng không làm gì.
@@ -37,7 +49,7 @@ Nhãn: `BREAKING` (code cũ gọi sẽ lỗi hoặc sai), `ADDITIVE` (mới, kh�
 - Series/tập có cờ `isPremium`: `POST/PATCH /api/studio/series` nhận `isPremium`; `PATCH /api/studio/episodes/:id` nhận `isPremium`.
 - Public `GET /api/series` trả `isPremium`, `locked`; `GET /api/series/:slug` trả `isPremium` và từng tập có `locked`; `GET /api/episodes/:slug` trả `isPremium`, `locked`, và `narrations[].scriptContent=null` khi bị khoá.
 - `GET /api/narrations/:narrationId/playback` và `PUT /api/me/listening-progress/:narrationId` trả `403 PREMIUM_REQUIRED` với nội dung premium nếu user free. Admin/Moderator được phát không cần mua; cờ `locked` ở API public chỉ xét membership nên admin/mod vẫn có thể thấy `locked=true` tại đó.
-- Audio premium dùng URL Cloudinary có TTL (khi cấu hình auth token); luôn lấy URL mới từ playback, không cache URL quá lâu hoặc dùng lại sau khi hết hạn.
+- Audio (mọi nội dung, kể cả Free và audio triển lãm) dùng URL Cloudinary có TTL (khi cấu hình auth token); luôn lấy URL mới từ playback, không cache URL quá lâu hoặc dùng lại sau khi hết hạn.
 
 **Admin**
 - `GET /api/admin/membership/plans` trả cả gói đã tắt, kèm `isActive`; `PATCH /api/admin/membership/plans/:code` sửa `name`, `priceVnd`, `durationDays`, `isPurchasable`, `isActive`, `sortOrder`. Đơn cũ giữ giá snapshot.
@@ -46,7 +58,7 @@ Nhãn: `BREAKING` (code cũ gọi sẽ lỗi hoặc sai), `ADDITIVE` (mới, kh�
 - `GET /api/admin/membership/transactions`: lọc `provider`, `status=unmatched|needs_review|matched|ignored`, `from`, `to`; `to` tính cả ngày. Mỗi giao dịch có `provider`, `externalId`, `accumulated` (string), `order` (nếu khớp); không trả `rawPayload`.
 - `POST /api/admin/membership/transactions/:id/resolve`: body `{ action: "assign", orderId, note? }` hoặc `{ action: "ignore", note? }`; `assign` yêu cầu số tiền khớp giá đơn; `ignore` chỉ áp dụng giao dịch chưa khớp. Giao dịch đã `matched`/`ignored` trả `409 ORDER_NOT_PENDING`; `note` chỉ vào audit.
 - `GET /api/admin/membership/members`: `status=active|expired|all`, `q`; mỗi user một dòng với kỳ hạn xa nhất (`planCode`, `planName`, `startsAt`, `expiresAt`, `revokedAt`).
-- `POST /api/admin/membership/members/:userId/grant`: bắt buộc `Idempotency-Key`; body `{ planCode: "monthly"|"yearly", reason }`; tạo đơn comp giá 0 và kích hoạt atomic.
+- `POST /api/admin/membership/members/:userId/grant`: bắt buộc `Idempotency-Key`; body `{ planCode: "monthly", reason }` (gói năm đã tắt, gửi `yearly` trả `422 VALIDATION_ERROR`); tạo đơn comp giá 0 và kích hoạt atomic.
 - `POST /api/admin/membership/members/:userId/revoke`: body `{ reason }` 10–500 ký tự; thu hồi mọi kỳ hạn còn hiệu lực, trả `{ userId, revoked }`; không có kỳ hạn hiệu lực trả `404`.
 - `GET /api/admin/membership/report`: `from`, `to` tính cả ngày theo giờ VN, `groupBy=day|month`, tối đa 366 ngày; trả `summary` (`revenueVnd`, `paidOrders`, `compGrants`, `activeMembers`, `expiringIn7Days`, `pendingOver24h`, `needsReviewOrders`, `unmatchedTransactions`, `unmatchedAmountVnd`) và `series` doanh thu theo bucket/`byPlan`.
 

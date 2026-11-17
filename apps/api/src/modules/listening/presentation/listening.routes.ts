@@ -17,9 +17,9 @@ export function createPublicListeningRoute(service: ListeningService) {
     .get("/series", zValidator("query", PublicSeriesListQuerySchema, throwOnInvalid), async (c) => c.json(await service.listSeries(c.req.valid("query"), c.get("session")?.user.id ?? null)))
     .get("/series/:slug", zValidator("param", slugParam, throwOnInvalid), async (c) => c.json(await service.getSeriesDetail(c.req.valid("param").slug, c.get("session")?.user.id ?? null)))
     .get("/episodes/:slug", zValidator("param", slugParam, throwOnInvalid), async (c) => c.json(await service.getEpisodeDetail(c.req.valid("param").slug, c.get("session")?.user.id ?? null)))
-    .get("/narrations/:narrationId/playback", zValidator("param", narrationParam, throwOnInvalid), async (c) => {
+    .get("/narrations/:narrationId/playback", requireAuth, zValidator("param", narrationParam, throwOnInvalid), async (c) => {
       c.header("Cache-Control", "private, no-store");
-      return c.json(await service.playback(c.req.valid("param").narrationId, c.get("session")?.user.id ?? null, c.get("session")?.user.role ?? null));
+      return c.json(await service.playback(c.req.valid("param").narrationId, c.get("session")!.user.id, c.get("session")!.user.role));
     });
 }
 

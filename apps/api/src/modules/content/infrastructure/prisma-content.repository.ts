@@ -814,10 +814,26 @@ export class PrismaEpisodeRepository implements EpisodeRepository {
     ]);
   }
 
-  async updateEpisode(id: string, patch: EpisodePatch): Promise<void> {
-    await prisma.episode.update({
-      where: { id },
-      data: { ...patch, contentRevision: { increment: 1 } },
+  async updateEpisode(id: string, patch: EpisodePatch, audit: { actorId: string; ipAddress: string | null }): Promise<void> {
+    await prisma.$transaction(async (tx) => {
+      await tx.$queryRaw`SELECT id FROM episodes WHERE id = ${id}::uuid FOR UPDATE`;
+      const before = await tx.episode.findUniqueOrThrow({
+        where: { id },
+        select: { isPremium: true },
+      });
+      await tx.episode.update({
+        where: { id },
+        data: { ...patch, contentRevision: { increment: 1 } },
+      });
+      if (patch.isPremium !== undefined && patch.isPremium !== before.isPremium)
+        await writeAudit(tx, {
+          actorId: audit.actorId,
+          action: "episode.premium_changed",
+          resourceType: "episode",
+          resourceId: id,
+          changes: { before: { isPremium: before.isPremium }, after: { isPremium: patch.isPremium } },
+          ipAddress: audit.ipAddress,
+        });
     });
   }
 

@@ -1,5 +1,6 @@
 import { prisma, Prisma, type Exhibition as DbExhibition } from "@repo/db";
 import { ExhibitionDocumentSchema, type ExhibitionDocument, type ExhibitionSummary, type ResolvedExhibition, type ExhibitionPodcastQuery, type ExhibitionPodcastOption } from "@repo/shared";
+import { getSystemConfig } from "../../../core/config/system-config";
 import { DomainError } from "../../../core/errors/domain-error";
 import { validateReferences } from "../domain/exhibition-references";
 import type { ExhibitionRecord, ExhibitionRepository } from "../domain/exhibition.repository";
@@ -26,7 +27,7 @@ async function checkReferences(tx: Prisma.TransactionClient, document: Exhibitio
 }
 
 export class PrismaExhibitionRepository implements ExhibitionRepository {
-  constructor(private readonly storage: Pick<MediaStorageGateway, "deliveryUrl">) {}
+  constructor(private readonly storage: Pick<MediaStorageGateway, "deliveryUrl" | "audioDeliveryUrl">) {}
 
   async listPublished() {
     const rows = await prisma.exhibition.findMany({ where: { publishedRevision: { not: null }, publishedDocument: { not: Prisma.DbNull } }, select: { slug: true, publishedDocument: true }, orderBy: [{ publishedAt: "desc" }, { id: "desc" }] });
@@ -81,7 +82,7 @@ export class PrismaExhibitionRepository implements ExhibitionRepository {
       const available = !!narration && narration.episode.status === "PUBLISHED" && !narration.episode.deletedAt && narration.episode.series.status === "PUBLISHED" && !narration.episode.series.deletedAt && narration.audioAsset?.status === "READY" && !narration.audioAsset.deletedAt;
       return { ...item, image: { url: this.storage.deliveryUrl(image), width: image.widthPx, height: image.heightPx }, narration: narration ? { id: narration.id, episodeTitle: narration.episode.title, seriesTitle: narration.episode.series.title, narrationLabel: narration.narratorEntity?.name ?? "Người dẫn chuyện", available } : item.narrationId ? { id: item.narrationId, episodeTitle: "Podcast không khả dụng", seriesTitle: "", narrationLabel: "", available: false } : null };
     });
-    return { metadata: document.metadata, chapters: document.chapters, items, audio: audio ? { url: this.storage.deliveryUrl(audio) } : null };
+    return { metadata: document.metadata, chapters: document.chapters, items, audio: audio ? { url: this.storage.audioDeliveryUrl ? this.storage.audioDeliveryUrl(audio, await getSystemConfig("media.audio_delivery_ttl_seconds")) : this.storage.deliveryUrl(audio) } : null };
   }
   async list(ownerId: string, query: { q: string; status: "all" | "published" | "unpublished"; page: number; limit: number }): Promise<{ items: ExhibitionSummary[]; page: number; limit: number; total: number }> {
     const where: Prisma.ExhibitionWhereInput = {
