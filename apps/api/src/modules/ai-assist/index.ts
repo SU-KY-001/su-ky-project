@@ -65,5 +65,3 @@ export function createStudioAiAssistRoute() {
 export async function reapStaleAiChecks(): Promise<number> {
   return repo.reapStale(new Date(Date.now() - config.staleAfterMs));
 }
-
-export { hub as aiCheckHub };

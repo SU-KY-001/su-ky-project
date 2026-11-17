@@ -4,19 +4,20 @@ import { admin, bearer, openAPI } from "better-auth/plugins";
 import { prisma } from "@repo/db";
 import type { UserRole } from "@repo/shared";
 import { trustedAuthOrigins } from "../../core/config/allowedOrigins";
+import { env } from "../../core/env";
 
 export const auth = betterAuth({
   database: prismaAdapter(prisma, {
     provider: "postgresql",
   }),
-  baseURL: process.env.BETTER_AUTH_URL || "http://localhost:3005",
-  secret: process.env.BETTER_AUTH_SECRET || "su-ky-auth-secret-development-key",
+  baseURL: env.BETTER_AUTH_URL,
+  secret: env.BETTER_AUTH_SECRET,
   trustedOrigins: trustedAuthOrigins(),
   emailAndPassword: {
     enabled: true,
   },
   // Web runs on another site than the API in production; Lax cookies are not sent on cross-site fetches.
-  ...(process.env.NODE_ENV === "production" && {
+  ...(env.NODE_ENV === "production" && {
     advanced: { defaultCookieAttributes: { sameSite: "none", secure: true } },
   }),
   plugins: [

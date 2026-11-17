@@ -50,22 +50,6 @@ export const app = new Hono<AppEnv>()
     renderError(c, 404, "NOT_FOUND", `Route '${c.req.method} ${c.req.path}' not found`)
   );
 
-// Backward-compatibility stub for frontend until timeline module is defined
-const timelineRoute = new Hono().get("/", (c) =>
-  c.json({
-    items: [] as Array<{
-      id: string;
-      slug: string;
-      name: string;
-      startYear: number;
-      endYear?: number | null;
-      description: string;
-      episodesCount?: number;
-      seriesCount?: number;
-    }>,
-  })
-);
-
 export const routes = app
   .route("/", docsRoute)
   .all("/api/auth/*", (c) => auth.handler(c.req.raw))
@@ -91,8 +75,7 @@ export const routes = app
   .route("/api/admin", adminRoute)
   .route("/api/admin/releases", createReleaseRoutes(releaseService).admin)
   .route("/api/studio/releases", createReleaseRoutes(releaseService).studio)
-  .route("/health", healthRoute)
-  .route("/api/timeline", timelineRoute);
+  .route("/health", healthRoute);
 
 export type AppType = typeof routes;
 export default app;

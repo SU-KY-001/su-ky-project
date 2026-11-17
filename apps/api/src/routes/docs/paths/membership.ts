@@ -26,8 +26,6 @@ const codeParam = z.object({ code: z.string().min(1) });
 const userIdParam = z.object({ userId: z.string().min(1) });
 const idParams = { pathParams: idParam, pathParamDocs: { id: "ID đơn mua gói" } } as const;
 
-export const MembershipOrderDocSchema = MembershipOrderSchema;
-export const MembershipPlanDocSchema = MembershipPlanSchema;
 const AdminMembershipPlanDocSchema = MembershipPlanSchema.extend({ isActive: z.boolean() });
 
 export const AdminMembershipOrderDocSchema = z.object({

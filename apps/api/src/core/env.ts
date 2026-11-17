@@ -58,7 +58,7 @@ const envSchema = z
     PI_PROVIDER_TIMEOUT_MS: z.preprocess(emptyAsUndefined, z.coerce.number().int().positive().default(60000)),
     // Whole-run deadline across all tool turns; PI_PROVIDER_TIMEOUT_MS only bounds a single request.
     PI_RUN_TIMEOUT_MS: z.preprocess(emptyAsUndefined, z.coerce.number().int().positive().default(300000)),
-    // ai-assist background runs (see plans/261015-1640-podcast-ai-source-check-p1/phase-02-api-runner.md)
+    // Whole-run deadline for background ai-assist jobs.
     AI_ASSIST_TIMEOUT_MS: z.preprocess(emptyAsUndefined, z.coerce.number().int().positive().default(900000)),
     AI_ASSIST_BLOCK_CONCURRENCY: z.preprocess(emptyAsUndefined, z.coerce.number().int().positive().default(2)),
     AI_ASSIST_MAX_CONCURRENT_PER_USER: z.preprocess(emptyAsUndefined, z.coerce.number().int().positive().default(2)),
