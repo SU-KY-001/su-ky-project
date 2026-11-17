@@ -5,6 +5,10 @@ Nhãn: `BREAKING` (code cũ gọi sẽ lỗi hoặc sai), `ADDITIVE` (mới, kh�
 
 ## [Unreleased]
 
+### BREAKING — Xoá hai endpoint không còn client dùng (2026-11-17)
+- **`POST /api/studio/quiz-import/extract` bị xoá.** Luồng duy nhất là `POST /api/studio/quiz-import/preview` (đọc DOC/DOCX/PDF/TXT/MD và trả câu hỏi + diagnostics). FE đã bỏ `quizService.extractDocument`; nếu client khác còn gọi sẽ nhận `404 NOT_FOUND`.
+- **`GET /api/timeline` bị xoá** (stub luôn trả `items: []`). Dùng `GET /api/historical-periods` cho dữ liệu thật. `GET /openapi.json` và `/docs` là hợp đồng duy nhất, mọi endpoint còn lại không đổi.
+
 ### BREAKING — Lượt nghe miễn phí theo ngày + nhãn Premium chỉ admin (2026-11-17)
 - **`GET /api/narrations/{narrationId}/playback` bắt buộc đăng nhập.** Khách chưa đăng nhập nhận `401 AUTH_REQUIRED` (trước đây nghe được nội dung Free). Browse danh sách/chi tiết vẫn công khai.
 - **Tài khoản Free bị giới hạn số tập mỗi ngày**; quá hạn mức trả `403 DAILY_LISTEN_LIMIT_REACHED`. Nghe lại cùng một tập trong ngày không tính thêm lượt; sang ngày mới tính lại (không khoá nội dung cũ). Premium và admin/moderator không giới hạn.
