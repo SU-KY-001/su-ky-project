@@ -7,7 +7,6 @@ import {
 } from "@repo/db";
 import { HistoricalTimeSchema, toLegacyYearRange } from "@repo/shared";
 import type {
-  HistoricalCatalogRepository,
   HistoricalNodeKind,
   HistoricalNodeRecord,
   HistoricalNodeWrite,
@@ -23,13 +22,7 @@ import type {
 } from "../domain/historical-catalog.repository";
 import { toSource } from "./prisma-catalog.repository";
 
-export function jsonSnapshot(value: unknown): Prisma.InputJsonValue {
-  return JSON.parse(
-    JSON.stringify(value, (_key, item: unknown) =>
-      typeof item === "bigint" ? item.toString() : item,
-    ),
-  ) as Prisma.InputJsonValue;
-}
+import { jsonSnapshot } from "../../../core/json";
 export const PUBLIC_EVENT_FROM = Prisma.sql`FROM historical_entities e JOIN historical_phases ph ON ph.id=e.historical_phase_id JOIN historical_periods hp ON hp.id=ph.period_id`;
 export const PUBLIC_EVENT_READY = Prisma.sql`e.entity_type='EVENT' AND e.deleted_at IS NULL AND ph.deleted_at IS NULL AND hp.deleted_at IS NULL AND ph.is_active AND hp.is_active AND trim(e.name)<>'' AND trim(COALESCE(e.summary,''))<>'' AND e.time->>'kind'<>'UNKNOWN' AND (e.time->>'kind'='POINT' OR e.time->'start'<>'null'::jsonb OR e.time->'end'<>'null'::jsonb) AND (NOT (COALESCE(e.time#>>'{at,approximate}','false')='true' OR COALESCE(e.time#>>'{start,approximate}','false')='true' OR COALESCE(e.time#>>'{end,approximate}','false')='true') OR trim(COALESCE(e.time->>'note',''))<>'')`;
 export function nodeRecord(

@@ -29,25 +29,34 @@ Chức năng này cho phép Sử Ký bán gói thành viên trả phí để m�
 | Gói | Giá niêm yết | Thời hạn | Có thể mua | Ghi chú |
 |---|---:|---:|---|---|
 | **Free** | 0đ | Không giới hạn | Không | Trạng thái mặc định của người dùng chưa mua gói. |
-| **Gói tháng** | 20.000đ | 30 ngày | Có | Mua trực tiếp hoặc cộng dồn. |
-| **Gói năm** | 220.000đ | 365 ngày | Có | Tiết kiệm hơn 12 tháng lẻ. Nếu giao diện hiện "giảm từ 240.000đ" thì chỉ là nhãn hiển thị, không lưu giá gốc. |
+| **Gói tháng** | 20.000đ | 30 ngày | Có | Gói duy nhất đang bán; mua trực tiếp hoặc cộng dồn. |
+
+*Gói năm (220.000đ/365 ngày) đã tắt hoàn toàn: `is_active=false`, `is_purchasable=false`. Dữ liệu gói được giữ lại để tra cứu đơn cũ, không hiện trong `GET /api/membership/plans` và không mua/cấp được.*
 
 ### 2.2. Quyền lợi theo gói
 
-| Tính năng | Free | Premium (Tháng / Năm) |
+| Tính năng | Free | Premium (Gói tháng) |
 |---|---|---|
-| Nghe series và tập thường | Có | Có |
+| Nghe series và tập thường | **Tối đa N tập/ngày** (mặc định 4, admin cấu hình) | Không giới hạn |
+| Nghe lại cùng một tập trong ngày | Không tính thêm lượt | Không giới hạn |
 | Nghe tập Premium lẻ | Không | Có |
 | Nghe toàn bộ tập trong Series Premium | Không | Có |
 | Đọc kịch bản (lời thoại) của tập Premium | Không | Có |
 | Playlist, lưu tiến độ nghe, Quiz, XP, Nhiệm vụ, Bảng xếp hạng, Triển lãm | Có | Có |
+
+**Giới hạn lượt nghe (mới):**
+- Chỉ áp dụng cho tài khoản Free đã đăng nhập; phát audio **bắt buộc đăng nhập**.
+- Một "lượt" = một tập bắt đầu nghe trong ngày (tính theo giờ Việt Nam, reset 00:00). Đổi bản kể (third/first person) của cùng tập không tính thêm lượt.
+- Tập đã nghe hôm trước **không bị khoá**; hôm sau nghe lại tính 1 lượt mới. Tiến độ nghe giữ nguyên.
+- Premium và admin/moderator không bị giới hạn lượt.
+- Admin chỉnh `premium.free_daily_plays` (1–50) và bật/tắt bằng `premium.enforce_daily_quota`.
 
 ### 2.3. Cộng dồn thời hạn & hết hạn
 
 - **Cộng dồn:** Nếu đang còn hạn Premium mà mua thêm, thời hạn mới được cộng nối tiếp vào ngày hết hạn hiện tại (không bị mất số ngày cũ).
 - **Trần cộng dồn 365 ngày:** Tổng thời hạn kể từ thời điểm hiện tại không vượt quá 365 ngày.
 - **Khi hết hạn:** Quyền nghe nội dung Premium bị khoá ở lần phát tiếp theo. Toàn bộ playlist, tiến độ nghe, XP của người dùng vẫn được giữ nguyên.
-- **Nhắc hết hạn:** Hệ thống tính sẵn số ngày còn lại (`daysLeft`) để giao diện chủ động hiện banner nhắc (gợi ý khi còn từ 3 ngày trở xuống; ngưỡng hiển thị do phía giao diện tự quy định) `(10.1)`.
+- **Nhắc hết hạn:** `GET /api/me/membership` trả `daysLeft` và cờ `renewSoon`; `renewSoon=true` trong **5 ngày cuối** của kỳ hạn (khi `daysLeft <= 5`). Giao diện hiện banner nhắc gia hạn khi cờ này bật; tài khoản Free luôn `renewSoon=false`.
 
 ---
 
@@ -57,12 +66,13 @@ Chức năng này cho phép Sử Ký bán gói thành viên trả phí để m�
   - Series đánh dấu Premium ⇒ toàn bộ tập bên trong tự động bị khoá theo.
   - Series thường nhưng một tập đánh dấu Premium ⇒ chỉ riêng tập đó bị khoá.
   - Mặc định mọi nội dung cũ và mới đều là **Free**.
-- **Ai được bật/tắt:** Admin và Moderator đều có quyền bật/tắt khi tạo/sửa Series hoặc sửa Tập `(10.4)`. Mọi thay đổi có hiệu lực ngay và được ghi nhận lịch sử (ai sửa, lúc nào, từ trạng thái nào sang trạng thái nào).
+- **Ai được bật/tắt:** **Chỉ Admin** được bật/tắt nhãn Premium khi tạo/sửa Series hoặc sửa Tập. Moderator cố đổi nhãn sẽ nhận lỗi `403 PREMIUM_ADMIN_ONLY`. Mọi thay đổi có hiệu lực ngay; Series ghi `series.updated`, Tập ghi `episode.premium_changed` (ai sửa, lúc nào, từ trạng thái nào sang trạng thái nào).
 - **Trải nghiệm người nghe chưa mua gói:**
-  - Vẫn nhìn thấy Series/Tập Premium trong danh sách, tìm kiếm, bảng xếp hạng (có dấu hiệu nhận biết đang khoá) `(10.4)`.
-  - Không phát được audio và không xem được phần kịch bản chi tiết; hệ thống báo cần nâng cấp Premium `(10.4)`.
-- **Ngoại lệ kiểm duyệt:** Admin và Moderator được phát audio Premium mà không cần mua gói để phục vụ kiểm duyệt nội dung.
-- **Đang nghe dở thì hết hạn:** Khi server đã cấu hình khoá bảo mật ký link audio của Cloudinary (`CLOUDINARY_AUTH_TOKEN_KEY`), đường dẫn phát audio Premium sẽ có thời hạn ngắn (mặc định 1 giờ); nếu chưa cấu hình khoá này, link tạm thời không tự hết hạn. Khi có thời hạn, nếu người dùng đang nghe dở mà gói vừa hết hạn, họ vẫn nghe hết phiên hiện tại và chỉ bị chặn khi bấm phát tập mới hoặc tải lại link mới.
+  - Phải đăng nhập mới phát được audio (mọi nội dung); khách chưa đăng nhập nhận `401 AUTH_REQUIRED`.
+  - Tài khoản Free nghe tối đa N tập/ngày; hết lượt nhận `403 DAILY_LISTEN_LIMIT_REACHED` kèm mốc reset 00:00 giờ Việt Nam. Vẫn xem được danh sách/chi tiết.
+  - Nội dung Premium: vẫn nhìn thấy trong danh sách, tìm kiếm, bảng xếp hạng (có dấu hiệu đang khoá) `(10.4)`; không phát được audio và không xem được phần kịch bản chi tiết; hệ thống báo cần nâng cấp Premium `(10.4)`.
+- **Ngoại lệ kiểm duyệt:** Admin và Moderator được phát audio Premium và không bị giới hạn lượt để phục vụ kiểm duyệt nội dung.
+- **Đang nghe dở thì hết hạn:** Khi server đã cấu hình khoá bảo mật ký link audio của Cloudinary (`CLOUDINARY_AUTH_TOKEN_KEY`), **mọi** đường dẫn phát audio (kể cả nội dung Free và audio triển lãm) đều có thời hạn ngắn (mặc định 1 giờ); nếu chưa cấu hình khoá này, link tạm thời không tự hết hạn. Khi có thời hạn, nếu người dùng đang nghe dở mà gói vừa hết hạn, họ vẫn nghe hết phiên hiện tại và chỉ bị chặn khi bấm phát tập mới hoặc tải lại link mới.
 
 ---
 
@@ -83,7 +93,7 @@ stateDiagram-v2
 
 ### Luồng chuẩn
 
-1. **Tạo đơn:** Người dùng chọn Gói tháng hoặc Gói năm. Hệ thống tạo đơn ở trạng thái **Chờ thanh toán**, sinh một mã chuyển khoản riêng dạng `SK` + 8 ký tự và tạo sẵn mã VietQR điền sẵn số tiền + nội dung chuyển khoản `(10.2)`.
+1. **Tạo đơn:** Người dùng chọn Gói tháng. Hệ thống tạo đơn ở trạng thái **Chờ thanh toán**, sinh một mã chuyển khoản riêng dạng `SK` + 8 ký tự và tạo sẵn mã VietQR điền sẵn số tiền + nội dung chuyển khoản `(10.2)`.
 2. **Chuyển khoản:** Người dùng quét QR hoặc chuyển khoản đúng số tiền và đúng mã `SK...`.
 3. **Tự động kích hoạt:** Ngân hàng nhận tiền → SePay gửi thông báo về hệ thống `(10.5)` → Hệ thống khớp mã và số tiền → Đơn chuyển sang **Đã thanh toán** và cộng ngày Premium ngay cho người dùng.
 4. **Cập nhật trên màn hình:** Khi đang mở trang QR, giao diện tự hỏi lại trạng thái đơn mỗi 3–5 giây cho tới khi đơn thành công hoặc cần đối soát `(10.2)`, sau đó gọi lại kiểm tra quyền hiện tại `(10.1)`.
@@ -137,7 +147,7 @@ stateDiagram-v2
 | **Không hoàn tiền tự động trong hệ thống** | Hoàn tiền tự động đòi hỏi kết nối chi hộ và đối soát phức tạp, rủi ro cao. | Khi cần hoàn tiền, Admin chuyển khoản ngoài và ghi chú lại; báo cáo doanh thu không tự trừ khoản này. |
 | **Ghi nhận vĩnh viễn, không xoá dữ liệu tiền (append-only)** | Phục vụ đối soát, kiểm tra chéo khi có tranh chấp. | Không cho phép xoá user nếu user đó đã từng phát sinh đơn mua hoặc kỳ hạn. |
 | **Chốt bản sao (snapshot) giá và tên gói trên từng đơn** | Đổi giá gói trong tương lai không làm sai lệch doanh thu và lịch sử mua cũ. | Cần xử lý đóng đơn chờ cũ khi giá gói thay đổi. |
-| **Trần cộng dồn tối đa 365 ngày** | Kiểm soát cam kết dịch vụ, tránh người dùng mua dồn nhiều năm với giá cũ. | Người dùng đang còn bất kỳ thời hạn Premium nào (kể cả còn vài phút) sẽ **không mua được Gói năm (365 ngày)** vì tổng vượt 365 ngày; chỉ mua lại Gói năm sau khi hạn cũ đã hết (có thể nới trần bằng cấu hình nếu leader muốn). |
+| **Trần cộng dồn tối đa 365 ngày** | Kiểm soát cam kết dịch vụ, tránh người dùng mua dồn quá xa với giá cũ. | Người dùng còn hạn Premium gần trần 365 ngày sẽ **không mua được thêm** cho tới khi tổng thời hạn mới không vượt trần (có thể nới trần bằng cấu hình nếu leader muốn). |
 | **Lệch tiền đưa vào Cần đối soát thay vì tự cộng ngày theo tỉ lệ** | Tránh kích hoạt sai gói hoặc phát sinh sai số lẻ khó kiểm soát. | Admin phải xử lý tay các ca chuyển nhầm tiền. |
 | **Vẫn cho người dùng Free thấy series/tập Premium trong danh sách** | Giữ khả năng khám phá nội dung và tạo động lực nâng cấp gói. | Chỉ chặn lúc bấm phát audio và ẩn nội dung kịch bản. |
 | **Tách lớp cổng thanh toán (hiện tại là SePay)** | Để sau này có thể gắn thêm cổng khác (như payOS…) mà không phải sửa lại quy trình đơn hàng, kích hoạt hay báo cáo. | Hiện tại mới vận hành thực tế với SePay. |
@@ -153,7 +163,9 @@ stateDiagram-v2
 - Toàn bộ luồng nghiệp vụ cho người dùng: xem gói, kiểm tra quyền hiện tại, tạo đơn/QR, gửi ảnh chuyển khoản, xem lịch sử đơn.
 - Luồng nhận thông báo thanh toán từ SePay: xác thực bảo mật, chống trùng, tự động kích hoạt, tự phục hồi khi gọi lại.
 - Toàn bộ nghiệp vụ cho Admin: quản lý gói, duyệt/từ chối đơn, xử lý sổ giao dịch, cấp/thu hồi gói, báo cáo doanh thu.
-- Chặn phát audio và ẩn kịch bản với nội dung Premium; hỗ trợ cấp đường dẫn audio có thời hạn cho người dùng Premium (khi bật khoá ký link).
+- Chặn phát audio và ẩn kịch bản với nội dung Premium; mọi lượt phát audio (kể cả nội dung Free) dùng đường dẫn có thời hạn khi bật khoá ký link.
+- Giới hạn lượt nghe miễn phí theo ngày (bảng `listening_daily_plays`, cấu hình qua system config), bắt buộc đăng nhập khi phát audio, nhãn Premium chỉ admin đặt và có audit.
+- Chỉ bán gói tháng; gói năm đã tắt trong dữ liệu (`is_active=false`). Quyền lợi trả cờ `renewSoon` để giao diện nhắc gia hạn trong 5 ngày cuối.
 - Ghi nhận lịch sử thay đổi (audit) cho toàn bộ thao tác tiền và thay đổi nhãn Premium.
 - Viết tài liệu hướng dẫn cấu hình SePay, tài liệu API (OpenAPI + Changelog cho Frontend) và kiểm thử tự động các luồng chính.
 
@@ -162,13 +174,13 @@ stateDiagram-v2
 1. **Làm giao diện Web / Mobile:** Trang mua gói, màn hình QR + polling, upload ảnh minh chứng, giao diện khoá/banner sắp hết hạn, trang quản trị cho Admin.
 2. **Điền thông tin nhận tiền thật:** Điền số tài khoản, tên chủ tài khoản, mã xác thực webhook vào cấu hình server và khai báo webhook trên trang quản trị SePay.
 3. **Cấu hình & kiểm tra thực tế audio có thời hạn:** Điền khoá ký link audio (`CLOUDINARY_AUTH_TOKEN_KEY`) lên server và chạy thử trên file audio thật khi ghép giao diện để chắc chắn trình phát nhạc hoạt động ổn định với link có hạn.
-4. **Quyết định của Leader (nếu cần):** Có giữ trần cộng dồn 365 ngày (chặn mua nối gói năm sớm) hay nới lên 730 ngày.
+4. **Quyết định của Leader (nếu cần):** Có giữ trần cộng dồn 365 ngày (chặn mua nối nhiều kỳ tháng) hay nới lên 730 ngày.
 
 ---
 
 ## 9. Thuật ngữ nhanh
 
-- **Kỳ hạn (Membership):** Khoảng thời gian (30 ngày hoặc 365 ngày) người dùng có quyền nghe nội dung Premium.
+- **Kỳ hạn (Membership):** Khoảng thời gian (30 ngày mỗi gói tháng) người dùng có quyền nghe nội dung Premium.
 - **Webhook:** Cơ chế SePay tự động báo tin cho hệ thống ngay khi tài khoản ngân hàng nhận được tiền chuyển khoản.
 - **Đối soát:** Việc Admin kiểm tra chéo giữa đơn mua hàng, ảnh chụp chuyển khoản và tiền thực tế vào tài khoản ngân hàng.
 - **Snapshot:** Lưu chết thông tin tên gói, giá tiền tại đúng thời điểm người dùng bấm mua để sau này đổi giá cũng không ảnh hưởng đơn cũ.
@@ -182,11 +194,11 @@ Mục này giải thích ngắn gọn **muốn làm việc gì thì gọi API n�
 
 ### 10.1. Xem gói & kiểm tra quyền hiện tại (Người dùng)
 - **`GET /api/membership/plans`** *(không cần đăng nhập)*: Lấy danh sách gói đang bật (gồm cả gói Free `isPurchasable: false`) để vẽ bảng so sánh gói.
-- **`GET /api/me/membership`** *(cần đăng nhập)*: Nguồn chuẩn để biết user đang là `free` hay `premium`, ngày hết hạn (`expiresAt`), số ngày còn lại (`daysLeft`), mã gói (`planCode`) và đơn đang chờ gần nhất (`pendingOrderId`). Giao diện dùng API này để quyết định hiện nút mua, banner nhắc hạn hay mở khoá.
+- **`GET /api/me/membership`** *(cần đăng nhập)*: Nguồn chuẩn để biết user đang là `free` hay `premium`, ngày hết hạn (`expiresAt`), số ngày còn lại (`daysLeft`), cờ nhắc gia hạn (`renewSoon`, bật khi `daysLeft <= 5`), mã gói (`planCode`) và đơn đang chờ gần nhất (`pendingOrderId`). Với tài khoản Free, `quota` trả `{ enforced, limit, usedToday, remaining, resetsAt }` theo ngày (giờ Việt Nam); `quota = null` với Premium và admin/moderator. Giao diện dùng API này để hiện nút mua, banner nhắc hạn, số lượt còn lại hay mở khoá.
 
 ### 10.2. Tạo đơn, xem QR, theo dõi trạng thái & lịch sử (Người dùng)
 - **`POST /api/me/membership/orders`** *(cần đăng nhập)*: Tạo đơn mua gói.
-  - **Truyền vào:** Header `Idempotency-Key` (chuỗi UUID v4 ngẫu nhiên mỗi lần bấm mua) + Body `{ "planCode": "monthly" | "yearly" }`.
+  - **Truyền vào:** Header `Idempotency-Key` (chuỗi UUID v4 ngẫu nhiên mỗi lần bấm mua) + Body `{ "planCode": "monthly" }`.
   - **Trả về:** Thông tin đơn + khối `bank` (tên ngân hàng, số tài khoản, tên chủ TK, link ảnh `qrUrl`, số tiền `amount`, nội dung chuyển khoản `transferContent` dạng `SK...`).
 - **`GET /api/me/membership/orders/:id`** *(cần đăng nhập)*: Lấy chi tiết & trạng thái 1 đơn. Khi đang mở màn hình QR, giao diện gọi lại API này mỗi 3–5 giây cho đến khi `status` là `paid`, `needs_review` hoặc `rejected`.
 - **`GET /api/me/membership/orders`** *(cần đăng nhập)*: Xem lịch sử các đơn đã tạo (hỗ trợ `?page=1&limit=20`).
@@ -202,23 +214,23 @@ Quy trình gồm 2 bước API với hệ thống + 1 bước đẩy file lên C
    - **Kết quả:** Server kiểm tra ảnh hợp lệ rồi gắn vào đơn (`proofUploaded: true`). Nếu gửi lại lần nữa, ảnh mới sẽ thay ảnh cũ.
 
 ### 10.4. Gắn nhãn Premium & kiểm soát phát nội dung (Studio + Người nghe)
-- **Gắn nhãn ở Studio (Admin / Moderator):**
+- **Gắn nhãn ở Studio (chỉ Admin):**
   - Khi tạo mới Series: **`POST /api/studio/series`** — truyền thêm `"isPremium": true` (hoặc `false`) trong body.
   - Khi sửa Series đã có: **`PATCH /api/studio/series/:id`** — truyền `{ "isPremium": true | false }`.
   - Khi sửa Tập đã có: **`PATCH /api/studio/episodes/:id`** — truyền `{ "isPremium": true | false }`. *(Lưu ý: API tạo mới tập `POST` chưa nhận cờ này, cần tạo tập xong rồi sửa nếu muốn bật Premium lẻ.)*
 - **Hiển thị danh sách & chi tiết (Người nghe):**
   - **`GET /api/series`**, **`GET /api/series/:slug`**, **`GET /api/episodes/:slug`**: Trả thêm `isPremium` và `locked` (`true` nếu nội dung cần Premium mà user chưa có gói) để giao diện hiện icon ổ khoá / nút nâng cấp. Khi `locked: true`, nội dung `scriptContent` bị ẩn thành `null`.
 - **Phát audio & lưu tiến độ (Người nghe):**
-  - **`GET /api/narrations/:narrationId/playback`**: Lấy link phát audio. Nếu bị khoá, trả lỗi `403 PREMIUM_REQUIRED`. Nếu hợp lệ, trả link audio (có thời hạn ngắn nếu server đã bật `CLOUDINARY_AUTH_TOKEN_KEY` — giao diện không nên cache link lâu, cứ mỗi lần phát thì gọi lại).
-  - **`PUT /api/me/listening-progress/:narrationId`**: Đồng bộ giây đang nghe; cũng trả `403 PREMIUM_REQUIRED` nếu tập/series bị khoá.
-  - *(Admin và Moderator tự động được phát và lưu tiến độ không cần mua gói.)*
+  - **`GET /api/narrations/:narrationId/playback`** *(bắt buộc đăng nhập)*: Lấy link phát audio. Khách chưa đăng nhập trả `401 AUTH_REQUIRED`. Tài khoản Free hết lượt trong ngày trả `403 DAILY_LISTEN_LIMIT_REACHED`; nội dung Premium mà chưa có gói trả `403 PREMIUM_REQUIRED`. Link audio luôn có thời hạn (`media.audio_delivery_ttl_seconds`) — giao diện không cache, mỗi lần phát gọi lại.
+  - **`PUT /api/me/listening-progress/:narrationId`**: Đồng bộ giây đang nghe; trả `403 PREMIUM_REQUIRED` nếu tập/series bị khoá (không kiểm tra quota ở đây vì không trả audio).
+  - *(Admin và Moderator tự động được phát, không cần mua gói và không bị giới hạn lượt.)*
 
 ### 10.5. Nhận thông báo thanh toán từ SePay (Hệ thống)
 - **`POST /api/payments/:provider/webhook`** (với SePay là **`POST /api/payments/sepay/webhook`**): SePay tự gọi khi tài khoản nhận được tiền, kèm header `Authorization: Apikey <SEPAY_WEBHOOK_API_KEY>`. Frontend và người dùng không gọi API này.
 
 ### 10.6. Admin: Quản lý gói thành viên
 - **`GET /api/admin/membership/plans`**: Lấy toàn bộ gói, kể cả gói đang tắt (`isActive: false`).
-- **`PATCH /api/admin/membership/plans/:code`** (`code` là `free`, `monthly`, `yearly`): Sửa tên (`name`), giá (`priceVnd`), số ngày (`durationDays`), cho phép mua (`isPurchasable`), hiển thị (`isActive`), thứ tự (`sortOrder`).
+- **`PATCH /api/admin/membership/plans/:code`** (`code` là `free`, `monthly`, `yearly`): Sửa tên (`name`), giá (`priceVnd`), số ngày (`durationDays`), cho phép mua (`isPurchasable`), hiển thị (`isActive`), thứ tự (`sortOrder`). Gói `yearly` đang tắt; Admin có thể bật lại nhưng không nằm trong luồng bán mặc định.
 
 ### 10.7. Admin: Xem & duyệt/từ chối đơn
 - **`GET /api/admin/membership/orders`**: Lọc đơn toàn hệ thống theo `?status=pending|needs_review|paid|rejected` hoặc tìm kiếm `?q=<email/tên/mã SK>`.
@@ -236,7 +248,7 @@ Quy trình gồm 2 bước API với hệ thống + 1 bước đẩy file lên C
 ### 10.9. Admin: Quản lý thành viên (xem, cấp miễn phí, thu hồi)
 - **`GET /api/admin/membership/members`**: Xem danh sách thành viên theo `?status=active|expired|all` và tìm `?q=...`.
 - **`POST /api/admin/membership/members/:userId/grant`**: Cấp gói miễn phí (Comp).
-  - **Truyền vào:** Header `Idempotency-Key` (UUID v4) + Body `{ "planCode": "monthly" | "yearly", "reason": "Lý do cấp (3–500 ký tự)" }`.
+  - **Truyền vào:** Header `Idempotency-Key` (UUID v4) + Body `{ "planCode": "monthly", "reason": "Lý do cấp (3–500 ký tự)" }`.
 - **`POST /api/admin/membership/members/:userId/revoke`**: Thu hồi mọi kỳ hạn đang hoạt động của user.
   - **Truyền vào:** Body `{ "reason": "Lý do thu hồi (10–500 ký tự)" }`.
 

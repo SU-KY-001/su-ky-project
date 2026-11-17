@@ -1,7 +1,8 @@
 import { afterAll, beforeAll, describe, expect, it } from "bun:test";
 import { prisma } from "@repo/db";
 import { HistoricalCatalogService } from "../src/modules/catalog/application/historical-catalog.service";
-import { PrismaHistoricalCatalogRepository, jsonSnapshot } from "../src/modules/catalog/infrastructure/prisma-historical-catalog.repository";
+import { PrismaHistoricalCatalogRepository } from "../src/modules/catalog/infrastructure/prisma-historical-catalog.repository";
+import { jsonSnapshot } from "../src/core/json";
 import { publishWithHistoricalEvidence } from "../src/modules/content/infrastructure/historical-evidence";
 import { assertTestDatabase, createModerator, removeFixtures, RUN_INTEGRATION } from "./support/integration";
 

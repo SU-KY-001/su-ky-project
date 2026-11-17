@@ -2,7 +2,7 @@ import { afterEach, describe, expect, it } from "bun:test";
 import {
   parseAllowedOrigins,
   trustedAuthOrigins,
-} from "../src/core/config/allowedOrigins";
+} from "../src/core/config/allowed-origins";
 
 const originalCorsOrigin = process.env.CORS_ORIGIN;
 const originalNodeEnv = process.env.NODE_ENV;

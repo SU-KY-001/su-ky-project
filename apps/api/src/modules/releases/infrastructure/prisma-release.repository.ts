@@ -14,7 +14,7 @@ import type {
   ReleaseScheduleListFilter,
 } from "../domain/release.repository";
 import { DomainError } from "../../../core/errors/domain-error";
-import { jsonSnapshot } from "../../catalog/infrastructure/prisma-historical-catalog.repository";
+import { jsonSnapshot } from "../../../core/json";
 
 const scheduleInclude = {
   assignments: {

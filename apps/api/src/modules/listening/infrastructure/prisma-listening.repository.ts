@@ -394,6 +394,35 @@ const PUBLIC_SERIES_WHERE = { status: "PUBLISHED" as const, deletedAt: null };
 export class PrismaListeningRepository implements ListeningRepository {
   constructor(private readonly db: PrismaClient = prisma) {}
 
+  /**
+   * Claims one play for `episodeId` on `day`. The per-user/day advisory lock serialises the
+   * check-then-insert so two concurrent episodes cannot both pass the last free slot.
+   */
+  async reserveDailyPlay(
+    userId: string,
+    episodeId: string,
+    day: Date,
+    limit: number,
+  ): Promise<"allowed" | "already" | "limit"> {
+    return this.db.$transaction(async (tx) => {
+      // `$executeRaw`: pg_advisory_xact_lock returns void, which `$queryRaw` cannot deserialize.
+      await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${`${userId}:${day.toISOString().slice(0, 10)}`}))`;
+      const existing = await tx.listeningDailyPlay.findUnique({
+        where: { userId_playDate_episodeId: { userId, playDate: day, episodeId } },
+        select: { userId: true },
+      });
+      if (existing) return "already";
+      const used = await tx.listeningDailyPlay.count({ where: { userId, playDate: day } });
+      if (used >= limit) return "limit";
+      await tx.listeningDailyPlay.create({ data: { userId, playDate: day, episodeId } });
+      return "allowed";
+    });
+  }
+
+  countDailyPlays(userId: string, day: Date): Promise<number> {
+    return this.db.listeningDailyPlay.count({ where: { userId, playDate: day } });
+  }
+
   async findPublicNarration(
     narrationId: string,
   ): Promise<NarrationWithAudio | null> {

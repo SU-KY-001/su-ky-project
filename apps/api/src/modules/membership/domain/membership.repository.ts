@@ -9,6 +9,7 @@ import type {
   MembershipWithPlan,
   PaymentTransactionEntity,
 } from "./membership.entity";
+import type { AuditInput } from "../../../core/audit";
 
 export interface CreateOrderInput {
   userId: string;
@@ -99,6 +100,20 @@ export interface MembershipRepository {
   findOrder(id: string, userId?: string): Promise<MembershipOrderEntity | null>;
   attachProof(orderId: string, assetId: string): Promise<MembershipOrderEntity>;
   activateOrder(input: ActivateOrderInput): Promise<ActivationResult>;
+
+  /** Audit writes go through the repository so services never hold a Prisma client. */
+  audit(entry: AuditInput): Promise<void>;
+  /** Rejects only a still-open order; false when the webhook activated it first. */
+  rejectOrderIfOpen(
+    id: string,
+    options: {
+      actorId: string;
+      reason: string | null;
+      note: string | undefined;
+      ipAddress: string | null;
+      previousStatus: string;
+    },
+  ): Promise<boolean>;
 
   insertTransaction(input: InsertTransactionInput): Promise<PaymentTransactionEntity>;
   findTransactionByProviderRef(provider: string, externalId: string): Promise<PaymentTransactionEntity | null>;

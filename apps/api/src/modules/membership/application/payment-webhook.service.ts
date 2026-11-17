@@ -1,8 +1,7 @@
-import { Prisma, prisma } from "@repo/db";
+import { Prisma } from "@repo/db";
 import { getSystemConfig } from "../../../core/config/system-config";
 import { DomainError } from "../../../core/errors/domain-error";
 import { logger } from "../../../core/logger";
-import { writeAudit } from "../../../core/audit";
 import type { PaymentProviderAdapter } from "../domain/payment-provider";
 import type { MembershipRepository } from "../domain/membership.repository";
 
@@ -67,7 +66,7 @@ export class PaymentWebhookService {
       "Payment transaction applied",
     );
     if (result.membershipId) {
-      await writeAudit(prisma, {
+      await this.repo.audit({
         actorId: null,
         actorType: "SYSTEM",
         action: "membership.activated",

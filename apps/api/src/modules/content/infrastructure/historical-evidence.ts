@@ -20,8 +20,8 @@ import {
   PUBLIC_EVENT_READY,
   lockNode,
   requireLiveParent,
-  jsonSnapshot,
 } from "../../catalog/infrastructure/prisma-historical-catalog.repository";
+import { jsonSnapshot } from "../../../core/json";
 
 export async function primaryEventFields(
   tx: Prisma.TransactionClient,

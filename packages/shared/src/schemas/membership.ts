@@ -17,12 +17,26 @@ export const MembershipPlanSchema = z.object({
   sortOrder: z.number().int(),
 });
 
+export const MembershipDailyQuotaSchema = z.object({
+  enforced: z.boolean(),
+  /** `null` when the quota is switched off. */
+  limit: z.number().int().positive().nullable(),
+  usedToday: z.number().int().nonnegative(),
+  /** `null` when the quota is switched off. */
+  remaining: z.number().int().nonnegative().nullable(),
+  resetsAt: z.coerce.date(),
+});
+
 export const MembershipEntitlementSchema = z.object({
   tier: z.enum(["free", "premium"]),
   expiresAt: z.coerce.date().nullable(),
   daysLeft: z.number().int().nullable(),
   planCode: z.string().nullable(),
   pendingOrderId: z.string().uuid().nullable(),
+  /** `true` during the last 5 days of a paid period; drives the renewal reminder. */
+  renewSoon: z.boolean(),
+  /** Daily listen quota for free users; `null` for premium and staff. */
+  quota: MembershipDailyQuotaSchema.nullable(),
 });
 
 export const CreateMembershipOrderSchema = z.object({
@@ -135,7 +149,7 @@ export const AdminMemberQuerySchema = PaginationQuerySchema.extend({
 });
 
 export const AdminGrantMembershipSchema = z.object({
-  planCode: z.enum(["monthly", "yearly"]),
+  planCode: z.literal("monthly"),
   reason: z.string().trim().min(3).max(500),
 });
 

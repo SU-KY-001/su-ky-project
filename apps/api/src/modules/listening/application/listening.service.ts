@@ -12,6 +12,7 @@ import { audioMimeType, type MediaStorageGateway } from "../../media";
 import type { SeriesSourceWithSource } from "../domain/listening.entity";
 import type { ListeningRepository } from "../domain/listening.repository";
 import { hasActiveMembership } from "../../membership/application/entitlement";
+import { reserveDailyPlay } from "./daily-quota";
 
 const BASE64_PATTERN =
   /^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$/;
@@ -121,17 +122,35 @@ export class ListeningService {
     throw new DomainError(403, "PREMIUM_REQUIRED", "A premium membership is required to listen to this episode");
   }
 
+  /** Staff and active members listen without the free-tier daily quota. */
+  private async resolveUnlimited(isPremium: boolean | undefined, userId: string, role: string | null): Promise<boolean> {
+    if (role === "admin" || role === "moderator") return true;
+    if (await hasActiveMembership(userId)) return true;
+    if (isPremium) throw new DomainError(403, "PREMIUM_REQUIRED", "A premium membership is required to listen to this episode");
+    return false;
+  }
+
   async playback(narrationId: string, userId: string | null, role: string | null = null) {
+    if (!userId) throw new DomainError(401, "AUTH_REQUIRED", "Đăng nhập để nghe podcast");
     const narration = await this.repo.findPublicNarration(narrationId);
     if (!narration)
       throw new DomainError(404, "CONTENT_UNAVAILABLE", "Narration audio is not available");
-    await this.assertPremiumAccess(narration.isPremium, userId, role);
+    const unlimited = await this.resolveUnlimited(narration.isPremium, userId, role);
     if (!narration.audioAsset?.durationMs)
       throw new DomainError(
         404,
         "CONTENT_UNAVAILABLE",
         "Narration audio is not available",
       );
+    if (!unlimited) {
+      const { outcome } = await reserveDailyPlay(userId, narration.episodeId);
+      if (outcome === "limit")
+        throw new DomainError(
+          403,
+          "DAILY_LISTEN_LIMIT_REACHED",
+          "Bạn đã dùng hết lượt nghe miễn phí hôm nay. Lượt mới mở lúc 00:00 giờ Việt Nam; nâng cấp Premium để nghe không giới hạn.",
+        );
+    }
     const saved = userId ? await this.repo.findProgress(userId, narrationId) : null;
     const progress = saved
       ? {
@@ -166,13 +185,12 @@ export class ListeningService {
       getSystemConfig("listening.sync_interval_ms"),
       getSystemConfig("listening.completion_ratio"),
     ]);
-    const audioUrl =
-      narration.isPremium && this.storage.audioDeliveryUrl
-        ? this.storage.audioDeliveryUrl(
-            narration.audioAsset,
-            await getSystemConfig("media.audio_delivery_ttl_seconds"),
-          )
-        : this.storage.deliveryUrl(narration.audioAsset);
+    const audioUrl = this.storage.audioDeliveryUrl
+      ? this.storage.audioDeliveryUrl(
+          narration.audioAsset,
+          await getSystemConfig("media.audio_delivery_ttl_seconds"),
+        )
+      : this.storage.deliveryUrl(narration.audioAsset);
     return {
       narrationId,
       episodeId: narration.episodeId,

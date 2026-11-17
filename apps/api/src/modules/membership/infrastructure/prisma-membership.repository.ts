@@ -1,6 +1,7 @@
 import { randomBytes } from "node:crypto";
 import { Prisma, prisma, type PrismaClient } from "@repo/db";
 import { DomainError } from "../../../core/errors/domain-error";
+import { writeAudit, type AuditInput } from "../../../core/audit";
 import type {
   ActivateOrderInput,
   ApplyTransactionInput,
@@ -315,6 +316,33 @@ export class PrismaMembershipRepository implements MembershipRepository {
 
   async activateOrder(input: ActivateOrderInput): Promise<ActivationResult> {
     return this.db.$transaction((tx) => this.activateOrderTx(tx, input));
+  }
+
+  audit(entry: AuditInput): Promise<void> {
+    return writeAudit(this.db, entry);
+  }
+
+  async rejectOrderIfOpen(
+    id: string,
+    options: { actorId: string; reason: string | null; note: string | undefined; ipAddress: string | null; previousStatus: string },
+  ): Promise<boolean> {
+    return this.db.$transaction(async (tx) => {
+      // Conditional update: the webhook may activate the order between the read and this write.
+      const result = await tx.membershipOrder.updateMany({
+        where: { id, status: { in: ["pending", "needs_review"] } },
+        data: { status: "rejected", rejectionReason: options.reason ?? null, verifiedBy: options.actorId },
+      });
+      if (result.count === 0) return false;
+      await writeAudit(tx, {
+        actorId: options.actorId,
+        action: "membership.order.reject",
+        resourceType: "membership_order",
+        resourceId: id,
+        changes: { before: { status: options.previousStatus }, after: { status: "rejected", reason: options.reason }, note: options.note },
+        ipAddress: options.ipAddress,
+      });
+      return true;
+    });
   }
 
   private async activateOrderTx(tx: Prisma.TransactionClient, input: ActivateOrderInput): Promise<ActivationResult> {

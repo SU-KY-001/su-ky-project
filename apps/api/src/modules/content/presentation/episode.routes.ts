@@ -19,6 +19,7 @@ import {
   throwOnInvalid,
 } from "../../../core/middleware";
 import type { AppEnv } from "../../../types";
+import { requestIpAddress } from "../../../core/audit";
 import { getSystemConfig } from "../../../core/config/system-config";
 import { requireAuth, requireRole } from "../../auth";
 import type { MediaStorageGateway } from "../../media";
@@ -92,6 +93,7 @@ export function createEpisodeRoute(
               session,
               c.req.valid("param").id,
               c.req.valid("json"),
+              requestIpAddress(c.req.raw.headers),
             ),
             storage,
           ),

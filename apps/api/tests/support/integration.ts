@@ -99,6 +99,8 @@ export async function removeFixtures(userId: string): Promise<void> {
   await prisma.episodeNarration.deleteMany({
     where: { episodeId: { in: episodes.map((row) => row.id) } },
   });
+  // Episode deletes are RESTRICTed by the quota ledger, so ledger rows go first.
+  await prisma.listeningDailyPlay.deleteMany({ where: { userId } });
   await prisma.episode.deleteMany({ where: { seriesId: { in: seriesIds } } });
   await prisma.series.deleteMany({ where: { id: { in: seriesIds } } });
   const entityIds = (

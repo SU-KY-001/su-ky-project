@@ -9,7 +9,6 @@ import {
   ReleaseModeratorWorkloadSchema,
   ReleaseScheduleStatusSchema,
   ReleaseReassignmentTicketStatusSchema,
-  SeriesSourceSchema,
   SourceTierSchema,
   paginatedSchema,
 } from "@repo/shared";
@@ -168,7 +167,6 @@ export const CurrentUserResponseSchema = z.object({
   session: z.object({ expiresAt: timestamp }),
 });
 
-export const MessageResponseSchema = z.object({ message: z.string() });
 
 export const TopicSchema = z.object({
   id: uuid,
@@ -480,16 +478,3 @@ export const ListeningProgressUpdateDocSchema = z.object({
       "Chỉ có ở lần đồng bộ khiến tập chuyển sang hoàn thành; các lần khác là `null`",
     ),
 });
-
-export const TimelineResponseSchema = ItemsOf(
-  z.object({
-    id: z.string(),
-    slug: z.string(),
-    name: z.string(),
-    startYear: z.number().int(),
-    endYear: z.number().int().nullable().optional(),
-    description: z.string(),
-    episodesCount: z.number().int().optional(),
-    seriesCount: z.number().int().optional(),
-  }),
-);

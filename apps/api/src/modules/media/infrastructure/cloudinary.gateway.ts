@@ -111,7 +111,7 @@ export class CloudinaryGateway implements MediaStorageGateway {
     this.configured();
     const key = env.CLOUDINARY_AUTH_TOKEN_KEY;
     if (!key) {
-      logger.warn({ publicId: asset.publicId }, "CLOUDINARY_AUTH_TOKEN_KEY missing; premium audio URL has no expiry");
+      logger.warn({ publicId: asset.publicId }, "CLOUDINARY_AUTH_TOKEN_KEY missing; audio URL has no expiry");
       return this.deliveryUrl(asset);
     }
     const expiresAt = Math.floor(Date.now() / 1000) + ttlSeconds;

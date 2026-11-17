@@ -206,7 +206,12 @@ export interface EpisodeRepository {
   ): Promise<AppendEpisodeResult[]>;
   /** Transactional unit: one sortOrder update per episode id + series updatedAt stamp. */
   reorderEpisodes(orderedIds: string[], seriesId: string): Promise<void>;
-  updateEpisode(id: string, patch: EpisodePatch): Promise<void>;
+  updateEpisode(
+    id: string,
+    patch: EpisodePatch,
+    /** A premium-flag change is audited in the same transaction. */
+    audit: { actorId: string; ipAddress: string | null },
+  ): Promise<void>;
   /** `gate` is evaluated inside the publish transaction together with evidence validity and the timestamp lock. */
   publishEpisodeWithEvidence(
     actorId: string | null,

@@ -24,7 +24,7 @@ import type {
   SourceRepository,
   TaxonomyRepository,
 } from "../domain/catalog.repository";
-import { jsonSnapshot } from "./prisma-historical-catalog.repository";
+import { jsonSnapshot } from "../../../core/json";
 import { DomainError } from "../../../core/errors/domain-error";
 import { writeAudit } from "../../../core/audit";
 import { insertSourcePages, readSourcePdfPages } from "./source-pdf-pages";

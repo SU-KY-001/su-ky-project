@@ -7,6 +7,10 @@ mock.module("../src/modules/membership/application/entitlement", () => ({
   hasActiveMembership: async () => false,
   pendingOrderId: async () => null,
 }));
+mock.module("../src/modules/listening/application/daily-quota", () => ({
+  reserveDailyPlay: async () => ({ outcome: "allowed", limit: 4 }),
+  getDailyQuotaStatus: async () => ({ enforced: true, limit: 4, usedToday: 1, remaining: 3, resetsAt: new Date() }),
+}));
 const { ListeningService } = await import("../src/modules/listening/application/listening.service");
 
 afterAll(() => mock.restore());
@@ -35,24 +39,29 @@ function repoWith(row: unknown) {
 
 const storage = {
   deliveryUrl: () => "https://cdn.invalid/free.mp3",
-  audioDeliveryUrl: () => "https://cdn.invalid/premium.mp3",
+  audioDeliveryUrl: () => "https://cdn.invalid/signed.mp3",
 } as unknown as MediaStorageGateway;
 
-test("anonymous listeners cannot play premium audio", async () => {
+test("anonymous listeners cannot play anything", async () => {
+  const service = new ListeningService(repoWith(narration({ isPremium: false })), storage);
+  await expect(service.playback("narration-1", null, null)).rejects.toMatchObject({ status: 401, code: "AUTH_REQUIRED" });
+});
+
+test("free listeners without a membership cannot play premium audio", async () => {
   const service = new ListeningService(repoWith(narration()), storage);
-  await expect(service.playback("narration-1", null, null)).rejects.toMatchObject({ status: 403, code: "PREMIUM_REQUIRED" });
+  await expect(service.playback("narration-1", "user-1", null)).rejects.toMatchObject({ status: 403, code: "PREMIUM_REQUIRED" });
 });
 
 test("moderators review premium audio without a membership", async () => {
   const service = new ListeningService(repoWith(narration()), storage);
   const result = await service.playback("narration-1", "mod-1", "moderator");
-  expect(result.audio.url).toBe("https://cdn.invalid/premium.mp3");
+  expect(result.audio.url).toBe("https://cdn.invalid/signed.mp3");
 });
 
-test("free audio keeps the permanent delivery URL", async () => {
+test("free audio is delivered through the expiring URL", async () => {
   const service = new ListeningService(repoWith(narration({ isPremium: false })), storage);
-  const result = await service.playback("narration-1", null, null);
-  expect(result.audio.url).toBe("https://cdn.invalid/free.mp3");
+  const result = await service.playback("narration-1", "user-1", null);
+  expect(result.audio.url).toBe("https://cdn.invalid/signed.mp3");
 });
 
 test("progress sync is rejected for locked content", async () => {

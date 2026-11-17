@@ -10,10 +10,12 @@ import { makeSession, removeFixtures } from "./support/integration";
 import { PrismaHistoricalCatalogRepository } from "../src/modules/catalog/infrastructure/prisma-historical-catalog.repository";
 import {
   assertTestDatabase,
+  createAdmin,
   createModerator,
   RUN_INTEGRATION,
 } from "./support/integration";
 const actor = { userId: crypto.randomUUID(), role: "moderator" };
+const adminId = crypto.randomUUID();
 const svc = new HistoricalCatalogService(
   new PrismaHistoricalCatalogRepository(),
 );
@@ -21,17 +23,19 @@ describe.skipIf(!RUN_INTEGRATION)("historical event CRUD", () => {
   beforeAll(async () => {
     assertTestDatabase();
     await createModerator(actor.userId);
+    await createAdmin(adminId);
   });
   afterAll(async () => {
     await removeFixtures(actor.userId);
+    await removeFixtures(adminId);
     await prisma.historicalEntityRevision.deleteMany({
       where: { createdById: actor.userId },
     });
     await prisma.historicalEntity.deleteMany({
       where: { createdById: actor.userId },
     });
-    await prisma.auditLog.deleteMany({ where: { actorId: actor.userId } });
-    await prisma.user.deleteMany({ where: { id: actor.userId } });
+    await prisma.auditLog.deleteMany({ where: { actorId: { in: [actor.userId, adminId] } } });
+    await prisma.user.deleteMany({ where: { id: { in: [actor.userId, adminId] } } });
   });
   it("allows figures without a phase and blocks events without a parent", async () => {
     const figure = await svc.createNode(actor, "entity", {
@@ -53,14 +57,15 @@ describe.skipIf(!RUN_INTEGRATION)("historical event CRUD", () => {
       }),
     ).toBe(1);
   });
-  it("persists the premium flag when creating a series", async () => {
+  it("admin sets premium labels, moderator cannot, and episode changes are audited", async () => {
     const content = new ContentService(
       new PrismaSeriesRepository(),
       new PrismaEpisodeRepository(),
     );
-    const session = makeSession(actor.userId, "moderator");
+    const adminSession = makeSession(adminId, "admin");
+    const moderatorSession = makeSession(actor.userId, "moderator");
     const created = await content.createSeries(
-      session,
+      adminSession,
       { title: `Premium ${crypto.randomUUID()}`, isPremium: true },
       null,
     );
@@ -70,6 +75,21 @@ describe.skipIf(!RUN_INTEGRATION)("historical event CRUD", () => {
         select: { isPremium: true },
       }))?.isPremium,
     ).toBe(true);
+    await expect(
+      content.createSeries(moderatorSession, { title: `Blocked ${crypto.randomUUID()}`, isPremium: true }, null),
+    ).rejects.toMatchObject({ status: 403, code: "PREMIUM_ADMIN_ONLY" });
+
+    // The same value is a no-op, not a forbidden change.
+    const free = await content.createSeries(moderatorSession, { title: `Free ${crypto.randomUUID()}` }, null);
+    await expect(content.updateSeries(moderatorSession, free.id, { isPremium: false }, null)).resolves.toBeDefined();
+
+    const episode = await content.appendEpisode(adminSession, created.id, { title: "Tập Premium" });
+    await content.updateEpisode(adminSession, episode.id, { isPremium: true }, "127.0.0.1");
+    const audit = await prisma.auditLog.findFirst({
+      where: { action: "episode.premium_changed", resourceId: episode.id },
+    });
+    expect(audit?.actorId).toBe(adminId);
+    expect(audit?.ipAddress).toBe("127.0.0.1");
   });
   it("cannot attach a deleted historical entity as a tag or narrator", async () => {
     const figure = await svc.createNode(actor, "entity", {

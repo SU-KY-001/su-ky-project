@@ -21,7 +21,10 @@ export function createPublicMembershipRoute(service: MembershipService) {
 export function createMeMembershipRoute(service: MembershipService) {
   return new Hono<AppEnv>()
     .use("*", requireAuth)
-    .get("/", async (c) => c.json(await service.getEntitlement(c.get("session")!.user.id)))
+    .get("/", async (c) => {
+      const { user } = c.get("session")!;
+      return c.json(await service.getEntitlementForUser(user.id, user.role));
+    })
     .post(
       "/orders",
       idempotency(),
