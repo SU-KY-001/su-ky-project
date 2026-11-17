@@ -3,7 +3,7 @@ import { prismaAdapter } from "better-auth/adapters/prisma";
 import { admin, bearer, openAPI } from "better-auth/plugins";
 import { prisma } from "@repo/db";
 import type { UserRole } from "@repo/shared";
-import { trustedAuthOrigins } from "../../core/config/allowedOrigins";
+import { trustedAuthOrigins } from "../../core/config/allowed-origins";
 import { env } from "../../core/env";
 
 export const auth = betterAuth({

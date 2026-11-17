@@ -1,6 +1,4 @@
 import type { Prisma } from "@repo/db";
-import { prisma } from "@repo/db";
-import { writeAudit } from "../../../core/audit";
 import { getSystemConfig } from "../../../core/config/system-config";
 import { DomainError } from "../../../core/errors/domain-error";
 import { mediaStorage } from "../../media";
@@ -60,7 +58,7 @@ export class AdminMembershipService {
     if (after.isPurchasable && (after.priceVnd <= 0 || after.durationDays <= 0))
       throw new DomainError(422, "PLAN_NOT_PURCHASABLE", "A purchasable plan needs a positive price and duration");
     const updated = await this.repo.updatePlan(before.id, patch);
-    await writeAudit(prisma, {
+    await this.repo.audit({
       actorId: ctx.actorId,
       action: "membership.plan.update",
       resourceType: "membership_plan",
@@ -88,22 +86,12 @@ export class AdminMembershipService {
     if (!order) throw new DomainError(404, "MEMBERSHIP_ORDER_NOT_FOUND", "Membership order not found");
     if (body.action === "reject") {
       if (!STATUS_TRANSITIONS.includes(order.status)) throw new DomainError(409, "ORDER_NOT_PENDING", "Order is no longer open");
-      const rejected = await prisma.$transaction(async (tx) => {
-        // Conditional update: the webhook may activate the order between the read above and this write.
-        const result = await tx.membershipOrder.updateMany({
-          where: { id, status: { in: ["pending", "needs_review"] } },
-          data: { status: "rejected", rejectionReason: body.reason ?? null, verifiedBy: ctx.actorId },
-        });
-        if (result.count === 0) return false;
-        await writeAudit(tx, {
-          actorId: ctx.actorId,
-          action: "membership.order.reject",
-          resourceType: "membership_order",
-          resourceId: id,
-          changes: { before: { status: order.status }, after: { status: "rejected", reason: body.reason }, note: body.note },
-          ipAddress: ctx.ipAddress,
-        });
-        return true;
+      const rejected = await this.repo.rejectOrderIfOpen(id, {
+        actorId: ctx.actorId,
+        reason: body.reason ?? null,
+        note: body.note,
+        ipAddress: ctx.ipAddress,
+        previousStatus: order.status,
       });
       if (!rejected) throw new DomainError(409, "ORDER_NOT_PENDING", "Order is no longer open");
       return this.getOrder(id);
@@ -118,7 +106,7 @@ export class AdminMembershipService {
       maxStackDays,
     });
     if (result.status === "stack_limit") throw new DomainError(422, "STACK_LIMIT_REACHED", "Membership would exceed the stacking limit");
-    await writeAudit(prisma, {
+    await this.repo.audit({
       actorId: ctx.actorId,
       action: "membership.order.verify",
       resourceType: "membership_order",
@@ -146,7 +134,7 @@ export class AdminMembershipService {
         if (current?.status === "matched") throw new DomainError(409, "ORDER_NOT_PENDING", "Transaction is already matched");
         return this.mapTransaction({ ...(current ?? transaction), order: null });
       }
-      await writeAudit(prisma, {
+      await this.repo.audit({
         actorId: ctx.actorId,
         action: "membership.transaction.resolve",
         resourceType: "payment_transaction",
@@ -168,7 +156,7 @@ export class AdminMembershipService {
 
     const maxStackDays = await getSystemConfig("premium.max_stack_days");
     const result = await this.repo.applyTransaction({ transactionId: id, orderId, actorId: ctx.actorId, maxStackDays, now: new Date() });
-    await writeAudit(prisma, {
+    await this.repo.audit({
       actorId: ctx.actorId,
       action: "membership.transaction.resolve",
       resourceType: "payment_transaction",
@@ -199,7 +187,7 @@ export class AdminMembershipService {
       actorId: ctx.actorId,
       maxStackDays,
     });
-    await writeAudit(prisma, {
+    await this.repo.audit({
       actorId: ctx.actorId,
       action: "membership.grant",
       resourceType: "membership_order",
@@ -215,7 +203,7 @@ export class AdminMembershipService {
     if (!user) throw new DomainError(404, "NOT_FOUND", "User not found");
     const count = await this.repo.revokeActiveMemberships(userId, body.reason, new Date());
     if (count === 0) throw new DomainError(404, "NOT_FOUND", "User has no active membership");
-    await writeAudit(prisma, {
+    await this.repo.audit({
       actorId: ctx.actorId,
       action: "membership.revoke",
       resourceType: "membership",

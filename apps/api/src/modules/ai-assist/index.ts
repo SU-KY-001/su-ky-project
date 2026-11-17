@@ -65,3 +65,5 @@ export function createStudioAiAssistRoute() {
 export async function reapStaleAiChecks(): Promise<number> {
   return repo.reapStale(new Date(Date.now() - config.staleAfterMs));
 }
+
+export { getEpisodeAiSummary } from "./review/infrastructure/episode-ai-summary";

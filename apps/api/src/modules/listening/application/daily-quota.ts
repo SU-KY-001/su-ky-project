@@ -1,5 +1,9 @@
-import { prisma } from "@repo/db";
 import { getSystemConfig } from "../../../core/config/system-config";
+import { PrismaListeningRepository } from "../infrastructure/prisma-listening.repository";
+
+// Module-level instance: the exported API is a function consumed cross-module and stubbed by
+// module path in tests, so there is no injection point to hang a constructor dependency on.
+const repo = new PrismaListeningRepository();
 
 /** Vietnam is UTC+7 all year (no DST), so a fixed offset is exact. */
 const VN_OFFSET_MS = 7 * 60 * 60 * 1000;
@@ -48,26 +52,13 @@ export async function reserveDailyPlay(
 ): Promise<DailyPlayReservation> {
   const { enforced, limit } = await readQuotaConfig();
   if (!enforced) return { outcome: "allowed" };
-  const day = playDate(now);
-  return prisma.$transaction(async (tx): Promise<DailyPlayReservation> => {
-    // `$executeRaw`: pg_advisory_xact_lock returns void, which `$queryRaw` cannot deserialize.
-    await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${`${userId}:${day.toISOString().slice(0, 10)}`}))`;
-    const existing = await tx.listeningDailyPlay.findUnique({
-      where: { userId_playDate_episodeId: { userId, playDate: day, episodeId } },
-      select: { userId: true },
-    });
-    if (existing) return { outcome: "already" };
-    const used = await tx.listeningDailyPlay.count({ where: { userId, playDate: day } });
-    if (used >= limit) return { outcome: "limit" };
-    await tx.listeningDailyPlay.create({ data: { userId, playDate: day, episodeId } });
-    return { outcome: "allowed" };
-  });
+  return { outcome: await repo.reserveDailyPlay(userId, episodeId, playDate(now), limit) };
 }
 
 export async function getDailyQuotaStatus(userId: string, now = new Date()): Promise<DailyQuotaStatus> {
   const [{ enforced, limit }, usedToday] = await Promise.all([
     readQuotaConfig(),
-    prisma.listeningDailyPlay.count({ where: { userId, playDate: playDate(now) } }),
+    repo.countDailyPlays(userId, playDate(now)),
   ]);
   return {
     enforced,

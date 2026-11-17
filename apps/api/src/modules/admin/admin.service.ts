@@ -20,7 +20,7 @@ const DAY_MS = 24 * 60 * 60 * 1000;
 const AUDIT_WINDOW_MS = 7 * DAY_MS;
 
 /** Maps only the given Prisma error code to a domain error; anything else (DB down, timeout) propagates. */
-async function mapPrismaError<T>(
+async function expectPrismaCode<T>(
   run: () => Promise<T>,
   code: "P2025" | "P2002",
   mapped: DomainError,
@@ -233,7 +233,7 @@ export class AdminService {
         "CONFLICT",
         "Admin không thể tự khóa tài khoản của mình",
       );
-    return mapPrismaError(
+    return expectPrismaCode(
       () =>
         prisma.$transaction(async (tx) => {
           const user = await tx.user.update({
@@ -263,7 +263,7 @@ export class AdminService {
   }
 
   async unbanUser(id: string, audit: AuditContext) {
-    return mapPrismaError(
+    return expectPrismaCode(
       () =>
         prisma.$transaction(async (tx) => {
           const user = await tx.user.update({
@@ -765,7 +765,7 @@ export class AdminService {
     input: z.infer<typeof MissionTemplatePatchSchema>,
     audit: AuditContext,
   ) {
-    return mapPrismaError(
+    return expectPrismaCode(
       () =>
         prisma.$transaction(async (tx) => {
           const row = await tx.missionTemplate.update({
@@ -817,7 +817,7 @@ export class AdminService {
         "VALIDATION_ERROR",
         "Mẫu nhiệm vụ không khả dụng",
       );
-    return mapPrismaError(
+    return expectPrismaCode(
       () =>
         prisma.$transaction(async (tx) => {
           const row = await tx.weeklyMission.create({

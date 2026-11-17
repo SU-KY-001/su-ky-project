@@ -41,3 +41,4 @@ docker ps --format '{{.Names}} {{.Image}} {{.Status}}'
 | 2026-10-29 11:21 | f2c2fba | staging | Merge remote-tracking branch 'origin/dev' into staging | 🔵 api |
 | 2026-11-09 17:46 | f5c28e5 | staging | Merge pull request #44 from SU-KY-001/fix/mobile | 🔵 api |
 | 2026-11-17 22:36 | 4b6a7b9 | dev | test(api): assert expected expiry on open membership orders | 🔵 api |
+| 2026-11-18 00:44 | eb8bcb6+dirty | refactor/api-structure | refactor(api): barrels + composition root + queries into repos; dirty: 29 files (app.ts, middleware, content, listening, membership, releases, catalog) | 🔵 api |

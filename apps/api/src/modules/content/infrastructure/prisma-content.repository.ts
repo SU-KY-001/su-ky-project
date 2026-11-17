@@ -2,9 +2,8 @@ import {
   primaryEventFields,
   publishWithHistoricalEvidence,
 } from "./historical-evidence";
-import { jsonSnapshot } from "../../catalog/infrastructure/prisma-historical-catalog.repository";
+import { jsonSnapshot } from "../../../core/json";
 import { prisma, Prisma, type DbClient } from "@repo/db";
-import type { Session } from "../../auth";
 import { writeAudit } from "../../../core/audit";
 import { DomainError } from "../../../core/errors/domain-error";
 import { insertWithUniqueSlug } from "../../../core/slug";

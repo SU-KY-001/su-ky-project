@@ -24,11 +24,6 @@ export interface AgentTextBlock {
   text?: string;
 }
 
-export interface AgentMessage {
-  role?: string;
-  content?: string | AgentTextBlock[];
-}
-
 function readTextOfBlock(block: unknown): string {
   const text = readField(block, "text");
   return typeof text === "string" ? text : "";

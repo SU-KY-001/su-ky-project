@@ -8,7 +8,7 @@ import { DomainError } from "../../core/errors/domain-error";
 import { ProfileService } from "./profile.service";
 import { MAX_AVATAR_BYTES } from "./avatar-validation";
 import type { MiddlewareHandler } from "hono";
-import { trustedAuthOrigins } from "../../core/config/allowedOrigins";
+import { trustedAuthOrigins } from "../../core/config/allowed-origins";
 
 const profileWriteOrigin: MiddlewareHandler<AppEnv> = async (c, next) => {
   const allowed = [...trustedAuthOrigins(), new URL(process.env.BETTER_AUTH_URL || "http://localhost:3005").origin];

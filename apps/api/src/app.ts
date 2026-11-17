@@ -16,19 +16,24 @@ import { healthRoute } from "./routes/health";
 import { auth, currentUserRoute } from "./modules/auth";
 import { adminRoute } from "./modules/admin";
 import { publicCatalogRoute, studioCatalogRoute } from "./modules/catalog";
-import { createStudioContentRoute } from "./modules/content";
-import { createStudioAiAssistRoute } from "./modules/ai-assist";
+import { createEpisodeRepository, createStudioContentRoute } from "./modules/content";
+import { createStudioAiAssistRoute, getEpisodeAiSummary } from "./modules/ai-assist";
 import { mediaRoute, mediaStorage } from "./modules/media";
 import { meListeningRoute, publicListeningRoute } from "./modules/listening";
 import { adminMembershipRoute, meMembershipRoute, paymentWebhookRoute, publicMembershipRoute } from "./modules/membership";
-import { createReleaseRoutes } from "./modules/releases/presentation/release.routes";
-import { releaseService } from "./modules/releases";
+import { createReleaseRoutes, createReleaseService } from "./modules/releases";
 import { meMissionRoute, publicQuizRoute, studioQuizRoute } from "./modules/gamification";
 import type { AppEnv } from "./types";
-import { showcaseRoute } from "./modules/showcase/showcase.routes";
+import { showcaseRoute } from "./modules/showcase";
 import { exhibitionRoute, publicExhibitionRoute } from "./modules/exhibition";
-import { playlistsRoute } from "./modules/playlists/playlists.routes";
+import { playlistsRoute } from "./modules/playlists";
 const MAX_REQUEST_BODY_BYTES = 10 * 1024 * 1024;
+
+const releaseService = createReleaseService(
+  createEpisodeRepository(),
+  mediaStorage,
+  getEpisodeAiSummary,
+);
 
 export const app = new Hono<AppEnv>()
   .use("*", requestId())

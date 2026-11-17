@@ -9,7 +9,6 @@ import {
   ReleaseModeratorWorkloadSchema,
   ReleaseScheduleStatusSchema,
   ReleaseReassignmentTicketStatusSchema,
-  SeriesSourceSchema,
   SourceTierSchema,
   paginatedSchema,
 } from "@repo/shared";

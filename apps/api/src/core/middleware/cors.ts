@@ -1,6 +1,6 @@
 import type { MiddlewareHandler } from "hono";
 import { cors } from "hono/cors";
-import { parseAllowedOrigins } from "../config/allowedOrigins";
+import { parseAllowedOrigins } from "../config/allowed-origins";
 
 export function corsConfig(): MiddlewareHandler {
   const allowedOrigins = parseAllowedOrigins();

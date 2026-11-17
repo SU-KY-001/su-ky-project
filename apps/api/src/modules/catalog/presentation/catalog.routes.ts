@@ -3,9 +3,6 @@ import { zValidator } from "@hono/zod-validator";
 import { Hono, type Context } from "hono";
 import { z } from "zod";
 import {
-  HistoricalEntityInputSchema,
-  HistoricalEntityQuerySchema,
-  PatchHistoricalEntitySchema,
   CreateSourceSchema,
   PatchSourceSchema,
   SourceQuerySchema,
