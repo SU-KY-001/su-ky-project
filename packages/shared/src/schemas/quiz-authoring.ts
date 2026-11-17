@@ -1,8 +1,6 @@
 import { z } from "zod";
 import { UpsertQuizSchema } from "./quiz-mission";
 
-export const QuizImportDocumentSchema = z.object({ fileName: z.string(), text: z.string().min(1).max(200_000) });
-
 export const QuizEvidenceSchema = z.object({ quote: z.string().max(4000), scriptHash: z.string().max(128) });
 export const QuizDraftQuestionSchema = z.object({
   id: z.string().min(1).max(100),
