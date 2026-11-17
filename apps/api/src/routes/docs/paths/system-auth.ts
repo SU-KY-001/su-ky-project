@@ -6,7 +6,6 @@ import {
   CurrentUserResponseSchema,
   GetSessionResponseSchema,
   HealthResponseSchema,
-  TimelineResponseSchema,
 } from "../schemas";
 
 const SYSTEM = "System";
@@ -35,15 +34,6 @@ const healthOperation = operation({
       content: { "application/json": { schema: component("HealthResponse", HealthResponseSchema) } },
     },
   },
-});
-
-const timelineOperation = operation({
-  id: "listTimelinePeriods",
-  tag: SYSTEM,
-  summary: "Dòng thời gian (tạm thời)",
-  description: "Stub tương thích ngược cho frontend, hiện luôn trả danh sách rỗng. Dùng `GET /api/historical-periods` thay thế.",
-  access: "public",
-  ok: { status: 200, description: "Danh sách (hiện rỗng)", schema: { name: "TimelineResponse", schema: TimelineResponseSchema } },
 });
 
 export const systemAuthPaths: Paths = {
@@ -139,9 +129,6 @@ export const systemAuthPaths: Paths = {
         schema: { name: "CurrentUserResponse", schema: CurrentUserResponseSchema },
       },
     }),
-  },
-  "/api/timeline": {
-    get: { ...timelineOperation, deprecated: true },
   },
   "/api/me/avatar": {
     post: {

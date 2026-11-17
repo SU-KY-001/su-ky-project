@@ -60,7 +60,7 @@ export class PlaylistService {
     return this.mutate(ownerId, id, async (tx) => {
       const existing = await tx.playlistItem.findUnique({ where: { playlistId_episodeId: { playlistId: id, episodeId } } });
       if (existing) return this.metadata(tx, id);
-      if (await tx.playlistItem.count({ where: { playlistId: id } }) >= 500) throw new DomainError(409, "CONFLICT", "Playlist tối đa500 tập.");
+      if (await tx.playlistItem.count({ where: { playlistId: id } }) >= 500) throw new DomainError(409, "CONFLICT", "Playlist tối đa 500 tập.");
       const episode = await tx.episode.findFirst({ where: { id: episodeId, ...publicEpisode, narrations: { some: { audioAsset: readyAudio } } }, select: { id: true } });
       if (!episode) throw new DomainError(422, "VALIDATION_ERROR", "Tập không công khai hoặc chưa có audio khả dụng.");
       const last = await tx.playlistItem.aggregate({ where: { playlistId: id }, _max: { position: true } });

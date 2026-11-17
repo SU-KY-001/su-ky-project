@@ -12,11 +12,14 @@ const IDEMPOTENCY_QUEUE = "maintenance.idempotency-purge";
 const RATE_LIMIT_QUEUE = "maintenance.rate-limit-purge";
 const AI_CHECK_REAPER_QUEUE = "maintenance.ai-check-reaper";
 const LISTENING_SESSION_PURGE_QUEUE = "maintenance.listening-session-purge";
+const LISTENING_DAILY_PLAY_PURGE_QUEUE = "maintenance.listening-daily-play-purge";
 const MEDIA_CLEANUP_CRON = "*/30 * * * *";
 const IDEMPOTENCY_PURGE_CRON = "0 * * * *";
 const RATE_LIMIT_PURGE_CRON = "15 * * * *";
 const AI_CHECK_REAPER_CRON = "* * * * *";
 const RATE_LIMIT_RETENTION_MS = 24 * 60 * 60 * 1000;
+/** Quota rows are only read for today; keep 90 days for dispute/analytics, then prune. */
+const LISTENING_DAILY_PLAY_RETENTION_DAYS = 90;
 
 let maintenanceBoss: PgBoss | null = null;
 
@@ -69,10 +72,15 @@ export async function startMaintenanceJobs(connectionString: string, storage: Me
   const boss = new PgBoss({ connectionString });
   boss.on("error", (error: Error) => logger.error({ err: error }, "Maintenance queue error"));
   await boss.start();
-  for (const queue of [MEDIA_QUEUE, IDEMPOTENCY_QUEUE, RATE_LIMIT_QUEUE, AI_CHECK_REAPER_QUEUE, LISTENING_SESSION_PURGE_QUEUE]) await boss.createQueue(queue);
+  for (const queue of [MEDIA_QUEUE, IDEMPOTENCY_QUEUE, RATE_LIMIT_QUEUE, AI_CHECK_REAPER_QUEUE, LISTENING_SESSION_PURGE_QUEUE, LISTENING_DAILY_PLAY_PURGE_QUEUE]) await boss.createQueue(queue);
   await boss.schedule(LISTENING_SESSION_PURGE_QUEUE, "30 2 * * *");
   await boss.work(LISTENING_SESSION_PURGE_QUEUE, async () => {
     await prisma.listeningSession.deleteMany({ where: { startedAt: { lt: sessionRetentionCutoff(new Date()) } } });
+  });
+  await boss.schedule(LISTENING_DAILY_PLAY_PURGE_QUEUE, "40 2 * * *");
+  await boss.work(LISTENING_DAILY_PLAY_PURGE_QUEUE, async () => {
+    const cutoff = new Date(Date.now() - LISTENING_DAILY_PLAY_RETENTION_DAYS * 24 * 60 * 60 * 1000);
+    await prisma.listeningDailyPlay.deleteMany({ where: { createdAt: { lt: cutoff } } });
   });
   await boss.schedule(MEDIA_QUEUE, MEDIA_CLEANUP_CRON);
   await boss.schedule(IDEMPOTENCY_QUEUE, IDEMPOTENCY_PURGE_CRON);

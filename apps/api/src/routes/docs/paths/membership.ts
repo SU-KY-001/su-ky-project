@@ -26,8 +26,6 @@ const codeParam = z.object({ code: z.string().min(1) });
 const userIdParam = z.object({ userId: z.string().min(1) });
 const idParams = { pathParams: idParam, pathParamDocs: { id: "ID đơn mua gói" } } as const;
 
-export const MembershipOrderDocSchema = MembershipOrderSchema;
-export const MembershipPlanDocSchema = MembershipPlanSchema;
 const AdminMembershipPlanDocSchema = MembershipPlanSchema.extend({ isActive: z.boolean() });
 
 export const AdminMembershipOrderDocSchema = z.object({
@@ -133,7 +131,7 @@ export const membershipPaths: Paths = {
       id: "getMyMembership",
       tag: TAG,
       summary: "Trạng thái thành viên của tôi",
-      description: "`tier=premium` khi còn kỳ hạn hiệu lực. `daysLeft` chỉ có khi còn hạn; `pendingOrderId` là đơn đang chờ/đối soát gần nhất.",
+      description: "`tier=premium` khi còn kỳ hạn hiệu lực. `daysLeft` chỉ có khi còn hạn; `pendingOrderId` là đơn đang chờ/đối soát gần nhất. `quota` là giới hạn lượt nghe/ngày của tài khoản Free (`enforced`, `limit`, `usedToday`, `remaining`, `resetsAt` theo giờ Việt Nam); `null` với Premium và admin/moderator.",
       access: "user",
       ok: { status: 200, description: "Quyền lợi hiện tại", schema: { name: "MembershipEntitlement", schema: MembershipEntitlementSchema } },
     }),

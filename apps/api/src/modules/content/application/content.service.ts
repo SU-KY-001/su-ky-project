@@ -281,6 +281,8 @@ export class ContentService {
     },
     ipAddress: string | null,
   ): Promise<SeriesDetailEntity> {
+    if (input.isPremium === true && session.user.role !== "admin")
+      throw new DomainError(403, "PREMIUM_ADMIN_ONLY", "Chỉ admin được gắn nhãn Premium cho series");
     await this.assertPhaseUsable(input.historicalPhaseId);
     if (input.coverImageAssetId) {
       this.assertCoverAssetUsable(
@@ -332,12 +334,15 @@ export class ContentService {
       coverImageAssetId?: string | null;
       coverLandscapeAssetId?: string | null;
       baseUpdatedAt?: Date;
+      isPremium?: boolean;
       language?: string;
     },
     ipAddress: string | null,
   ): Promise<SeriesDetailEntity> {
     const current = await this.loadSeriesForRead(session, id);
     assertWritable(session, current);
+    if (input.isPremium !== undefined && input.isPremium !== current.isPremium && session.user.role !== "admin")
+      throw new DomainError(403, "PREMIUM_ADMIN_ONLY", "Chỉ admin được đổi nhãn Premium của series");
     await this.assertBaseUpdatedAt("series", id, input.baseUpdatedAt);
     const { baseUpdatedAt: _ignored, ...patch } = input;
     if (patch.slug !== undefined && current.status !== "DRAFT")
@@ -603,11 +608,15 @@ export class ContentService {
       title?: string;
       slug?: string;
       description?: string | null;
+      isPremium?: boolean;
       baseUpdatedAt?: Date;
     },
+    ipAddress: string | null = null,
   ): Promise<EpisodeWorkspaceEntity> {
     const current = await this.loadEpisodeForRead(session, id);
     assertWritable(session, current.series, current);
+    if (input.isPremium !== undefined && input.isPremium !== current.isPremium && session.user.role !== "admin")
+      throw new DomainError(403, "PREMIUM_ADMIN_ONLY", "Chỉ admin được đổi nhãn Premium của tập");
     await this.assertBaseUpdatedAt("episode", id, input.baseUpdatedAt);
     const { baseUpdatedAt: _ignored, ...patch } = input;
     if (patch.slug !== undefined && current.status !== "DRAFT")
@@ -623,7 +632,7 @@ export class ContentService {
           !(await this.episodes.episodeSlugConflict(candidate, id)),
       );
     }
-    await this.episodes.updateEpisode(id, patch);
+    await this.episodes.updateEpisode(id, patch, { actorId: session.user.id, ipAddress });
     return this.getEpisodeWorkspace(id);
   }
 

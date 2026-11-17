@@ -1,7 +1,9 @@
 import { describe, expect, it } from "bun:test";
 import { AdminMembershipReportQuerySchema, AdminTransactionQuerySchema } from "@repo/shared";
 import { mapOrder } from "../src/modules/membership/application/membership.mappers";
+import { MembershipService } from "../src/modules/membership/application/membership.service";
 import type { MembershipOrderEntity } from "../src/modules/membership/domain/membership.entity";
+import type { MembershipRepository } from "../src/modules/membership/domain/membership.repository";
 import { SepayPaymentProvider } from "../src/modules/membership/infrastructure/providers/sepay.provider";
 
 function order(overrides: Partial<MembershipOrderEntity> = {}): MembershipOrderEntity {
@@ -57,5 +59,21 @@ describe("SePay transaction dates", () => {
       content: "SK12345678",
     });
     expect(event.transactionAt.toISOString()).toBe("2026-11-12T03:00:00.000Z");
+  });
+});
+
+describe("renewal reminder", () => {
+  const DAY_MS = 86_400_000;
+  function serviceExpiringIn(ms: number) {
+    const repo = {
+      findActiveMembership: async () => ({ expiresAt: new Date(Date.now() + ms), plan: { code: "monthly" } }),
+      findLatestOrder: async () => null,
+    } as unknown as MembershipRepository;
+    return new MembershipService(repo, {} as never);
+  }
+
+  it("shows the reminder in the last 5 days and hides it earlier", async () => {
+    expect((await serviceExpiringIn(5 * DAY_MS - 60_000).getEntitlement("u")).renewSoon).toBe(true);
+    expect((await serviceExpiringIn(6 * DAY_MS).getEntitlement("u")).renewSoon).toBe(false);
   });
 });

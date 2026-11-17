@@ -42,7 +42,7 @@ apps/web/src/
 - **UI:** Tailwind utility + `src/styles/globals.css`. Component shadcn thêm vào `src/components/ui`. Không import thư viện component chỉ dành cho mobile.
 - **Đồng bộ dashboard:** tuân thủ Rule 5 trong `docs/skill/PERMISSION-RULES-SKILL.md`. Giữ nút chữ “Xem chi tiết” cũ của Moderator, bấm mở popup trực tiếp qua `DashboardRowActions` với action `id: "detail"`. Không thay bằng ba chấm, icon mắt hoặc dropdown “Thao tác → Xem chi tiết”. Chỉ dùng menu cho nhóm hành động nghiệp vụ cần gom. Tái sử dụng các component bảng, badge và toast có sẵn.
 - **Token:** trang công khai dùng token trong `docs/design/COLOR-FONT.md`. Khu moderator (`/moderator`) dùng riêng token `--color-mod-*` và font Manrope (`--font-moderator`) định nghĩa trong `src/styles/globals.css`; render chữ qua `ModeratorText` hoặc class `font-moderator`. Không hardcode mã màu hay font.
-- **Lịch sử:** kế hoạch và spec migrate sang Tailwind/shadcn nằm ở `docs/superpowers/` (chỉ để tham khảo).
+- **Lịch sử:** kế hoạch và spec migrate sang Tailwind/shadcn nằm ở `apps/web/docs/superpowers/` (chỉ để tham khảo).
 - **Dữ liệu:** `@repo/shared` cho schema và type dùng chung với API. Không viết lại type response tay nếu `AppType` hoặc shared đã có.
 - **Lỗi API:** body lỗi luôn là `{ error_code, message }` (`ErrorResponseSchema` trong `@repo/shared`). Tài liệu endpoint: `GET /docs` của API (`http://localhost:3005/docs`) và `apps/api/src/routes/docs/`.
 - **TypeScript:** không `any`, không cast để truy cập thành viên. Không `TODO`/`FIXME`, không comment code cũ.

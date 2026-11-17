@@ -4,7 +4,7 @@ import { prisma } from "@repo/db";
 import { EditorDocumentSchema, HistoricalTimeSchema } from "@repo/shared";
 import { VIETNAM_PODCAST_SEED } from "./vietnam-podcast-seed-data";
 import { VIETNAM_PUBLICATION_DATA } from "./vietnam-podcast-publication-data";
-import { jsonSnapshot } from "../modules/catalog/infrastructure/prisma-historical-catalog.repository";
+import { jsonSnapshot } from "../core/json";
 import { collectHistoricalEvidence, publishWithHistoricalEvidence } from "../modules/content/infrastructure/historical-evidence";
 import { extractScriptText } from "../modules/content/application/script-document";
 import { writeAudit } from "../core/audit";

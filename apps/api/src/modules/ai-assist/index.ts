@@ -66,4 +66,4 @@ export async function reapStaleAiChecks(): Promise<number> {
   return repo.reapStale(new Date(Date.now() - config.staleAfterMs));
 }
 
-export { hub as aiCheckHub };
+export { getEpisodeAiSummary } from "./review/infrastructure/episode-ai-summary";

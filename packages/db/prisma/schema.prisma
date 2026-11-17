@@ -163,6 +163,7 @@ model User {
   quizAttempts            QuizAttempt[]
   listeningProgress       ListeningProgress[]
   listeningSessions       ListeningSession[]
+  listeningDailyPlays     ListeningDailyPlay[]
   playlists               Playlist[]
   missionTemplates        MissionTemplate[]      @relation("MissionTemplateCreator")
   activatedWeeklyMissions WeeklyMission[]        @relation("WeeklyMissionActivator")
@@ -463,6 +464,7 @@ model Episode {
   quizDraft          QuizWorkspaceDraft?
   listeningProgress  ListeningProgress[]
   listeningSessions  ListeningSession[]
+  listeningDailyPlays ListeningDailyPlay[]
   playlistItems      PlaylistItem[]
   releaseSchedules   ReleaseSchedule[]
   reviews            EpisodeReview[]
@@ -845,6 +847,19 @@ model ListeningProgress {
   @@unique([userId, narrationId], map: "listening_progress_user_id_narration_id_key")
   @@index([userId, lastListenedAt], map: "listening_progress_user_id_last_listened_at_idx")
   @@map("listening_progress")
+}
+
+/// One free-tier play per episode per Vietnam calendar day; replays inside the same day are free.
+model ListeningDailyPlay {
+  userId    String   @map("user_id") @db.VarChar(36)
+  playDate  DateTime @map("play_date") @db.Date
+  episodeId String   @map("episode_id") @db.Uuid
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  episode   Episode  @relation(fields: [episodeId], references: [id], onDelete: Restrict)
+
+  @@id([userId, playDate, episodeId])
+  @@map("listening_daily_plays")
 }
 
 model MissionTemplate {

@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { QuizWorkspaceSchema, QuizWorkspaceListSchema, SeriesListItemSchema, SeriesDetailSchema, paginatedSchema,
-  ImageUploadPolicySchema, EpisodePosterSchema, QuizImportDocumentSchema, QuizImportPreviewSchema, QUIZ_IMPORT_LIMITS, type QuizImportPreview, type QuizDraftData, type QuizWorkspace } from "@repo/shared";
+  ImageUploadPolicySchema, EpisodePosterSchema, QuizImportPreviewSchema, QUIZ_IMPORT_LIMITS, type QuizImportPreview, type QuizDraftData, type QuizWorkspace } from "@repo/shared";
 import { uploadCatalogMedia } from "@/features/historical-library";
 import { client, apiUrl } from "@/lib/client";
 import { ApiError } from "@/lib/apiError";
@@ -26,10 +26,6 @@ export const quizService = {
     signal.addEventListener("abort", abort, { once: true });
     const form = new FormData(); form.set("file", file); form.set("defaultTime", String(defaultTime)); xhr.send(form);
   }),
-  extractDocument: (file: File, signal: AbortSignal) => {
-    const form = new FormData(); form.set("file", file);
-    return parse(fetch(`${apiUrl}/api/studio/quiz-import/extract`, { method: "POST", credentials: "include", body: form, signal: AbortSignal.any([signal, AbortSignal.timeout(30_000)]) }), QuizImportDocumentSchema);
-  },
   imagePolicy: () => parse(studio["media-assets"]["image-policy"].$get(), ImageUploadPolicySchema),
   image: (id: string) => parse(studio["media-assets"][":id"].$get({ param: { id } }), z.object({ previewUrl: z.string().optional() })),
   uploadImage: async (file: File, signal: AbortSignal) => {
