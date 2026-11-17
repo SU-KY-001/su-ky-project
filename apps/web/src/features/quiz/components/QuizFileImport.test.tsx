@@ -22,7 +22,7 @@ async function render(empty = true, count = 1): Promise<QuizDraftQuestion[][]> {
   const calls: QuizDraftQuestion[][] = [];
   const host = document.createElement("div"); document.body.append(host); root = createRoot(host);
   await act(async () => root?.render(<QuizTextImport count={count} empty={empty} defaultTime={60} onApply={questions => calls.push(questions)} />));
-  await click("Import File"); return calls;
+  await click("Import file"); return calls;
 }
 function mock(result = report()): void { const spy = spyOn(quizService, "previewDocument").mockResolvedValue(result); restores.push(() => spy.mockRestore()); }
 it("starts with only file selection, without pasted input, toolbar or cancel button", async () => {

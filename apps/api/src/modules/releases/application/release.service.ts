@@ -612,6 +612,7 @@ export class ReleaseService {
   async listSchedules(
     session: Session,
     filter: {
+      sort?: "scheduledAt";
       status?: Parameters<ReleaseRepository["listSchedules"]>[0]["status"];
       statusGroup?: Parameters<ReleaseRepository["listSchedules"]>[0]["statusGroup"];
       scope?: Parameters<ReleaseRepository["listSchedules"]>[0]["scope"];

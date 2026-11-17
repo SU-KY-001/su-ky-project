@@ -2,9 +2,9 @@ import { Suspense, type ReactNode } from "react";
 import { Skeleton } from "@/shared/components/ui/skeleton";
 import type { ModeratorSection } from "../types";
 
-const columns: Record<Exclude<ModeratorSection, "overview">, number> = { timeline: 6, events: 7, sources: 4, podcast: 5, exhibitions: 7, assignments: 4, tickets: 6, pending: 7, schedule: 4, angles: 2, quizzes: 6 };
+const columns: Record<ModeratorSection, number> = { timeline: 6, events: 7, sources: 4, podcast: 5, exhibitions: 7, assignments: 4, tickets: 6, pending: 7, schedule: 4, angles: 2, quizzes: 6 };
 
-export function ModeratorContentSkeleton({ section }: { section: Exclude<ModeratorSection, "overview"> }) {
+export function ModeratorContentSkeleton({ section }: { section: ModeratorSection }) {
   return <div role="status" aria-busy="true" data-skeleton-layout="table" className="flex w-full min-w-0 flex-col gap-5">
     <span className="sr-only">Đang tải danh sách nội dung…</span>
     <div aria-hidden="true" className="flex items-end justify-between gap-4 border-b border-mod-border pb-4"><div className="flex w-2/3 flex-col gap-3"><Skeleton className="h-8 w-48 max-w-full" /><Skeleton className="h-4 w-96 max-w-full" /></div><Skeleton className="h-10 w-28" /></div>
@@ -19,5 +19,5 @@ export function ModeratorContentSkeleton({ section }: { section: Exclude<Moderat
 }
 
 export function ModeratorContentBoundary({ section, children }: { section: ModeratorSection; children: ReactNode }) {
-  return <Suspense fallback={section === "overview" ? null : <ModeratorContentSkeleton section={section} />}>{children}</Suspense>;
+  return <Suspense fallback={<ModeratorContentSkeleton section={section} />}>{children}</Suspense>;
 }

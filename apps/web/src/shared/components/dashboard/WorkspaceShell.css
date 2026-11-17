@@ -1,0 +1,34 @@
+/* Keep shared shell structure here; put role-specific adjustments in its explicit scope. */
+.workspace-shell[data-workspace="admin"],
+.workspace-navigation-sheet[data-workspace="admin"] {
+  --workspace-nav-group-gap: 24px;
+}
+
+.workspace-shell[data-workspace="moderator"],
+.workspace-navigation-sheet[data-workspace="moderator"] {
+  --workspace-nav-group-gap: 12px;
+}
+
+.workspace-shell[data-workspace] .mod-sidebar-nav,
+.workspace-navigation-sheet[data-workspace] .mod-sidebar-nav {
+  gap: var(--workspace-nav-group-gap);
+  scrollbar-width: none;
+  overflow-x: hidden;
+}
+
+.workspace-shell[data-workspace] .mod-sidebar-nav::-webkit-scrollbar,
+.workspace-navigation-sheet[data-workspace] .mod-sidebar-nav::-webkit-scrollbar {
+  display: none;
+  width: 0;
+  height: 0;
+}
+
+.workspace-shell[data-workspace] .mod-sidebar-brand {
+  margin-inline: 0;
+  border-color: var(--modBorder);
+}
+
+.workspace-shell[data-workspace] .workspace-sidebar-footer {
+  position: relative;
+  background: var(--modSurface);
+}

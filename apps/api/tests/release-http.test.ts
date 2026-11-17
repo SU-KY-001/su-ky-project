@@ -120,12 +120,13 @@ describe("release HTTP routes", () => {
     expect(() => ReleaseScheduleQuerySchema.parse({ scope: "UNKNOWN" })).toThrow();
   });
 
-  it("accepts and forwards a release status group", async () => {
+  it("accepts and forwards a release status group and scheduled-time order", async () => {
     const calls: unknown[][] = [];
     const app = createTestApp({ listSchedules: (...args: unknown[]) => { calls.push(args); return { items: [], page: 1, limit: 10, total: 0 }; } });
-    const response = await app.request("/api/admin/releases?statusGroup=NEEDS_ATTENTION&page=1&limit=10");
+    const response = await app.request("/api/admin/releases?statusGroup=NEEDS_ATTENTION&sort=scheduledAt&page=1&limit=10");
     expect(response.status).toBe(200);
-    expect(calls[0]?.[1]).toMatchObject({ statusGroup: "NEEDS_ATTENTION", page: 1, limit: 10 });
+    expect(calls[0]?.[1]).toMatchObject({ statusGroup: "NEEDS_ATTENTION", sort: "scheduledAt", page: 1, limit: 10 });
+    expect(() => ReleaseScheduleQuerySchema.parse({ sort: "UNKNOWN" })).toThrow();
     expect(() => ReleaseScheduleQuerySchema.parse({ statusGroup: "UNKNOWN" })).toThrow();
   });
 

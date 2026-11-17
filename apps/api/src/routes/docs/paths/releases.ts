@@ -87,7 +87,7 @@ export const releasePaths: Paths = {
       id: "listReleaseSchedules",
       tag: TAG,
       summary: "Danh sách lịch phát hành",
-      description: "Lọc lịch theo trạng thái, nhóm trạng thái và khoảng thời gian phát hành.",
+        description: "Lọc lịch theo trạng thái, nhóm trạng thái và khoảng thời gian phát hành. sort=scheduledAt trả lịch gần giờ phát hành nhất trước (scheduledAt ASC, ID ASC); mặc định vẫn theo ngày tạo mới nhất. scope=HISTORY giữ thứ tự cập nhật mới nhất.",
       queryDocs: { statusGroup: "IN_PROGRESS: đã lên lịch, sẵn sàng hoặc đang phát hành; NEEDS_ATTENTION: bị chặn hoặc thất bại; RELEASED: đã phát hành; CANCELLED: đã hủy." },
       access: "admin",
       query: ReleaseScheduleQuerySchema,

@@ -1,7 +1,6 @@
-import { useEffect, useRef, useState, type ReactElement } from "react";
+import { useRef, useState, type ReactElement } from "react";
 import { toReadyQuizQuestions, type QuizDraftQuestion } from "@repo/shared";
 import { SpinnerGap } from "@phosphor-icons/react/dist/icons/SpinnerGap";
-import { UploadSimple } from "@phosphor-icons/react/dist/icons/UploadSimple";
 import { ArrowLeft } from "@phosphor-icons/react/dist/icons/ArrowLeft";
 import { Button } from "@/shared/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/shared/components/ui/dialog";
@@ -10,20 +9,21 @@ import { useConfirmationDialog } from "@/shared/hooks/useConfirmationDialog";
 import { notify } from "@/shared/lib/notifications";
 import { cn } from "@/lib/utils";
 import { useQuizFileImport } from "../hooks/useQuizFileImport";
+import { DocumentFilePicker } from "@/shared/components/common/DocumentFilePicker";
+import { ImportFileButton } from "@/shared/components/common/ImportFileButton";
 import { QuizImportPreview } from "./QuizImportPreview";
 import type { QuizImportNotes } from "../utils/quizTextImport";
 
 interface ImportProps { count: number; empty: boolean; defaultTime: number; onApply: (questions: QuizDraftQuestion[], replace: boolean, notes: QuizImportNotes) => void; }
 export function QuizFileImport({ count, empty, defaultTime, onApply }: ImportProps): ReactElement {
-  const [open, setOpen] = useState(false), [replace, setReplace] = useState(false), [dragging, setDragging] = useState(false), [confirming, setConfirming] = useState(false);
-  const input = useRef<HTMLInputElement>(null), chooseButton = useRef<HTMLButtonElement>(null), applying = useRef(false), applied = useRef(false), session = useRef(0);
+  const [open, setOpen] = useState(false), [replace, setReplace] = useState(false), [confirming, setConfirming] = useState(false);
+  const input = useRef<HTMLInputElement>(null), applying = useRef(false), applied = useRef(false), session = useRef(0);
   const { state, loading, waiting, load, reset } = useQuizFileImport(defaultTime);
   const { requestConfirmation, confirmation } = useConfirmationDialog();
   const preview = state.status === "preview" ? state.result : null;
   const total = preview ? preview.questions.length + (empty || replace ? 0 : count) : 0;
-  useEffect(() => { if (open && state.status === "idle") chooseButton.current?.focus(); }, [open, state.status]);
-  const back = (): void => { session.current++; reset(); setReplace(false); setDragging(false); applying.current = false; applied.current = false; };
-  const close = (): void => { session.current++; reset(); setOpen(false); setDragging(false); setReplace(false); applying.current = false; };
+  const back = (): void => { session.current++; reset(); setReplace(false); applying.current = false; applied.current = false; };
+  const close = (): void => { session.current++; reset(); setOpen(false); setReplace(false); applying.current = false; };
   const apply = async (): Promise<void> => {
     if (!preview || preview.status !== "ready" || total > 100 || applying.current || applied.current) return;
     applying.current = true; const currentSession = session.current;
@@ -41,7 +41,7 @@ export function QuizFileImport({ count, empty, defaultTime, onApply }: ImportPro
   };
   const choose = (): void => input.current?.click();
   return <>
-    <Button variant="outline" onClick={() => { session.current++; applying.current = false; applied.current = false; setOpen(true); }}>Import File</Button>
+    <ImportFileButton onClick={() => { session.current++; applying.current = false; applied.current = false; setOpen(true); }} />
     <Dialog open={open} onOpenChange={value => { if (value) setOpen(true); else close(); }}>
       <DialogContent className={cn("quiz-dialog flex max-h-[90dvh] flex-col gap-0 overflow-hidden border-mod-border bg-mod-surface p-0 font-moderator text-mod-text sm:p-0", preview ? "h-[min(680px,90dvh)] max-w-3xl" : "max-w-2xl")}>
         <DialogHeader className="shrink-0 px-4 pb-4 pt-5 sm:px-6"><div className="flex items-center gap-2">{preview && <Button type="button" variant="ghost" size="icon" aria-label="Quay lại chọn tệp" title="Bỏ kết quả xem trước và chọn tệp khác" disabled={confirming} onClick={back}><ArrowLeft aria-hidden="true" /></Button>}<DialogTitle>Import câu hỏi</DialogTitle></div><DialogDescription>Chọn tài liệu để xem trước câu hỏi và kiểm tra lỗi trước khi đưa vào trình soạn.</DialogDescription></DialogHeader>
@@ -53,11 +53,7 @@ export function QuizFileImport({ count, empty, defaultTime, onApply }: ImportPro
             {waiting && <p className="max-w-sm text-sm leading-6 text-mod-text-secondary">Tài liệu đang được xử lý. Bạn có thể đóng cửa sổ bằng nút X để dừng.</p>}
           </div> : <div className="space-y-4">
             {state.status === "failure" && <p role="alert" className="text-sm leading-6 text-mod-danger">{state.message}</p>}
-            <div role="group" aria-label="Kéo thả tài liệu câu hỏi" className={cn("flex min-h-72 flex-col items-center justify-center gap-5 rounded-lg border-2 border-dashed border-mod-border px-5 py-8 text-center", dragging && "border-mod-text-low bg-mod-canvas-accent")}
-              onDragOver={event => { event.preventDefault(); setDragging(true); }} onDragLeave={() => setDragging(false)} onDrop={event => { event.preventDefault(); setDragging(false); void load(Array.from(event.dataTransfer.files)); }}>
-              <UploadSimple className="size-8 text-mod-text-low" aria-hidden="true" /><p className="text-sm font-semibold">Kéo thả tài liệu câu hỏi vào đây</p>
-              <p className="text-sm leading-6 text-mod-text-secondary">Hỗ trợ tệp văn bản: <strong className="font-semibold">.doc</strong>, <strong className="font-semibold">.docx</strong>, <strong className="font-semibold">.pdf (có văn bản)</strong>, <strong className="font-semibold">.txt</strong>, <strong className="font-semibold">.md</strong>.<br />Dung lượng tối đa 5 MB.</p><Button ref={chooseButton} variant="outline" onClick={choose}>Chọn tệp</Button>
-            </div>
+            <DocumentFilePicker label="Kéo thả tài liệu câu hỏi vào đây" onFiles={(files) => { void load(files); }} disabled={loading || confirming} />
           </div>}
         </div>
         <input ref={input} type="file" className="sr-only" tabIndex={-1} aria-label="Chọn tài liệu câu hỏi" accept=".doc,.docx,.pdf,.txt,.md" disabled={loading || confirming} onChange={event => { const files = Array.from(event.target.files ?? []); event.target.value = ""; void load(files); }} />

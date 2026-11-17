@@ -27,16 +27,15 @@ export function AccountProfile({ variant = "header" }: { variant?: "header" | "m
   );
 
   if (variant !== "header") {
-    const moderator = variant === "moderator";
     return (
       <section aria-label="Hồ sơ tài khoản" className="flex flex-col gap-2">
         <div data-account-profile-row className="flex items-center gap-3 px-1">
-          <span title={`${user.name} · ${roleLabel}`} className={`grid size-10 shrink-0 place-items-center rounded-full border ${moderator ? "border-mod-border bg-mod-canvas-accent text-mod-text-secondary" : "border-line bg-paper-deep text-ink-soft"}`}>
+          <span title={`${user.name} · ${roleLabel}`} className="grid size-9 shrink-0 place-items-center rounded-full border border-mod-border bg-mod-canvas-accent text-mod-text-secondary">
             <UserCircle size={22} aria-hidden="true" />
           </span>
           <div data-account-profile-details className="min-w-0 flex-1">
-            <ModeratorText as="p" className={`truncate text-sm font-bold ${moderator ? "text-mod-text" : "text-ink"}`}>{user.name}</ModeratorText>
-            <ModeratorText as="p" className={`text-xs ${moderator ? "text-mod-text-secondary" : "text-ink-soft"}`}>{roleLabel}</ModeratorText>
+            <ModeratorText as="p" className="truncate text-[13px] font-semibold text-mod-text">{user.name}</ModeratorText>
+            <ModeratorText as="p" className="mt-0.5 text-[11px] text-mod-text-secondary">{roleLabel}</ModeratorText>
           </div>
           {logoutButton}
         </div>

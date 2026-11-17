@@ -10,6 +10,17 @@ import { readPdfBlocks } from "./pdf-reader";
 import { removeImportDirectory } from "./temp-directory";
 
 const invalid = (message: string): DomainError => new DomainError(422, "VALIDATION_ERROR", message);
+// HTMLRewriter text callbacks retain entity spelling from Mammoth HTML.
+// Decode once after collecting chunks, including entities split across chunks.
+function decodeWordText(value: string): string {
+  const entities: Record<string, string> = { amp: "&", lt: "<", gt: ">", quot: '"', apos: "'", nbsp: "\u00a0" };
+  return value.replace(/&(#x[\da-f]+|#\d+|amp|lt|gt|quot|apos|nbsp);/gi, (raw: string, entity: string) => {
+    if (entity[0] !== "#") return entities[entity.toLowerCase()] ?? raw;
+    const hex = entity[1]?.toLowerCase() === "x";
+    const code = Number.parseInt(entity.slice(hex ? 2 : 1), hex ? 16 : 10);
+    return code > 0 && code <= 0x10ffff && !(code >= 0xd800 && code <= 0xdfff) ? String.fromCodePoint(code) : raw;
+  });
+}
 function inspectWord(bytes: Uint8Array): void {
   let expanded = 0, entries = 0, document = false;
   if (bytes[0] !== 80 || bytes[1] !== 75) throw invalid("Tệp DOCX không hợp lệ. Hãy mở và lưu lại bằng Word.");
@@ -59,7 +70,7 @@ async function wordBlocks(bytes: Uint8Array): Promise<QuizImportBlock[]> {
     text(chunk) { if (inRow) cellText += chunk.text; else text += chunk.text; },
   });
   await rewriter.transform(new Response(result.value)).text(); flush();
-  return blocks;
+  return blocks.map((block) => ({ ...block, text: decodeWordText(block.text) }));
 }
 
 export async function readQuizDocument(file: File, signal: AbortSignal, workDirectory?: string): Promise<QuizImportDocument> {

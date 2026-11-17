@@ -19,6 +19,10 @@ import { ScriptReviewConfigDialog, type ReviewScope } from "./ScriptReviewConfig
 export type DockState = "closed" | "panel" | "wide";
 
 interface Props {
+  reviewRequest?: number;
+  fullWorkspace?: boolean;
+  interactive?: boolean;
+  onShowBlock?: (ref: string | null) => void;
   editorRef: RefObject<RichScriptEditorHandle | null>;
   /** Null until the draft exists; `ensureEpisode` creates it. */
   episodeId: string | null;
@@ -48,7 +52,7 @@ function lastRunLabel(at: Date | null): string {
   return `Lần rà gần nhất: ${time}, ${at.toLocaleDateString("vi-VN", { day: "2-digit", month: "2-digit" })}.`;
 }
 
-export function AiAssistantPanel({ editorRef, episodeId, ensureEpisode, sources, hasScript, dock, onDockChange, clickedBlock, onOpenSource, onOpenCountChange }: Props): ReactElement {
+export function AiAssistantPanel({ editorRef, episodeId, ensureEpisode, sources, hasScript, dock, onDockChange, clickedBlock, onOpenSource, onOpenCountChange, fullWorkspace = false, interactive = true, onShowBlock, reviewRequest = 0 }: Props): ReactElement {
   const closeItem = (): void => {
     setOpenId(null);
     if (dock === "wide") onDockChange("panel");
@@ -96,6 +100,13 @@ export function AiAssistantPanel({ editorRef, episodeId, ensureEpisode, sources,
     setDialog({ blockCount: blocks.length, selectionLabel, scope });
   };
 
+  const handledReviewRequest = useRef(0);
+  useEffect(() => {
+    if (!interactive || reviewRequest <= handledReviewRequest.current) return;
+    handledReviewRequest.current = reviewRequest;
+    if (!running) openDialog();
+  }, [reviewRequest, interactive]);
+
   const openCount = check && !running ? items.filter((entry) => entry.status !== "REVIEWED" && !entry.appliedAt).length : null;
   useEffect(() => {
     onOpenCountChange?.(openCount);
@@ -105,6 +116,7 @@ export function AiAssistantPanel({ editorRef, episodeId, ensureEpisode, sources,
 
   const seenClick = useRef(clickedBlock?.seq ?? 0);
   useEffect(() => {
+    if (!interactive) { seenClick.current = clickedBlock?.seq ?? seenClick.current; return; }
     if (!clickedBlock || clickedBlock.seq === seenClick.current) return;
     seenClick.current = clickedBlock.seq;
     const live = editorRef.current?.getBlocks() ?? [];
@@ -147,7 +159,7 @@ export function AiAssistantPanel({ editorRef, episodeId, ensureEpisode, sources,
     setNotice(null);
     setOpenId(id);
     onDockChange("wide");
-    if (target) {
+    if (target && !fullWorkspace) {
       const at = locateBlock(editorRef.current?.getBlocks() ?? [], target);
       editorRef.current?.focusBlock(at === "conflict" ? null : at);
     }
@@ -226,9 +238,10 @@ export function AiAssistantPanel({ editorRef, episodeId, ensureEpisode, sources,
 
   const wideDetail = dock === "wide" && item && check;
   return (
-    <section className="flex h-full min-w-[340px] flex-col" aria-label="AI rà kịch bản" aria-busy={running}>
+    <section className={cn("flex h-full flex-col", fullWorkspace ? "min-w-0" : "min-w-[340px]")} aria-label="AI rà kịch bản" aria-busy={running}>
       {item ? (
         <header className="flex items-center justify-end border-b border-mod-border px-3.5 py-1.5">
+          {onShowBlock ? <Button type="button" variant="ghost" size="sm" onClick={() => { const at = item ? locateBlock(editorRef.current?.getBlocks() ?? [], item) : "conflict"; onShowBlock(at === "conflict" ? null : at); }}>Mở đoạn trong trình soạn</Button> : null}
           {wideDetail ? (
             <Button type="button" variant="ghost" size="icon-sm" title="Thu về dạng danh sách (Esc)" aria-label="Thu về dạng danh sách" onClick={closeItem}><Minimize2 size={15} aria-hidden="true" /></Button>
           ) : (
@@ -237,7 +250,7 @@ export function AiAssistantPanel({ editorRef, episodeId, ensureEpisode, sources,
         </header>
       ) : null}
       <div className="flex min-h-0 flex-1">
-        <div className={cn("min-w-0 overflow-y-auto p-4", wideDetail ? "w-[270px] shrink-0 border-r border-mod-border" : "flex-1")}>
+        <div className={cn("min-w-0 overflow-y-auto p-4", wideDetail ? fullWorkspace ? "hidden w-[270px] shrink-0 border-r border-mod-border md:block" : "w-[270px] shrink-0 border-r border-mod-border" : "flex-1")}>
           {running ? (
             <div className="space-y-4">
               <AiCheckProgress check={check ?? NO_PROGRESS} found={items.length} log={log} startedAt={check?.startedAt.getTime() ?? startedAt} onCancel={check ? () => void discard() : undefined} />

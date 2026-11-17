@@ -35,6 +35,7 @@ export interface ReleaseScheduleDraft {
 }
 
 export interface ReleaseScheduleFilter {
+  sort?: "scheduledAt";
   status?: ReleaseScheduleStatus;
   statusGroup?: ReleaseStatusGroup;
   scope?: ReleaseScheduleScope;
@@ -67,6 +68,7 @@ export const adminReleaseService = {
       admin.$get({
         query: {
           status: filter.status,
+          sort: filter.sort,
           statusGroup: filter.statusGroup,
           scope: filter.scope,
           from: filter.from,

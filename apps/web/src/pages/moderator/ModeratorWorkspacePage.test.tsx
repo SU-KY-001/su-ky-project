@@ -52,6 +52,13 @@ async function renderAt(entry: string): Promise<HTMLDivElement> {
 
 const location = (host: HTMLElement) => host.ownerDocument.querySelector('[data-testid="location"]')?.textContent;
 
+it("opens the timeline from the moderator home and removes the overview navigation", async () => {
+  const host = await renderAt("/moderator?create=milestone");
+  expect(location(host)).toBe("/moderator/timeline?create=milestone");
+  expect(host.querySelector('a[href="/moderator"]')).toBeNull();
+  expect(host.querySelector('a[href="/moderator/timeline"]')?.getAttribute("aria-current")).toBe("page");
+});
+
 it("gives assignments, tickets and release schedule their own URLs", async () => {
   const host = await renderAt("/moderator");
 
@@ -83,7 +90,7 @@ it("opens the screen named by a deep link and marks its nav item current", async
   }
   expect(host.textContent).toContain("Bạn chưa gửi ticket nào");
   expect(host.querySelector('a[href="/moderator/tickets"]')?.getAttribute("aria-current")).toBe("page");
-  expect(host.querySelector('a[href="/moderator"]')?.hasAttribute("aria-current")).toBe(false);
+  expect(host.querySelector('a[href="/moderator"]')).toBeNull();
 });
 
 it("opens quizzes from a deep link and preserves navigation to angles", async () => {

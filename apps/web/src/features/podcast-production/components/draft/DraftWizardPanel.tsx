@@ -23,6 +23,7 @@ const STEP_TITLES = ["Đề bài", "Dàn ý", "Giọng văn", "Bản nháp"] as 
 type Step = 0 | 1 | 2 | 3;
 
 interface Props {
+  onInserted?: () => void;
   onClose: () => void;
   editorRef: RefObject<RichScriptEditorHandle | null>;
   episodeId: string | null;
@@ -40,7 +41,7 @@ function Dots({ step }: { step: Step }): ReactElement {
   );
 }
 
-export function DraftWizardPanel({ onClose, editorRef, episodeId, ensureEpisode, wordsPerMinute, scriptChars }: Props): ReactElement {
+export function DraftWizardPanel({ onClose, onInserted, editorRef, episodeId, ensureEpisode, wordsPerMinute, scriptChars }: Props): ReactElement {
   const angles = useAngles();
   const saved = useMemo(() => (episodeId ? loadOutline(episodeId) : null), [episodeId]);
   const [step, setStep] = useState<Step>(0);
@@ -168,6 +169,7 @@ export function DraftWizardPanel({ onClose, editorRef, episodeId, ensureEpisode,
           onBack={() => setStep(2)}
           onInsert={(items, at) => editorRef.current?.insertDraft(items, at) ?? { ok: false, reason: "CONFLICT" }}
           onInserted={() => {
+            onInserted?.();
             if (draftEpisodeId) clearOutline(draftEpisodeId);
             onClose();
           }}

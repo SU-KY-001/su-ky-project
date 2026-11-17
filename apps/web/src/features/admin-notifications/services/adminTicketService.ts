@@ -19,9 +19,9 @@ async function parse<S extends z.ZodTypeAny>(
 const tickets = client.api.admin.releases["reassignment-tickets"];
 
 export const adminTicketService = {
-  list: (status?: ReleaseReassignmentTicketStatus) =>
+  list: (status?: ReleaseReassignmentTicketStatus, page = 1) =>
     parse(
-      tickets.$get({ query: { status, page: "1", limit: "50" } }),
+      tickets.$get({ query: { status, page: String(page), limit: "10" } }),
       ReleaseReassignmentTicketPageSchema,
     ),
   approve: (ticketId: string, replacementModeratorId: string) =>

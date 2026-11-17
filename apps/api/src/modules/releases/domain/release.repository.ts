@@ -163,6 +163,7 @@ export interface ReleaseDashboardCounts {
 }
 
 export interface ReleaseScheduleListFilter {
+  sort?: "scheduledAt";
   status?: ReleaseScheduleStatus;
   statusGroup?: ReleaseStatusGroup;
   scope?: ReleaseScheduleScope;

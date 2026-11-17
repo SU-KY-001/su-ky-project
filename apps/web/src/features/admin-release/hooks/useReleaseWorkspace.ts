@@ -70,6 +70,7 @@ export function useReleaseWorkspace({
   }), [deferredSearch, moderatorId, from, to]);
   const tableFilter = useMemo<ReleaseScheduleFilter>(() => ({
     ...baseFilter,
+    limit: 10,
     statusGroup: status || undefined,
     page: tablePage,
   }), [baseFilter, status, tablePage]);

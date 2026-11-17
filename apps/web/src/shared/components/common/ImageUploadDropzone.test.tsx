@@ -6,6 +6,16 @@ import { ImageUploadDropzone } from "./ImageUploadDropzone";
 let root: Root | undefined;
 afterEach(() => { act(() => root?.unmount()); document.body.innerHTML = ""; });
 
+it("uses a content-sized poster preview only when explicitly requested in read-only mode", async () => {
+  const host = document.createElement("div"); document.body.append(host); root = createRoot(host);
+  await act(async () => root?.render(<ImageUploadDropzone label="Poster podcast" value={{ assetId: "poster", url: "/poster.jpg", fileName: "Poster podcast.jpg", sizeBytes: null }} readOnly compactPreview onUpload={async () => { throw new Error("Read only"); }} onChange={() => {}} onBusyChange={() => {}} />));
+  const preview = host.querySelector('[role="group"]');
+  expect(preview?.classList.contains("w-fit")).toBe(true);
+  expect(preview?.classList.contains("min-h-56")).toBe(false);
+  expect(host.querySelector("img")?.parentElement?.classList.contains("h-40")).toBe(false);
+  expect(host.textContent).toContain("Poster podcast.jpg");
+});
+
 it("rejects multiple dropped images without uploading", async () => {
   const host = document.createElement("div"); document.body.append(host); root = createRoot(host);
   const upload = mock(async () => ({ assetId: "id", url: null, fileName: "ảnh", sizeBytes: null }));

@@ -1,0 +1,400 @@
+<!doctype html>
+<html lang="vi">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="theme-color" content="#f8fafc" />
+    <title>Sử Ký · Dashboard Admin mockup</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+    <style>
+      :root {
+        color-scheme: light;
+        --canvas: #f8fafc;
+        --surface: #ffffff;
+        --surface-quiet: #f1f5f9;
+        --ink: #0f172a;
+        --muted: #64748b;
+        --muted-strong: #475569;
+        --line: #e2e8f0;
+        --line-soft: #edf1f5;
+        --blue: #0284c7;
+        --blue-dark: #075985;
+        --blue-pale: #e0f2fe;
+        --blue-paler: #f0f9ff;
+        --green: #15803d;
+        --green-pale: #dcfce7;
+        --amber: #9a4a0a;
+        --amber-pale: #fff3d6;
+        --red: #b42318;
+        --red-pale: #fee4e2;
+        --radius: 12px;
+        --font: "Manrope", "Be Vietnam Pro", ui-sans-serif, system-ui, sans-serif;
+      }
+      * { box-sizing: border-box; }
+      html { background: var(--canvas); }
+      body { margin: 0; color: var(--ink); background: var(--canvas); font-family: var(--font); font-size: 13px; line-height: 1.5; }
+      button, select { font: inherit; }
+      button { color: inherit; }
+      a { color: inherit; text-decoration: none; }
+      .app { min-height: 100vh; }
+      .sidebar {
+        position: fixed; inset: 0 auto 0 0; z-index: 5; width: 236px; padding: 22px 14px 14px;
+        display: flex; flex-direction: column; background: var(--canvas); border-right: 1px solid var(--line);
+      }
+      .brand { display: flex; align-items: center; gap: 11px; padding: 0 10px; min-height: 42px; }
+      .brand-mark { width: 30px; height: 30px; display: grid; place-items: center; color: var(--blue); }
+      .brand-name { font-size: 15px; font-weight: 800; letter-spacing: -.04em; }
+      .brand-caption { color: var(--muted); font-size: 11px; font-weight: 600; letter-spacing: .02em; }
+      .workspace { margin: 25px 6px 0; padding: 10px 11px; border: 1px solid var(--line); border-radius: 9px; background: var(--surface); }
+      .workspace-label { color: var(--muted); font-size: 11px; font-weight: 600; }
+      .workspace-name { margin-top: 2px; font-size: 12px; font-weight: 700; }
+      .nav-group { margin-top: 29px; }
+      .nav-heading { margin: 0 10px 8px; color: var(--muted); font-size: 11px; font-weight: 700; }
+      .nav-list { display: grid; gap: 2px; }
+      .nav-link { min-height: 34px; display: flex; align-items: center; gap: 10px; padding: 0 10px; border-radius: 7px; color: var(--muted-strong); font-size: 12px; font-weight: 600; transition: background .15s ease, color .15s ease; }
+      .nav-link svg { width: 16px; height: 16px; flex: none; stroke-width: 1.7; }
+      .nav-link:hover { background: #eef2f6; color: var(--ink); }
+      .nav-link[aria-current="page"] { background: var(--blue-pale); color: var(--blue-dark); }
+      .nav-count { margin-left: auto; min-width: 20px; padding: 1px 6px; border-radius: 999px; background: var(--amber-pale); color: var(--amber); text-align: center; font-size: 11px; font-weight: 800; font-variant-numeric: tabular-nums; }
+      .sidebar-bottom { margin-top: auto; }
+      .help-link { margin-bottom: 12px; }
+      .profile { display: flex; align-items: center; gap: 10px; padding: 12px 9px 2px; border-top: 1px solid var(--line); }
+      .avatar { width: 31px; height: 31px; display: grid; place-items: center; flex: none; border-radius: 50%; background: #dbeafe; color: #1e40af; font-size: 11px; font-weight: 800; }
+      .profile-name { font-size: 11px; font-weight: 700; }
+      .profile-role { color: var(--muted); font-size: 11px; }
+      .main { margin-left: 236px; padding: 30px 34px 48px; }
+      .content { width: min(100%, 1330px); margin: 0 auto; }
+      .mobile-bar { display: none; }
+      .title-row { display: flex; align-items: flex-end; justify-content: space-between; gap: 24px; }
+      h1 { margin: 0; font-size: 24px; line-height: 1.25; letter-spacing: -.045em; font-weight: 700; }
+      .subtitle { margin: 6px 0 0; color: var(--muted); font-size: 12px; }
+      .title-actions { display: flex; align-items: center; gap: 8px; }
+      .button, .select-button { min-height: 34px; display: inline-flex; align-items: center; justify-content: center; gap: 8px; padding: 0 11px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); color: var(--muted-strong); font-size: 11px; font-weight: 700; white-space: nowrap; }
+      .button svg, .select-button svg { width: 14px; height: 14px; stroke-width: 1.8; }
+      .button:hover, .select-button:hover { border-color: #b9c6d4; background: #fbfdff; }
+      .button-primary { border-color: var(--blue-dark); background: var(--blue-dark); color: #fff; }
+      .button-primary:hover { border-color: #0c4a6e; background: #0c4a6e; }
+      .range-select { appearance: none; padding-right: 27px; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2364758b' stroke-width='2'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 9px center; }
+      .scope-row { display: flex; align-items: center; justify-content: space-between; gap: 18px; margin-top: 22px; border-bottom: 1px solid var(--line); }
+      .tabs { display: flex; gap: 24px; overflow-x: auto; }
+      .tab { position: relative; min-height: 37px; display: inline-flex; align-items: center; border: 0; background: transparent; color: var(--muted); font-size: 12px; font-weight: 600; cursor: pointer; white-space: nowrap; }
+      .tab[aria-selected="true"] { color: var(--ink); font-weight: 700; }
+      .tab[aria-selected="true"]::after { position: absolute; right: 0; bottom: -1px; left: 0; height: 2px; background: var(--blue); content: ""; }
+      .freshness { color: var(--muted); font-size: 11px; white-space: nowrap; }
+      .mock-note { margin: 13px 0 0; color: var(--muted); font-size: 11px; }
+      .metric-strip { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); margin-top: 17px; border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface); }
+      .metric { min-width: 0; padding: 14px 16px 13px; }
+      .metric + .metric { border-left: 1px solid var(--line); }
+      .metric-label { color: var(--muted); font-size: 11px; font-weight: 600; }
+      .metric-value { margin-top: 5px; font-size: clamp(18px, 1.65vw, 24px); line-height: 1.2; letter-spacing: -.045em; font-weight: 600; font-variant-numeric: tabular-nums; white-space: nowrap; }
+      .metric-value .unit { margin-left: 3px; color: var(--muted); font-size: 11px; font-weight: 500; letter-spacing: 0; }
+      .metric-note { margin-top: 4px; color: var(--muted); font-size: 11px; }
+      .metric-note strong { color: var(--muted-strong); font-weight: 700; }
+      .dashboard-grid { display: grid; grid-template-columns: minmax(0, 1fr) 318px; align-items: start; gap: 18px; margin-top: 18px; }
+      .main-column, .rail { display: grid; align-content: start; gap: 16px; min-width: 0; }
+      .panel { min-width: 0; border: 1px solid var(--line); border-radius: var(--radius); background: var(--surface); }
+      .panel-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; padding: 15px 16px 0; }
+      .panel-title { margin: 0; font-size: 13px; font-weight: 700; letter-spacing: -.015em; }
+      .panel-subtitle { margin: 3px 0 0; color: var(--muted); font-size: 11px; }
+      .panel-period { color: var(--muted); font-size: 11px; white-space: nowrap; }
+      .chart-wrap { padding: 12px 14px 8px; }
+      .chart { display: block; width: 100%; height: 188px; overflow: visible; }
+      .chart text { font-family: var(--font); }
+      .chart-grid { stroke: #e9eef3; stroke-width: 1; shape-rendering: crispEdges; }
+      .chart-line { fill: none; stroke: var(--blue); stroke-width: 2.4; stroke-linecap: round; stroke-linejoin: round; }
+      .chart-focus { stroke: var(--blue); stroke-width: 1; stroke-dasharray: 3 4; opacity: .55; }
+      .chart-dot { fill: var(--surface); stroke: var(--blue); stroke-width: 2.3; }
+      .chart-axis { fill: var(--muted); font-size: 11px; }
+      .chart-annotation { fill: var(--blue-dark); font-size: 11px; font-weight: 700; }
+      .chart-foot { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 0 16px 13px; color: var(--muted); font-size: 11px; }
+      .chart-legend { display: inline-flex; align-items: center; gap: 7px; }
+      .legend-line { width: 17px; height: 2px; display: inline-block; background: var(--blue); }
+      .finding { color: var(--muted-strong); }
+      .finding strong { color: var(--ink); font-weight: 700; }
+      .table-wrap { overflow-x: auto; }
+      table { width: 100%; border-collapse: collapse; text-align: left; }
+      th { height: 31px; padding: 0 13px; color: var(--muted); font-size: 11px; font-weight: 600; white-space: nowrap; }
+      td { height: 43px; padding: 6px 13px; border-top: 1px solid var(--line-soft); color: var(--muted-strong); font-size: 11px; white-space: nowrap; }
+      td:first-child { color: var(--ink); font-weight: 700; }
+      .rank { width: 25px; display: inline-block; color: var(--muted); font-weight: 500; font-variant-numeric: tabular-nums; }
+      .episode-meta { margin-top: 1px; color: var(--muted); font-size: 11px; font-weight: 500; }
+      .num { text-align: right; font-variant-numeric: tabular-nums; }
+      .completion { color: var(--muted-strong); font-variant-numeric: tabular-nums; }
+      .cell-foot { display: flex; justify-content: flex-end; padding: 8px 13px 11px; border-top: 1px solid var(--line-soft); }
+      .text-link { color: var(--blue-dark); font-size: 11px; font-weight: 700; }
+      .plan-list { padding: 8px 15px 14px; }
+      .plan-row { display: grid; grid-template-columns: 64px minmax(0, 1fr) 100px; align-items: center; gap: 10px; min-height: 41px; border-top: 1px solid var(--line-soft); }
+      .plan-name { font-size: 11px; font-weight: 700; }
+      .plan-bar { height: 5px; border-radius: 999px; background: #e9eef3; overflow: hidden; }
+      .plan-bar span { height: 100%; display: block; border-radius: inherit; background: var(--blue); }
+      .plan-value { text-align: right; font-size: 11px; font-weight: 700; font-variant-numeric: tabular-nums; }
+      .plan-orders { margin-top: 1px; color: var(--muted); font-size: 11px; font-weight: 500; }
+      .plan-total { display: flex; justify-content: space-between; padding-top: 10px; border-top: 1px solid var(--line); font-size: 11px; }
+      .plan-total span { color: var(--muted); }
+      .plan-total strong { font-variant-numeric: tabular-nums; }
+      .member-snapshot { display: flex; justify-content: space-between; gap: 12px; margin: 0 15px; padding: 10px 0; border-top: 1px solid var(--line-soft); color: var(--muted); font-size: 11px; }
+      .member-snapshot strong { color: var(--ink); font-variant-numeric: tabular-nums; }
+      .queue-list { padding: 5px 15px 13px; }
+      .queue-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 38px; border-top: 1px solid var(--line-soft); }
+      .queue-label { color: var(--muted-strong); font-size: 11px; }
+      .queue-label strong { color: var(--ink); font-weight: 700; }
+      .queue-value { color: var(--ink); font-size: 11px; font-weight: 700; font-variant-numeric: tabular-nums; }
+      .queue-value.warn { color: var(--amber); }
+      .queue-foot { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-top: 8px; padding-top: 10px; border-top: 1px solid var(--line-soft); }
+      .queue-foot p { margin: 0; color: var(--muted); font-size: 11px; }
+      .badge { display: inline-flex; align-items: center; gap: 5px; padding: 3px 7px; border-radius: 999px; background: var(--amber-pale); color: var(--amber); font-size: 11px; font-weight: 700; white-space: nowrap; }
+      .badge-dot { width: 5px; height: 5px; border-radius: 50%; background: currentColor; }
+      .release-list { padding: 5px 15px 11px; }
+      .release-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 10px; min-height: 42px; border-top: 1px solid var(--line-soft); }
+      .release-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 11px; font-weight: 700; }
+      .release-date { margin-top: 1px; color: var(--muted); font-size: 11px; }
+      .status { padding: 3px 7px; border-radius: 999px; background: var(--blue-pale); color: var(--blue-dark); font-size: 11px; font-weight: 700; white-space: nowrap; }
+      .status.ready { background: var(--green-pale); color: var(--green); }
+      .footer-note { margin-top: 19px; padding-top: 12px; border-top: 1px solid var(--line); color: var(--muted); font-size: 11px; }
+      .menu-button { display: none; width: 38px; height: 38px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); }
+      :focus-visible { outline: 3px solid #2866a1; outline-offset: 2px; }
+      @media (max-width: 1120px) {
+        .main { padding-right: 24px; padding-left: 24px; }
+        .dashboard-grid { grid-template-columns: minmax(0, 1fr) 285px; }
+        .metric { padding-right: 11px; padding-left: 11px; }
+        .metric-label { font-size: 11px; }
+      }
+      @media (max-width: 900px) {
+        .sidebar { width: 220px; }
+        .main { margin-left: 220px; padding: 24px 18px 40px; }
+        .metric-strip { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+        .metric:nth-child(4) { border-left: 0; border-top: 1px solid var(--line); }
+        .metric:nth-child(5) { border-top: 1px solid var(--line); }
+        .metric:nth-child(4), .metric:nth-child(5) { min-height: 86px; }
+        .dashboard-grid { grid-template-columns: minmax(0, 1fr); }
+        .rail { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+        .rail .panel:last-child { grid-column: 1 / -1; }
+      }
+      @media (max-width: 1100px) {
+        .sidebar { display: none; position: fixed; inset: 0 auto 0 0; width: min(310px, 86vw); }
+        .sidebar.open { display: flex; }
+        .main { margin-left: 0; padding: 0 24px 40px; }
+        .mobile-bar { position: sticky; top: 0; z-index: 3; display: flex; align-items: center; justify-content: space-between; min-height: 54px; margin: 0 -24px 20px; padding: 0 24px; border-bottom: 1px solid var(--line); background: var(--canvas); }
+        .mobile-title { display: flex; align-items: center; gap: 8px; font-size: 12px; font-weight: 800; }
+        .mobile-title .brand-mark { width: 23px; height: 23px; }
+        .menu-button { display: grid; place-items: center; }
+      }
+      @media (max-width: 680px) {
+        .sidebar { width: min(310px, 86vw); }
+        .sidebar.open { display: flex; }
+        .main { margin: 0; padding: 0 16px 32px; }
+        .mobile-bar { position: sticky; top: 0; z-index: 3; display: flex; align-items: center; justify-content: space-between; min-height: 54px; margin: 0 -16px 18px; padding: 0 16px; border-bottom: 1px solid var(--line); background: var(--canvas); }
+        .mobile-title { display: flex; align-items: center; gap: 8px; font-size: 12px; font-weight: 800; }
+        .mobile-title .brand-mark { width: 23px; height: 23px; }
+        .menu-button { display: grid; place-items: center; }
+        .title-row { align-items: flex-start; flex-direction: column; gap: 13px; }
+        h1 { font-size: 21px; }
+        .title-actions { width: 100%; }
+        .title-actions .range-select { flex: 1; }
+        .scope-row { align-items: flex-end; }
+        .tabs { gap: 17px; }
+        .freshness { display: none; }
+        .metric-strip { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+        .metric { min-height: 85px; padding: 12px 13px; }
+        .metric + .metric { border-left: 1px solid var(--line); }
+        .metric:nth-child(odd) { border-left: 0; }
+        .metric:nth-child(n+3) { border-top: 1px solid var(--line); }
+        .metric-value { font-size: 21px; }
+        .metric:last-child { grid-column: 1 / -1; border-left: 0; }
+        .dashboard-grid { margin-top: 14px; gap: 14px; }
+        .main-column, .rail { gap: 14px; }
+        .rail { grid-template-columns: minmax(0, 1fr); }
+        .rail .panel:last-child { grid-column: auto; }
+        .panel-head { padding: 13px 13px 0; }
+        .chart-wrap { padding-right: 7px; padding-left: 7px; }
+        .chart { height: 170px; }
+        .chart-foot { align-items: flex-start; flex-direction: column; padding-right: 13px; padding-left: 13px; }
+        .table-wrap { overflow: visible; }
+        table, tbody, tr, td { display: block; width: 100%; }
+        thead { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; }
+        tbody { padding: 0 12px; }
+        tbody tr { display: grid; grid-template-columns: minmax(0, 1fr) auto auto auto; align-items: center; min-height: 64px; padding: 7px 0; border-top: 1px solid var(--line-soft); }
+        tbody td { display: block; height: auto; padding: 0; border: 0; font-size: 11px; }
+        tbody td:first-child { grid-column: 1; grid-row: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+        tbody td:nth-child(2) { grid-column: 4; grid-row: 1; }
+        tbody td:nth-child(3), tbody td:nth-child(4), tbody td:nth-child(5) { grid-row: 2; padding-top: 4px; color: var(--muted); font-size: 11px; }
+        tbody td:nth-child(3) { grid-column: 2; }
+        tbody td:nth-child(4) { grid-column: 3; }
+        tbody td:nth-child(5) { grid-column: 4; }
+        tbody td:nth-child(2)::before { content: "Lượt nghe "; color: var(--muted); font-weight: 500; }
+        tbody td:nth-child(3)::before { content: "Nghe "; }
+        tbody td:nth-child(4)::before { content: "Giờ "; }
+        tbody td:nth-child(5)::before { content: "Hết "; }
+        .cell-foot { padding-right: 13px; }
+      }
+      @media (prefers-reduced-motion: reduce) { *, *::before, *::after { scroll-behavior: auto !important; transition-duration: .01ms !important; } }
+    </style>
+  </head>
+  <body>
+    <div class="app">
+      <aside class="sidebar" id="sidebar" aria-label="Điều hướng Admin">
+        <a class="brand" href="#overview" aria-label="Sử Ký Admin">
+          <span class="brand-mark" aria-hidden="true">
+            <svg viewBox="0 0 32 32" width="30" height="30" fill="none"><path d="M6 7.5h15.5a4.5 4.5 0 0 1 4.5 4.5v12.5H10a4 4 0 0 1-4-4V7.5Z" stroke="currentColor" stroke-width="1.7"/><path d="M10 11h10M10 15h7M10 19h4" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/><path d="M22 6.5v5l2.5-1.5L27 11.5v-5" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/></svg>
+          </span>
+          <span><span class="brand-name">Sử Ký</span><span class="brand-caption"> · Admin studio</span></span>
+        </a>
+        <div class="workspace"><div class="workspace-label">Không gian làm việc</div><div class="workspace-name">Điều hành nội dung <span aria-hidden="true">⌄</span></div></div>
+
+        <nav aria-label="Điều hướng chính">
+          <div class="nav-group">
+            <p class="nav-heading">Tổng quan</p>
+            <div class="nav-list">
+              <a class="nav-link" href="#overview" aria-current="page"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="3.5" y="3.5" width="7" height="7" rx="1.5"/><rect x="13.5" y="3.5" width="7" height="7" rx="1.5"/><rect x="3.5" y="13.5" width="7" height="7" rx="1.5"/><rect x="13.5" y="13.5" width="7" height="7" rx="1.5"/></svg>Tổng quan điều hành</a>
+              <a class="nav-link" href="#listeners"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M3 12h3l2.2-6 4.1 12 2.4-7 1.5 3H21" stroke-linecap="round" stroke-linejoin="round"/></svg>Người nghe & nội dung</a>
+            </div>
+          </div>
+          <div class="nav-group">
+            <p class="nav-heading">Phát hành podcast</p>
+            <div class="nav-list">
+              <a class="nav-link" href="#release"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="3.5" y="5" width="17" height="15.5" rx="2"/><path d="M7.5 3.5v3M16.5 3.5v3M3.5 9.5h17M8 13h3m2 0h3m-8 3h3" stroke-linecap="round"/></svg>Lịch phát hành</a>
+              <a class="nav-link" href="#release"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="m5 12.5 4.3 4.3L19 7" stroke-linecap="round" stroke-linejoin="round"/><circle cx="12" cy="12" r="9"/></svg>Hàng chờ kiểm duyệt</a>
+            </div>
+          </div>
+          <div class="nav-group">
+            <p class="nav-heading">Thành viên Premium</p>
+            <div class="nav-list">
+              <a class="nav-link" href="#premium"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="m12 3 2.7 5.5 6.1.9-4.4 4.3 1 6.1-5.4-2.9-5.4 2.9 1-6.1-4.4-4.3 6.1-.9L12 3Z" stroke-linejoin="round"/></svg>Doanh thu & gói</a>
+              <a class="nav-link" href="#premium"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><rect x="3.5" y="5" width="17" height="15" rx="2"/><path d="M3.5 9h17m-12 4h5m-5 3h8" stroke-linecap="round"/></svg>Đơn hàng <span class="nav-count">5</span></a>
+              <a class="nav-link" href="#premium"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M4 6.5h16M6.5 6.5v12h11v-12M9 10h6m-6 3h6m-6 3h3" stroke-linecap="round" stroke-linejoin="round"/><path d="M8 3.5h8" stroke-linecap="round"/></svg>Đối soát giao dịch <span class="nav-count">4</span></a>
+              <a class="nav-link" href="#premium"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="9" cy="8" r="3.2"/><path d="M3.5 19c.6-3.1 2.5-4.7 5.5-4.7s4.9 1.6 5.5 4.7m1-8.2a3.2 3.2 0 1 0 0-6.4m.6 9.9c2.5.3 4 1.8 4.5 4.7" stroke-linecap="round"/></svg>Thành viên</a>
+            </div>
+          </div>
+        </nav>
+        <div class="sidebar-bottom">
+          <a class="nav-link help-link" href="#notes"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="12" r="9"/><path d="M9.7 9a2.4 2.4 0 1 1 4.1 1.7c-1 .9-1.8 1.2-1.8 2.8m0 3.2h.01" stroke-linecap="round"/></svg>Hướng dẫn vận hành</a>
+          <div class="profile"><span class="avatar">AD</span><span><span class="profile-name">Quản trị viên</span><br /><span class="profile-role">Quyền Admin</span></span></div>
+        </div>
+      </aside>
+
+      <main class="main" id="overview">
+        <div class="mobile-bar">
+          <div class="mobile-title"><span class="brand-mark" aria-hidden="true"><svg viewBox="0 0 32 32" width="23" height="23" fill="none"><path d="M6 7.5h15.5a4.5 4.5 0 0 1 4.5 4.5v12.5H10a4 4 0 0 1-4-4V7.5Z" stroke="currentColor" stroke-width="1.7"/><path d="M10 11h10M10 15h7M10 19h4" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg></span>Sử Ký · Admin</div>
+          <button class="menu-button" type="button" aria-label="Mở điều hướng" aria-expanded="false" id="menuToggle"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 6h16M4 12h16M4 18h16" stroke-linecap="round"/></svg></button>
+        </div>
+        <div class="content">
+          <header class="title-row">
+            <div><h1>Tổng quan điều hành</h1><p class="subtitle">Người nghe, nội dung và doanh thu thành viên Premium.</p></div>
+            <div class="title-actions">
+              <select class="select-button range-select" aria-label="Khoảng thời gian"><option>7 ngày · 11–17 Thg 11, 2026</option><option>30 ngày qua</option><option>Tháng này</option></select>
+              <button class="button button-primary" type="button" onclick="document.querySelector('#premium').scrollIntoView({behavior:'smooth'})">Xem đối soát</button>
+            </div>
+          </header>
+          <div class="scope-row">
+            <div class="tabs" role="tablist" aria-label="Phạm vi dashboard">
+              <button class="tab" type="button" role="tab" aria-selected="true">Tất cả</button>
+              <button class="tab" type="button" role="tab" aria-selected="false" onclick="document.querySelector('#listeners').scrollIntoView({behavior:'smooth'})">Người nghe</button>
+              <button class="tab" type="button" role="tab" aria-selected="false" onclick="document.querySelector('#premium').scrollIntoView({behavior:'smooth'})">Premium</button>
+            </div>
+            <span class="freshness">Cập nhật lần cuối · 09:42 hôm nay</span>
+          </div>
+          <p class="mock-note">Mockup giao diện · Số liệu minh họa, cần thay bằng dữ liệu API khi triển khai.</p>
+
+          <section class="metric-strip" aria-label="Chỉ số trong 7 ngày qua">
+            <div class="metric"><div class="metric-label">Người nghe duy nhất</div><div class="metric-value">1.284</div><div class="metric-note">Trong 7 ngày qua</div></div>
+            <div class="metric"><div class="metric-label">Lượt nghe hợp lệ</div><div class="metric-value">4.862</div><div class="metric-note">Phiên đạt ngưỡng nghe</div></div>
+            <div class="metric"><div class="metric-label">Thời lượng nghe</div><div class="metric-value">1.876<span class="unit">giờ</span></div><div class="metric-note">Tổng thời lượng phát</div></div>
+            <div class="metric"><div class="metric-label">Tập hoàn thành</div><div class="metric-value">327</div><div class="metric-note">Tập duy nhất trong kỳ</div></div>
+            <div class="metric"><div class="metric-label">Doanh thu đã thu</div><div class="metric-value">18,4<span class="unit">triệu ₫</span></div><div class="metric-note">110 đơn đã thanh toán</div></div>
+          </section>
+
+          <div class="dashboard-grid">
+            <div class="main-column">
+              <section class="panel" id="listeners" aria-labelledby="listenTitle">
+                <div class="panel-head">
+                  <div><h2 class="panel-title" id="listenTitle">Nhịp nghe theo ngày</h2><p class="panel-subtitle">Số phiên nghe hợp lệ, theo ngày phát sinh.</p></div>
+                  <span class="panel-period">11–17 Thg 11</span>
+                </div>
+                <div class="chart-wrap">
+                  <svg class="chart" viewBox="0 0 720 210" role="img" aria-labelledby="chartTitle chartDesc" preserveAspectRatio="none">
+                    <title id="chartTitle">Lượt nghe hợp lệ từ ngày 11 đến 17 tháng 11</title>
+                    <desc id="chartDesc">581, 644, 598, 712, 691, 754 và 882 phiên; tổng cộng 4.862.</desc>
+                    <line class="chart-grid" x1="48" y1="28" x2="696" y2="28"/><line class="chart-grid" x1="48" y1="78" x2="696" y2="78"/><line class="chart-grid" x1="48" y1="128" x2="696" y2="128"/><line class="chart-grid" x1="48" y1="178" x2="696" y2="178"/>
+                    <text class="chart-axis" x="37" y="31" text-anchor="end">1.000</text><text class="chart-axis" x="37" y="81" text-anchor="end">700</text><text class="chart-axis" x="37" y="131" text-anchor="end">400</text><text class="chart-axis" x="37" y="181" text-anchor="end">100</text>
+                    <line class="chart-focus" x1="696" y1="47.7" x2="696" y2="178"/>
+                    <polyline class="chart-line" points="48,97.9 156,87.4 264,95.1 372,76.1 480,79.6 588,69.1 696,47.7"/>
+                    <circle class="chart-dot" cx="696" cy="47.7" r="4.5"/>
+                    <text class="chart-annotation" x="684" y="36" text-anchor="end">882 phiên</text>
+                    <text class="chart-axis" x="48" y="202" text-anchor="middle">11 Thg 11</text><text class="chart-axis" x="156" y="202" text-anchor="middle">12</text><text class="chart-axis" x="264" y="202" text-anchor="middle">13</text><text class="chart-axis" x="372" y="202" text-anchor="middle">14</text><text class="chart-axis" x="480" y="202" text-anchor="middle">15</text><text class="chart-axis" x="588" y="202" text-anchor="middle">16</text><text class="chart-axis" x="696" y="202" text-anchor="middle">17</text>
+                  </svg>
+                </div>
+                <div class="chart-foot"><span class="chart-legend"><span class="legend-line"></span>Phiên nghe hợp lệ</span><span class="finding"><strong>17 Thg 11 cao nhất:</strong> 882 phiên, tăng 52% so với ngày đầu kỳ.</span></div>
+              </section>
+
+              <section class="panel" aria-labelledby="topContentTitle">
+                <div class="panel-head">
+                  <div><h2 class="panel-title" id="topContentTitle">Câu chuyện được nghe nhiều</h2><p class="panel-subtitle">Xếp theo phiên nghe hợp lệ trong kỳ.</p></div>
+                  <a class="text-link" href="#listeners">Mở phân tích</a>
+                </div>
+                <div class="table-wrap">
+                  <table>
+                    <thead><tr><th scope="col">Câu chuyện · tập</th><th scope="col" class="num">Phiên nghe</th><th scope="col" class="num">Người nghe</th><th scope="col" class="num">Thời lượng</th><th scope="col" class="num">Hoàn thành</th></tr></thead>
+                    <tbody>
+                      <tr><td><span class="rank">1.</span>Trận Bạch Đằng năm 1288<div class="episode-meta">Hào khí Đông A · Tập 04</div></td><td class="num">1.106</td><td class="num">622</td><td class="num">318 giờ</td><td class="num completion">71%</td></tr>
+                      <tr><td><span class="rank">2.</span>Hội nghị Diên Hồng<div class="episode-meta">Những mùa giữ nước · Tập 02</div></td><td class="num">943</td><td class="num">508</td><td class="num">286 giờ</td><td class="num completion">68%</td></tr>
+                      <tr><td><span class="rank">3.</span>Dời đô ra Thăng Long<div class="episode-meta">Kinh đô Đại Việt · Tập 01</div></td><td class="num">812</td><td class="num">441</td><td class="num">247 giờ</td><td class="num completion">74%</td></tr>
+                      <tr><td><span class="rank">4.</span>Phòng tuyến sông Như Nguyệt<div class="episode-meta">Biên cương phía Bắc · Tập 03</div></td><td class="num">604</td><td class="num">348</td><td class="num">201 giờ</td><td class="num completion">65%</td></tr>
+                      <tr><td><span class="rank">5.</span>Khởi nghĩa Lam Sơn<div class="episode-meta">Bình Ngô dựng nghiệp · Tập 01</div></td><td class="num">512</td><td class="num">304</td><td class="num">169 giờ</td><td class="num completion">72%</td></tr>
+                    </tbody>
+                  </table>
+                </div>
+                <div class="cell-foot"><a class="text-link" href="#listeners">Xem toàn bộ nội dung →</a></div>
+              </section>
+            </div>
+
+            <aside class="rail" aria-label="Tài chính và việc cần xử lý">
+              <section class="panel" id="premium" aria-labelledby="premiumTitle">
+                <div class="panel-head"><div><h2 class="panel-title" id="premiumTitle">Doanh thu theo gói</h2><p class="panel-subtitle">Đơn trả phí đã thanh toán trong kỳ.</p></div><a class="text-link" href="#premium">Chi tiết</a></div>
+                <div class="plan-list">
+                  <div class="plan-row"><div class="plan-name">Gói năm<div class="plan-orders">81 đơn</div></div><div class="plan-bar" aria-label="Gói năm chiếm 97 phần trăm doanh thu"><span style="width:97%"></span></div><div class="plan-value">17.820.000 ₫</div></div>
+                  <div class="plan-row"><div class="plan-name">Gói tháng<div class="plan-orders">29 đơn</div></div><div class="plan-bar" aria-label="Gói tháng chiếm 3 phần trăm doanh thu"><span style="width:3.2%"></span></div><div class="plan-value">580.000 ₫</div></div>
+                  <div class="plan-total"><span>Tổng · 110 đơn</span><strong>18.400.000 ₫</strong></div>
+                </div>
+                <div class="member-snapshot"><span>Premium hiện hoạt <strong>86 người</strong></span><span>Sắp hết hạn <strong>12</strong></span></div>
+              </section>
+
+              <section class="panel" aria-labelledby="attentionTitle">
+                <div class="panel-head"><div><h2 class="panel-title" id="attentionTitle">Premium cần xử lý</h2><p class="panel-subtitle">Hàng chờ vận hành hiện tại.</p></div><span class="badge"><span class="badge-dot"></span>12 việc</span></div>
+                <div class="queue-list">
+                  <div class="queue-row"><span class="queue-label"><strong>Đơn chờ</strong> quá 24 giờ</span><span class="queue-value warn">5 đơn</span></div>
+                  <div class="queue-row"><span class="queue-label"><strong>Đơn cần đối soát</strong></span><span class="queue-value warn">4 đơn</span></div>
+                  <div class="queue-row"><span class="queue-label"><strong>Giao dịch chưa khớp</strong></span><span class="queue-value">3 · 80.000 ₫</span></div>
+                  <div class="queue-foot"><p>Giao dịch chưa khớp gồm cả tiền chuyển sai hoặc chuyển trùng.</p><a class="text-link" href="#premium">Xử lý →</a></div>
+                </div>
+              </section>
+
+              <section class="panel" id="release" aria-labelledby="releaseTitle">
+                <div class="panel-head"><div><h2 class="panel-title" id="releaseTitle">Nhịp phát hành</h2><p class="panel-subtitle">Nội dung sắp lên sóng.</p></div><a class="text-link" href="#release">Mở lịch</a></div>
+                <div class="release-list">
+                  <div class="release-row"><div><div class="release-name">Đinh Bộ Lĩnh thống nhất sơn hà</div><div class="release-date">18 Thg 11 · 09:00</div></div><span class="status ready">Sẵn sàng</span></div>
+                  <div class="release-row"><div><div class="release-name">Thương cảng Vân Đồn</div><div class="release-date">19 Thg 11 · 09:00</div></div><span class="status">Đang sản xuất</span></div>
+                </div>
+              </section>
+            </aside>
+          </div>
+          <p class="footer-note" id="notes">Mẫu KPI và số liệu trong mockup chỉ phục vụ minh họa bố cục. Khi kết nối dữ liệu thật, doanh thu cần tính từ đơn đã thanh toán; phiên nghe hợp lệ cần theo quy tắc `qualifiedAt` của hệ thống.</p>
+        </div>
+      </main>
+    </div>
+    <script>
+      const menuToggle = document.querySelector("#menuToggle");
+      const sidebar = document.querySelector("#sidebar");
+      menuToggle?.addEventListener("click", () => {
+        const open = sidebar.classList.toggle("open");
+        menuToggle.setAttribute("aria-expanded", String(open));
+        menuToggle.setAttribute("aria-label", open ? "Đóng điều hướng" : "Mở điều hướng");
+      });
+      sidebar?.querySelectorAll("a").forEach((link) => link.addEventListener("click", () => {
+        sidebar.classList.remove("open");
+        menuToggle?.setAttribute("aria-expanded", "false");
+      }));
+    </script>
+  </body>
+</html>

@@ -1,5 +1,4 @@
 import {
-  useEffect,
   useRef,
   useState,
   type ChangeEvent,
@@ -15,32 +14,39 @@ import {
   Save,
   Trash2,
   Upload,
+  Sparkles,
+  PenLine,
+  BookOpen,
+  Search,
+  X,
 } from "lucide-react";
 import { uploadCatalogMedia } from "@/features/historical-library/services/catalogMediaService";
 import { newIdempotencyKey } from "@/lib/idempotency";
 import { Button } from "@/shared/components/ui/button";
 import { notify } from "@/shared/lib/notifications";
-import { cn } from "@/lib/utils";
 import type { PodcastCreationWizard } from "../hooks/usePodcastCreationWizard";
 import {
   usePodcastEpisode,
   useWordsPerMinute,
   usePodcastInvalidation,
 } from "../hooks/usePodcastProduction";
-import { savedAtLabel } from "../aiCheck/presentation";
-import { estimatedReadMinutes, scriptWordCount } from "../scriptDuration";
 import {
+  legacyScriptToDocument,
   emptyScriptDocument,
   scriptCharacterCount,
   scriptDocumentText,
 } from "../scriptEditor";
 import { podcastProductionService as api } from "../services/podcastProductionService";
 import { RichScriptEditor, type RichScriptEditorHandle } from "./RichScriptEditor";
-import { DialogueScriptStep } from "./DialogueScriptStep";
+import { DialogueRichEditor } from "./DialogueRichEditor";
+import { structuredDialogue } from "../structuredScript";
+import type { ScriptKind } from "@repo/shared";
 import { newDialogue } from "../dialogueState";
-import { AiDock, type AiTab } from "./AiDock";
-import type { DockState } from "./AiAssistantPanel";
-import type { SelectionRange } from "../aiCheck/editorBlocks";
+import { AiDock } from "./AiDock";
+import { AiAssistantPanel, type DockState } from "./AiAssistantPanel";
+import { ScriptFileImport, type ScriptImportTarget } from "./ScriptFileImport";
+import { PodcastTypeSelect } from "./PodcastTypeSelect";
+import { ShimmerButton } from "@/shared/components/ui/shimmer-button";
 import { ScriptSourcesPanel } from "./ScriptSourcesPanel";
 import { Popover, PopoverContent, PopoverTrigger } from "@/shared/components/ui/popover";
 
@@ -53,8 +59,6 @@ interface PendingDocument {
 }
 
 const allowedExtensions = new Set(["pdf", "doc", "docx"]);
-/** Tailwind `xl`: from this width the AI dock sits beside the editor; below it the dock overlays, so it starts closed. */
-const DOCK_OPEN_MEDIA = "(min-width: 1280px)";
 
 function documentExtension(file: File): string {
   return file.name.split(".").pop()?.toLowerCase() ?? "";
@@ -70,17 +74,22 @@ export function PodcastScriptStep({
   readOnly: boolean;
 }): ReactElement {
   const editorRef = useRef<RichScriptEditorHandle>(null);
-  const changed = useRef(false);
-  const [dock, setDock] = useState<DockState>(() => (window.matchMedia(DOCK_OPEN_MEDIA).matches ? "panel" : "closed"));
-  const [aiTab, setAiTab] = useState<AiTab>("check");
+  const dialogueRef = useRef<ScriptImportTarget>(null);
+  const [editorRevision, setEditorRevision] = useState(0);
+  const [typeChosen, setTypeChosen] = useState(Boolean(wizard.state.dialogue || wizard.state.scriptText.trim()));
+  const [kind, setKind] = useState<ScriptKind>(wizard.state.dialogue ? "dialogue" : "monologue");
+  const [mode, setMode] = useState<"manual" | "ai">("manual");
+  const [aiVisited, setAiVisited] = useState(false);
+  const [dock, setDock] = useState<DockState>("closed");
+  const [reviewVisited, setReviewVisited] = useState(false);
+  const [reviewRequest, setReviewRequest] = useState(0);
   const [openCount, setOpenCount] = useState<number | null>(null);
   const [clickedBlock, setClickedBlock] = useState<{ ref: string; seq: number } | null>(null);
   const [sourcesOpen, setSourcesOpen] = useState(false);
-  const [rewriteRange, setRewriteRange] = useState<SelectionRange | null>(null);
   const [pendingDocuments, setPendingDocuments] = useState<PendingDocument[]>([]);
   const [saving, setSaving] = useState(false);
-  const [saveState, setSaveState] = useState<"idle" | "saved" | "error">("idle");
-  const [savedAt, setSavedAt] = useState<Date | null>(null);
+
+
   const [error, setError] = useState("");
   const [pasteWarning, setPasteWarning] = useState("");
   const episode = usePodcastEpisode(wizard.state.episodeId ?? "");
@@ -88,18 +97,32 @@ export function PodcastScriptStep({
   const document = wizard.state.scriptDocument ?? emptyScriptDocument();
   const characterCount = scriptCharacterCount(document);
   const wordsPerMinute = useWordsPerMinute();
-  const dockWide = dock === "wide" || rewriteRange !== null || aiTab === "draft";
+  const switchMode = (next: "manual" | "ai"): void => { setMode(next); if (next === "ai") setAiVisited(true); };
 
+  const applyImport = (text: string, nextKind: ScriptKind, replace: boolean, expected: string): { ok: true } | { ok: false; reason: "CONFLICT" | "TOO_LONG" } => {
+    if (replace && (wizard.state.dialogue ? dialogueRef.current : editorRef.current)?.getText() !== expected) return { ok: false, reason: "CONFLICT" };
+    try {
+      if (nextKind === "dialogue") {
+        if (!replace && kind !== nextKind && wizard.state.scriptText.trim()) { setError("Chọn thay thế để chuyển loại kịch bản; không trộn hai loại."); return { ok: false, reason: "CONFLICT" }; }
+        const value = structuredDialogue(text, !replace ? wizard.state.dialogue ?? undefined : undefined);
+        wizard.dispatch({ type: "setDialogue", value });
+      } else {
+        if (kind === "dialogue" && !replace && wizard.state.scriptText.trim()) return { ok: false, reason: "CONFLICT" };
+        if (kind === "monologue") return editorRef.current?.importText(text, replace, replace ? expected : undefined) ?? { ok: false, reason: "CONFLICT" };
+        wizard.dispatch({ type: "setDialogue", value: null });
+        const document = legacyScriptToDocument(text);
+        wizard.dispatch({ type: "setScript", document, text: scriptDocumentText(document) });
+      }
+      setKind(nextKind); setTypeChosen(true); setEditorRevision(value => value + 1); return { ok: true };
+    } catch (caught) { setError(caught instanceof Error ? caught.message : "Không nhập được kịch bản."); return { ok: false, reason: "CONFLICT" }; }
+  };
   const persistScript = async (manual = false): Promise<void> => {
     setSaving(true);
     setError("");
     try {
       await wizard.saveScript(wizard.state.scriptDocument ?? emptyScriptDocument());
-      setSaveState("saved");
-      setSavedAt(new Date());
       if (manual) notify.success({ title: "Đã lưu kịch bản" });
     } catch (caught) {
-      setSaveState("error");
       const message = caught instanceof Error ? caught.message : "Không lưu được kịch bản.";
       setError(message);
       if (manual) notify.error({ title: "Không thể lưu kịch bản", description: message });
@@ -107,14 +130,6 @@ export function PodcastScriptStep({
       setSaving(false);
     }
   };
-
-  useEffect(() => {
-    if (readOnly || !changed.current || !wizard.state.scriptDirty) return;
-    const timer = window.setTimeout(() => {
-      void persistScript();
-    }, 900);
-    return () => window.clearTimeout(timer);
-  }, [readOnly, wizard.state.scriptDocument, wizard.state.scriptDirty]);
 
   const processDocument = async (item: PendingDocument): Promise<void> => {
     setPendingDocuments((current) =>
@@ -181,7 +196,7 @@ export function PodcastScriptStep({
     }
   };
 
-  if (wizard.state.dialogue) return <DialogueScriptStep wizard={wizard} readOnly={readOnly} />;
+
 
   if (readOnly) return (
     <section aria-labelledby="podcast-script-title" className="space-y-4">
@@ -189,7 +204,7 @@ export function PodcastScriptStep({
         <h2 id="podcast-script-title" className="text-lg font-bold text-mod-text">Kịch bản</h2>
         <p className="mt-1 text-sm text-mod-text-secondary">{characterCount.toLocaleString("vi-VN")} ký tự · nội dung đã lưu</p>
       </div>
-      <RichScriptEditor initialDocument={document} onChange={() => undefined} disabled />
+      {wizard.state.dialogue ? <DialogueRichEditor dialogue={wizard.state.dialogue} onChange={() => undefined} disabled /> : <RichScriptEditor initialDocument={document} onChange={() => undefined} disabled />}
       <section className="rounded-xl border border-mod-border p-4" aria-label="Nguồn và tài liệu của tập">
         <h3 className="font-bold text-mod-text">Nguồn và tài liệu</h3>
         <p className="mt-1 text-sm text-mod-text-secondary">{sources.length} nguồn từ series · {episode.data?.attachments.length ?? 0} tài liệu bổ sung</p>
@@ -207,95 +222,70 @@ export function PodcastScriptStep({
   );
 
   return (
-    <section aria-labelledby="podcast-script-title" className="space-y-4">
-      <div className="flex flex-wrap items-end justify-between gap-3">
-        <div>
-          <h2 id="podcast-script-title" className="text-lg font-bold text-mod-text">Kịch bản</h2>
-          <p className="mt-1 text-sm text-mod-text-secondary">Soạn nội dung, gắn nguồn và tải tài liệu bổ sung.</p>
-          {characterCount === 0 ? (
-            <Button type="button" variant="outline" size="sm" className="mt-2" onClick={() => wizard.dispatch({ type: "setDialogue", value: newDialogue() })}>
-              Chuyển sang hội thoại nhiều người
-            </Button>
-          ) : null}
-        </div>
-        <div className="text-right text-xs text-mod-text-secondary">
-          <p>
-            {characterCount.toLocaleString("vi-VN")} ký tự · {scriptWordCount(wizard.state.scriptText).toLocaleString("vi-VN")} từ
-            {wordsPerMinute ? ` · khoảng ${estimatedReadMinutes(wizard.state.scriptText, wordsPerMinute)} phút đọc` : ""}
-          </p>
-          <p className={cn("mt-1", saveState === "error" ? "text-mod-danger" : "text-mod-success")}>
-            {saving ? "Đang lưu tự động…" : saveState === "saved" && savedAt ? savedAtLabel(savedAt) : saveState === "error" ? "Chưa lưu được" : "Chưa có thay đổi"}
-          </p>
-        </div>
+    <section aria-labelledby="podcast-script-title" className="podcast-script-workspace space-y-4" data-script-mode={mode}>
+      <div>
+        <h2 id="podcast-script-title" className="text-lg font-bold text-mod-text">Kịch bản</h2>
+        <p className="mt-1 text-sm text-mod-text-secondary">{wizard.state.dialogue ? "Chọn người nói cho mỗi lượt." : "Soạn thủ công hoặc chuyển sang Trợ lý AI để tạo và hoàn thiện kịch bản."}</p>
       </div>
-
-      <div className="flex items-start gap-4">
-        <div className="min-w-0 flex-1 space-y-4">
-          <RichScriptEditor
+      <div role="toolbar" aria-label="Chế độ soạn kịch bản" className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-mod-border bg-mod-canvas-accent p-3">
+        <PodcastTypeSelect value={typeChosen ? kind : undefined} canChange={!wizard.state.scriptText.trim() && mode === "manual"} onChange={(next) => { setTypeChosen(true); setKind(next); wizard.dispatch({ type: "setDialogue", value: next === "dialogue" ? newDialogue() : null }); setEditorRevision(value => value + 1); }} />
+        <ShimmerButton disabled={!typeChosen || kind === "dialogue"} title={kind === "dialogue" ? "Trợ lý AI soạn nháp hiện hỗ trợ độc thoại. Import và soạn hội thoại trong editor bên dưới." : undefined} type="button" aria-pressed={mode === "ai"} aria-label={mode === "ai" ? "Về soạn thủ công" : "Trợ lý AI tạo kịch bản"} shimmerDuration="4s" className="gap-2 text-sm font-semibold shadow-[0_2px_8px_color-mix(in_srgb,var(--modText)_8%,transparent)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-mod-primary" onClick={() => switchMode(mode === "manual" ? "ai" : "manual")}>
+          {mode === "ai" ? <PenLine size={17} aria-hidden="true" /> : <Sparkles size={17} className="text-mod-primary" aria-hidden="true" />}<span>{mode === "ai" ? "Về soạn thủ công" : "Trợ lý AI tạo kịch bản"}</span>
+        </ShimmerButton>
+      </div>
+      {!typeChosen ? <p className="rounded-lg border border-mod-border p-4 text-sm text-mod-text-secondary">Chọn loại podcast trước khi soạn hoặc import kịch bản.</p> : null}
+      {reviewVisited ? <section hidden={mode !== "manual" || dock === "closed" || kind !== "monologue"} aria-label="Kết quả rà soát kịch bản" className="overflow-hidden rounded-xl border border-mod-border bg-mod-surface">
+        <header className="flex items-center justify-between border-b border-mod-border px-4 py-3"><h3 className="flex items-center gap-2 text-sm font-semibold"><Search size={16} />Rà soát kịch bản</h3><Button type="button" size="icon-sm" variant="ghost" aria-label="Đóng kết quả rà soát" onClick={() => setDock("closed")}><X size={16} /></Button></header>
+        <div className="h-[min(60dvh,36rem)] min-h-64"><AiAssistantPanel editorRef={editorRef} episodeId={wizard.state.episodeId ?? null} ensureEpisode={wizard.ensureDraft} sources={sources} hasScript={characterCount > 0} dock={dock} onDockChange={setDock} clickedBlock={clickedBlock} onOpenSource={() => setSourcesOpen(true)} onOpenCountChange={setOpenCount} fullWorkspace interactive={mode === "manual" && dock !== "closed"} reviewRequest={reviewRequest} onShowBlock={(ref) => { editorRef.current?.focusBlock(ref); }} /></div>
+      </section> : null}
+      <div className="podcast-script-mode-body flex min-w-0 flex-col gap-4">
+        <div className="podcast-script-manual min-w-0 space-y-4">
+          {wizard.state.dialogue ? <DialogueRichEditor key={`dialogue-${editorRevision}`} ref={dialogueRef} dialogue={wizard.state.dialogue} importControl={<ScriptFileImport editorRef={dialogueRef} disabled={saving} selectedType={kind} onApply={applyImport} />} onChange={(value) => { wizard.dispatch({ type: "setDialogue", value }); }} /> : <RichScriptEditor
+            disabled={!typeChosen}
+            key={`monologue-${editorRevision}`}
             ref={editorRef}
             initialDocument={document}
-            onRewriteRequest={(range) => {
-              setRewriteRange(range);
-              if (dock === "closed") setDock("panel");
-            }}
             onBlockClick={(ref) => setClickedBlock((previous) => ({ ref, seq: (previous?.seq ?? 0) + 1 }))}
-            toolbarActions={
-              <>
+            toolbarActions={<>
+                {mode === "manual" ? <Button type="button" variant="ghost" disabled={!typeChosen || characterCount === 0} className="raised-tool-button h-10 gap-2 rounded-lg border-0 px-4 font-semibold text-mod-text shadow-[0_2px_4px_rgb(0_0_0/6%)]" onMouseDown={(event) => event.preventDefault()} onClick={() => { setReviewVisited(true); setDock("panel"); setReviewRequest((value) => value + 1); }}><Search size={16} className="text-mod-primary" />AI rà soát{openCount !== null && openCount > 0 ? <span className="rounded bg-mod-canvas-accent px-1.5 text-xs">{openCount}</span> : null}</Button> : null}
                 <Popover open={sourcesOpen} onOpenChange={setSourcesOpen}>
                   <PopoverTrigger asChild>
-                    <Button type="button" size="sm" variant="outline">Nguồn ({sources.length})</Button>
+                    <Button type="button" variant="ghost" className="raised-tool-button h-10 gap-2 rounded-lg border-0 px-4 font-semibold text-mod-text shadow-[0_2px_4px_rgb(0_0_0/6%)] hover:text-mod-text hover:shadow-[0_3px_6px_rgb(0_0_0/8%)] active:shadow-none focus-visible:ring-mod-primary/20"><BookOpen className="size-4 text-mod-text-secondary" aria-hidden="true" />Nguồn ({sources.length})</Button>
                   </PopoverTrigger>
                   <PopoverContent align="end" className="max-h-[min(32rem,var(--radix-popover-content-available-height))] w-80 overflow-y-auto p-3.5">
                     <ScriptSourcesPanel sources={sources} onInsert={(sourceId) => editorRef.current?.insertCitation(sourceId)} />
                   </PopoverContent>
                 </Popover>
-                <Button type="button" size="sm" aria-pressed={dock !== "closed"} onClick={() => setDock(dock === "closed" ? "panel" : "closed")}>
-                  Trợ lý AI
-                  {openCount !== null ? (
-                    <span className={cn("grid h-4 min-w-4 place-items-center rounded-full px-1 text-[10px] font-bold text-white", openCount ? "bg-mod-attention" : "bg-mod-success")}>{openCount || "✓"}</span>
-                  ) : null}
-                </Button>
-              </>
-            }
+              <ScriptFileImport editorRef={editorRef} disabled={saving || !typeChosen} selectedType={kind} onApply={applyImport} />
+            </>}
             onPasteLimitReached={(limit) => {
               setPasteWarning(
                 `Kịch bản hỗ trợ tối đa ${limit.toLocaleString("vi-VN")} ký tự. Phần nội dung vượt giới hạn không được chèn.`,
               );
             }}
             onChange={(nextDocument: EditorDocument) => {
-              changed.current = true;
-              setSaveState("idle");
               wizard.dispatch({
                 type: "setScript",
                 document: nextDocument,
                 text: scriptDocumentText(nextDocument),
               });
             }}
-          />
+          />}
           {pasteWarning ? (
             <p role="alert" className="text-sm text-mod-warning">
               {pasteWarning}
             </p>
           ) : null}
-          <div className="flex justify-end">
-            <Button type="button" variant="outline" disabled={saving} onClick={() => void persistScript(true)}>
-              {saving ? <LoaderCircle className="animate-spin" aria-hidden="true" /> : <Save aria-hidden="true" />}
-              Lưu kịch bản
-            </Button>
-          </div>
 
+
+          <div className="flex justify-end"><Button type="button" variant="outline" disabled={saving} onClick={() => void persistScript(true)}>{saving ? <LoaderCircle className="animate-spin" aria-hidden="true" /> : <Save size={16} aria-hidden="true" />}Lưu kịch bản</Button></div>
           <section className="rounded-xl border border-mod-border p-4" aria-labelledby="script-documents-title">
             <div className="flex flex-wrap items-start justify-between gap-3">
               <div>
                 <h3 id="script-documents-title" className="font-bold text-mod-text">Tài liệu bổ sung</h3>
                 <p className="mt-1 text-xs text-mod-text-secondary">PDF, DOC hoặc DOCX; nội dung file không được nhập tự động vào kịch bản.</p>
               </div>
-              <Button type="button" variant="outline" size="sm" asChild>
-                <label className="cursor-pointer">
-                  <Upload size={15} aria-hidden="true" /> Tải tài liệu
-                  <input className="sr-only" type="file" accept=".pdf,.doc,.docx,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document" multiple onChange={selectDocuments} />
-                </label>
-              </Button>
+              <Button type="button" variant="outline" size="sm" asChild><label className="cursor-pointer"><Upload size={15} aria-hidden="true" />Tải tài liệu<input className="sr-only" type="file" accept=".pdf,.doc,.docx,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document" multiple onChange={selectDocuments} /></label></Button>
             </div>
             <div className="mt-4 space-y-2">
               {episode.data?.attachments.map((attachment) => (
@@ -325,34 +315,13 @@ export function PodcastScriptStep({
           {error ? <p role="alert" className="text-sm text-mod-danger">{error}</p> : null}
         </div>
 
-        <div className={cn("relative w-0 shrink-0 self-stretch transition-[width] duration-300 ease-out", dock === "closed" ? "-ml-4" : dockWide ? "xl:w-[620px]" : "xl:w-[340px]")}>
-          <aside
-            aria-label="Trợ lý AI"
-            className={cn(
-              "sticky top-4 h-[640px] max-h-[calc(100vh-2rem)] overflow-hidden rounded-xl border border-mod-border bg-mod-surface transition-[width] duration-300 ease-out max-xl:absolute max-xl:right-0 max-xl:top-0 max-xl:z-20",
-              dock === "closed" && "hidden",
-              dockWide ? "max-xl:w-[620px]" : "max-xl:w-[340px]",
-              "xl:w-full",
-            )}
-          >
-            <AiDock
-              dock={dock}
-              onDockChange={setDock}
-              tab={aiTab}
-              onTabChange={setAiTab}
-              rewriteRange={rewriteRange}
-              onRewriteClose={() => setRewriteRange(null)}
+        <div hidden={mode !== "ai"} className="podcast-script-ai order-first min-w-0">
+          <aside aria-label="Trợ lý AI" className="h-auto min-w-0 overflow-hidden rounded-xl border border-mod-border bg-mod-surface">
+            {aiVisited ? <AiDock
               editorRef={editorRef}
-              episodeId={wizard.state.episodeId ?? null}
               ensureEpisode={wizard.ensureDraft}
-              sources={sources}
-              hasScript={characterCount > 0}
-              scriptChars={characterCount}
               wordsPerMinute={wordsPerMinute}
-              clickedBlock={clickedBlock}
-              onOpenSource={() => setSourcesOpen(true)}
-              onOpenCountChange={setOpenCount}
-            />
+            /> : null}
           </aside>
         </div>
       </div>

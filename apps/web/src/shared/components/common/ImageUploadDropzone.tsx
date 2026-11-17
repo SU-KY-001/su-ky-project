@@ -28,12 +28,13 @@ function uploadFailure(error: unknown): { status: "error" | "invalid-format"; me
   return { status: "error", message: "Chưa hoàn tất tải và xác minh ảnh trên kho lưu trữ. Kiểm tra kết nối rồi bấm Thử tải lại hoặc chọn ảnh khác.", retry: true };
 }
 
-export function ImageUploadDropzone({ label, value, policy, disabled = false, readOnly = false, onUpload, onChange, onBusyChange, successMessage = "Ảnh đã được tải lên và xác minh. Lưu bản nháp hoặc lưu thay đổi để gắn poster vào tập." }: {
-  label: string; value: UploadedImage | null; policy?: ImageUploadPolicy; disabled?: boolean; readOnly?: boolean;
+export function ImageUploadDropzone({ label, value, policy, disabled = false, readOnly = false, compactPreview = false, onUpload, onChange, onBusyChange, successMessage = "Ảnh đã được tải lên và xác minh. Lưu bản nháp hoặc lưu thay đổi để gắn poster vào tập." }: {
+  label: string; value: UploadedImage | null; policy?: ImageUploadPolicy; disabled?: boolean; readOnly?: boolean; compactPreview?: boolean;
   onUpload: (file: File, signal: AbortSignal) => Promise<UploadedImage>;
   onChange: (image: UploadedImage | null) => void; onBusyChange: (busy: boolean) => void;
   successMessage?: string;
 }): ReactElement {
+  const compact = readOnly && compactPreview;
   const id = useId();
   const input = useRef<HTMLInputElement>(null);
   const controller = useRef<AbortController | null>(null);
@@ -121,14 +122,14 @@ export function ImageUploadDropzone({ label, value, policy, disabled = false, re
 
   return <div className="space-y-2" aria-busy={uploading}>
     <Label id={`${id}-label`} htmlFor={id} className="text-sm font-semibold text-mod-text">{label}</Label>
-    <div role="group" aria-labelledby={`${id}-label`} aria-describedby={!readOnly ? `${id}-conditions ${id}-status` : `${id}-status`} className={cn("flex min-h-56 flex-col justify-center rounded-xl border border-mod-text-low/40 bg-mod-surface p-5 transition-colors", !readOnly && "border-dashed", dragging && "border-mod-primary bg-mod-primary/5", failed && "border-mod-danger/60")}
+    <div role="group" aria-labelledby={`${id}-label`} aria-describedby={!readOnly ? `${id}-conditions ${id}-status` : `${id}-status`} className={cn("flex flex-col justify-center transition-colors", compact ? "w-fit max-w-full" : "min-h-56 rounded-xl border border-mod-text-low/40 bg-mod-surface p-5", !readOnly && "border-dashed", dragging && "border-mod-primary bg-mod-primary/5", failed && "border-mod-danger/60")}
       onDragOver={(event) => { event.preventDefault(); if (!unavailable && !readOnly && event.dataTransfer.types.includes("Files")) setDragging(true); }}
       onDragLeave={(event) => { if (!(event.relatedTarget instanceof Node) || !event.currentTarget.contains(event.relatedTarget)) setDragging(false); }}
       onDrop={(event) => { event.preventDefault(); setDragging(false); choose(Array.from(event.dataTransfer.files)); }}>
       <input ref={input} id={id} className="sr-only" tabIndex={-1} type="file" accept={policy ? [...policy.mimeTypes, ...policy.formats.map((format) => `.${format}`)].join(",") : undefined} disabled={unavailable || readOnly} aria-describedby={`${id}-conditions ${id}-status`} onChange={(event) => { const files = Array.from(event.target.files ?? []); event.target.value = ""; choose(files); }} />
       <div className={cn("flex flex-col items-center gap-3 text-center", (candidate || value) && "sm:flex-row sm:gap-5 sm:text-left")}>
-        {candidate || value ? <div className="flex h-40 w-40 shrink-0 items-center justify-center overflow-hidden rounded-lg border border-mod-border bg-mod-canvas-accent">{previewUrl && !previewFailed ? <img src={previewUrl} alt={`Xem trước ${label.toLowerCase()}`} className="block h-auto w-auto max-h-full max-w-full object-contain" onError={() => setPreviewFailed(true)} /> : <ImageIcon size={30} className="text-mod-text-low" aria-hidden="true" />}</div> : <span className="grid size-10 place-items-center rounded-lg border border-mod-border bg-mod-surface text-mod-text-secondary shadow-xs"><UploadSimple size={22} aria-hidden="true" /></span>}
-        <div className="min-w-0"><p className="text-sm font-semibold text-mod-text">{readOnly ? value?.fileName ?? "Chưa có poster" : dragging ? "Thả ảnh tại đây" : "Kéo thả ảnh vào đây"}</p>
+        {candidate || value ? <div className={cn("flex w-40 shrink-0 items-center justify-center overflow-hidden rounded-lg", compact ? "min-h-16" : "h-40 border border-mod-border bg-mod-canvas-accent")}>{previewUrl && !previewFailed ? <img src={previewUrl} alt={`Xem trước ${label.toLowerCase()}`} className={cn("block h-auto w-auto max-w-full object-contain", compact ? "max-h-48" : "max-h-full")} onError={() => setPreviewFailed(true)} /> : <ImageIcon size={30} className="text-mod-text-low" aria-hidden="true" />}</div> : <span className="grid size-10 place-items-center rounded-lg border border-mod-border bg-mod-surface text-mod-text-secondary shadow-xs"><UploadSimple size={22} aria-hidden="true" /></span>}
+        <div className={cn("min-w-0", compact && "max-w-sm")}><p className="break-words text-sm font-semibold text-mod-text">{readOnly ? value?.fileName ?? "Chưa có poster" : dragging ? "Thả ảnh tại đây" : "Kéo thả ảnh vào đây"}</p>
           {!readOnly && <p id={`${id}-conditions`} className="mt-2 text-xs leading-5 text-mod-text-secondary">{policy ? `${formats} (tối đa ${sizeLabel(policy.maxBytes)}) · Chỉ một ảnh` : "Đang lấy điều kiện tải ảnh…"}</p>}
           {(candidate || value) && !readOnly && <p className="mt-2 break-words text-xs leading-5 text-mod-text-secondary">{candidate?.name ?? value?.fileName}{(candidate?.size ?? value?.sizeBytes) ? ` · ${sizeLabel(candidate?.size ?? value?.sizeBytes ?? 0)}` : ""}</p>}
           {!readOnly && <div className={cn("mt-3 flex flex-wrap justify-center gap-2", (candidate || value) && "sm:justify-start")}><Button type="button" variant="outline" size="sm" disabled={unavailable} onClick={() => input.current?.click()}>{value || candidate ? "Chọn ảnh khác" : "Chọn ảnh"}</Button>{retry && candidate && <Button type="button" variant="outline" size="sm" disabled={unavailable} onClick={() => { void upload(candidate); }}><ArrowClockwise aria-hidden="true" /> Thử tải lại</Button>}{value && failed && <Button type="button" variant="ghost" size="sm" disabled={uploading || disabled} onClick={clearCandidate}>Giữ ảnh đã tải</Button>}{(value || candidate) && <Button type="button" variant="ghost" size="sm" disabled={disabled || uploading} onClick={() => { clearCandidate(); onChange(null); setStatus("idle"); }}><X aria-hidden="true" /> Gỡ ảnh</Button>}</div>}

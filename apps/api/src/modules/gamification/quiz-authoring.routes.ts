@@ -1,7 +1,7 @@
 import { Hono } from "hono";
 import { z } from "zod";
 import { zValidator } from "@hono/zod-validator";
-import { ActivateQuizDraftSchema, SaveQuizDraftSchema, QuizImportDocumentSchema, QuizImportPreviewSchema } from "@repo/shared";
+import { ActivateQuizDraftSchema, SaveQuizDraftSchema, QuizImportDocumentSchema, QuizImportPreviewSchema, ScriptImportDocumentSchema } from "@repo/shared";
 import { bodyLimit } from "hono/body-limit";
 import { DomainError } from "../../core/errors/domain-error";
 import { extractQuizDocument, QUIZ_DOCUMENT_BYTES } from "./quiz-document";
@@ -10,8 +10,17 @@ import type { AppEnv } from "../../types";
 import { requireAuth, requireRole } from "../auth";
 import { quizAuthoringService as service } from "./quiz-authoring.service";
 import { handleQuizImportPreview } from "./quiz-import/preview-handler";
+import { runScriptImport } from "./quiz-import/runner";
 const param = z.object({ episodeId: z.string().uuid() });
 export const quizAuthoringRoute = new Hono<AppEnv>()
+  .use("/script-import/extract", requireAuth, requireRole("moderator"))
+  .post("/script-import/extract", rateLimit("write"), bodyLimit({ maxSize: QUIZ_DOCUMENT_BYTES + 64 * 1024, onError: () => { throw new DomainError(413, "PAYLOAD_TOO_LARGE", "Tài liệu tối đa 5 MB."); } }), async c => {
+    let body: Record<string, string | File | (string | File)[]>;
+    try { body = await c.req.parseBody({ all: true }); } catch { throw new DomainError(422, "VALIDATION_ERROR", "Không đọc được tệp tải lên."); }
+    if (!(body.file instanceof File)) throw new DomainError(422, "VALIDATION_ERROR", "Mỗi lần chọn đúng một tài liệu.");
+    c.header("Cache-Control", "no-store");
+    return c.json(ScriptImportDocumentSchema.parse(await runScriptImport(body.file, c.get("session")!.user.id, c.req.raw.signal)));
+  })
   .use("/quiz-import/extract", requireAuth, requireRole("moderator"))
   .use("/quiz-import/preview", requireAuth, requireRole("moderator"))
   .use("/quiz-workspaces", requireAuth, requireRole("moderator"))

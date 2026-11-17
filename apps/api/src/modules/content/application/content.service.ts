@@ -830,6 +830,11 @@ export class ContentService {
       if (!parsed.success)
         throw new DomainError(422, "VALIDATION_ERROR", "Dialogue is invalid");
       dialogue = parsed.data;
+      const citedSources = parsed.data.turns.flatMap((turn) => turn.document ? extractCitationSourceIds(turn.document) : []);
+      if (citedSources.length) {
+        const allowedSources = new Set(await this.series.listSeriesSourceIds(episode.seriesId));
+        if (citedSources.some((sourceId) => !allowedSources.has(sourceId))) throw new DomainError(422, "VALIDATION_ERROR", "Dialogue cites a source that is not attached to this series");
+      }
       scriptDocument = null;
       scriptContent = dialogueScriptContent(parsed.data);
     } else if (

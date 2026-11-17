@@ -14,6 +14,7 @@ import {
   dashboardTableCell,
 } from "@/shared/components/dashboard/DashboardDataTable";
 import { DashboardTableCard } from "@/shared/components/dashboard/DashboardTableCard";
+import { DashboardPagination } from "@/shared/components/dashboard/DashboardPagination";
 import { Button } from "@/shared/components/ui/button";
 import { DashboardRowActions } from "@/shared/components/dashboard/DashboardRowActions";
 import {
@@ -36,7 +37,7 @@ type TicketStatusFilter = ReleaseReassignmentTicketStatus | "";
 
 const statusCopy: Record<ReleaseReassignmentTicketStatus, string> = {
   PENDING: "Chờ duyệt",
-  APPROVED: "Đã duyệt",
+  APPROVED: "Đã chuyển giao",
   REJECTED: "Đã từ chối",
   CANCELLED: "Moderator đã hủy",
 };
@@ -50,6 +51,9 @@ function formatDateTime(value: Date): string {
 }
 
 export function AdminNotificationsView({
+  page,
+  total,
+  onPageChange,
   tickets,
   moderators,
   status,
@@ -58,6 +62,9 @@ export function AdminNotificationsView({
   onApprove,
   onReject,
 }: {
+  page: number;
+  total: number;
+  onPageChange: (page: number) => void;
   tickets: ReleaseReassignmentTicket[];
   moderators: ModeratorOption[];
   status: TicketStatusFilter;
@@ -121,9 +128,9 @@ export function AdminNotificationsView({
 
   const toolbar = (
     <div className="flex flex-wrap items-center justify-between gap-3">
-      <p className="text-xs leading-5 text-mod-text-secondary">Ticket mới được ưu tiên để Admin xử lý trước.</p>
+      <p className="text-xs leading-5 text-mod-text-secondary">Yêu cầu mới nhất hiển thị trước.</p>
       <Select value={status || "ALL"} onValueChange={(value) => onStatusChange(value === "ALL" ? "" : value as TicketStatusFilter)}>
-        <SelectTrigger aria-label="Lọc trạng thái ticket" className="h-10 w-full border-mod-border bg-mod-canvas sm:w-52"><SelectValue /></SelectTrigger>
+        <SelectTrigger aria-label="Lọc trạng thái yêu cầu" className="h-10 w-full border-mod-border bg-mod-canvas sm:w-52"><SelectValue /></SelectTrigger>
         <SelectContent>
           <SelectItem value="ALL">Tất cả trạng thái</SelectItem>
           <SelectItem value="PENDING">Chờ duyệt</SelectItem>
@@ -139,18 +146,18 @@ export function AdminNotificationsView({
     <div data-admin-notifications="true" className="flex flex-col gap-6 font-moderator">
       <DashboardHeader
         eyebrow="TRUNG TÂM ĐIỀU HÀNH"
-        title="Thông báo & ticket"
-        description="Duyệt ticket và phân công người thay thế mà không làm gián đoạn lịch phát hành."
+        title="Chuyển giao"
+        description="Duyệt yêu cầu đổi người phụ trách."
       />
       <DashboardTableCard
-        title="Ticket"
-        description="Chỉ khi Admin duyệt và chọn nhân sự mới, nhiệm vụ mới được chuyển giao."
-        summary={`${tickets.length} ticket`}
+        title="Yêu cầu chuyển giao"
+        summary={`${total} yêu cầu`}
         toolbar={toolbar}
+        footer={<DashboardPagination page={page} limit={10} total={total} itemLabel="yêu cầu" onPageChange={onPageChange} />}
       >
         <DashboardDataTable
           embedded
-          caption="Danh sách ticket từ Moderator"
+          caption="Danh sách yêu cầu chuyển giao từ Moderator"
           columns={["Người gửi", "Nhiệm vụ", "Hạn sản xuất", "Trạng thái", "Thao tác"]}
           columnWidths={["20%", "30%", "20%", "15%", "15%"]}
           minWidth={860}
@@ -172,7 +179,7 @@ export function AdminNotificationsView({
               </TableCell>
             </TableRow>
           )) : (
-            <DashboardEmptyTableRow columns={5}>Không có ticket phù hợp với bộ lọc hiện tại.</DashboardEmptyTableRow>
+            <DashboardEmptyTableRow columns={5}>Không có yêu cầu phù hợp với bộ lọc hiện tại.</DashboardEmptyTableRow>
           )}
         </DashboardDataTable>
       </DashboardTableCard>
@@ -180,8 +187,8 @@ export function AdminNotificationsView({
       <Dialog open={Boolean(activeTicket && !action)} onOpenChange={(open) => !open && closeDetail()}>
         <DialogContent className="max-w-2xl border-mod-border bg-mod-surface font-moderator text-mod-text">
           <DialogHeader>
-            <DialogTitle>Chi tiết ticket</DialogTitle>
-            <DialogDescription>Thông tin đầy đủ do Moderator gửi để Admin xem xét.</DialogDescription>
+            <DialogTitle>Chi tiết yêu cầu</DialogTitle>
+            <DialogDescription>Xem lý do và chọn người thay thế.</DialogDescription>
           </DialogHeader>
           {activeTicket ? (
             <div className="grid gap-4">
@@ -216,7 +223,7 @@ export function AdminNotificationsView({
             {activeTicket?.status === "PENDING" ? (
               <>
                 <Button type="button" variant="outline" disabled={busy} className="border-mod-danger/30 text-mod-danger hover:bg-mod-danger/5 hover:text-mod-danger" onClick={() => openAction(activeTicket, "reject")}><XCircle size={16} />Từ chối</Button>
-                <Button type="button" disabled={busy} className="bg-mod-primary text-white hover:bg-mod-primary/90" onClick={() => openAction(activeTicket, "approve")}><CheckCircle size={16} />Duyệt ticket</Button>
+                <Button type="button" disabled={busy} className="bg-mod-primary text-white hover:bg-mod-primary/90" onClick={() => openAction(activeTicket, "approve")}><CheckCircle size={16} />Duyệt yêu cầu</Button>
               </>
             ) : null}
           </DialogFooter>
@@ -226,7 +233,7 @@ export function AdminNotificationsView({
       <Dialog open={Boolean(activeTicket && action)} onOpenChange={(open) => !open && closeAction()}>
         <DialogContent className="border-mod-border bg-mod-surface font-moderator text-mod-text">
           <DialogHeader>
-            <DialogTitle>{action === "approve" ? "Phân công người thay thế" : "Từ chối ticket"}</DialogTitle>
+            <DialogTitle>{action === "approve" ? "Phân công người thay thế" : "Từ chối yêu cầu"}</DialogTitle>
             <DialogDescription>
               {action === "approve"
                 ? "Việc duyệt sẽ đóng phân công hiện tại và chuyển nhiệm vụ sang Moderator mới."
@@ -277,20 +284,24 @@ export function AdminNotificationsView({
 
 export function AdminNotifications() {
   const [status, setStatus] = useState<TicketStatusFilter>("PENDING");
-  const state = useAdminTickets(status);
+  const [page, setPage] = useState(1);
+  const state = useAdminTickets(status, page);
   if (state.tickets.isPending || state.moderators.isPending)
-    return <div className="ui-skeleton min-h-[420px] rounded-[16px]" aria-label="Đang tải ticket" />;
+    return <div className="ui-skeleton min-h-[420px] rounded-[16px]" aria-label="Đang tải yêu cầu chuyển giao" />;
   if (state.tickets.isError || state.moderators.isError)
-    return <p role="alert" className="rounded-[16px] border border-mod-danger/25 bg-mod-surface p-6 text-sm text-mod-danger">Không tải được danh sách ticket. Vui lòng thử lại sau.</p>;
+    return <p role="alert" className="rounded-[16px] border border-mod-danger/25 bg-mod-surface p-6 text-sm text-mod-danger">Không tải được danh sách yêu cầu chuyển giao. Vui lòng thử lại sau.</p>;
   return (
     <AdminNotificationsView
+      page={state.tickets.data.page}
+      total={state.tickets.data.total}
+      onPageChange={setPage}
       tickets={state.tickets.data.items}
       moderators={state.moderators.data.items}
       status={status}
       busy={state.busy}
-      onStatusChange={setStatus}
-      onApprove={(ticketItem, replacementModeratorId) => state.approve.mutateAsync({ ticketId: ticketItem.id, replacementModeratorId })}
-      onReject={(ticketItem, reason) => state.reject.mutateAsync({ ticketId: ticketItem.id, reason })}
+      onStatusChange={(next) => { setStatus(next); setPage(1); }}
+      onApprove={async (ticketItem, replacementModeratorId) => { await state.approve.mutateAsync({ ticketId: ticketItem.id, replacementModeratorId }); setPage(1); }}
+      onReject={async (ticketItem, reason) => { await state.reject.mutateAsync({ ticketId: ticketItem.id, reason }); setPage(1); }}
     />
   );
 }

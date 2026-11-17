@@ -20,6 +20,7 @@ it("renders a role-neutral workspace with supplied navigation and profile", asyn
   await act(async () => {
     root?.render(
       <WorkspaceShell
+        variant="admin"
         navigationLabel="Điều hướng admin"
         mobileNavigationTitle="Menu admin"
         brandCaption="KHÔNG GIAN QUẢN TRỊ"
@@ -31,6 +32,7 @@ it("renders a role-neutral workspace with supplied navigation and profile", asyn
     );
   });
   expect(host.querySelector('aside[aria-label="Điều hướng admin"]')).not.toBeNull();
+  expect(host.querySelector('.workspace-shell')?.getAttribute('data-workspace')).toBe('admin');
   expect(host.textContent).toContain("Tổng quan");
   expect(host.textContent).toContain("Theo dõi phát hành");
   expect(host.textContent).toContain("Đăng xuất");
@@ -45,6 +47,7 @@ it("locks the document so only the dashboard content can scroll", async () => {
   await act(async () => {
     root?.render(
       <WorkspaceShell
+        variant="moderator"
         navigationLabel="Điều hướng moderator"
         mobileNavigationTitle="Menu moderator"
         brandCaption="KHÔNG GIAN BIÊN TẬP"
@@ -66,13 +69,13 @@ it("locks the document so only the dashboard content can scroll", async () => {
   expect(document.body.classList.contains("workspace-scroll-lock")).toBe(false);
 });
 
-it("collapses to an icon rail with the toggle inside the sidebar and preserves content", async () => {
+it("collapses to an icon rail with the toggle beside the sidebar and preserves content", async () => {
   const host = document.createElement("div"); document.body.append(host); root = createRoot(host);
-  await act(async () => root?.render(<WorkspaceShell navigationLabel="Điều hướng moderator" mobileNavigationTitle="Menu moderator" brandCaption="BIÊN TẬP" nav={[{ id: "overview", label: "Tổng quan", icon: ChartBar, active: true }]} profile={<span>Moderator</span>}><input aria-label="Nội dung đang soạn" defaultValue="Bản nháp" /></WorkspaceShell>));
+  await act(async () => root?.render(<WorkspaceShell variant="moderator" navigationLabel="Điều hướng moderator" mobileNavigationTitle="Menu moderator" brandCaption="BIÊN TẬP" nav={[{ id: "overview", label: "Tổng quan", icon: ChartBar, active: true }]} profile={<span>Moderator</span>}><input aria-label="Nội dung đang soạn" defaultValue="Bản nháp" /></WorkspaceShell>));
   const input = host.querySelector('input');
   const toggle = host.querySelector<HTMLButtonElement>('button[aria-label="Thu gọn sidebar"]');
   expect(toggle !== null).toBe(true);
-  expect(toggle?.closest('aside') !== null).toBe(true);
+  expect(toggle?.parentElement?.classList.contains('mod-layout-shell')).toBe(true);
   expect(toggle?.getAttribute('aria-expanded')).toBe('true');
   await act(async () => toggle!.click());
   expect(host.querySelector('.mod-layout-shell')?.getAttribute('data-sidebar-collapsed')).toBe('true');

@@ -6,6 +6,10 @@ const FEMALE_VOICES: ReadonlySet<string> = new Set([
   "Pulcherrima", "Sulafat", "Vindemiatrix", "Zephyr",
 ]);
 
+export function voiceGender(id: AiVoice): "female" | "male" {
+  return FEMALE_VOICES.has(id) ? "female" : "male";
+}
+
 /** Hand-written characters for the voices the moderator met first; the rest only state gender (the Cloud TTS table). */
 const KNOWN_DETAIL: Partial<Record<AiVoice, string>> = {
   "en-us-riko": "Nam, trầm, kể chuyện kiểu podcast",

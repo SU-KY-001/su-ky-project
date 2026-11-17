@@ -94,6 +94,7 @@ export const ReviewEpisodeSchema = z.discriminatedUnion("decision", [
 ]);
 
 export const ReleaseScheduleQuerySchema = PaginationQuerySchema.extend({
+  sort: z.enum(["scheduledAt"]).optional(),
   status: ReleaseScheduleStatusSchema.optional(),
   statusGroup: ReleaseStatusGroupSchema.optional(),
   scope: ReleaseScheduleScopeSchema.optional(),

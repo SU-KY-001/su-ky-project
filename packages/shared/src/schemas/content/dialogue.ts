@@ -1,5 +1,11 @@
 import { z } from "zod";
 import { DialogueVoiceSchema } from "./ai-voice";
+import { EditorDocumentSchema, type EditorNode } from "./editor-document";
+
+function richTurnText(nodes: EditorNode[]): string {
+  const nodeText = (node: EditorNode): string => node.type === "text" ? node.text : node.type === "hardBreak" ? "\n" : (node.content ?? []).map(nodeText).filter(Boolean).join(node.type === "paragraph" || node.type === "heading" ? "" : "\n");
+  return nodes.map(nodeText).filter(Boolean).join("\n").replace(/\n{3,}/g, "\n\n").trim();
+}
 
 /** Gemini TTS inline expression tags; anything else between `<>` is rejected so it is never read aloud. */
 export const DIALOGUE_TAGS = [
@@ -45,6 +51,7 @@ const DialogueSpeakerSchema = z.object({
 });
 
 const DialogueTurnSchema = z.object({
+  document: EditorDocumentSchema.optional(),
   id: z.string().uuid(),
   speaker: DialogueSpeakerKeySchema,
   text: z.string().trim().min(1).max(DIALOGUE_TURN_MAX_CHARS).refine(isValidDialogueText, {
@@ -71,6 +78,7 @@ export const DialogueSchema = z
       ctx.addIssue({ code: "custom", message: "Các người nói phải khác giọng", path: ["speakers"] });
     }
     value.turns.forEach((turn, index) => {
+      if (turn.document && richTurnText(turn.document.content ?? []) !== turn.text) ctx.addIssue({ code: "custom", message: "Nội dung định dạng phải khớp lời thoại", path: ["turns", index, "document"] });
       if (!keys.has(turn.speaker)) ctx.addIssue({ code: "custom", message: `Lượt ${index + 1} tham chiếu người nói không tồn tại`, path: ["turns", index, "speaker"] });
     });
     if (new Set(value.turns.map((turn) => turn.id)).size !== value.turns.length) ctx.addIssue({ code: "custom", message: "Mã lượt bị trùng", path: ["turns"] });
