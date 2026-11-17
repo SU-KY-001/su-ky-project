@@ -36,6 +36,16 @@ import {
   extractCitationSourceIds,
   extractScriptText,
 } from "./script-document";
+    if (input.isPremium === true && session.user.role !== "admin")
+      throw new DomainError(403, "PREMIUM_ADMIN_ONLY", "Chỉ admin được gắn nhãn Premium cho series");
+      isPremium?: boolean;
+    if (input.isPremium !== undefined && input.isPremium !== current.isPremium && session.user.role !== "admin")
+      throw new DomainError(403, "PREMIUM_ADMIN_ONLY", "Chỉ admin được đổi nhãn Premium của series");
+      isPremium?: boolean;
+    ipAddress: string | null = null,
+    if (input.isPremium !== undefined && input.isPremium !== current.isPremium && session.user.role !== "admin")
+      throw new DomainError(403, "PREMIUM_ADMIN_ONLY", "Chỉ admin được đổi nhãn Premium của tập");
+    await this.episodes.updateEpisode(id, patch, { actorId: session.user.id, ipAddress });
 
 /** Scripts are plain text read aloud: markup would be spoken or rendered literally. */
 const HTML_TAG_PATTERN = /<\/?[a-z!][^>]*>/i;

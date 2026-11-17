@@ -1,6 +1,8 @@
 import { prisma } from "@repo/db";
 import { PublicationAssessmentSchema, type PublicationAssessment, type UserRole } from "@repo/shared";
 import type { Session } from "../../src/modules/auth";
+  // Episode deletes are RESTRICTed by the quota ledger, so ledger rows go first.
+  await prisma.listeningDailyPlay.deleteMany({ where: { userId } });
 
 /**
  * Database-backed suites are opt-in (`RUN_INTEGRATION=1`, see `.env.test.example`) and refuse to run

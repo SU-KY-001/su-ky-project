@@ -29,6 +29,8 @@ import {
   mapWorkspace,
 } from "../application/content.mappers";
 import type { ContentService } from "../application/content.service";
+import { requestIpAddress } from "../../../core/audit";
+              requestIpAddress(c.req.raw.headers),
 
 const idParam = z.object({ id: z.string().uuid() });
 const seriesParam = z.object({ seriesId: z.string().uuid() });

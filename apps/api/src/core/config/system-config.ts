@@ -2,6 +2,8 @@ import { prisma } from "@repo/db";
 import { SCRIPT_MAX_CHARACTERS } from "@repo/shared";
 import { z } from "zod";
 import { logger } from "../logger";
+  "premium.free_daily_plays": { schema: z.number().int().min(1).max(50), defaultValue: 4 },
+  "premium.enforce_daily_quota": { schema: z.boolean(), defaultValue: true },
 
 const rateLimitSchema = z.object({
   limit: z.number().int().positive(),
