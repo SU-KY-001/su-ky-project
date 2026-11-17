@@ -85,6 +85,7 @@ describe.skipIf(!RUN_INTEGRATION)("Membership orders", () => {
     await prisma.membershipPlan.update({ where: { code: "monthly" }, data: { priceVnd: 25000 } });
     const read = await service.getOrder(userId, order.id);
     expect(read.priceVnd).toBe(20000);
+    expect(read.expiresAt).not.toBeNull();
     const created = await service.createOrder(userId, "monthly");
     expect(created.priceVnd).toBe(25000);
     const old = await prisma.membershipOrder.findUniqueOrThrow({ where: { id: order.id } });

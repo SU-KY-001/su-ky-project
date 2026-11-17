@@ -17,6 +17,10 @@ Nhãn: `BREAKING` (code cũ gọi sẽ lỗi hoặc sai), `ADDITIVE` (mới, kh�
 - Migration `20261117120000_listening_daily_plays` thêm bảng `listening_daily_plays`.
 - Lưu ý vận hành: phải cấu hình `CLOUDINARY_AUTH_TOKEN_KEY` thì URL audio mới thực sự hết hạn; thiếu key, URL công khai vẫn vượt được quota.
 
+### FIX — Đơn đang mở luôn có hạn dự kiến (2026-11-17)
+- `GET /api/me/membership/orders/{id}` và response của `POST /api/me/membership/orders/{id}/proof` luôn trả `expiresAt` dự kiến khi đơn còn mở, kể cả user chưa từng có kỳ hạn (trước đây trả `null` cho người mua lần đầu). Đơn `rejected` vẫn trả `null`.
+- Nhắc lại hợp đồng: `reviewReason` của order chỉ mang `STACK_LIMIT_REACHED`; sai tiền/chuyển trùng là `reason` của giao dịch trong sổ đối soát, order không đổi trạng thái.
+
 ### FIX — Chốt chặn thanh toán và thành viên (2026-11-13)
 - `POST /api/admin/membership/members/{userId}/grant` bắt buộc header `Idempotency-Key` (UUID v4), tránh Admin bấm hai lần tạo hai kỳ hạn. Đơn comp và kỳ hạn được tạo trong một transaction; vượt trần cộng dồn thì không để lại đơn rác.
 - Từ chối đơn và bỏ qua giao dịch dùng cập nhật có điều kiện, không ghi đè trạng thái webhook vừa chuyển sang `paid`/`matched` (trả `409 ORDER_NOT_PENDING`). Gán một giao dịch đã bỏ qua cũng trả `409` thay vì im lặng không làm gì.
