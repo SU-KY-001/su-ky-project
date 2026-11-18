@@ -28,7 +28,6 @@ export default function PaymentPage(): React.JSX.Element {
         if (!focused.current) return;
         if (router.canGoBack()) router.back(); else router.replace("/membership");
       }}
-      onRestart={(nextOrderId) => router.replace({ pathname: "/membership/payment/[orderId]", params: { orderId: nextOrderId } })}
     />
   );
 }

@@ -1,18 +1,19 @@
 import { useEffect, useRef, useState } from "react";
 import * as Clipboard from "expo-clipboard";
-import { Button, ScrollView, Text, XStack, YStack } from "tamagui";
+import { Image } from "expo-image";
+import { Button, ScrollView, Spinner, Text, XStack, YStack } from "tamagui";
+import { useQueryClient } from "@tanstack/react-query";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { AppCard, AppHeader, AppIcon, PrimaryButton, SectionHeader, type IconName } from "@/shared/ui";
-import { MockQr } from "../components/MockQr";
-import {
-  ORDER_STATUS_LABELS,
-  formatDate,
-  formatVnd,
-  useMockMembership,
-  type MembershipOrder,
-} from "../mock";
+import { ORDER_STATUS_LABELS, formatDate, formatVnd } from "../format";
+import { membershipKeys, useOrderPolling } from "../hooks/useMembership";
+import type { MembershipOrder } from "../services/membershipService";
 
 const COPY_FEEDBACK_MS = 1_800;
+
+const REVIEW_REASON_LABELS: Record<string, string> = {
+  STACK_LIMIT_REACHED: "Đã vượt trần thời hạn cộng dồn tối đa.",
+};
 
 interface CopyRowProps {
   label: string;
@@ -46,7 +47,7 @@ function CopyRow({ label, value, display, copied, onCopy }: CopyRowProps): React
         pressStyle={{ op: 0.7 }}
       >
         <AppIcon name={copied ? "check" : "copy"} size={14} color={copied ? "#B58A3C" : "#5B4E44"} />
-        <Text ff="$body" fs="$1" fw="$6" color={copied ? "$bronze" : "$inkSoft"}>{copied ? "Đã chép" : "Sao chép"}</Text>
+        <Text ff="$body" fs="$1" fw="$6" color={copied ? "$bronzeDark" : "$inkSoft"}>{copied ? "Đã chép" : "Sao chép"}</Text>
       </Button>
     </XStack>
   );
@@ -69,10 +70,8 @@ function Notice({ icon, title, body, tone }: { icon: IconName; title: string; bo
   );
 }
 
-function TransferView({ order, onPaid, onReview, onRejected, onRestart }: { order: MembershipOrder; onPaid: () => void; onReview: () => void; onRejected: () => void; onRestart: () => void }): React.JSX.Element {
-  const store = useMockMembership();
+function TransferView({ order }: { order: MembershipOrder }): React.JSX.Element {
   const [copiedKey, setCopiedKey] = useState<string | null>(null);
-  const [qrOpen, setQrOpen] = useState(true);
   const timer = useRef<number | undefined>(undefined);
 
   useEffect(() => () => { clearTimeout(timer.current); }, []);
@@ -88,7 +87,7 @@ function TransferView({ order, onPaid, onReview, onRejected, onRestart }: { orde
     <YStack g="$4">
       <YStack items="center" g="$1" py="$2">
         <Text ff="$body" fs="$1" fw="$7" ls="$1" color="$inkSoft">SỐ TIỀN CẦN CHUYỂN</Text>
-        <Text ff="$heading" fs="$7" lh="$7" fw="$7" color="$vermilion">{formatVnd(order.priceVnd)}</Text>
+        <Text ff="$heading" fs="$7" lh="$7" fw="$7" color="$vermilion">{formatVnd(order.bank.amount)}</Text>
         <Text ff="$body" fs="$2" color="$inkSoft">Mã đơn {order.transferContent}</Text>
       </YStack>
 
@@ -96,8 +95,20 @@ function TransferView({ order, onPaid, onReview, onRejected, onRestart }: { orde
         icon="info"
         tone="bronze"
         title="Chuyển khoản đúng nội dung"
-        body="Sao chép từng thông tin bên dưới và dán vào ứng dụng ngân hàng. Sai nội dung, đơn sẽ phải đối soát thủ công."
+        body="Số tiền và nội dung đã được điền sẵn trong mã QR. Chuyển khoản tay thì phải khớp đúng, sai nội dung sẽ phải đối soát thủ công."
       />
+
+      <AppCard>
+        <YStack p="$4" g="$3" items="center">
+          <Image
+            source={{ uri: order.bank.qrUrl }}
+            style={{ width: 220, height: 220 }}
+            contentFit="contain"
+            accessibilityLabel={`Mã QR chuyển khoản ${formatVnd(order.bank.amount)}`}
+          />
+          <Text ff="$body" fs="$1" lh="$2" color="$inkSoft" text="center">Mở ứng dụng ngân hàng có VietQR và quét mã.</Text>
+        </YStack>
+      </AppCard>
 
       <AppCard>
         <YStack px="$4" pt="$1" pb="$2">
@@ -109,39 +120,9 @@ function TransferView({ order, onPaid, onReview, onRejected, onRestart }: { orde
         </YStack>
       </AppCard>
 
-      <Button unstyled onPress={() => setQrOpen((open) => !open)} accessibilityRole="button" accessibilityLabel={qrOpen ? "Ẩn mã QR" : "Mở mã QR"}>
-        <XStack items="center" justify="space-between" py="$2">
-          <XStack items="center" g="$2">
-            <AppIcon name="maximize" size={16} color="#5B4E44" />
-            <Text ff="$body" fs="$2" fw="$6" color="$ink">Quét bằng thiết bị khác</Text>
-          </XStack>
-          <AppIcon name={qrOpen ? "chevron-up" : "chevron-down"} size={18} color="#5B4E44" />
-        </XStack>
-      </Button>
-      {qrOpen ? (
-        <AppCard>
-          <YStack p="$4" g="$3" items="center">
-            <MockQr />
-            <Text ff="$body" fs="$1" lh="$2" color="$inkSoft" text="center">
-              Mã QR minh hoạ, chưa quét được. Khi nối API thanh toán, mã QR chuyển khoản thật sẽ hiển thị tại đây để quét bằng thiết bị khác.
-            </Text>
-          </YStack>
-        </AppCard>
-      ) : null}
-
       <Text ff="$body" fs="$1" lh="$2" color="$inkSoft" text="center">
-        Đơn được cập nhật khi quản trị viên duyệt. Bạn có thể quay lại sau.
+        Đơn tự cập nhật khi hệ thống hoặc quản trị viên xác nhận thanh toán. Bạn có thể quay lại sau.
       </Text>
-
-      <YStack g="$2" pt="$2">
-        <Text ff="$body" fs="$1" fw="$7" ls="$1" color="$inkSoft" text="center">BẢN XEM TRƯỚC · GIẢ LẬP KẾT QUẢ</Text>
-        <PrimaryButton label="Giả lập đã thanh toán" onPress={() => { store.markPaid(order.id); onPaid(); }} />
-        <PrimaryButton secondary label="Giả lập cần đối soát" onPress={() => { store.markNeedsReview(order.id); onReview(); }} />
-        <PrimaryButton secondary label="Giả lập bị từ chối" onPress={() => { store.markRejected(order.id); onRejected(); }} />
-        <Button unstyled onPress={onRestart} accessibilityRole="button">
-          <Text ff="$body" fs="$2" color="$inkSoft" text="center">Tạo đơn mới</Text>
-        </Button>
-      </YStack>
     </YStack>
   );
 }
@@ -153,11 +134,12 @@ function PaidView({ order, onDone }: { order: MembershipOrder; onDone: () => voi
         icon="check-circle"
         tone="green"
         title="Thanh toán thành công"
-        body={`Đơn ${order.transferContent} đã được duyệt. Premium có hiệu lực đến ${formatDate(order.expiresAt)}.`}
+        body={`Đơn ${order.transferContent} đã được xác nhận. Premium có hiệu lực đến ${formatDate(order.expiresAt)}.`}
       />
       <AppCard>
         <YStack p="$4" g="$1.5">
           <XStack justify="space-between"><Text ff="$body" fs="$2" color="$inkSoft">Số tiền</Text><Text ff="$body" fs="$2" fw="$6" color="$ink">{formatVnd(order.priceVnd)}</Text></XStack>
+          <XStack justify="space-between"><Text ff="$body" fs="$2" color="$inkSoft">Thanh toán lúc</Text><Text ff="$body" fs="$2" fw="$6" color="$ink">{formatDate(order.paidAt)}</Text></XStack>
           <XStack justify="space-between"><Text ff="$body" fs="$2" color="$inkSoft">Hết hạn</Text><Text ff="$body" fs="$2" fw="$6" color="$ink">{formatDate(order.expiresAt)}</Text></XStack>
           <XStack justify="space-between"><Text ff="$body" fs="$2" color="$inkSoft">Trạng thái</Text><Text ff="$body" fs="$2" fw="$6" color="#55714A">{ORDER_STATUS_LABELS.paid}</Text></XStack>
         </YStack>
@@ -167,14 +149,15 @@ function PaidView({ order, onDone }: { order: MembershipOrder; onDone: () => voi
   );
 }
 
-function ReviewView({ order, onPaid, onRejected, onBack }: { order: MembershipOrder; onPaid: () => void; onRejected: () => void; onBack: () => void }): React.JSX.Element {
+function ReviewView({ order, onBack }: { order: MembershipOrder; onBack: () => void }): React.JSX.Element {
+  const reason = order.reviewReason ? REVIEW_REASON_LABELS[order.reviewReason] ?? order.reviewReason : null;
   return (
     <YStack g="$4">
       <Notice
         icon="clock"
         tone="bronze"
         title="Đang kiểm tra giao dịch"
-        body={`Đơn ${order.transferContent} đang được đối soát. Premium chưa được kích hoạt cho đến khi có kết quả.`}
+        body={`Hệ thống đã ghi nhận thanh toán của đơn ${order.transferContent} và đang đối soát. Không cần chuyển thêm.${reason ? ` Lý do: ${reason}` : ""}`}
       />
       <AppCard>
         <YStack p="$4" g="$1.5">
@@ -183,17 +166,12 @@ function ReviewView({ order, onPaid, onRejected, onBack }: { order: MembershipOr
           <XStack justify="space-between"><Text ff="$body" fs="$2" color="$inkSoft">Trạng thái</Text><Text ff="$body" fs="$2" fw="$6" color="#B58A3C">{ORDER_STATUS_LABELS.needs_review}</Text></XStack>
         </YStack>
       </AppCard>
-      <YStack g="$2">
-        <Text ff="$body" fs="$1" fw="$7" ls="$1" color="$inkSoft" text="center">BẢN XEM TRƯỚC · GIẢ LẬP KẾT QUẢ</Text>
-        <PrimaryButton label="Giả lập duyệt đơn" onPress={onPaid} />
-        <PrimaryButton secondary label="Giả lập bị từ chối" onPress={onRejected} />
-        <PrimaryButton secondary label="Quay lại gói Premium" onPress={onBack} />
-      </YStack>
+      <PrimaryButton secondary label="Quay lại gói Premium" onPress={onBack} />
     </YStack>
   );
 }
 
-function RejectedView({ order, onRestart, onBack }: { order: MembershipOrder; onRestart: () => void; onBack: () => void }): React.JSX.Element {
+function RejectedView({ order, onBack }: { order: MembershipOrder; onBack: () => void }): React.JSX.Element {
   return (
     <YStack g="$4">
       <Notice
@@ -202,55 +180,53 @@ function RejectedView({ order, onRestart, onBack }: { order: MembershipOrder; on
         title="Đơn bị từ chối"
         body={order.rejectionReason ?? "Giao dịch không khớp với đơn hàng."}
       />
-      <PrimaryButton label="Tạo đơn mới" onPress={onRestart} />
+      <PrimaryButton label="Tạo đơn mới" onPress={onBack} />
       <PrimaryButton secondary label="Quay lại gói Premium" onPress={onBack} />
     </YStack>
   );
 }
 
-export function PaymentScreen({ orderId, onBack, onRestart, onDone }: {
+export function PaymentScreen({ orderId, onBack, onDone }: {
   orderId: string;
   onBack: () => void;
-  onRestart: (orderId: string) => void;
   onDone: () => void;
 }): React.JSX.Element {
   const insets = useSafeAreaInsets();
-  const store = useMockMembership();
-  const [status, setStatus] = useState<MembershipOrder["status"] | null>(null);
-  const order = store.orders.find((item) => item.id === orderId);
-  const currentStatus = status ?? order?.status ?? null;
+  const cache = useQueryClient();
+  const order = useOrderPolling(orderId || null);
+  const status = order.data?.status;
 
-  const restart = (): void => {
-    const created = store.createOrder();
-    setStatus(null);
-    onRestart(created.id);
-  };
+  useEffect(() => {
+    if (status !== "paid") return;
+    void cache.invalidateQueries({ queryKey: membershipKeys.status });
+    void cache.invalidateQueries({ queryKey: membershipKeys.orders });
+  }, [status, cache]);
 
   return (
     <YStack f={1} bg="$paper" pt={insets.top}>
       <AppHeader title="Thanh toán" onBack={onBack} />
       <ScrollView f={1} bg="$paper" showsVerticalScrollIndicator={false}>
         <YStack px="$4" pt="$3" pb={insets.bottom + 24} g="$4">
-          {!order ? (
-            <Notice icon="alert-circle" tone="vermilion" title="Không tìm thấy đơn" body="Đơn hàng không tồn tại trong bản xem trước." />
-          ) : currentStatus === "paid" ? (
-            <PaidView order={order} onDone={onDone} />
-          ) : currentStatus === "rejected" ? (
-            <RejectedView order={order} onRestart={restart} onBack={onBack} />
-          ) : currentStatus === "needs_review" ? (
-            <ReviewView
-              order={order}
-              onPaid={() => { store.markPaid(order.id); setStatus("paid"); }}
-              onRejected={() => { store.markRejected(order.id); setStatus("rejected"); }}
-              onBack={onBack}
-            />
+          {order.isPending ? (
+            <YStack items="center" py="$8"><Spinner color="$vermilion" accessibilityLabel="Đang tải đơn thanh toán" /></YStack>
+          ) : order.isError || !order.data ? (
+            <YStack items="center" g="$3" py="$8">
+              <Text ff="$body" fs="$2" lh="$3" color="$inkSoft" text="center">Chưa tải được đơn thanh toán. Kiểm tra kết nối và thử lại.</Text>
+              <PrimaryButton secondary label="Thử lại" onPress={() => { void order.refetch(); }} />
+              <PrimaryButton secondary label="Quay lại" onPress={onBack} />
+            </YStack>
+          ) : status === "paid" ? (
+            <PaidView order={order.data} onDone={onDone} />
+          ) : status === "rejected" ? (
+            <RejectedView order={order.data} onBack={onBack} />
+          ) : status === "needs_review" ? (
+            <ReviewView order={order.data} onBack={onBack} />
           ) : (
             <>
-              <SectionHeader title={ORDER_STATUS_LABELS[currentStatus ?? "pending"]} />
-              <TransferView order={order} onPaid={() => setStatus("paid")} onReview={() => setStatus("needs_review")} onRejected={() => setStatus("rejected")} onRestart={restart} />
+              <SectionHeader title={ORDER_STATUS_LABELS[status ?? "pending"]} />
+              <TransferView order={order.data} />
             </>
           )}
-          {!order ? <PrimaryButton secondary label="Quay lại" onPress={onBack} /> : null}
         </YStack>
       </ScrollView>
     </YStack>

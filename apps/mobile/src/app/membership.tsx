@@ -22,7 +22,7 @@ export default function MembershipPage(): React.JSX.Element {
   return (
     <MembershipScreen
       onBack={close}
-      onOpenOrder={(order) => router.push({ pathname: "/membership/payment/[orderId]", params: { orderId: order.id } })}
+      onOpenOrder={(orderId) => router.push({ pathname: "/membership/payment/[orderId]", params: { orderId } })}
     />
   );
 }
