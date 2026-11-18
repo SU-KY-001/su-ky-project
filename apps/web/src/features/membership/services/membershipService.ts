@@ -1,8 +1,10 @@
 import { MembershipEntitlementSchema, MembershipOrderSchema, MembershipPlanSchema, paginatedSchema, type AdminMembershipPlan } from "@repo/shared";
 import { apiRequest } from "@/lib/apiRequest";
+import { z } from "zod";
 
 const membershipPath = "/api/me/membership";
 const orderPage = paginatedSchema(MembershipOrderSchema);
+export type MembershipOrder = z.infer<typeof MembershipOrderSchema>;
 
 export const membershipService = {
   plans: (signal: AbortSignal) => apiRequest("/api/membership/plans", MembershipPlanSchema.array(), { signal }),
