@@ -1,11 +1,11 @@
 import { useEffect, useRef, useState, type ReactElement } from "react";
 import { Link, useNavigate } from "react-router";
 import { Check } from "@phosphor-icons/react/dist/icons/Check";
-import { WarningCircle } from "@phosphor-icons/react/dist/icons/WarningCircle";
 import { Button } from "@/shared/components/ui/button";
 import { APP_PATHS } from "@/shared/constants/routes";
 import { LibraryState } from "@/features/landing/components/library/LibraryPrimitives";
 import { notify } from "@/shared/lib/notifications";
+import { RenewalReminder } from "@/features/membership/components/RenewalReminder";
 import { cn } from "@/lib/utils";
 import { useCreateOrder, useMembership, useMembershipOrders, useMembershipPlans } from "@/features/membership/hooks/useMembership";
 import type { MembershipOrder } from "@/features/membership/services/membershipService";
@@ -84,11 +84,9 @@ export function MembershipPage(): ReactElement {
       <h1 className="font-serif text-3xl font-bold tracking-tight md:text-5xl">Thành viên</h1>
     </header>
 
-    {data.renewSoon && data.expiresAt ? <div role="status" className="mt-6 flex flex-wrap items-center gap-x-4 gap-y-3 rounded-2xl bg-paper-deep px-5 py-4 text-sm">
-      <WarningCircle size={22} className="shrink-0 text-bronze-dark" aria-hidden="true" />
-      <p className="min-w-[14rem] flex-1 leading-6">Còn <strong>{data.daysLeft ?? 0} ngày</strong> (hết hạn {formatDay(data.expiresAt)}).</p>
-      <Button size="sm" className="w-full sm:w-auto" onClick={() => document.getElementById("goi")?.scrollIntoView({ behavior: "smooth", block: "start" })}>Gia hạn</Button>
-    </div> : null}
+    <div className="mt-6 grid gap-4">
+      <RenewalReminder premium={premium} />
+    </div>
 
     <section aria-labelledby="status-title" className="mt-6 overflow-hidden rounded-2xl border border-bronze bg-paper-soft text-ink ring-1 ring-bronze/25">
       <div className="p-6 sm:p-8">
@@ -115,7 +113,10 @@ export function MembershipPage(): ReactElement {
         {data.experienceQuotas.map((quota) => <div key={quota.feature} className="rounded-xl border border-line bg-paper-soft p-4">
           <p className="text-sm font-semibold">{FEATURE_LABEL[quota.feature] ?? quota.feature}</p>
           {quota.limit === null ? <p className="mt-2 text-base font-semibold text-ink-soft">{quota.mode === "premium_only" ? "Chỉ Premium" : "Không giới hạn"}</p>
-            : <p className="mt-2 font-serif text-3xl font-bold leading-none tabular-nums">{quota.usedToday}<span className="text-lg font-semibold text-ink-soft">/{quota.limit}</span></p>}
+            : <>
+              <p className="mt-2 font-serif text-3xl font-bold leading-none tabular-nums">{quota.usedToday}<span className="text-lg font-semibold text-ink-soft">/{quota.limit}</span></p>
+              <p className="mt-2 text-sm text-ink-soft">Còn lại {quota.remaining ?? Math.max(0, quota.limit - quota.usedToday)} lượt</p>
+            </>}
         </div>)}
       </div>
     </section> : null}

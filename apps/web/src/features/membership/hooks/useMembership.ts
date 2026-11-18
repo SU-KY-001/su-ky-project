@@ -6,7 +6,7 @@ import { membershipService } from "../services/membershipService";
 
 export const membershipKeys = {
   plans: ["membership", "plans"] as const,
-  entitlement: ["membership", "entitlement"] as const,
+  entitlement: ["membership", "status"] as const,
   orders: ["membership", "orders"] as const,
 };
 
@@ -17,7 +17,21 @@ export function useMembershipPlans() {
 
 /** Per-user entitlement; drives quotas, the renewal reminder and the member page header. */
 export function useMembership(enabled = true) {
-  return useQuery({ queryKey: membershipKeys.entitlement, queryFn: ({ signal }) => membershipService.status(signal), enabled, staleTime: 60_000 });
+  return useQuery({
+    queryKey: membershipKeys.entitlement,
+    queryFn: ({ signal }) => membershipService.status(signal),
+    enabled,
+    staleTime: 60_000,
+    // Refresh exactly when a pending order, the quota day or the paid period ends, so daysLeft/usage never go stale.
+    refetchInterval: ({ state }) => {
+      const data = state.data;
+      if (!data) return false;
+      if (data.pendingOrderId) return 4_000;
+      const boundary = data.tier === "premium" ? data.expiresAt : data.experienceQuotas.find((quota) => quota.enforced)?.resetsAt;
+      if (!boundary) return false;
+      return Math.max(1_000, boundary.getTime() - Date.now() + 1_000);
+    },
+  });
 }
 
 export function useMembershipOrders(page = 1, enabled = true) {
