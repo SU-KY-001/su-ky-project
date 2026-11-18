@@ -155,7 +155,7 @@ function PlanSection({ plan, premium, pending, error, onCreate }: { plan: Member
               </XStack>
             ))}
           </YStack>
-          <PrimaryButton label={pending ? "Đang tạo đơn…" : premium ? "Gia hạn thêm 30 ngày" : "Mua gói tháng"} onPress={onCreate} disabled={pending} />
+          <PrimaryButton label={pending ? "Đang tạo đơn…" : premium ? `Gia hạn thêm ${plan.durationDays} ngày` : "Mua gói tháng"} onPress={onCreate} disabled={pending} />
           {error ? <Text ff="$body" fs="$1" lh="$2" color="$vermilion" text="center">{error}</Text> : null}
           <Text ff="$body" fs="$1" lh="$2" color="$inkSoft" text="center">
             Thanh toán chuyển khoản. Đơn được quản trị viên duyệt thủ công.
@@ -224,7 +224,19 @@ export function MembershipScreen({ onBack, onOpenOrder }: { onBack: () => void; 
             <>
               <StatusCard entitlement={status.data} />
               <QuotaSection entitlement={status.data} />
-              {plan ? (
+              {!plan && plans.isError ? (
+                <YStack g="$2.5">
+                  <SectionHeader title="Gói thành viên" />
+                  <AppCard>
+                    <YStack p="$4" g="$2">
+                      <Text ff="$body" fs="$2" lh="$3" color="$inkSoft">Chưa tải được danh sách gói. Kiểm tra kết nối và thử lại.</Text>
+                      <PrimaryButton secondary label="Thử lại" onPress={() => { void plans.refetch(); }} />
+                    </YStack>
+                  </AppCard>
+                </YStack>
+              ) : !plan && plans.isSuccess ? (
+                <Text ff="$body" fs="$2" lh="$3" color="$inkSoft">Hiện chưa có gói nào để mua. Vui lòng quay lại sau.</Text>
+              ) : plan ? (
                 <PlanSection
                   plan={plan}
                   premium={status.data.tier === "premium"}
