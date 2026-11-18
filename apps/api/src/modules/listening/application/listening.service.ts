@@ -3,6 +3,7 @@ import type { SeriesEntity } from "../domain/listening.entity";
 import type { z } from "zod";
 import {
   ListeningHistoryQuerySchema,
+  PREMIUM_FEATURE_LIMITS,
   PublicSeriesListQuerySchema,
   UpdateListeningProgressRequestSchema,
 } from "@repo/shared";
@@ -12,7 +13,7 @@ import { audioMimeType, type MediaStorageGateway } from "../../media";
 import type { SeriesSourceWithSource } from "../domain/listening.entity";
 import type { ListeningRepository } from "../domain/listening.repository";
 import { hasActiveMembership } from "../../membership/application/entitlement";
-import { reserveDailyPlay } from "./daily-quota";
+import { formatQuotaResetIn, reserveFeatureUsage } from "../../membership/application/feature-quota";
 
 const BASE64_PATTERN =
   /^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$/;
@@ -143,12 +144,12 @@ export class ListeningService {
         "Narration audio is not available",
       );
     if (!unlimited) {
-      const { outcome } = await reserveDailyPlay(userId, narration.episodeId);
+      const outcome = await reserveFeatureUsage({ userId, role, feature: "podcast", refKey: narration.episodeId });
       if (outcome === "limit")
         throw new DomainError(
           403,
           "DAILY_LISTEN_LIMIT_REACHED",
-          "Bạn đã dùng hết lượt nghe miễn phí hôm nay. Lượt mới mở lúc 00:00 giờ Việt Nam; nâng cấp Premium để nghe không giới hạn.",
+          `Bạn đã dùng hết ${PREMIUM_FEATURE_LIMITS.podcast}/${PREMIUM_FEATURE_LIMITS.podcast} lượt nghe miễn phí hôm nay. Đặt lại sau ${formatQuotaResetIn()}. Nâng cấp Premium để nghe không giới hạn.`,
         );
     }
     const saved = userId ? await this.repo.findProgress(userId, narrationId) : null;

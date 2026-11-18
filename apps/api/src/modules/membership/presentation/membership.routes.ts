@@ -21,6 +21,8 @@ export function createPublicMembershipRoute(service: MembershipService) {
 export function createMeMembershipRoute(service: MembershipService) {
   return new Hono<AppEnv>()
     .use("*", requireAuth)
+    // Per-user data: no ETag/304, or the browser's conditional GET yields an empty body.
+    .use("*", async (c, next) => { c.header("Cache-Control", "private, no-store"); await next(); })
     .get("/", async (c) => {
       const { user } = c.get("session")!;
       return c.json(await service.getEntitlementForUser(user.id, user.role));

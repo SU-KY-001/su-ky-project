@@ -11,12 +11,12 @@ mock.module("../src/modules/membership/application/entitlement", () => ({
   hasActiveMembership: async () => member,
   pendingOrderId: async () => null,
 }));
-mock.module("../src/modules/listening/application/daily-quota", () => ({
-  reserveDailyPlay: async () => {
+mock.module("../src/modules/membership/application/feature-quota", () => ({
+  reserveFeatureUsage: async () => {
     reserves += 1;
-    return { outcome, limit: 4 };
+    return outcome;
   },
-  getDailyQuotaStatus: async () => ({ enforced: true, limit: 4, usedToday: 4, remaining: 0, resetsAt: new Date() }),
+  getFeatureQuotas: async () => [],
 }));
 const { ListeningService } = await import("../src/modules/listening/application/listening.service");
 

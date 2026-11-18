@@ -58,8 +58,6 @@ const configDescriptions: Record<keyof typeof SYSTEM_CONFIGS, string> = {
   "media.cleanup_batch_size": "Số media xử lý mỗi lượt dọn",
   "media.audio_delivery_ttl_seconds": "Thời hạn URL audio (mọi nội dung, giây)",
   "premium.max_stack_days": "Trần cộng dồn thời hạn thành viên (ngày)",
-  "premium.free_daily_plays": "Số lượt nghe/ngày của tài khoản Free",
-  "premium.enforce_daily_quota": "Bật giới hạn lượt nghe theo ngày",
   "rate_limit.membership_order": "Số đơn mua gói mỗi khung giờ",
   "script.max_chars": "Số ký tự tối đa của kịch bản",
   "script.words_per_minute": "Tốc độ đọc dùng để ước lượng thời lượng",

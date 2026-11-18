@@ -28,7 +28,13 @@ export function createStudioExhibitionRoute(service: ExhibitionService) {
 }
 
 export function createPublicExhibitionRoute(service: ExhibitionService) {
+  const slugParam = z.object({ slug: z.string().min(1).max(280) });
   return new Hono<AppEnv>()
     .get("/exhibitions", async c => c.json(await service.listPublished()))
-    .get("/exhibitions/:slug", zValidator("param", z.object({ slug: z.string().min(1).max(280) }), throwOnInvalid), async c => c.json(await service.publicExhibition(c.req.valid("param").slug)));
+    .get("/exhibitions/:slug", zValidator("param", slugParam, throwOnInvalid), async c => c.json(await service.publicExhibition(c.req.valid("param").slug)))
+    .post("/exhibitions/:slug/enter", requireAuth, idempotency(), rateLimit("write"), zValidator("param", slugParam, throwOnInvalid), async c => {
+      const session = c.get("session")!;
+      await service.enterExhibition(c.req.valid("param").slug, session.user.id, session.user.role);
+      return c.json({ entered: true });
+    });
 }

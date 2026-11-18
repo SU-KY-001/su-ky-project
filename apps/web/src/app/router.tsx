@@ -26,6 +26,21 @@ export const appRoutes: RouteObject[] = [
         } }],
       },
       {
+        id: "member-auth",
+        path: APP_PATHS.member.slice(1),
+        element: <ProtectedRoute allowedRoles={["user", "moderator", "admin"]} />,
+        children: [
+          { id: "member", index: true, lazy: async () => {
+            const { MembershipPage } = await import("../pages/membership/MembershipPage");
+            return { Component: MembershipPage };
+          } },
+          { id: "member-payment", path: "payment/:orderId", lazy: async () => {
+            const { PaymentPage } = await import("../pages/membership/PaymentPage");
+            return { Component: PaymentPage };
+          } },
+        ],
+      },
+      {
         id: "public-series-episodes",
         path: "series/:slug",
         lazy: async () => {

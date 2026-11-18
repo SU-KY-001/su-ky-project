@@ -8,7 +8,10 @@ import { CheckCircle } from "@phosphor-icons/react/dist/icons/CheckCircle";
 import { XCircle } from "@phosphor-icons/react/dist/icons/XCircle";
 import { Button } from "@/shared/components/ui/button";
 import { useCurrentUser } from "@/shared/hooks/useCurrentUser";
+import { ApiError } from "@/lib/apiError";
 import { notify } from "@/shared/lib/notifications";
+import { QuotaGate } from "@/features/membership/components/QuotaGate";
+import { membershipService } from "@/features/membership/services/membershipService";
 import { libraryService } from "../../services/libraryService";
 import { LibraryState } from "./LibraryPrimitives";
 import { QuizExplanation } from "./QuizExplanation";
@@ -33,8 +36,18 @@ export function QuizPlayer({ slug }: { slug: string }): ReactElement {
       }), requestKey.current);
     },
     onSuccess: () => { void cache.invalidateQueries({ queryKey: ["library-missions"] }); void cache.invalidateQueries({ queryKey: ["library-honors"] }); void cache.invalidateQueries({ queryKey: ["quiz-catalog"] }); void cache.invalidateQueries({ queryKey: ["quiz-card"] }); },
-    onError: () => notify.error({ title: "Chưa gửi được bài quiz", description: "Vui lòng thử lại." }),
+    onError: (error) => notify.error({
+      title: error instanceof ApiError && error.errorCode === "DAILY_QUOTA_EXHAUSTED" ? "Hết lượt quiz hôm nay" : "Chưa gửi được bài quiz",
+      description: error instanceof ApiError ? error.message : "Vui lòng thử lại.",
+    }),
   });
+  const start = useMutation({ mutationFn: (quizId: string) => membershipService.startQuiz(quizId) });
+  const startedQuizId = useRef<string | null>(null);
+  useEffect(() => {
+    if (!quiz.data || startedQuizId.current === quiz.data.id) return;
+    startedQuizId.current = quiz.data.id;
+    start.mutate(quiz.data.id);
+  }, [quiz.data, start.mutate]);
   useEffect(() => {
     if (!quiz.data || submit.data) return;
     const question = quiz.data.questions[index];
@@ -59,6 +72,10 @@ export function QuizPlayer({ slug }: { slug: string }): ReactElement {
   if (quiz.isPending || card.isPending) return <main className="mx-auto min-h-[70vh] max-w-6xl px-5 pt-36"><LibraryState loading /></main>;
   if (quiz.isError || card.isError || !info) return <main className="mx-auto min-h-[70vh] max-w-6xl px-5 pt-36"><LibraryState error title="Chưa mở được quiz" description="Quiz có thể không còn công khai hoặc kết nối đang gián đoạn." retry={() => { void quiz.refetch(); void card.refetch(); }} /></main>;
   if (!quiz.data.questions.length) return <main className="mx-auto min-h-[70vh] max-w-6xl px-5 pt-36"><LibraryState title="Bộ câu hỏi đang được chuẩn bị" /></main>;
+  if (start.isError) return start.error instanceof ApiError && start.error.errorCode === "DAILY_QUOTA_EXHAUSTED"
+    ? <QuotaGate title="Hết lượt quiz hôm nay" description={start.error.message} />
+    : <main className="mx-auto min-h-[70vh] max-w-6xl px-5 pt-36"><LibraryState error title="Chưa mở được quiz" description="Vui lòng thử lại sau ít phút." retry={() => { start.mutate(quiz.data.id); }} /></main>;
+  if (!start.isSuccess) return <main className="mx-auto min-h-[70vh] max-w-6xl px-5 pt-36"><LibraryState loading /></main>;
   const question = quiz.data.questions[index];
   const result = submit.data;
   const selected = answers[question.id];

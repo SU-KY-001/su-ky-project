@@ -1,5 +1,6 @@
 import { CaretDown } from "@phosphor-icons/react/dist/icons/CaretDown";
 import { CircleNotch } from "@phosphor-icons/react/dist/icons/CircleNotch";
+import { Crown } from "@phosphor-icons/react/dist/icons/Crown";
 import { SignOut } from "@phosphor-icons/react/dist/icons/SignOut";
 import { SquaresFour } from "@phosphor-icons/react/dist/icons/SquaresFour";
 import { UserCircle } from "@phosphor-icons/react/dist/icons/UserCircle";
@@ -65,6 +66,9 @@ export function AccountProfile({ variant = "header" }: { variant?: "header" | "m
               <Link to={homePath} className="grid min-h-10 grid-cols-[18px_1fr] items-center gap-2 rounded-md px-3 text-sm outline-none data-[highlighted]:bg-paper-deep"><SquaresFour size={18} aria-hidden="true" /><span>Mở bảng điều khiển</span></Link>
             </DropdownMenu.Item>
           ) : null}
+          <DropdownMenu.Item asChild>
+            <Link to={APP_PATHS.member} className="grid min-h-10 grid-cols-[18px_1fr] items-center gap-2 rounded-md px-3 text-sm outline-none data-[highlighted]:bg-paper-deep"><Crown size={18} aria-hidden="true" /><span>Gói thành viên</span></Link>
+          </DropdownMenu.Item>
           <DropdownMenu.Item disabled={isPending} onSelect={(event) => { event.preventDefault(); logout(); }} className="grid min-h-10 cursor-pointer grid-cols-[18px_1fr] items-center gap-2 rounded-md px-3 text-sm text-vermilion outline-none data-[highlighted]:bg-vermilion/10 data-[disabled]:pointer-events-none data-[disabled]:opacity-50">
             <SignOut size={18} aria-hidden="true" /><span>{isPending ? "Đang đăng xuất…" : "Đăng xuất"}</span>
           </DropdownMenu.Item>

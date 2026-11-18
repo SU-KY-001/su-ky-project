@@ -146,13 +146,32 @@ export const gamificationPaths: Paths = {
       },
     }),
   },
+  "/api/quizzes/{quizId}/start": {
+    post: operation({
+      id: "startQuiz",
+      tag: QUIZ_TAG,
+      summary: "Kiểm tra lượt quiz trước khi làm",
+      description:
+        "Chỉ kiểm tra hạn mức, không trừ lượt: lượt quiz được tính khi nộp bài (`POST /api/quizzes/{quizId}/attempts`). Premium và admin/moderator không bị giới hạn.",
+      access: "user",
+      pathParams: QuizIdParam,
+      pathParamDocs: { quizId: "ID quiz" },
+      idempotent: true,
+      rate: "write",
+      ok: { status: 200, description: "Được vào làm quiz", schema: { name: "QuizStarted", schema: z.object({ started: z.literal(true) }) } },
+      errors: {
+        403: "`DAILY_QUOTA_EXHAUSTED`: đã hết 4 lượt quiz hôm nay",
+        404: "`NOT_FOUND`: quiz không khả dụng",
+      },
+    }),
+  },
   "/api/quizzes/{quizId}/attempts": {
     post: operation({
       id: "submitQuizAttempt",
       tag: QUIZ_TAG,
       summary: "Nộp bài quiz",
       description:
-        "Chấm điểm theo ngưỡng của quiz. Lần đậu đầu tiên nhận XP và mỗi quiz chỉ được tính một lần vào từng nhiệm vụ tuần PASS_QUIZ.",
+        "Chấm điểm theo ngưỡng của quiz. Mỗi lần nộp tính 1 lượt quiz/ngày của tài khoản Free (Premium và admin/moderator không bị trừ); gọi lại cùng Idempotency-Key không tính thêm. Lần đậu đầu tiên nhận XP và mỗi quiz chỉ được tính một lần vào từng nhiệm vụ tuần PASS_QUIZ.",
       access: "user",
       pathParams: QuizIdParam,
       pathParamDocs: { quizId: "ID quiz" },
@@ -165,6 +184,7 @@ export const gamificationPaths: Paths = {
         schema: { name: "QuizAttemptResult", schema: QuizAttemptResultSchema },
       },
       errors: {
+        403: "`DAILY_QUOTA_EXHAUSTED`: đã hết 4 lượt quiz hôm nay",
         404: "`NOT_FOUND`: quiz không khả dụng",
         422: "`VALIDATION_ERROR`: thiếu câu trả lời hoặc đáp án không thuộc câu hỏi",
       },

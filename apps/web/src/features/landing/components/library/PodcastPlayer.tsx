@@ -13,6 +13,9 @@ import { SpeakerHigh } from "@phosphor-icons/react/dist/icons/SpeakerHigh";
 import { Button } from "@/shared/components/ui/button";
 import { useCurrentUser } from "@/shared/hooks/useCurrentUser";
 import { notify } from "@/shared/lib/notifications";
+import { ApiError } from "@/lib/apiError";
+import { APP_PATHS } from "@/shared/constants/routes";
+import { QuotaGate } from "@/features/membership/components/QuotaGate";
 import { libraryService } from "../../services/libraryService";
 import { LibrarySelect, LibraryState } from "./LibraryPrimitives";
 import { EpisodeQuiz } from "./EpisodeQuiz";
@@ -128,7 +131,12 @@ export function AudioPlayback({ narrationId, userId, playlist = false, controlsH
   }, [playback.data, narrationId, queryClient]);
 
   if (playback.isPending) return playlist ? <p role="status" className="py-3 text-xs text-ink-soft">Đang mở bản thu…</p> : <LibraryState loading />;
-  if (playback.isError) return playlist ? <div role="alert" className="flex flex-wrap items-center gap-3 text-xs"><p>Chưa mở được bản thu. Vui lòng thử lại.</p><Button size="sm" variant="outline" onClick={() => { void playback.refetch(); }}>Thử lại</Button></div> : <LibraryState error title="Chưa mở được bản thu" description="Kiểm tra kết nối hoặc đăng nhập lại để tiếp tục nghe." retry={() => { void playback.refetch(); }} />;
+  if (playback.isError) {
+    const quotaBlocked = playback.error instanceof ApiError && playback.error.errorCode === "DAILY_LISTEN_LIMIT_REACHED";
+    if (quotaBlocked && !playlist) return <QuotaGate title="Hết lượt nghe hôm nay" description={playback.error.message} />;
+    if (quotaBlocked) return <div role="alert" className="flex flex-wrap items-center gap-3 text-xs"><p className="min-w-0 flex-1">{playback.error.message}</p><Button asChild size="sm" variant="outline"><Link to={APP_PATHS.member}>Nâng cấp Premium</Link></Button></div>;
+    return playlist ? <div role="alert" className="flex flex-wrap items-center gap-3 text-xs"><p>Chưa mở được bản thu. Vui lòng thử lại.</p><Button size="sm" variant="outline" onClick={() => { void playback.refetch(); }}>Thử lại</Button></div> : <LibraryState error title="Chưa mở được bản thu" description="Kiểm tra kết nối hoặc đăng nhập lại để tiếp tục nghe." retry={() => { void playback.refetch(); }} />;
+  }
   return <div className={playlist ? "contents" : "space-y-4"}>
     <audio ref={audio} controls={!playlist && appearance !== "exhibition"} preload="metadata" className={playlist || appearance === "exhibition" ? "hidden" : "w-full"} src={playback.data.audio.url} onPlay={event => { if (pauseIntent.current) { event.currentTarget.pause(); return; } progress.current.previous = event.currentTarget.currentTime; setPlaying(true); onPlayingChange?.(true); }} onPause={() => { setPlaying(false); onPlayingChange?.(false); }} onEnded={async event => { const element = event.currentTarget; setPlaying(false); onPlayingChange?.(false); await flushProgress.current(); if (audio.current !== element || pauseIntent.current) return; if (repeat === "one") { element.currentTime = 0; progress.current.previous = -1; void element.play().catch(() => {}); } else onFinished?.(); }} onLoadedMetadata={(event) => { event.currentTarget.currentTime = (playback.data.progress?.positionMs ?? 0) / 1000; setPosition(event.currentTarget.currentTime); event.currentTarget.playbackRate = Number(speed); const shouldPlay = playlist || autoPlayRequested.current; autoPlayRequested.current = false; if (shouldPlay && !pauseIntent.current && !document.hidden) void event.currentTarget.play().catch(() => { setPlaying(false); onPlayingChange?.(false); }); }} onSeeking={() => { progress.current.previous = -1; }} onSeeked={(event) => { progress.current.previous = event.currentTarget.currentTime; progress.current.positionMs = Math.min(Math.round(event.currentTarget.currentTime * 1000), playback.data.audio.durationMs); progress.current.dirty = true; }} onError={() => setAudioError(true)} onTimeUpdate={(event) => {
       const element = event.currentTarget;

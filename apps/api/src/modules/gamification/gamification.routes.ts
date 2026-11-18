@@ -90,23 +90,41 @@ export const publicQuizRoute = new Hono<AppEnv>()
       ),
   )
   .post(
+    "/quizzes/:quizId/start",
+    requireAuth,
+    rateLimit("write"),
+    idempotency(),
+    zValidator("param", quizIdParam, throwOnInvalid),
+    async (c) => {
+      await gamificationService.assertQuizStartAllowed(
+        c.req.valid("param").quizId,
+        c.get("session")!.user.id,
+        c.get("session")!.user.role,
+      );
+      return c.json({ started: true });
+    },
+  )
+  .post(
     "/quizzes/:quizId/attempts",
     requireAuth,
     rateLimit("write"),
     idempotency(),
     zValidator("param", quizIdParam, throwOnInvalid),
     zValidator("json", SubmitQuizAttemptSchema, throwOnInvalid),
-    async (c) =>
-      c.json(
+    async (c) => {
+      const { user } = c.get("session")!;
+      await gamificationService.consumeQuizAttempt(user.id, user.role);
+      return c.json(
         QuizAttemptResultSchema.parse(
           await gamificationService.submitAttempt(
             c.req.valid("param").quizId,
-            c.get("session")!.user.id,
+            user.id,
             c.req.valid("json"),
           ),
         ),
         201,
-      ),
+      );
+    },
   );
 
 export const meMissionRoute = new Hono<AppEnv>()
