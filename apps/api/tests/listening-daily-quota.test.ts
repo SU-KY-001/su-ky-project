@@ -12,6 +12,7 @@ mock.module("../src/modules/membership/application/entitlement", () => ({
   pendingOrderId: async () => null,
 }));
 mock.module("../src/modules/listening/application/daily-quota", () => ({
+  checkDailyPlay: async () => ({ outcome }),
   reserveDailyPlay: async () => {
     reserves += 1;
     return { outcome, limit: 4 };
@@ -50,7 +51,7 @@ function reset(overrides: { outcome?: typeof outcome; member?: boolean } = {}) {
 
 test("the play over the daily limit is rejected", async () => {
   reset({ outcome: "limit" });
-  await expect(new ListeningService(repo, storage).playback("narration-1", "user-1", null)).rejects.toMatchObject({
+  await expect(new ListeningService(repo, storage).confirmPlaybackStart("narration-1", "user-1", "asset-1", null)).rejects.toMatchObject({
     status: 403,
     code: "DAILY_LISTEN_LIMIT_REACHED",
   });
@@ -58,20 +59,32 @@ test("the play over the daily limit is rejected", async () => {
 
 test("replaying an episode already counted today is allowed without a new slot", async () => {
   reset({ outcome: "already" });
-  const result = await new ListeningService(repo, storage).playback("narration-1", "user-1", null);
+  const result = await new ListeningService(repo, storage).confirmPlaybackStart("narration-1", "user-1", "asset-1", null);
   expect(reserves).toBe(1);
-  expect(result.audio.url).toBe("https://cdn.invalid/signed.mp3");
+  expect(result.started).toBe(true);
 });
 
 test("premium members skip the quota", async () => {
   reset({ member: true });
-  await new ListeningService(repo, storage).playback("narration-1", "user-1", null);
+  await new ListeningService(repo, storage).confirmPlaybackStart("narration-1", "user-1", "asset-1", null);
+  expect(reserves).toBe(0);
+});
+
+test("loading playback metadata does not consume a listening turn", async () => {
+  reset();
+  await new ListeningService(repo, storage).playback("narration-1", "user-1");
+  expect(reserves).toBe(0);
+});
+
+test("confirming an obsolete audio asset does not consume quota", async () => {
+  reset();
+  await expect(new ListeningService(repo, storage).confirmPlaybackStart("narration-1", "user-1", "old-asset")).rejects.toMatchObject({ code: "AUDIO_CHANGED" });
   expect(reserves).toBe(0);
 });
 
 test("staff skip the quota", async () => {
   reset();
-  await new ListeningService(repo, storage).playback("narration-1", "mod-1", "moderator");
+  await new ListeningService(repo, storage).confirmPlaybackStart("narration-1", "mod-1", "asset-1", "moderator");
   expect(reserves).toBe(0);
 });
 

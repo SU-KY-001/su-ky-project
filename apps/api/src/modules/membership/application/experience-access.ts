@@ -65,6 +65,7 @@ export async function startExperience(feature: VisitFeature, userId: string, sub
       where: { userId, revokedAt: null, expiresAt: { gt: now } },
       select: { id: true },
     });
+    await tx.$queryRaw`SELECT feature FROM experience_access_policies WHERE feature = ${feature} FOR SHARE`;
     const policy = ExperiencePolicySchema.parse(await tx.experienceAccessPolicy.findUniqueOrThrow({ where: { feature } }));
     if (!premium) expectFreeMode(policy.mode);
     if (!premium && policy.mode === "free_limited") {

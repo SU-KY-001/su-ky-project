@@ -20,7 +20,8 @@ mock.module("../src/core/env", () => ({
 const { processPremiumRenewalReminders } = await import("../src/modules/membership/application/renewal-reminders");
 afterAll(() => mock.restore());
 
-test.skipIf(!RUN_INTEGRATION)("concurrent reminder workers send one push and create one in-app reminder per period", async () => {
+for (const pushEnabled of [true, false]) {
+test.skipIf(!RUN_INTEGRATION)("reminder delivery with push enabled: " + pushEnabled, async () => {
   assertTestDatabase();
   const userId = crypto.randomUUID();
   const now = new Date();
@@ -35,18 +36,21 @@ test.skipIf(!RUN_INTEGRATION)("concurrent reminder workers send one push and cre
       userId, planId: plan.id, orderId: order.id, priceVnd: 20000, durationDays: 30,
       startsAt: new Date(now.getTime() - 26 * 86_400_000), expiresAt: new Date(now.getTime() + 4 * 86_400_000),
     } });
-    await prisma.premiumPushSubscription.create({ data: {
+    if (pushEnabled) await prisma.premiumPushSubscription.create({ data: {
       userId, endpoint: `https://fcm.googleapis.com/test/${userId}`, p256dh: "test", auth: "test",
     } });
     sends = 0;
     await Promise.all([processPremiumRenewalReminders(now), processPremiumRenewalReminders(now)]);
     await processPremiumRenewalReminders(new Date(now.getTime() + 86_400_000));
-    expect(sends).toBe(1);
+    expect(sends).toBe(pushEnabled ? 1 : 0);
     expect(await prisma.premiumRenewalReminder.count({ where: { membershipId: membership.id } })).toBe(1);
-    expect((await prisma.premiumRenewalReminder.findUniqueOrThrow({ where: { membershipId: membership.id } })).pushSentAt).not.toBeNull();
+    const reminder = await prisma.premiumRenewalReminder.findUniqueOrThrow({ where: { membershipId: membership.id } });
+    expect(Boolean(reminder.pushSentAt)).toBe(pushEnabled);
   } finally {
     await prisma.membership.deleteMany({ where: { userId } });
     await prisma.membershipOrder.deleteMany({ where: { userId } });
     await prisma.user.delete({ where: { id: userId } });
   }
 });
+
+}

@@ -1,5 +1,6 @@
 import { z } from "zod";
 import {
+  ConfirmPlaybackStartSchema, PlaybackStartResultSchema,
   ListeningHistoryQuerySchema,
   PodcastRankingQuerySchema, PodcastRankingResponseSchema,
   PublicSeriesListQuerySchema,
@@ -101,7 +102,7 @@ export const listeningPaths: Paths = {
       tag: TAG,
       summary: "Lấy URL phát audio",
       description:
-        "Trả URL audio có thời hạn và tiến độ đã lưu. Khi tính năng nghe podcast có hạn mức Free, một tập tính một lượt mỗi ngày giờ Việt Nam. Nghe lại hoặc đổi bản kể của cùng tập trong ngày dùng lượt đã ghi. Response `Cache-Control: private, no-store`.",
+        "Trả URL audio và kiểm tra quyền hiện tại, chưa ghi lượt. Sau khi audio thực sự phát, client gọi POST playback/start để xác nhận lượt nghe. Response `Cache-Control: private, no-store`.",
       access: "user",
       ...narrationParams,
       ok: { status: 200, description: "Audio và tiến độ", schema: { name: "Playback", schema: PlaybackDocSchema } },
@@ -110,6 +111,16 @@ export const listeningPaths: Paths = {
         403: "`PREMIUM_REQUIRED`: tính năng nghe podcast dành cho Premium; `DAILY_LISTEN_LIMIT_REACHED`: hết lượt nghe miễn phí trong ngày",
         404: UNAVAILABLE,
       },
+    }),
+  },
+  "/api/narrations/{narrationId}/playback/start": {
+    post: operation({
+      id: "confirmNarrationPlaybackStart", tag: TAG, summary: "Xác nhận audio đã bắt đầu phát",
+      description: "Client gọi khi trình phát báo playing. Ghi một lượt theo tập/ngày Việt Nam; retry, nghe lại và đổi bản kể cùng tập không ghi trùng.",
+      access: "user", ...narrationParams, rate: "write",
+      body: { name: "ConfirmPlaybackStart", schema: ConfirmPlaybackStartSchema },
+      ok: { status: 200, description: "Lượt nghe được chấp nhận", schema: { name: "PlaybackStartResult", schema: PlaybackStartResultSchema } },
+      errors: { 403: "`PREMIUM_REQUIRED` hoặc `DAILY_LISTEN_LIMIT_REACHED`", 404: UNAVAILABLE, 409: "`AUDIO_CHANGED`: bản audio đã thay đổi" },
     }),
   },
   "/api/me/listening-progress/{narrationId}": {

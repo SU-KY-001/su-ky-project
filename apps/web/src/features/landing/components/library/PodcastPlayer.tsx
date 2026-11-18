@@ -57,6 +57,8 @@ export function AudioPlayback({ narrationId, userId, playlist = false, controlsH
     retry: (count, error) => count < 1 && (!isApiError(error) || error.isRetryable),
   });
   const audio = useRef<HTMLAudioElement>(null);
+  const startPending = useRef(false);
+  const [startError, setStartError] = useState<string | null>(null);
   const pauseIntent = useRef(pauseRequested);
   pauseIntent.current = pauseRequested;
   const autoPlayRequested = useRef(autoPlayOnReady);
@@ -66,6 +68,21 @@ export function AudioPlayback({ narrationId, userId, playlist = false, controlsH
   const [playing, setPlaying] = useState(false);
   const [position, setPosition] = useState(0);
   const [volume, setVolume] = useState(1);
+  async function confirmPlaying(element: HTMLAudioElement): Promise<void> {
+    if (startPending.current || pauseIntent.current || !playback.data || element.paused) return;
+    startPending.current = true;
+    try {
+      await libraryService.confirmPlaybackStart(narrationId, playback.data.audio.assetId);
+      if (audio.current === element) setStartError(null);
+      void queryClient.invalidateQueries({ queryKey: ["membership", "status"] });
+    } catch (error) {
+      if (audio.current !== element) return;
+      element.pause();
+      setStartError(isApiError(error) && error.status === 403 ? error.message : "Chưa xác nhận được lượt nghe. Vui lòng bấm phát để thử lại.");
+    } finally {
+      startPending.current = false;
+    }
+  }
   useEffect(() => { if (pauseRequested) audio.current?.pause(); }, [pauseRequested, playback.data]);
   useEffect(() => {
     const pauseWhenHidden = (): void => { if (document.hidden) audio.current?.pause(); };
@@ -145,7 +162,7 @@ export function AudioPlayback({ narrationId, userId, playlist = false, controlsH
   );
   if (playback.isError) return playlist ? <div role="alert" className="flex flex-wrap items-center gap-3 text-xs"><p>Chưa mở được bản thu. Vui lòng thử lại.</p><Button size="sm" variant="outline" onClick={() => { void playback.refetch(); }}>Thử lại</Button></div> : <LibraryState error title="Chưa mở được bản thu" description="Kiểm tra kết nối hoặc đăng nhập lại để tiếp tục nghe." retry={() => { void playback.refetch(); }} />;
   return <div className={playlist ? "contents" : "space-y-4"}>
-    <audio ref={audio} controls={!playlist && appearance !== "exhibition"} preload="metadata" className={playlist || appearance === "exhibition" ? "hidden" : "w-full"} src={playback.data.audio.url} onPlay={event => { if (pauseIntent.current) { event.currentTarget.pause(); return; } progress.current.previous = event.currentTarget.currentTime; setPlaying(true); onPlayingChange?.(true); }} onPause={() => { setPlaying(false); onPlayingChange?.(false); }} onEnded={async event => { const element = event.currentTarget; setPlaying(false); onPlayingChange?.(false); await flushProgress.current(); if (audio.current !== element || pauseIntent.current) return; if (repeat === "one") { element.currentTime = 0; progress.current.previous = -1; void element.play().catch(() => {}); } else onFinished?.(); }} onLoadedMetadata={(event) => { event.currentTarget.currentTime = (playback.data.progress?.positionMs ?? 0) / 1000; setPosition(event.currentTarget.currentTime); event.currentTarget.playbackRate = Number(speed); const shouldPlay = playlist || autoPlayRequested.current; autoPlayRequested.current = false; if (shouldPlay && !pauseIntent.current && !document.hidden) void event.currentTarget.play().catch(() => { setPlaying(false); onPlayingChange?.(false); }); }} onSeeking={() => { progress.current.previous = -1; }} onSeeked={(event) => { progress.current.previous = event.currentTarget.currentTime; progress.current.positionMs = Math.min(Math.round(event.currentTarget.currentTime * 1000), playback.data.audio.durationMs); progress.current.dirty = true; }} onError={() => setAudioError(true)} onTimeUpdate={(event) => {
+    <audio ref={audio} onPlaying={(event) => { void confirmPlaying(event.currentTarget); }} controls={!playlist && appearance !== "exhibition"} preload="metadata" className={playlist || appearance === "exhibition" ? "hidden" : "w-full"} src={playback.data.audio.url} onPlay={event => { if (pauseIntent.current) { event.currentTarget.pause(); return; } progress.current.previous = event.currentTarget.currentTime; setPlaying(true); onPlayingChange?.(true); }} onPause={() => { setPlaying(false); onPlayingChange?.(false); }} onEnded={async event => { const element = event.currentTarget; setPlaying(false); onPlayingChange?.(false); await flushProgress.current(); if (audio.current !== element || pauseIntent.current) return; if (repeat === "one") { element.currentTime = 0; progress.current.previous = -1; void element.play().catch(() => {}); } else onFinished?.(); }} onLoadedMetadata={(event) => { event.currentTarget.currentTime = (playback.data.progress?.positionMs ?? 0) / 1000; setPosition(event.currentTarget.currentTime); event.currentTarget.playbackRate = Number(speed); const shouldPlay = playlist || autoPlayRequested.current; autoPlayRequested.current = false; if (shouldPlay && !pauseIntent.current && !document.hidden) void event.currentTarget.play().catch(() => { setPlaying(false); onPlayingChange?.(false); }); }} onSeeking={() => { progress.current.previous = -1; }} onSeeked={(event) => { progress.current.previous = event.currentTarget.currentTime; progress.current.positionMs = Math.min(Math.round(event.currentTarget.currentTime * 1000), playback.data.audio.durationMs); progress.current.dirty = true; }} onError={() => setAudioError(true)} onTimeUpdate={(event) => {
       const element = event.currentTarget;
       const state = progress.current;
       const now = element.currentTime;
@@ -176,6 +193,7 @@ export function AudioPlayback({ narrationId, userId, playlist = false, controlsH
         <div className="flex min-w-0 items-center gap-2"><Label className="whitespace-nowrap text-[11px] text-ink-soft" htmlFor={speedControlId}>Tốc độ nghe</Label><Select value={speed} onValueChange={value => { setSpeed(value); if (audio.current) audio.current.playbackRate = Number(value); }}><SelectTrigger id={speedControlId} className="h-[30px] w-[58px] rounded-lg border-bronze/55 bg-paper-deep px-[9px] text-[11px] font-semibold text-ink shadow-sm min-[421px]:w-[78px]" aria-describedby={`${speedControlId}-hint`}><SelectValue>{speed}×</SelectValue></SelectTrigger><SelectContent className="border-line bg-paper-soft font-sans text-ink">{["0.75", "1", "1.25", "1.5", "2"].map(value => <SelectItem key={value} value={value}>{value}×</SelectItem>)}</SelectContent></Select><span id={`${speedControlId}-hint`} className="sr-only">1× là tốc độ gốc. Chọn giá trị nhỏ hơn để nghe chậm hoặc lớn hơn để nghe nhanh.</span></div>
         <div className="flex w-[65px] items-center gap-[5px] min-[421px]:w-[85px] min-[421px]:gap-2 min-[1051px]:w-28 [&>svg]:size-4 [&>svg]:shrink-0 [&>svg]:text-ink-soft"><SpeakerHigh aria-hidden="true" /><Slider className={`${compactSlider} w-11 min-[421px]:w-[60px] min-[1051px]:w-[86px]`} aria-label="Âm lượng" min={0} max={1} step={.05} value={[volume]} onValueChange={([value]) => { setVolume(value); if (audio.current) audio.current.volume = value; }} /></div>
       </div>    </div> : <LibrarySelect id={`speed-${narrationId}`} label="Tốc độ nghe" value={speed} onChange={(value) => { if (!value) return; setSpeed(value); if (audio.current) audio.current.playbackRate = Number(value); }} options={["0.75", "1", "1.25", "1.5", "2"].map((value) => ({ id: value, name: `${value}×` }))} allLabel="Chọn tốc độ" />}
+    {startError ? <p role="alert" className="text-sm text-mod-danger">{startError}</p> : null}
     {audioError && <p role="alert" className="text-sm text-destructive">Không tải được tệp âm thanh. Vui lòng thử mở bản thu lại.</p>}
   </div>;
 }

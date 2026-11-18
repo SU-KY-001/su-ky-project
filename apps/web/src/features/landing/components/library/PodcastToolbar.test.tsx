@@ -61,6 +61,34 @@ async function finish(): Promise<void> {
   Object.defineProperty(audio, "ended", { configurable: true, value: true });
   await act(async () => { audio.dispatchEvent(new Event("ended")); await Bun.sleep(30); });
 }
+it("confirms a listening turn only after the audio reports playing", async () => {
+  const confirm = spyOn(libraryService, "confirmPlaybackStart").mockResolvedValue({ started: true });
+  restores.push(() => confirm.mockRestore());
+  await render();
+  const audio = document.querySelector("audio")!;
+  expect(confirm).not.toHaveBeenCalled();
+  await act(async () => { audio.dispatchEvent(new Event("loadedmetadata")); });
+  expect(confirm).not.toHaveBeenCalled();
+  await act(async () => {
+    audio.dispatchEvent(new Event("playing"));
+    audio.dispatchEvent(new Event("playing"));
+    await Bun.sleep(10);
+  });
+  expect(confirm).toHaveBeenCalledTimes(1);
+  expect(confirm).toHaveBeenCalledWith(episodes[0].narrations[0].id, "30000000-0000-4000-8000-000000000001");
+});
+
+it("pauses the player when the server rejects the started turn", async () => {
+  const confirm = spyOn(libraryService, "confirmPlaybackStart").mockRejectedValue(new Error("Quota denied"));
+  restores.push(() => confirm.mockRestore());
+  await render();
+  const audio = document.querySelector("audio")!;
+  await act(async () => { audio.dispatchEvent(new Event("loadedmetadata")); });
+  await act(async () => { audio.dispatchEvent(new Event("playing")); await Bun.sleep(10); });
+  expect(audio.paused).toBe(true);
+  expect(document.body.textContent).toContain("Chưa xác nhận được lượt nghe");
+});
+
 function quizzes(result = catalog()): void { const spy = spyOn(libraryService, "quizzes").mockResolvedValue(result); restores.push(() => spy.mockRestore()); }
 
 it("offers the finished episode's quiz with a short heading, actual count and direct route", async () => {
