@@ -183,6 +183,7 @@ model User {
   resolvedReleaseReassignments ReleaseReassignmentTicket[] @relation("ReleaseReassignmentResolver")
   membershipOrders MembershipOrder[] @relation("MembershipOrders")
   memberships      Membership[]      @relation("Memberships")
+  featureDailyUsages FeatureDailyUsage[]
 
   @@map("users")
 }
@@ -849,7 +850,7 @@ model ListeningProgress {
   @@map("listening_progress")
 }
 
-/// One free-tier play per episode per Vietnam calendar day; replays inside the same day are free.
+/// Legacy podcast quota history. New usage rows go to `FeatureDailyUsage`; kept so past days stay auditable.
 model ListeningDailyPlay {
   userId    String   @map("user_id") @db.VarChar(36)
   playDate  DateTime @map("play_date") @db.Date
@@ -860,6 +861,23 @@ model ListeningDailyPlay {
 
   @@id([userId, playDate, episodeId])
   @@map("listening_daily_plays")
+}
+
+/// One row per counted Free use. `refKey` dedupes replays (podcast episode, exhibition slug) and is
+/// random for actions that always count (quiz starts).
+model FeatureDailyUsage {
+  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId    String   @map("user_id") @db.VarChar(36)
+  /// PREMIUM_FEATURES value: podcast, quiz or exhibition.
+  feature   String   @db.VarChar(16)
+  usageDate DateTime @map("usage_date") @db.Date
+  refKey    String   @map("ref_key") @db.VarChar(280)
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, feature, usageDate, refKey])
+  @@index([userId, feature, usageDate])
+  @@map("feature_daily_usage")
 }
 
 model MissionTemplate {

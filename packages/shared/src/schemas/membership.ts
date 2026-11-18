@@ -17,26 +17,40 @@ export const MembershipPlanSchema = z.object({
   sortOrder: z.number().int(),
 });
 
-export const MembershipDailyQuotaSchema = z.object({
-  enforced: z.boolean(),
-  /** `null` when the quota is switched off. */
-  limit: z.number().int().positive().nullable(),
+export const PREMIUM_FEATURES = ["podcast", "quiz", "exhibition"] as const;
+export const PremiumFeatureSchema = z.enum(PREMIUM_FEATURES);
+export type PremiumFeature = z.infer<typeof PremiumFeatureSchema>;
+
+/** Free daily limits fixed by PREMIUM.md; changing them is a code change, not admin config. */
+export const PREMIUM_FEATURE_LIMITS: Record<PremiumFeature, number> = {
+  podcast: 4,
+  quiz: 4,
+  exhibition: 1,
+};
+
+/** The renewal reminder starts when fewer than this many days remain. */
+export const RENEWAL_REMINDER_DAYS = 5;
+
+export const FeatureQuotaSchema = z.object({
+  feature: PremiumFeatureSchema,
+  limit: z.number().int().positive(),
   usedToday: z.number().int().nonnegative(),
-  /** `null` when the quota is switched off. */
-  remaining: z.number().int().nonnegative().nullable(),
+  remaining: z.number().int().nonnegative(),
   resetsAt: z.coerce.date(),
 });
+export type FeatureQuota = z.infer<typeof FeatureQuotaSchema>;
 
 export const MembershipEntitlementSchema = z.object({
   tier: z.enum(["free", "premium"]),
+  startsAt: z.coerce.date().nullable(),
   expiresAt: z.coerce.date().nullable(),
   daysLeft: z.number().int().nullable(),
   planCode: z.string().nullable(),
   pendingOrderId: z.string().uuid().nullable(),
-  /** `true` during the last 5 days of a paid period; drives the renewal reminder. */
+  /** `true` during the last `RENEWAL_REMINDER_DAYS` days; drives the renewal reminder. */
   renewSoon: z.boolean(),
-  /** Daily listen quota for free users; `null` for premium and staff. */
-  quota: MembershipDailyQuotaSchema.nullable(),
+  /** Per-feature Free quotas; empty for premium and staff. */
+  quotas: z.array(FeatureQuotaSchema),
 });
 
 export const CreateMembershipOrderSchema = z.object({
