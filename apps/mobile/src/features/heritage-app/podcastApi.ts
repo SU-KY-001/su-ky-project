@@ -289,7 +289,7 @@ export const podcastApi = {
     });
     return EventsPageSchema.parse(data).items;
   },
-  async quiz(episodeSlug: string, start?: string): Promise<PublicQuiz> {
+  async quiz(episodeSlug: string, start: string): Promise<PublicQuiz> {
     const { data } = await apiClient.get(`/api/episodes/${encodeURIComponent(episodeSlug)}/quiz`, { params: { format: "2", start } });
     return PublicQuizSchema.parse(data);
   },

@@ -3,6 +3,29 @@ import { prisma } from "@repo/db";
 import { experiencePolicy, listExperienceQuotas, startExperience, updateExperiencePolicy } from "../src/modules/membership/application/experience-access";
 import { assertTestDatabase, RUN_INTEGRATION } from "./support/integration";
 
+for (const feature of ["quiz", "exhibition"] as const) {
+  test.skipIf(!RUN_INTEGRATION)(`${feature} retries reuse one start id while a deliberate new start consumes a new turn`, async () => {
+    assertTestDatabase();
+    const userId = crypto.randomUUID();
+    await prisma.user.create({ data: { id: userId, name: "Start replay", email: `${userId}@example.test` } });
+    try {
+      const first = crypto.randomUUID();
+      await Promise.all([
+        startExperience(feature, userId, "same-content", first),
+        startExperience(feature, userId, "same-content", first),
+      ]);
+      await startExperience(feature, userId, "same-content", first);
+      expect(await prisma.experienceDailyUse.count({ where: { userId, feature } })).toBe(1);
+      if (feature === "quiz") {
+        await startExperience(feature, userId, "same-content", crypto.randomUUID());
+        expect(await prisma.experienceDailyUse.count({ where: { userId, feature } })).toBe(2);
+      }
+    } finally {
+      await prisma.user.delete({ where: { id: userId } });
+    }
+  });
+}
+
 test.skipIf(!RUN_INTEGRATION)("feature quotas deduplicate retries and apply policy changes immediately", async () => {
   assertTestDatabase();
   const userId = crypto.randomUUID();

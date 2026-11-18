@@ -1,5 +1,5 @@
 import { describe, expect, it } from "bun:test";
-import { AdminMembershipReportQuerySchema, AdminTransactionQuerySchema } from "@repo/shared";
+import { AdminMembershipReportQuerySchema, AdminTransactionQuerySchema, ExperienceStartQuerySchema, MembershipEntitlementSchema } from "@repo/shared";
 import { mapOrder } from "../src/modules/membership/application/membership.mappers";
 import { MembershipService } from "../src/modules/membership/application/membership.service";
 import type { MembershipOrderEntity } from "../src/modules/membership/domain/membership.entity";
@@ -42,6 +42,29 @@ describe("membership projections", () => {
 });
 
 describe("membership date validation", () => {
+  it("requires a stable client start id for every quiz and exhibition admission", () => {
+    expect(ExperienceStartQuerySchema.safeParse({}).success).toBe(false);
+    expect(ExperienceStartQuerySchema.safeParse({ start: "invalid" }).success).toBe(false);
+    const start = crypto.randomUUID();
+    expect(ExperienceStartQuerySchema.parse({ start }).start).toBe(start);
+  });
+
+  it("returns the stored start and end of the Premium period", async () => {
+    const startsAt = new Date("2026-11-01T00:00:00+07:00");
+    const expiresAt = new Date(Date.now() + 30 * 86_400_000);
+    const repo = {
+      findActiveMembership: async () => ({ startsAt, expiresAt, plan: { code: "monthly" } }),
+      findLatestOrder: async () => null,
+    } as unknown as MembershipRepository;
+    const service = new MembershipService(repo, {} as never);
+    const result = MembershipEntitlementSchema.parse(await service.getEntitlement("u"));
+    expect(result.startsAt).toEqual(startsAt);
+    expect(result.expiresAt).toEqual(expiresAt);
+    const freeRepo = { ...repo, findActiveMembership: async () => null };
+    const free = MembershipEntitlementSchema.parse(await new MembershipService(freeRepo, {} as never).getEntitlement("u"));
+    expect(free.startsAt).toBeNull();
+    expect(free.expiresAt).toBeNull();
+  });
   it("rejects calendar days that JS would normalise", () => {
     expect(AdminTransactionQuerySchema.safeParse({ from: "2026-02-31" }).success).toBe(false);
     expect(AdminMembershipReportQuerySchema.safeParse({ from: "2026-02-28", to: "2026-03-31" }).success).toBe(true);

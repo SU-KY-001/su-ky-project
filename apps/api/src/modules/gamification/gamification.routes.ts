@@ -88,7 +88,7 @@ export const publicQuizRoute = new Hono<AppEnv>()
       const { slug } = c.req.valid("param");
       const { format, start } = c.req.valid("query");
       const quiz = PublicQuizSchema.parse(await gamificationService.getPublishedQuiz(slug, format === "2"));
-      if (quiz.questions.length) await startExperience("quiz", c.get("session")!.user.id, quiz.id, start ?? crypto.randomUUID());
+      if (quiz.questions.length) await startExperience("quiz", c.get("session")!.user.id, quiz.id, start);
       c.header("Cache-Control", "private, no-store");
       return c.json(quiz);
     },

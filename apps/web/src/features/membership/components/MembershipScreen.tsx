@@ -38,7 +38,13 @@ export function MembershipScreen() {
           {status.isPending ? <p>Đang tải trạng thái…</p> : !entitlement ? (
             <Button variant="outline" onClick={() => void status.refetch()}>Tải lại trạng thái</Button>
           ) : entitlement.tier === "free" ? <p>Free</p> : (
-            <p>Premium · Còn {entitlement.daysLeft} ngày · Hết hạn {entitlement.expiresAt ? dateTime.format(entitlement.expiresAt) : "—"}</p>
+            <div className="grid gap-2">
+              <p>Premium · Còn {entitlement.daysLeft} ngày</p>
+              <dl className="grid gap-2 text-sm">
+                <div><dt className="font-semibold">Ngày bắt đầu kỳ Premium</dt><dd>{entitlement.startsAt ? dateTime.format(entitlement.startsAt) : "—"}</dd></div>
+                <div><dt className="font-semibold">Ngày hết hạn</dt><dd>{entitlement.expiresAt ? dateTime.format(entitlement.expiresAt) : "—"}</dd></div>
+              </dl>
+            </div>
           )}
           {entitlement?.experienceQuotas.length ? <ul className="grid gap-2 text-sm text-ink-soft">
             {entitlement.experienceQuotas.filter(({ mode }) => mode !== "free_unlimited").map((quota) => (
