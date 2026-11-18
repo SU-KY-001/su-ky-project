@@ -95,6 +95,7 @@ export const PublicQuizCatalogQuerySchema = z.object({
   limit: z.coerce.number().int().min(1).max(50).default(12),
   topicId: z.string().uuid().optional(),
   episodeSlug: z.string().min(1).max(280).optional(),
+  seriesSlug: z.string().min(1).max(280).optional(),
 });
 
 export const PublicQuizCardSchema = z.object({

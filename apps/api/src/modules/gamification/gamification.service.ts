@@ -46,8 +46,9 @@ function publicQuiz(
 }
 
 export class GamificationService {
-  async listPublishedQuizzes({ page, limit, topicId, episodeSlug }: { page: number; limit: number; topicId?: string; episodeSlug?: string }, userId?: string) {
-    const where: Prisma.QuizWhereInput = { episode: { ...PUBLISHED_EPISODE, ...(episodeSlug ? { slug: episodeSlug } : {}), ...(topicId ? { series: { ...PUBLISHED_EPISODE.series, topicId } } : {}) } };
+  async listPublishedQuizzes({ page, limit, topicId, episodeSlug, seriesSlug }: { page: number; limit: number; topicId?: string; episodeSlug?: string; seriesSlug?: string }, userId?: string) {
+    const series = { ...PUBLISHED_EPISODE.series, ...(topicId ? { topicId } : {}), ...(seriesSlug ? { slug: seriesSlug } : {}) };
+    const where: Prisma.QuizWhereInput = { episode: { ...PUBLISHED_EPISODE, series, ...(episodeSlug ? { slug: episodeSlug } : {}) } };
     const [total, quizzes] = await Promise.all([
       prisma.quiz.count({ where }),
       prisma.quiz.findMany({ where, skip: (page - 1) * limit, take: limit, orderBy: [{ updatedAt: "desc" }, { id: "asc" }],

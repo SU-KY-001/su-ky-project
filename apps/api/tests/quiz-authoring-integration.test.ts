@@ -69,5 +69,8 @@ describe.skipIf(!RUN_INTEGRATION)("quiz authoring persisted lifecycle", () => {
     expect((await catalog.listPublishedQuizzes({ page: 1, limit: 12, episodeSlug: episode.slug }, userId)).items[0]?.hasCompleted).toBe(true);
     expect((await catalog.listPublishedQuizzes({ page: 1, limit: 12, episodeSlug: episode.slug }, "another-user")).items[0]?.hasCompleted).toBe(false);
     expect((await catalog.listPublishedQuizzes({ page: 1, limit: 12, episodeSlug: episode.slug, topicId: "7c1dfbb7-6e58-4be5-9c17-c9d9a3106a2c" })).items).toHaveLength(0);
+    const series = await prisma.series.findUniqueOrThrow({ where: { id: episode.seriesId } });
+    expect((await catalog.listPublishedQuizzes({ page: 1, limit: 12, seriesSlug: series.slug })).items).toHaveLength(1);
+    expect((await catalog.listPublishedQuizzes({ page: 1, limit: 12, seriesSlug: "khong-ton-tai" })).items).toHaveLength(0);
   });
 });

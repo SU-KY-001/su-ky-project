@@ -45,7 +45,7 @@ export const gamificationPaths: Paths = {
   },
   "/api/quizzes": {
     get: operation({ id: "listPublishedQuizzes", tag: QUIZ_TAG, summary: "Danh sách quiz của các tập công khai", access: "optional", query: PublicQuizCatalogQuerySchema,
-      queryDocs: { page: "Số trang (từ 1)", limit: "Số quiz mỗi trang (1-50, mặc định 12)", topicId: "Lọc theo ID chủ đề (UUID) của Series", episodeSlug: "Lọc theo slug tập công khai" },
+      queryDocs: { page: "Số trang (từ 1)", limit: "Số quiz mỗi trang (1-50, mặc định 12)", topicId: "Lọc theo ID chủ đề (UUID) của Series", episodeSlug: "Lọc theo slug tập công khai", seriesSlug: "Lọc theo slug series công khai" },
       ok: { status: 200, description: "Danh sách quiz phân trang", schema: { name: "PublicQuizCatalog", schema: PublicQuizCatalogSchema } } }),
   },
   "/api/studio/quiz-workspaces": {
