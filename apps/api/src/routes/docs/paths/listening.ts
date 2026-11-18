@@ -102,7 +102,7 @@ export const listeningPaths: Paths = {
       tag: TAG,
       summary: "Lấy URL phát audio",
       description:
-        "Trả URL audio và kiểm tra quyền hiện tại, chưa ghi lượt. Sau khi audio thực sự phát, client gọi POST playback/start để xác nhận lượt nghe. Response `Cache-Control: private, no-store`.",
+        "Trả URL audio có thời hạn và tiến độ đã lưu, kiểm tra quyền/quota nhưng chưa ghi lượt. Sau khi audio thực sự phát, client gọi POST playback/start để xác nhận lượt nghe. Retry, nghe lại hoặc đổi bản kể của cùng tập trong ngày không ghi trùng. Response `Cache-Control: private, no-store`.",
       access: "user",
       ...narrationParams,
       ok: { status: 200, description: "Audio và tiến độ", schema: { name: "Playback", schema: PlaybackDocSchema } },

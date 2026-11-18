@@ -27,7 +27,7 @@ for (const feature of ["quiz", "exhibition"] as const) {
 }
 
 for (const feature of ["quiz", "exhibition"] as const) {
-test.skipIf(!RUN_INTEGRATION)(feature + " quotas deduplicate retries and apply policy changes immediately", async () => {
+test.skipIf(!RUN_INTEGRATION)(`${feature} quotas deduplicate retries and apply policy changes immediately`, async () => {
   assertTestDatabase();
   const userId = crypto.randomUUID();
   const original = await experiencePolicy(feature);
@@ -59,5 +59,4 @@ test.skipIf(!RUN_INTEGRATION)(feature + " quotas deduplicate retries and apply p
     await prisma.user.delete({ where: { id: userId } });
   }
 });
-
 }

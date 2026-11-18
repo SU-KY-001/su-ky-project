@@ -22,7 +22,7 @@ Admin có thể:
 - Cấu hình tên, giá, thời hạn và trạng thái mở bán của gói tháng.
 - Tắt gói không còn bán mà không xóa lịch sử giao dịch cũ.
 
-Phiên bản này chỉ hỗ trợ một gói Premium tháng có sẵn, mặc định 20.000đ/30 ngày. Admin không tạo thêm gói. Free là trạng thái tài khoản. Các gói cũ được giữ để tra cứu lịch sử. Luồng mua sử dụng gói Premium tháng. Giá và thời hạn được cấu hình theo gói; không cố định giá hoặc thời hạn trong giao diện nếu dữ liệu gói có thể thay đổi.
+Phiên bản này chỉ hỗ trợ một gói Premium tháng có sẵn, mặc định 20.000đ/30 ngày. Admin không tạo thêm gói. Free là trạng thái tài khoản; gói cũ được giữ để tra cứu lịch sử. Giá và thời hạn có thể được Admin cấu hình và không được ghi cứng trên giao diện.
 
 Quy tắc đơn hàng:
 
@@ -61,9 +61,7 @@ Thay đổi quota có hiệu lực ngay. Nếu số lượt Free đã dùng tron
 
 Hệ thống tính lượt khi người dùng bắt đầu sử dụng tính năng thành công. Lỗi xảy ra trước khi tính năng bắt đầu không trừ lượt. Hệ thống phải tránh ghi trùng do bấm lặp hoặc request gửi lại.
 
-- **Podcast:** bắt đầu phát thành công một tập mới tính một lượt. Nghe lại cùng tập trong ngày hoặc đổi bản kể của cùng tập không tính thêm. Nghe lại vào ngày khác tính vào quota ngày mới.
-
-  API lấy thông tin phát không ghi lượt. Player web xác nhận khi nhận sự kiện `playing`; player mobile xác nhận khi audio báo đang phát. Lúc đó client gọi API xác nhận bắt đầu phát, server kiểm tra lại quyền, phiên bản audio và ghi lượt theo tập/ngày. Nếu bị từ chối hoặc không xác nhận được, player dừng và hiển thị lỗi để người dùng thử lại.
+- **Podcast:** API lấy thông tin phát chỉ kiểm tra quyền và trả thông tin audio, chưa ghi lượt. Player web/mobile xác nhận lượt qua API riêng khi audio thực sự bắt đầu phát. Server kiểm tra lại quyền và phiên bản audio rồi ghi lượt theo tập/ngày. Retry hoặc nghe lại cùng tập trong ngày không ghi trùng. Nếu xác nhận thất bại, player dừng và thông báo lỗi.
 - **Quiz:** mỗi lần bắt đầu làm bài tính một lượt mới, kể cả bắt đầu lại hoặc ôn lại cùng quiz. Lượt tính lúc vào bài thành công, không đợi nộp bài.
 - **Triển lãm 3D:** mỗi lần vào triển lãm thành công là một lượt. Quota mặc định của Free là một lượt tham quan trong ngày.
 

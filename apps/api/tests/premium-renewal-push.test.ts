@@ -21,7 +21,7 @@ const { processPremiumRenewalReminders } = await import("../src/modules/membersh
 afterAll(() => mock.restore());
 
 for (const pushEnabled of [true, false]) {
-test.skipIf(!RUN_INTEGRATION)("reminder delivery with push enabled: " + pushEnabled, async () => {
+test.skipIf(!RUN_INTEGRATION)(`concurrent reminder workers send one push with push enabled=${pushEnabled}`, async () => {
   assertTestDatabase();
   const userId = crypto.randomUUID();
   const now = new Date();

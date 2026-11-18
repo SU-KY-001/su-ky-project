@@ -35,4 +35,3 @@ export async function reserveDailyPlay(
 export async function checkDailyPlay(userId: string, episodeId: string, now = new Date()): Promise<DailyPlayReservation> {
   return { outcome: await repo.reserveDailyPlay(userId, episodeId, playDate(now), false) };
 }
-
