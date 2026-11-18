@@ -23,15 +23,18 @@ export const appRoutes: RouteObject[] = [
     children: [
       {
         id: "membership-auth",
-        element: <ProtectedRoute allowedRoles={["user"]} />,
-        children: [{
-          id: "membership",
-          path: APP_PATHS.membership.slice(1),
-          lazy: async () => {
+        path: APP_PATHS.membership.slice(1),
+        element: <ProtectedRoute allowedRoles={["user", "moderator", "admin"]} />,
+        children: [
+          { id: "membership", index: true, lazy: async () => {
             const { MembershipPage } = await import("../pages/membership/MembershipPage");
             return { Component: MembershipPage };
-          },
-        }],
+          } },
+          { id: "membership-payment", path: "payment/:orderId", lazy: async () => {
+            const { PaymentPage } = await import("../pages/membership/PaymentPage");
+            return { Component: PaymentPage };
+          } },
+        ],
       },
       {
         id: "quiz-player-auth",

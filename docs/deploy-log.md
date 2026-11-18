@@ -42,3 +42,5 @@ docker ps --format '{{.Names}} {{.Image}} {{.Status}}'
 | 2026-11-09 17:46 | f5c28e5 | staging | Merge pull request #44 from SU-KY-001/fix/mobile | 🔵 api |
 | 2026-11-17 22:36 | 4b6a7b9 | dev | test(api): assert expected expiry on open membership orders | 🔵 api |
 | 2026-11-18 00:44 | eb8bcb6+dirty | refactor/api-structure | refactor(api): barrels + composition root + queries into repos; dirty: 29 files (app.ts, middleware, content, listening, membership, releases, catalog) | 🔵 api |
+| 2026-11-18 18:10 | eb73026 | feat/premium-membership-v2 | premium quota pipeline: experience access policy, plan benefits, renewal reminders (migrations 181400/181500/181600); member UI restored | 🔵 api |
+| 2026-11-18 19:08 | 36468fe | feat/premium-membership-v2 | fix(mobile): use plan duration in renewal CTA and handle missing plans | 🔵 api |

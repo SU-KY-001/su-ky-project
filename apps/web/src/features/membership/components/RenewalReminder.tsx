@@ -38,7 +38,7 @@ export function RenewalReminder({ premium }: { premium: boolean }) {
         <section className="rounded-xl border border-line bg-paper-soft p-5" aria-label="Thông báo gia hạn">
           <h2 className="font-semibold">Premium sắp hết hạn</h2>
           <p className="mt-2 text-sm text-ink-soft">{reminder.data.planName} còn {reminder.data.daysLeft} ngày, hết hạn {date.format(reminder.data.expiresAt)}.</p>
-          <Button variant="outline" asChild className="mt-3"><a href="#mua-goi">Gia hạn Premium</a></Button>
+          <Button variant="outline" asChild className="mt-3"><a href="#goi">Gia hạn Premium</a></Button>
         </section>
       ) : null}
       {key ? (

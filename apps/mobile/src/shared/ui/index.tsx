@@ -100,9 +100,9 @@ export function SearchBar({ placeholder = "Tìm kiếm sự kiện, nhân vật.
   );
 }
 
-export function AppCard({ children, onPress, dark = false, selected = false }: { children: ReactNode; onPress?: () => void; dark?: boolean; selected?: boolean }): React.JSX.Element {
+export function AppCard({ children, onPress, dark = false, selected = false, accent = false }: { children: ReactNode; onPress?: () => void; dark?: boolean; selected?: boolean; accent?: boolean }): React.JSX.Element {
   return (
-    <YStack bg={dark ? "$night" : "$paperSoft"} bw="$0.25" bc={selected ? "$vermilion" : dark ? "$night" : "$line"} rounded="$5" overflow="hidden" onPress={onPress} pressStyle={onPress ? { op: 0.8 } : undefined}>
+    <YStack bg={dark ? "$night" : "$paperSoft"} bw="$0.25" bc={accent ? "$bronze" : selected ? "$vermilion" : dark ? "$night" : "$line"} rounded="$5" overflow="hidden" onPress={onPress} pressStyle={onPress ? { op: 0.8 } : undefined}>
       {children}
     </YStack>
   );
@@ -116,21 +116,23 @@ export function ProgressBar({ value, dark = false }: { value: number; dark?: boo
 export function SectionHeader({ title, action = "Xem tất cả", onPress }: { title: string; action?: string; onPress?: () => void }): React.JSX.Element {
   return (
     <XStack items="center" justify="space-between">
-      <Text color="$ink" fs="$4" fw="$7">{title}</Text>
+      <Text color="$ink" ff="$heading" fs="$4" fw="$7">{title}</Text>
       {onPress ? <Button unstyled fd="row" items="center" g="$1" onPress={onPress}><Text color="$vermilion" fs="$1" fw="$6">{action}</Text><AppIcon name="chevron-right" size={14} color={colors.red} /></Button> : null}
     </XStack>
   );
 }
 
-export function AppHeader({ title, onBack, rightIcon, onRight }: { title?: string; onBack?: () => void; rightIcon?: IconName; onRight?: () => void }): React.JSX.Element {
+export function AppHeader({ title, onBack, rightIcon, onRight, avatar = true }: { title?: string; onBack?: () => void; rightIcon?: IconName; onRight?: () => void; avatar?: boolean }): React.JSX.Element {
   const user = useAuthStore((state) => state.user);
   return (
     <XStack h="$4.5" px="$3" items="center" justify="space-between">
       <XStack f={1} items="center" g="$2">
         {onBack ? <IconButton icon="chevron-left" label="Quay lại" onPress={onBack} /> : null}
-        <YStack w={32} h={32} rounded="$12" overflow="hidden" bg="$paperDeep" items="center" justify="center">
-          {user?.image ? <AppImage source={{ uri: user.image }} w={32} h={32} rounded={16} /> : <AppIcon name="user" size={18} color={colors.muted} />}
-        </YStack>
+        {avatar ? (
+          <YStack w={32} h={32} rounded="$12" overflow="hidden" bg="$paperDeep" items="center" justify="center">
+            {user?.image ? <AppImage source={{ uri: user.image }} w={32} h={32} rounded={16} /> : <AppIcon name="user" size={18} color={colors.muted} />}
+          </YStack>
+        ) : null}
         <Text color="$ink" fs="$3" fw="$7" f={1} numberOfLines={1}>{title ?? "Sử Ký"}</Text>
       </XStack>
       {rightIcon && onRight ? <IconButton icon={rightIcon} label="Tác vụ" onPress={onRight} /> : null}

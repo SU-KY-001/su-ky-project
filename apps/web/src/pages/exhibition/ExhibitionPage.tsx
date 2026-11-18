@@ -1,5 +1,5 @@
-import { useQuery } from "@tanstack/react-query";
-import { useState } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router";
 import { isApiError } from "@/lib/apiError";
 import { ExhibitionExperience, publicExhibition } from "@/features/exhibition/public";
@@ -21,6 +21,8 @@ function ExhibitionVisit({ slug }: { slug: string }) {
     meta: { requiresAuth: true },
     retry: (count, error) => count < 1 && (!isApiError(error) || error.isRetryable),
   });
+  const queryClient = useQueryClient();
+  useEffect(() => { if (query.data) void queryClient.invalidateQueries({ queryKey: ["membership", "status"] }); }, [query.data, queryClient]);
   if (query.isPending) return <p role="status">Đang tải triển lãm…</p>;
   if (isApiError(query.error) && (query.error.is("PREMIUM_REQUIRED") || query.error.is("EXPERIENCE_QUOTA_REACHED"))) return (
     <ErrorState title={query.error.is("PREMIUM_REQUIRED") ? "Triển lãm dành cho thành viên Premium" : "Bạn đã hết lượt tham quan hôm nay"} description={query.error.message}>

@@ -407,6 +407,7 @@ export function HeritageApp(): React.JSX.Element {
           onSelectNarration={setSelectedNarrationId}
           onQuiz={() => { setQuizReturn("player"); setQuizEpisode(episode); setScreen("episodeQuiz"); }}
           onBack={() => setScreen(playerReturn)}
+          onUpgrade={() => router.push("/membership")}
           playback={playback}
         />
       ) : null}
@@ -427,6 +428,7 @@ export function HeritageApp(): React.JSX.Element {
       {screen === "profile" ? (
         <ProfileScreen
           onEditProfile={() => router.push("/profile")}
+          onOpenMembership={() => router.push("/membership")}
           onLogin={() => requireAuth()}
           onPlayHistoryItem={(item) => void playHistoryEpisode(item, "profile")}
           onViewListeningHistory={() => { setListeningHistoryPage(1); setListeningHistoryStatus("all"); setHistoryOpenError(null); setScreen("listeningHistory"); }}

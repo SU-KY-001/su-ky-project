@@ -37,6 +37,7 @@ export function QuizPlayer({ slug }: { slug: string }): ReactElement {
     meta: { requiresAuth: true },
     retry: (count, error) => count < 1 && (!isApiError(error) || error.isRetryable),
   });
+  useEffect(() => { if (quiz.data) void cache.invalidateQueries({ queryKey: ["membership", "status"] }); }, [quiz.data, cache]);
   const card = useQuery({ queryKey: ["quiz-card", user.data?.id, slug], queryFn: ({ signal }) => libraryService.quizzes({ episodeSlug: slug }, signal), enabled: Boolean(user.data?.id) });
   const submit = useMutation({
     mutationFn: () => {

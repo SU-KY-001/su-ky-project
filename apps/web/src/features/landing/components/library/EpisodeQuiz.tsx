@@ -1,4 +1,4 @@
-import { useRef, useState, type FormEvent, type ReactElement } from "react";
+import { useEffect, useRef, useState, type FormEvent, type ReactElement } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { isApiError } from "@/lib/apiError";
 import { APP_PATHS } from "@/shared/constants/routes";
@@ -181,6 +181,7 @@ export function EpisodeQuiz({ slug, signedIn }: { slug: string; signedIn: boolea
     meta: { requiresAuth: true },
     retry: (count, error) => count < 1 && (!isApiError(error) || error.isRetryable),
   });
+  useEffect(() => { if (quiz.data) void queryClient.invalidateQueries({ queryKey: ["membership", "status"] }); }, [quiz.data, queryClient]);
   const submit = useMutation({
     mutationFn: async () => {
       if (!quiz.data) throw new Error("Chưa tải được câu hỏi");
