@@ -350,6 +350,8 @@ model HistoricalEntity {
 }
 
 model Source {
+  // shortcut: Postgres still holds the unused verification_* columns; drop them in a later
+  // cleanup migration so the previous API image can still roll back.
   id                  String                   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   tier                SourceTier
   title               String                   @db.VarChar(500)
