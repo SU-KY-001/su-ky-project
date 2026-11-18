@@ -32,7 +32,8 @@ export function ScriptFileImport({ editorRef, disabled = false, selectedType = "
     try {
       const result = await extractScriptDocument(file, controller.signal);
       if (controller.signal.aborted || version.current !== id) return;
-      setText(normalizeStructuredScriptText(result.blocks.map((block) => block.text).join("\n\n")));
+      // txt/md blocks are already single lines; joining with a blank line would triple every gap.
+      setText(normalizeStructuredScriptText(result.blocks.map((block) => block.text).join(result.format === "txt" || result.format === "md" ? "\n" : "\n\n")));
     } catch (caught) { if (!controller.signal.aborted && version.current === id) setError(caught instanceof Error ? caught.message : "Không đọc được tài liệu."); }
     finally { if (version.current === id) { setBusy(false); request.current = null; } }
   };

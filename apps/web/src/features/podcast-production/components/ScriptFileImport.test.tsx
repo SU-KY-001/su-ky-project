@@ -35,6 +35,17 @@ it("previews without writing and replaces existing content only after confirmati
   expect(host.querySelector('[contenteditable="true"]')?.textContent).toContain("Văn bản mới");
   expect(host.querySelector('[contenteditable="true"]')?.textContent).not.toContain("Nội dung cũ");
 });
+it("keeps one newline per txt line instead of padding every line with a blank one", async () => {
+  const spy = spyOn(service, "extractScriptDocument").mockResolvedValue({ fileName: "kichban.txt", format: "txt", blocks: [
+    { text: "Dẫn: Mở đầu", page: null, line: 1 },
+    { text: "Khách: Trả lời", page: null, line: 2 },
+    { text: "", page: null, line: 3 },
+    { text: "Dẫn: Tiếp", page: null, line: 4 },
+  ] }); restores.push(() => spy.mockRestore());
+  await render(); await upload();
+  expect(document.querySelector("pre")?.textContent).toBe("Dẫn: Mở đầu\nKhách: Trả lời\n\nDẫn: Tiếp");
+});
+
 it("asks before replacement and cancellation keeps existing content", async () => {
   const spy = spyOn(service, "extractScriptDocument").mockResolvedValue({ fileName: "kichban.txt", format: "txt", blocks: [{ text: "Thay thế", page: null, line: 1 }] }); restores.push(() => spy.mockRestore());
   const host = await render(); await upload();
