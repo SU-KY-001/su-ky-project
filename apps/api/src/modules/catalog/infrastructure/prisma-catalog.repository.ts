@@ -53,11 +53,6 @@ type SourceRowWithUsage = Prisma.SourceGetPayload<{
 export function toSource(row: SourceRow): Source {
   return {
     version: row.version,
-    verificationStatus: row.verificationStatus,
-    verifiedVersion: row.verifiedVersion,
-    verifiedById: row.verifiedById,
-    verifiedAt: row.verifiedAt,
-    verificationNote: row.verificationNote,
     id: row.id,
     tier: row.tier,
     title: row.title,
@@ -153,7 +148,6 @@ export class PrismaCatalogRepository
     query: SourceListQuery,
   ): Promise<{ items: Source[]; total: number }> {
     const where = {
-      verificationStatus: query.verificationStatus,
       ...(query.includeArchived ? {} : { archivedAt: null }),
       ...(query.tier ? { tier: query.tier } : {}),
       ...(query.q
@@ -334,7 +328,14 @@ export class PrismaCatalogRepository
     data: PatchSourceData,
     actorId?: string,
   ): Promise<Source> {
-    const pages = data.fileAssetId ? await readSourcePdfPages(data.fileAssetId) : null;
+    // The editor always resends the current asset; only a new file needs re-extracting (pages are copied otherwise).
+    const currentAssetId = data.fileAssetId
+      ? (await prisma.source.findUnique({ where: { id }, select: { fileAssetId: true } }))?.fileAssetId
+      : null;
+    const pages =
+      data.fileAssetId && data.fileAssetId !== currentAssetId
+        ? await readSourcePdfPages(data.fileAssetId)
+        : null;
     const row = await prisma.$transaction(async (tx) => {
       await tx.$queryRaw`SELECT id FROM sources WHERE id=${id}::uuid FOR UPDATE`;
       const before = await tx.source.findUniqueOrThrow({ where: { id } });
@@ -367,11 +368,6 @@ export class PrismaCatalogRepository
         data: {
           ...patch,
           version: { increment: 1 },
-          verificationStatus: "PENDING",
-          verifiedVersion: null,
-          verifiedAt: null,
-          verifiedById: null,
-          verificationNote: null,
         },
         include: SOURCE_INCLUDE,
       });
@@ -422,10 +418,6 @@ export class PrismaCatalogRepository
         data: {
           archivedAt,
           version: { increment: 1 },
-          verificationStatus: "PENDING",
-          verifiedVersion: null,
-          verifiedAt: null,
-          verifiedById: null,
         },
         include: SOURCE_INCLUDE,
       });

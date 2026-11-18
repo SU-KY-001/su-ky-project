@@ -58,11 +58,6 @@ export interface SourceFileCandidate {
 
 export interface Source {
   version: number;
-  verificationStatus: "PENDING" | "VERIFIED" | "REJECTED";
-  verifiedVersion: number | null;
-  verifiedById: string | null;
-  verifiedAt: Date | null;
-  verificationNote: string | null;
   id: string;
   tier: SourceTier;
   title: string;

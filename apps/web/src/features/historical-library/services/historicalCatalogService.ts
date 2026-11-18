@@ -11,7 +11,6 @@ import {
   paginatedSchema,
   CreateSourceSchema,
   PatchSourceSchema,
-  SourceReviewSchema,
   PublicHistoricalEventSchema,
   type HistoricalTimeDto,
   type CatalogSourceDto,
@@ -289,11 +288,6 @@ export const historicalCatalogService = {
             param: { id },
             json: { baseVersion },
           }),
-      CatalogSourceSchema,
-    ),
-  reviewSource: (id: string, json: z.input<typeof SourceReviewSchema>) =>
-    parse(
-      studio.sources[":id"].review.$post({ param: { id }, json }),
       CatalogSourceSchema,
     ),
   revisions: (id: string) =>

@@ -153,7 +153,6 @@ export async function collectHistoricalEvidence(
       sourceVersion: r.version,
       locator: row.locator,
       excerpt: row.excerpt,
-      verifiedAt: s.verifiedAt?.toISOString() ?? null,
       source: {
         title: s.title,
         tier: s.tier,

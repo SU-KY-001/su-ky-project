@@ -62,8 +62,7 @@ async function main(): Promise<void> {
         const approximate = "approximate" in metadata && metadata.approximate;
         const time = HistoricalTimeSchema.parse(metadata.start === metadata.end ? { kind: "POINT", at: { year: metadata.start, precision: "YEAR" } } : { kind: "RANGE", start: { year: metadata.start, precision: "YEAR", approximate }, end: { year: metadata.end, precision: "YEAR", approximate }, endState: "KNOWN", ...(approximate ? { note: "Niên đại quy ước để hiển thị dữ liệu demo; các giai đoạn văn hóa cổ đại có tính ước định." } : {}) });
         let source = await tx.source.findFirst({ where: { url: metadata.url, archivedAt: null } });
-        if (!source) source = await tx.source.create({ data: { title: metadata.source, url: metadata.url, publisher: metadata.url.includes("dangcongsan.vn") ? "Tư liệu - Văn kiện Đảng" : "Bảo tàng Lịch sử Quốc gia", tier: "TIER_3_KHOA_HOC", version: 1, verificationStatus: "VERIFIED", verifiedVersion: 1, verifiedAt: new Date(), verificationNote: note, createdById: series.ownerId } });
-        if (source.verificationStatus !== "VERIFIED" || source.verifiedVersion !== source.version) throw new Error(`Nguồn hiện hữu chưa xác minh đúng phiên bản: ${source.title}`);
+        if (!source) source = await tx.source.create({ data: { title: metadata.source, url: metadata.url, publisher: metadata.url.includes("dangcongsan.vn") ? "Tư liệu - Văn kiện Đảng" : "Bảo tàng Lịch sử Quốc gia", tier: "TIER_3_KHOA_HOC", version: 1, createdById: series.ownerId } });
         const sourceRevision = await tx.sourceRevision.upsert({ where: { sourceId_version: { sourceId: source.id, version: source.version } }, update: {}, create: { sourceId: source.id, version: source.version, snapshot: jsonSnapshot(source), createdById: series.ownerId } });
 
         // Retain the event already selected by the user for the ancient series.

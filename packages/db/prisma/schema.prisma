@@ -370,11 +370,6 @@ model Source {
   fileAsset           MediaAsset?              @relation("SourceFile", fields: [fileAssetId], references: [id], onDelete: Restrict)
   seriesSources       SeriesSource[]
   version             Int                      @default(1)
-  verificationStatus  SourceVerificationStatus @default(PENDING) @map("verification_status")
-  verifiedVersion     Int?                     @map("verified_version")
-  verifiedById        String?                  @map("verified_by_id") @db.VarChar(36)
-  verifiedAt          DateTime?                @map("verified_at") @db.Timestamptz(3)
-  verificationNote    String?                  @map("verification_note") @db.Text
   revisions           SourceRevision[]
   historicalCitations HistoricalCitation[]
   pages               SourcePage[]

@@ -74,28 +74,21 @@ export class ListeningService {
     );
     if (!parsed.success)
       return {
-        sources: sources.map((s) => ({
-          ...this.mapSource(s),
-          verificationStatus: "PENDING" as const,
-        })),
+        sources: sources.map((s) => this.mapSource(s)),
         evidenceAsOf: null,
-        evidenceWarning: "LEGACY_UNVERIFIED",
+        evidenceWarning: "EVIDENCE_LEGACY",
       };
     const evidence = parsed.data;
+    let stale = false;
     const rows = evidence.sources.map((s) => {
       const state = series.evidenceCurrentStates?.[s.id];
-      const valid =
-        state?.verificationStatus === "VERIFIED" &&
-        state.version === s.sourceVersion &&
-        state.verifiedVersion === s.sourceVersion &&
-        !state.archived;
+      if (!state || state.version !== s.sourceVersion || state.archived)
+        stale = true;
       return {
         ...s.source,
         locator: s.locator,
         excerpt: s.excerpt,
-        verifiedAt: s.verifiedAt,
         sourceVersion: s.sourceVersion,
-        verificationStatus: valid ? "VERIFIED" : "WITHDRAWN",
         fileUrl: s.file
           ? this.storage.deliveryUrl({
               ...s.file,
@@ -108,9 +101,7 @@ export class ListeningService {
       sources: rows,
       evidenceAsOf: evidence.asOf,
       historicalEvent: evidence.event,
-      evidenceWarning: rows.some((s) => s.verificationStatus !== "VERIFIED")
-        ? "SOURCE_VERIFICATION_WITHDRAWN"
-        : null,
+      evidenceWarning: stale ? "SOURCE_OUTDATED" : null,
     };
   }
 

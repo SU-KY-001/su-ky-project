@@ -606,9 +606,7 @@ export class PrismaListeningRepository implements ListeningRepository {
       where: { id: { in: parsed.data.sources.map((s) => s.id) } },
       select: {
         id: true,
-        verificationStatus: true,
         version: true,
-        verifiedVersion: true,
         archivedAt: true,
       },
     });
@@ -616,9 +614,7 @@ export class PrismaListeningRepository implements ListeningRepository {
       rows.map((r) => [
         r.id,
         {
-          verificationStatus: r.verificationStatus,
           version: r.version,
-          verifiedVersion: r.verifiedVersion,
           archived: Boolean(r.archivedAt),
         },
       ]),

@@ -31,13 +31,6 @@ export function PublicHistoricalSources({
                 {c.excerpt}
               </blockquote>
             ) : null}
-            <p className="mt-2 text-sm">
-              {c.source.verificationStatus === "VERIFIED"
-                ? "Đã xác minh"
-                : c.source.verificationStatus === "REJECTED"
-                  ? "Đã rút xác minh"
-                  : "Chưa xác minh"}
-            </p>
             {c.source.url ? (
               <a
                 className="mr-4 underline"

@@ -33,7 +33,6 @@ export const historicalCitationService = new HistoricalCitationService(
 export const catalogReviewService = new CatalogReviewService(
   historicalRepository,
   historicalCatalogService,
-  historicalCitationService,
 );
 export const presentHistoricalNode = createHistoricalPresenter(
   historicalCatalogService,
@@ -64,6 +63,5 @@ export const studioCatalogRoute = new Hono<AppEnv>()
     createCatalogReviewRoutes(
       catalogReviewService,
       presentHistoricalNode,
-      mediaStorage,
     ),
   );

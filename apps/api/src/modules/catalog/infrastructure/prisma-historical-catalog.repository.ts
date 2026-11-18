@@ -747,58 +747,6 @@ export class PrismaHistoricalCatalogRepository
       throw error;
     }
   }
-  async reviewSource(
-    actorId: string,
-    id: string,
-    baseVersion: number,
-    expectedStatus: "PENDING" | "VERIFIED" | "REJECTED",
-    status: "PENDING" | "VERIFIED" | "REJECTED",
-    note: string,
-  ) {
-    return prisma.$transaction(async (tx) => {
-      await tx.$queryRaw`SELECT id FROM sources WHERE id=${id}::uuid FOR UPDATE`;
-      const updated = await tx.source.updateMany({
-        where: {
-          id,
-          version: baseVersion,
-          verificationStatus: expectedStatus,
-          archivedAt: null,
-        },
-        data: {
-          verificationStatus: status,
-          verifiedVersion: status === "VERIFIED" ? baseVersion : null,
-          verifiedById: actorId,
-          verifiedAt: new Date(),
-          verificationNote: note,
-        },
-      });
-      if (updated.count !== 1)
-        throw new DomainError(
-          409,
-          "STALE_WRITE",
-          "Phiên bản hoặc trạng thái nguồn đã thay đổi",
-        );
-      await writeAudit(tx, {
-        actorId,
-        action: `source.review.${status}`,
-        resourceType: "source",
-        resourceId: id,
-        changes: {
-          version: baseVersion,
-          before: expectedStatus,
-          after: status,
-          note,
-        },
-        ipAddress: null,
-      });
-      return toSource(
-        await tx.source.findUniqueOrThrow({
-          where: { id },
-          include: { fileAsset: true },
-        }),
-      );
-    });
-  }
   async revisions(kind: "entity" | "source", id: string) {
     return kind === "entity"
       ? prisma.historicalEntityRevision.findMany({

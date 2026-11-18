@@ -153,9 +153,6 @@ describe.skipIf(!RUN_INTEGRATION)(
             title: `${title} ${runId}`,
             url: "https://example.com/source",
             createdById: userId,
-            verificationStatus: "VERIFIED",
-            verifiedVersion: 1,
-            verifiedAt: new Date(),
           },
         })
       ).id;

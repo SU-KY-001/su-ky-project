@@ -44,12 +44,11 @@ describe.skipIf(!RUN_INTEGRATION)("historical citations", () => {
       tier: "TIER_1_CHINH_SU",
       url: "https://example.org/book",
     });
-    const a = await cites.addCitation(
+    await cites.addCitation(
       actor,
       { kind: "entity", id: figure.id },
       { sourceId: source.id, locator: "tr. 10", baseVersion: 1 },
     );
-    expect(a.source.verificationStatus).toBe("PENDING");
     await cites.addCitation(
       actor,
       { kind: "entity", id: figure.id },

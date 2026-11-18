@@ -37,10 +37,8 @@ describe.skipIf(!RUN_INTEGRATION)("ai check service rules (database)", () => {
     await expectDomainError(service.create(stranger, fx.episodeId, createInput([block("b0", TEXT)])), 403, "FORBIDDEN");
   });
 
-  it("runs with an attached unverified source but still rejects an unreadable one", async () => {
+  it("rejects an attached source the AI cannot read", async () => {
     const { service } = buildService({ agent: NO_ITEMS });
-    const unverified = await createEpisodeWithSources(ownerId, runId, "pending", [{ kind: "url", verified: false }]);
-    await expect(service.create(owner, unverified.episodeId, createInput([block("b0", TEXT)]))).resolves.toBeDefined();
     const nopages = await createEpisodeWithSources(ownerId, runId, "nopages", [{ kind: "pdf" }]);
     await expectDomainError(service.create(owner, nopages.episodeId, createInput([block("b0", TEXT)])), 422, "NO_READABLE_SOURCE");
   });

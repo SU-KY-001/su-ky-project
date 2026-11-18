@@ -157,7 +157,6 @@ const sourceInclude = {
   source: {
     select: {
       version: true,
-      verificationStatus: true,
       id: true,
       tier: true,
       title: true,
@@ -566,7 +565,7 @@ export class PrismaSeriesRepository implements SeriesRepository {
       orderBy: { sortOrder: "asc" },
       select: {
         sortOrder: true,
-        source: { select: { id: true, title: true, url: true, version: true, verificationStatus: true, verifiedVersion: true } },
+        source: { select: { id: true, title: true, url: true, version: true } },
       },
     });
     // One source may be attached at several locators; the AI reads each source once.
@@ -579,8 +578,6 @@ export class PrismaSeriesRepository implements SeriesRepository {
         title: source.title,
         url: source.url,
         version: source.version,
-        verificationStatus: source.verificationStatus,
-        verifiedVersion: source.verifiedVersion,
         sortOrder,
       }];
     });
@@ -590,7 +587,7 @@ export class PrismaSeriesRepository implements SeriesRepository {
     if (sourceIds.length === 0) return [];
     const rows = await prisma.source.findMany({
       where: { id: { in: sourceIds }, archivedAt: null },
-      select: { id: true, title: true, url: true, version: true, verificationStatus: true, verifiedVersion: true },
+      select: { id: true, title: true, url: true, version: true },
     });
     const byId = new Map(rows.map((row) => [row.id, row]));
     return sourceIds.flatMap((sourceId, index) => {
@@ -601,8 +598,6 @@ export class PrismaSeriesRepository implements SeriesRepository {
             title: row.title,
             url: row.url,
             version: row.version,
-            verificationStatus: row.verificationStatus,
-            verifiedVersion: row.verifiedVersion,
             sortOrder: index,
           }]
         : [];

@@ -167,7 +167,7 @@ async function seedSources(createdById: string) {
     sources.push(
       existing ??
         (await prisma.source.create({
-          data: { ...source, url, createdById, verificationStatus: "VERIFIED", verifiedVersion: 1, verifiedAt: new Date(), verifiedById: createdById },
+          data: { ...source, url, createdById },
         })),
     );
   }

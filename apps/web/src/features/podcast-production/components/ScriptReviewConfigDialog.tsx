@@ -19,7 +19,6 @@ const SOURCE_SEARCH_DEBOUNCE_MS = 250;
 interface SourceOption {
   id: string;
   title: string;
-  verified: boolean;
 }
 
 interface Props {
@@ -55,7 +54,7 @@ function SourcePicker({ picked, onToggle }: { picked: string[]; onToggle: (sourc
         .sources(query.trim())
         .then((items) => {
           if (!live) return;
-          setOptions(items.map(({ id, title, verificationStatus }) => ({ id, title, verified: verificationStatus === "VERIFIED" })));
+          setOptions(items.map(({ id, title }) => ({ id, title })));
           setFailed(false);
         })
         .catch(() => {
@@ -87,7 +86,6 @@ function SourcePicker({ picked, onToggle }: { picked: string[]; onToggle: (sourc
                   <span className="block text-mod-text">{option.title}</span>
                   <span className="text-xs text-mod-text-secondary">
                     {rank >= 0 ? `S${rank + 1} trong lượt rà này` : "Chưa chọn"}
-                    {option.verified ? "" : " · chưa xác minh"}
                   </span>
                 </span>
               </label>

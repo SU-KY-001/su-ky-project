@@ -15,7 +15,7 @@ import { DashboardRowActions } from "@/shared/components/dashboard/DashboardRowA
 import { TableCell, TableHead, TableRow } from "@/shared/components/ui/table";
 import { useCurrentUser } from "@/shared/hooks/useCurrentUser";
 import { HistoricalEventDetail } from "./HistoricalEventDetail";
-import { SourceComposer, SourceVerification } from "./HistoricalSourceFields";
+import { SourceComposer, SourceHistory } from "./HistoricalSourceFields";
 import {
   useHistoricalEntities,
   useHistoricalSources,
@@ -291,7 +291,7 @@ export function HistoricalCatalogList({
                             Xem PDF
                           </a>
                         ) : null}
-                        <SourceVerification source={s} />
+                        <SourceHistory source={s} />
                       </TableCell>
                     </TableRow>
                   ) : null}

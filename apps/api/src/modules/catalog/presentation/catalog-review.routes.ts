@@ -2,43 +2,18 @@ import { DomainError } from "../../../core/errors/domain-error";
 import { Hono } from "hono";
 import { zValidator } from "@hono/zod-validator";
 import { z } from "zod";
-import {
-  SourceReviewSchema,
-} from "@repo/shared";
 import { requireAuth, requireRole } from "../../auth";
-import { rateLimit, throwOnInvalid } from "../../../core/middleware";
+import { throwOnInvalid } from "../../../core/middleware";
 import type { AppEnv } from "../../../types";
 import type { CatalogReviewService } from "../application/catalog-review.service";
 import type { createHistoricalPresenter } from "../application/historical-catalog.mappers";
-import type { MediaStorageGateway } from "../../media";
-import { mapSource } from "./catalog.routes";
 const param = z.object({ id: z.string().uuid() });
 export function createCatalogReviewRoutes(
   service: CatalogReviewService,
   present: ReturnType<typeof createHistoricalPresenter>,
-  storage: MediaStorageGateway,
 ) {
   return new Hono<AppEnv>()
     .use("*", requireAuth, requireRole("moderator", "admin"))
-    .post(
-      "/sources/:id/review",
-      rateLimit("write"),
-      zValidator("param", param, throwOnInvalid),
-      zValidator("json", SourceReviewSchema, throwOnInvalid),
-      async (c) => {
-        const u = c.get("session")!.user;
-        return c.json(
-          mapSource(
-            await service.reviewSource(
-              { userId: u.id, role: u.role },
-              c.req.valid("param").id,
-              c.req.valid("json"),
-            ),
-            storage,
-          ),
-        );
-      },
-    )
     .get(
       "/sources/:id/revisions",
       zValidator("param", param, throwOnInvalid),

@@ -15,7 +15,6 @@ import type {
  */
 
 export interface SourceListQuery {
-  verificationStatus?: "PENDING" | "VERIFIED" | "REJECTED";
   page: number;
   limit: number;
   includeArchived: boolean;

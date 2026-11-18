@@ -116,14 +116,6 @@ export interface HistoricalEvidenceRepository
       note?: string | null;
     },
   ): Promise<string | null>;
-  reviewSource(
-    actorId: string,
-    id: string,
-    baseVersion: number,
-    expectedStatus: Source["verificationStatus"],
-    status: Source["verificationStatus"],
-    note: string,
-  ): Promise<Source>;
   getSource(id: string): Promise<Source | null>;
   revisions(
     kind: "entity" | "source",

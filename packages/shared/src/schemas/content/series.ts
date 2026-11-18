@@ -98,7 +98,6 @@ export const PublicationEvidenceSchema = z.object({
       sourceVersion: z.number(),
       locator: z.string(),
       excerpt: z.string().nullable(),
-      verifiedAt: z.string().nullable(),
       source: z.object({
         title: z.string(),
         tier: z.string(),
