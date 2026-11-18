@@ -304,6 +304,12 @@ export class PrismaMembershipRepository implements MembershipRepository {
   async grantCompMembership(input: GrantCompMembershipInput): Promise<{ orderId: string; result: ActivationResult }> {
     // Create and activate in one transaction: a failed activation must not leave a comp order behind.
     return this.db.$transaction(async (tx) => {
+      await tx.$queryRaw`SELECT id FROM users WHERE id = ${input.userId}::varchar FOR UPDATE`;
+      const previous = await tx.membership.findFirst({
+        where: { userId: input.userId, revokedAt: null, expiresAt: { gt: input.now } },
+        orderBy: { expiresAt: "desc" },
+        select: { id: true, startsAt: true, expiresAt: true },
+      });
       let code = transferCode(COMP_PREFIX);
       while (await tx.membershipOrder.findUnique({ where: { transferContent: code }, select: { id: true } }))
         code = transferCode(COMP_PREFIX);
@@ -323,6 +329,8 @@ export class PrismaMembershipRepository implements MembershipRepository {
         orderId: order.id,
         now: input.now,
         actorId: input.actorId,
+        ipAddress: input.ipAddress,
+        note: input.reason,
         maxStackDays: input.maxStackDays,
       });
       if (result.status === "stack_limit")
@@ -337,8 +345,8 @@ export class PrismaMembershipRepository implements MembershipRepository {
           resourceType: "membership",
           resourceId: input.userId,
           changes: {
-            before: null,
-            after: { membershipId: membership.id, planCode: input.plan.code, startsAt: membership.startsAt.toISOString(), expiresAt: membership.expiresAt.toISOString() },
+            before: { status: previous ? "premium" : "free", membershipId: previous?.id ?? null, startsAt: previous?.startsAt.toISOString() ?? null, expiresAt: previous?.expiresAt.toISOString() ?? null },
+            after: { status: "premium", membershipId: membership.id, planCode: input.plan.code, startsAt: membership.startsAt.toISOString(), expiresAt: membership.expiresAt.toISOString() },
             orderId: order.id,
             reason: input.reason,
           },

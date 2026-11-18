@@ -1,3 +1,4 @@
+import { PlaybackStartResultSchema } from "@repo/shared";
 // Kết nối API thật của apps/api (public library + listening + quiz), cùng các schema dùng chung với web.
 import type { ImageSourcePropType } from "react-native";
 import {
@@ -271,6 +272,10 @@ export const podcastApi = {
       syncIntervalMs: parsed.sync.intervalMs,
     };
   },
+  async confirmPlaybackStart(narrationId: string, assetId: string) {
+    const { data } = await apiClient.post(`/api/narrations/${narrationId}/playback/start`, { assetId });
+    return PlaybackStartResultSchema.parse(data);
+  },
   async saveProgress(narrationId: string, body: { assetId: string; positionMs: number; playedBitmap: string; sessionId?: string; sessionPlayedBitmap?: string }): Promise<ListeningProgressResult> {
     const { data } = await apiClient.put(`/api/me/listening-progress/${narrationId}`, body);
     return ListeningProgressUpdateResultSchema.parse(data);
@@ -289,7 +294,7 @@ export const podcastApi = {
     });
     return EventsPageSchema.parse(data).items;
   },
-  async quiz(episodeSlug: string, start?: string): Promise<PublicQuiz> {
+  async quiz(episodeSlug: string, start: string): Promise<PublicQuiz> {
     const { data } = await apiClient.get(`/api/episodes/${encodeURIComponent(episodeSlug)}/quiz`, { params: { format: "2", start } });
     return PublicQuizSchema.parse(data);
   },

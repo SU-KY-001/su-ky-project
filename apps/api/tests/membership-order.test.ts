@@ -164,6 +164,16 @@ describe.skipIf(!RUN_INTEGRATION)("Membership orders", () => {
     await admin.grant(userId, { planCode: "monthly", reason: "Tặng Premium kiểm thử" }, actor);
     const active = await admin.listMembers({ ...query, status: "active" });
     expect(active.items[0]).toMatchObject({ userId, status: "active", source: "admin" });
+    const grantedAudit = await prisma.auditLog.findFirstOrThrow({ where: { action: "membership.grant", resourceId: userId } });
+    expect(grantedAudit).toMatchObject({
+      actorId: otherUserId,
+      actorType: "ADMIN",
+      changes: expect.objectContaining({
+        before: expect.objectContaining({ status: "free" }),
+        after: expect.objectContaining({ status: "premium" }),
+        reason: "Tặng Premium kiểm thử",
+      }),
+    });
     const premiumStart = crypto.randomUUID();
     await startExperience("quiz", userId, "test-quiz", premiumStart);
 

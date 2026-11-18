@@ -40,13 +40,14 @@ export const ExperienceQuotaSchema = MembershipDailyQuotaSchema.extend({
   feature: ExperienceFeatureSchema,
   mode: z.enum(["free_limited", "free_unlimited", "premium_only"]),
 });
-export const ExperienceStartQuerySchema = z.object({ start: z.string().uuid().optional() });
+export const ExperienceStartQuerySchema = z.object({ start: z.string().uuid("Mã bắt đầu lượt phải là UUID hợp lệ.") });
 export type ExperienceFeature = z.infer<typeof ExperienceFeatureSchema>;
 export type ExperiencePolicy = z.infer<typeof ExperiencePolicySchema>;
 export type ExperiencePolicyInput = z.infer<typeof ExperiencePolicyInputSchema>;
 
 export const MembershipEntitlementSchema = z.object({
   tier: z.enum(["free", "premium"]),
+  startsAt: z.coerce.date().nullable(),
   expiresAt: z.coerce.date().nullable(),
   daysLeft: z.number().int().nullable(),
   planCode: z.string().nullable(),

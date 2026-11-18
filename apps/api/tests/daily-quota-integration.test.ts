@@ -1,7 +1,7 @@
 import { expect, test } from "bun:test";
 import { prisma, Prisma } from "@repo/db";
 import { experiencePolicy } from "../src/modules/membership/application/experience-access";
-import { playDate, reserveDailyPlay } from "../src/modules/listening/application/daily-quota";
+import { checkDailyPlay, playDate, reserveDailyPlay } from "../src/modules/listening/application/daily-quota";
 import { assertTestDatabase, RUN_INTEGRATION } from "./support/integration";
 
 test.skipIf(!RUN_INTEGRATION)("daily quota claims plays atomically per VN day", async () => {
@@ -31,6 +31,9 @@ test.skipIf(!RUN_INTEGRATION)("daily quota claims plays atomically per VN day", 
       episodeIds.push(episode.id);
     }
 
+    await checkDailyPlay(userId, episodeIds[0]!);
+    await checkDailyPlay(userId, episodeIds[0]!);
+    expect(await prisma.listeningDailyPlay.count({ where: { userId } })).toBe(0);
     for (let index = 0; index < limit; index += 1) {
       expect(await reserveDailyPlay(userId, episodeIds[index]!)).toEqual({ outcome: "allowed" });
     }
@@ -60,7 +63,14 @@ test.skipIf(!RUN_INTEGRATION)("daily quota claims plays atomically per VN day", 
     ]);
     expect(outcomes.map((value) => value.outcome).sort()).toEqual(["allowed", "limit"]);
     expect(await prisma.listeningDailyPlay.count({ where: { userId: otherId, playDate: playDate() } })).toBe(limit);
+    await prisma.experienceAccessPolicy.update({ where: { feature: "podcast" }, data: { mode: "free_limited", dailyQuota: 1 } });
+    expect((await reserveDailyPlay(userId, episodeIds[limit]!)).outcome).toBe("limit");
+    await prisma.experienceAccessPolicy.update({ where: { feature: "podcast" }, data: { mode: "free_unlimited", dailyQuota: null } });
+    expect((await reserveDailyPlay(userId, episodeIds[limit]!)).outcome).toBe("allowed");
+    await prisma.experienceAccessPolicy.update({ where: { feature: "podcast" }, data: { mode: "premium_only", dailyQuota: null } });
+    await expect(reserveDailyPlay(userId, episodeIds[limit + 1]!)).rejects.toMatchObject({ code: "PREMIUM_REQUIRED" });
   } finally {
+    await prisma.experienceAccessPolicy.update({ where: { feature: "podcast" }, data: { mode: policy.mode, dailyQuota: policy.dailyQuota } });
     await prisma.listeningDailyPlay.deleteMany({ where: { userId: { in: [userId, otherId] } } });
     if (seriesId) {
       await prisma.episode.deleteMany({ where: { seriesId } });

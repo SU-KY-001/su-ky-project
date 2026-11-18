@@ -36,10 +36,11 @@ export class MembershipService {
       this.repo.findLatestOrder(userId, [...OPEN_STATUSES]),
     ]);
     if (!active)
-      return { tier: "free" as const, expiresAt: null, daysLeft: null, planCode: null, pendingOrderId: latest?.id ?? null, renewSoon: false, quota: null };
+      return { tier: "free" as const, startsAt: null, expiresAt: null, daysLeft: null, planCode: null, pendingOrderId: latest?.id ?? null, renewSoon: false, quota: null };
     const daysLeft = Math.max(1, Math.ceil((active.expiresAt.getTime() - now.getTime()) / DAY_MS));
     return {
       tier: "premium" as const,
+      startsAt: active.startsAt,
       expiresAt: active.expiresAt,
       daysLeft,
       planCode: active.plan.code,
