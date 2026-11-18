@@ -137,9 +137,6 @@ function PlanSection({ plan, premium, pending, error, onCreate }: { plan: Member
           </YStack>
           <PrimaryButton label={pending ? "Đang tạo đơn…" : premium ? `Gia hạn thêm ${plan.durationDays} ngày` : "Mua gói tháng"} onPress={onCreate} disabled={pending} />
           {error ? <Text ff="$body" fs="$1" lh="$2" color="$vermilion" text="center">{error}</Text> : null}
-          <Text ff="$body" fs="$1" lh="$2" color="$inkSoft" text="center">
-            Chuyển khoản · duyệt thủ công.
-          </Text>
         </YStack>
       </AppCard>
     </YStack>
