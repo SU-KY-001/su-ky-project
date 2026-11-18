@@ -97,7 +97,8 @@ export function MembershipPage(): ReactElement {
             <h2 id="status-title" className="text-sm font-medium text-ink-soft">Gói hiện tại</h2>
             <p className="mt-2 font-serif text-3xl font-bold leading-none md:text-4xl">{premium ? "Premium" : "Miễn phí"}</p>
           </div>
-          {premium ? <dl className="grid gap-x-6 gap-y-3 text-sm sm:grid-cols-2">
+          {premium ? <dl className="grid gap-x-6 gap-y-3 text-sm sm:grid-cols-3">
+            <div><dt className="text-ink-soft">Bắt đầu</dt><dd className="mt-1 text-lg font-semibold tabular-nums">{formatDay(data.startsAt)}</dd></div>
             <div><dt className="text-ink-soft">Hết hạn</dt><dd className="mt-1 text-lg font-semibold tabular-nums">{formatDay(data.expiresAt)}</dd></div>
             <div><dt className="text-ink-soft">Còn lại</dt><dd className="mt-1 text-lg font-semibold tabular-nums">{data.daysLeft ?? 0} ngày</dd></div>
           </dl> : null}

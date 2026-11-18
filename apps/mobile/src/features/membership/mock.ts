@@ -152,6 +152,7 @@ export const useMockMembership = create<MockMembershipState>((set, get) => ({
       const expiresAt = paidExpiry ?? daysFromNow(preview === "renewSoon" ? 3 : 25);
       return {
         tier: "premium",
+        startsAt: new Date(expiresAt.getTime() - PREMIUM_PLAN.durationDays * 86_400_000),
         expiresAt,
         daysLeft: daysLeft(expiresAt),
         planCode: PREMIUM_PLAN.code,
@@ -174,6 +175,7 @@ export const useMockMembership = create<MockMembershipState>((set, get) => ({
     }));
     return {
       tier: "free",
+      startsAt: null,
       expiresAt: null,
       daysLeft: null,
       planCode: null,
