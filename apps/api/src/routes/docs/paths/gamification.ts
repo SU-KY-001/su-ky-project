@@ -153,7 +153,7 @@ export const gamificationPaths: Paths = {
       tag: QUIZ_TAG,
       summary: "Nộp bài quiz",
       description:
-        "Chấm điểm theo ngưỡng của quiz. Mỗi lần nộp tính 1 lượt quiz/ngày của tài khoản Free (Premium và admin/moderator không bị trừ); gọi lại cùng Idempotency-Key không tính thêm. Lần đậu đầu tiên nhận XP và mỗi quiz chỉ được tính một lần vào từng nhiệm vụ tuần PASS_QUIZ. Hết lượt trả `EXPERIENCE_QUOTA_REACHED`.",
+        "Chấm điểm theo ngưỡng của quiz. Lần đậu đầu tiên nhận XP và mỗi quiz chỉ được tính một lần vào từng nhiệm vụ tuần PASS_QUIZ.",
       access: "user",
       pathParams: QuizIdParam,
       pathParamDocs: { quizId: "ID quiz" },
@@ -166,7 +166,6 @@ export const gamificationPaths: Paths = {
         schema: { name: "QuizAttemptResult", schema: QuizAttemptResultSchema },
       },
       errors: {
-        403: "`EXPERIENCE_QUOTA_REACHED`: đã hết lượt quiz miễn phí hôm nay",
         404: "`NOT_FOUND`: quiz không khả dụng",
         422: "`VALIDATION_ERROR`: thiếu câu trả lời hoặc đáp án không thuộc câu hỏi",
       },
