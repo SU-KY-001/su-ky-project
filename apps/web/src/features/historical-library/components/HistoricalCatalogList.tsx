@@ -68,8 +68,8 @@ export function HistoricalCatalogList({
   const [creating, setCreating] = useState(false);
   const [sourceBusy, setSourceBusy] = useState(false);
   const [archived, setArchived] = useState(false);
-  const [sourceSort, setSourceSort] = useState<SourceSortBy>("title");
-  const [sourceDirection, setSourceDirection] = useState<SourceSortDirection>("asc");
+  const [sourceSort, setSourceSort] = useState<SourceSortBy>("createdAt");
+  const [sourceDirection, setSourceDirection] = useState<SourceSortDirection>("desc");
   const toggleSourceSort = (nextSort: SourceSortBy) => {
     if (nextSort === sourceSort) {
       setSourceDirection((current) => (current === "asc" ? "desc" : "asc"));
@@ -217,7 +217,6 @@ export function HistoricalCatalogList({
                   <SourceSortIcon active={sourceSort === "createdAt"} direction={sourceDirection} />
                 </Button>,
                 "Ấn bản",
-                "Trạng thái",
                 "Thao tác",
               ]}
               columnAriaSort={[
@@ -231,7 +230,6 @@ export function HistoricalCatalogList({
                     ? "ascending"
                     : "descending"
                   : "none",
-                undefined,
                 undefined,
                 undefined,
               ]}
@@ -259,13 +257,6 @@ export function HistoricalCatalogList({
                         .join(" · ")}
                     </TableCell>
                     <TableCell className={tableCell}>
-                      {s.verificationStatus === "VERIFIED"
-                        ? "Đã xác minh"
-                        : s.verificationStatus === "REJECTED"
-                          ? "Bị từ chối"
-                          : "Chưa xác minh"}
-                    </TableCell>
-                    <TableCell className={tableCell}>
                       {user?.role === "admin" || user?.id === s.createdById ? (
                         <DashboardRowActions label={s.title} actions={[{
                           id: "edit", label: "Sửa nguồn", icon: PencilSimple,
@@ -279,7 +270,7 @@ export function HistoricalCatalogList({
                   </TableRow>
                   {selected === s.id ? (
                     <TableRow>
-                      <TableCell colSpan={5} className="space-y-3 p-5">
+                      <TableCell colSpan={4} className="space-y-3 p-5">
                         {s.url ? (
                           <a
                             href={s.url}
@@ -309,7 +300,7 @@ export function HistoricalCatalogList({
               {sources.isPending ||
               sources.error ||
               !sources.data?.items.length ? (
-                <EmptyTableRow columns={5}>
+                <EmptyTableRow columns={4}>
                   {sources.isPending ? (
                     "Đang tải…"
                   ) : sources.error ? (
