@@ -6,6 +6,9 @@ import { CheckSquareOffset } from "@phosphor-icons/react/dist/icons/CheckSquareO
 import { ClockCounterClockwise } from "@phosphor-icons/react/dist/icons/ClockCounterClockwise";
 import { Gear } from "@phosphor-icons/react/dist/icons/Gear";
 import { IdentificationBadge } from "@phosphor-icons/react/dist/icons/IdentificationBadge";
+import { ListChecks } from "@phosphor-icons/react/dist/icons/ListChecks";
+import { Receipt } from "@phosphor-icons/react/dist/icons/Receipt";
+import { SlidersHorizontal } from "@phosphor-icons/react/dist/icons/SlidersHorizontal";
 import { Users } from "@phosphor-icons/react/dist/icons/Users";
 import { MagnifyingGlass } from "@phosphor-icons/react/dist/icons/MagnifyingGlass";
 import { Eye } from "@phosphor-icons/react/dist/icons/Eye";
@@ -41,7 +44,8 @@ import { DashboardRowActions } from "@/shared/components/dashboard/DashboardRowA
 import { ReleaseReviewDialog } from "@/features/admin-release/components/ReleaseReviewDialog";
 import { notify } from "@/shared/lib/notifications";
 import { errorMessage } from "@/lib/apiError";
-import { AdminOverview, PremiumWorkspace, type PremiumSection } from "@/features/admin-overview";
+import { AdminOverview, premiumDestinations, PremiumWorkspace, type PremiumSection } from "@/features/admin-overview";
+import { AdminExperiencePolicies, AdminMembers, AdminPayments, AdminPlans, AdminPremiumAudit } from "@/features/admin-premium";
 
 export type AdminSection =
   | PremiumSection
@@ -53,6 +57,15 @@ export type AdminSection =
   | "roles"
   | "settings"
   | "history";
+
+const premiumIcons = {
+  "premium-plans": IdentificationBadge,
+  "premium-orders": Receipt,
+  "premium-transactions": ClockCounterClockwise,
+  "premium-members": Users,
+  "premium-policies": SlidersHorizontal,
+  "premium-audit": ListChecks,
+} satisfies Record<PremiumSection, WorkspaceNavItem["icon"]>;
 
 export function adminNavigation(active: AdminSection, select: (section: AdminSection) => void): WorkspaceNavItem[] {
   const item = (id: AdminSection, label: string, icon: WorkspaceNavItem["icon"]): WorkspaceNavItem => ({
@@ -66,15 +79,12 @@ export function adminNavigation(active: AdminSection, select: (section: AdminSec
     { id: "operations-heading", label: "Điều hành", active: false, groupStart: true },
     item("overview", "Tổng quan", ChartBar),
     item("notifications", "Chuyển giao", Ticket),
+    { id: "premium-heading", label: "Quản trị Premium", active: false, groupStart: true },
+    ...premiumDestinations.map(({ id, label }) => item(id, label, premiumIcons[id])),
     { id: "release-heading", label: "Phát hành podcast", active: false, groupStart: true },
     item("schedules", "Lịch phát hành", CalendarBlank),
     item("reviews", "Hàng chờ kiểm duyệt", CheckSquareOffset),
     item("history", "Lịch sử phát hành", ClockCounterClockwise),
-    { id: "premium-heading", label: "Thành viên Premium", active: false, groupStart: true },
-    item("premium-plans", "Gói thành viên", IdentificationBadge),
-    item("premium-orders", "Đơn hàng", CheckSquareOffset),
-    item("premium-transactions", "Sổ giao dịch", ClockCounterClockwise),
-    item("premium-members", "Thành viên", Users),
     { id: "system-heading", label: "Hệ thống", active: false, groupStart: true },
     item("users", "Người dùng", Users),
     item("roles", "Vai trò và quyền", IdentificationBadge),
@@ -199,7 +209,11 @@ export function AdminDashboardPage() {
   else if (section === "reviews") content = <ReleaseObservation />;
   else if (section === "history") content = <AdminReleaseHistory />;
   else if (section === "users") content = <AdminUsers />;
-  else if (section === "premium-plans" || section === "premium-orders" || section === "premium-transactions" || section === "premium-members") content = <PremiumWorkspace section={section} onNavigate={setSection} />;
+  else if (section === "premium-plans") content = <PremiumWorkspace section={section}><AdminPlans /></PremiumWorkspace>;
+  else if (section === "premium-members") content = <PremiumWorkspace section={section}><AdminMembers /></PremiumWorkspace>;
+  else if (section === "premium-policies") content = <PremiumWorkspace section={section}><AdminExperiencePolicies /></PremiumWorkspace>;
+  else if (section === "premium-audit") content = <PremiumWorkspace section={section}><AdminPremiumAudit /></PremiumWorkspace>;
+  else if (section === "premium-orders" || section === "premium-transactions") content = <PremiumWorkspace section={section}><AdminPayments kind={section === "premium-orders" ? "orders" : "transactions"} /></PremiumWorkspace>;
   else content = <SystemPlaceholder section={section} />;
   return (
     <WorkspaceShell variant="admin" navigationLabel="Điều hướng admin" mobileNavigationTitle="Menu điều hướng admin" nav={adminNavigation(section, setSection)} profile={<AccountProfile variant="admin" />}>

@@ -45,6 +45,7 @@ export const UpsertQuizSchema = z.object({
 
 export const SubmitQuizAttemptSchema = z
   .object({
+    start: z.string().uuid().optional(),
     answers: z
       .array(
         z.object({

@@ -1,12 +1,15 @@
 import { useEffect, useRef, useState, type ReactElement } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Link } from "react-router";
+import { Link, useSearchParams } from "react-router";
+import { z } from "zod";
 import { ArrowLeft } from "@phosphor-icons/react/dist/icons/ArrowLeft";
 import { ArrowRight } from "@phosphor-icons/react/dist/icons/ArrowRight";
 import { Clock } from "@phosphor-icons/react/dist/icons/Clock";
 import { CheckCircle } from "@phosphor-icons/react/dist/icons/CheckCircle";
 import { XCircle } from "@phosphor-icons/react/dist/icons/XCircle";
 import { Button } from "@/shared/components/ui/button";
+import { APP_PATHS } from "@/shared/constants/routes";
+import { isApiError } from "@/lib/apiError";
 import { useCurrentUser } from "@/shared/hooks/useCurrentUser";
 import { notify } from "@/shared/lib/notifications";
 import { libraryService } from "../../services/libraryService";
@@ -14,7 +17,12 @@ import { LibraryState } from "./LibraryPrimitives";
 import { QuizExplanation } from "./QuizExplanation";
 
 export function QuizPlayer({ slug }: { slug: string }): ReactElement {
+  const [search] = useSearchParams();
   const [index, setIndex] = useState(0);
+  const [startId, setStartId] = useState(() => {
+    const forwardedStart = z.string().uuid().safeParse(search.get("luot"));
+    return forwardedStart.success ? forwardedStart.data : crypto.randomUUID();
+  });
   const [answers, setAnswers] = useState<Record<string, string | string[] | null>>({});
   const [remaining, setRemaining] = useState<number | null>(null);
   const deadlines = useRef<Record<string, number>>({});
@@ -22,7 +30,13 @@ export function QuizPlayer({ slug }: { slug: string }): ReactElement {
   const requestKey = useRef(crypto.randomUUID());
   const cache = useQueryClient();
   const user = useCurrentUser();
-  const quiz = useQuery({ queryKey: ["library-quiz", slug], queryFn: ({ signal }) => libraryService.quiz(slug, signal) });
+  const quiz = useQuery({
+    queryKey: ["library-quiz", user.data?.id, slug, startId],
+    queryFn: ({ signal }) => libraryService.quiz(slug, signal, startId),
+    enabled: Boolean(user.data?.id),
+    meta: { requiresAuth: true },
+    retry: (count, error) => count < 1 && (!isApiError(error) || error.isRetryable),
+  });
   const card = useQuery({ queryKey: ["quiz-card", user.data?.id, slug], queryFn: ({ signal }) => libraryService.quizzes({ episodeSlug: slug }, signal), enabled: Boolean(user.data?.id) });
   const submit = useMutation({
     mutationFn: () => {
@@ -30,7 +44,7 @@ export function QuizPlayer({ slug }: { slug: string }): ReactElement {
       return libraryService.attempt(quiz.data.id, quiz.data.questions.map(question => {
         const answer = answers[question.id];
         return question.kind === "MULTIPLE" ? { questionId: question.id, optionIds: Array.isArray(answer) ? answer : [] } : question.kind === "TEXT" ? { questionId: question.id, text: typeof answer === "string" ? answer : null } : { questionId: question.id, optionId: typeof answer === "string" ? answer : null };
-      }), requestKey.current);
+      }), requestKey.current, startId);
     },
     onSuccess: () => { void cache.invalidateQueries({ queryKey: ["library-missions"] }); void cache.invalidateQueries({ queryKey: ["library-honors"] }); void cache.invalidateQueries({ queryKey: ["quiz-catalog"] }); void cache.invalidateQueries({ queryKey: ["quiz-card"] }); },
     onError: () => notify.error({ title: "Chưa gửi được bài quiz", description: "Vui lòng thử lại." }),
@@ -55,8 +69,14 @@ export function QuizPlayer({ slug }: { slug: string }): ReactElement {
     return () => window.clearInterval(timer);
   }, [quiz.data, index, expired, submit.data]);
   const info = card.data?.items[0];
-  const retry = (): void => { setIndex(0); setAnswers({}); setExpired({}); deadlines.current = {}; requestKey.current = crypto.randomUUID(); submit.reset(); };
+  const retry = (): void => { setIndex(0); setAnswers({}); setExpired({}); deadlines.current = {}; requestKey.current = crypto.randomUUID(); submit.reset(); setStartId(crypto.randomUUID()); };
   if (quiz.isPending || card.isPending) return <main className="mx-auto min-h-[70vh] max-w-6xl px-5 pt-36"><LibraryState loading /></main>;
+  if (isApiError(quiz.error) && (quiz.error.is("PREMIUM_REQUIRED") || quiz.error.is("EXPERIENCE_QUOTA_REACHED"))) return (
+    <main className="mx-auto min-h-[70vh] max-w-6xl px-5 pt-36">
+      <LibraryState title={quiz.error.is("PREMIUM_REQUIRED") ? "Quiz dành cho thành viên Premium" : "Bạn đã hết lượt làm quiz hôm nay"} description={quiz.error.message} />
+      <Button asChild><Link to={APP_PATHS.membership}>Xem gói Premium</Link></Button>
+    </main>
+  );
   if (quiz.isError || card.isError || !info) return <main className="mx-auto min-h-[70vh] max-w-6xl px-5 pt-36"><LibraryState error title="Chưa mở được quiz" description="Quiz có thể không còn công khai hoặc kết nối đang gián đoạn." retry={() => { void quiz.refetch(); void card.refetch(); }} /></main>;
   if (!quiz.data.questions.length) return <main className="mx-auto min-h-[70vh] max-w-6xl px-5 pt-36"><LibraryState title="Bộ câu hỏi đang được chuẩn bị" /></main>;
   const question = quiz.data.questions[index];

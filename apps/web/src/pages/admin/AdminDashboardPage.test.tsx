@@ -32,6 +32,21 @@ it("keeps release schedules and review queue without a separate coordination ite
   expect(labels).not.toContain("Điều phối sản xuất");
 });
 
+it("shows every Premium workflow and opens the selected destination from the sidebar", () => {
+  const select = mock();
+  const groups = adminNavigation("premium-audit", select);
+  const premium = groups.filter(({ id }) => id.startsWith("admin-premium-"));
+  expect(premium.map(({ label }) => label)).toEqual([
+    "Gói thành viên", "Đơn hàng", "Sổ giao dịch", "Thành viên Premium", "Quyền truy cập", "Nhật ký Premium",
+  ]);
+  expect(groups.find(({ id }) => id === "premium-heading")?.groupStart).toBe(true);
+  expect(premium.filter(({ active }) => active).map(({ id }) => id)).toEqual(["admin-premium-audit"]);
+  for (const entry of premium) entry.onSelect?.();
+  expect(select.mock.calls).toEqual([
+    ["premium-plans"], ["premium-orders"], ["premium-transactions"], ["premium-members"], ["premium-policies"], ["premium-audit"],
+  ]);
+});
+
 it("renders the review queue as a complete dashboard table", async () => {
   const onView = mock(() => undefined);
   const host = document.createElement("div");

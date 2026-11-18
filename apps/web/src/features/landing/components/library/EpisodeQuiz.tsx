@@ -1,5 +1,7 @@
 import { useRef, useState, type FormEvent, type ReactElement } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { isApiError } from "@/lib/apiError";
+import { APP_PATHS } from "@/shared/constants/routes";
 import { ArrowLeft } from "@phosphor-icons/react/dist/icons/ArrowLeft";
 import { ArrowRight } from "@phosphor-icons/react/dist/icons/ArrowRight";
 import { Brain } from "@phosphor-icons/react/dist/icons/Brain";
@@ -167,15 +169,22 @@ function QuizResult({ quiz, result, onRetry }: QuizResultProps): ReactElement {
 
 export function EpisodeQuiz({ slug, signedIn }: { slug: string; signedIn: boolean }): ReactElement {
   const [open, setOpen] = useState(false);
+  const [startId, setStartId] = useState(() => crypto.randomUUID());
   const [currentQuestion, setCurrentQuestion] = useState(0);
   const [answers, setAnswers] = useState<Record<string, string>>({});
   const key = useRef(crypto.randomUUID());
   const queryClient = useQueryClient();
-  const quiz = useQuery({ queryKey: ["library-quiz", slug], queryFn: ({ signal }) => libraryService.quiz(slug, signal), enabled: open });
+  const quiz = useQuery({
+    queryKey: ["library-quiz", slug, startId],
+    queryFn: ({ signal }) => libraryService.quiz(slug, signal, startId),
+    enabled: open && signedIn,
+    meta: { requiresAuth: true },
+    retry: (count, error) => count < 1 && (!isApiError(error) || error.isRetryable),
+  });
   const submit = useMutation({
     mutationFn: async () => {
       if (!quiz.data) throw new Error("Chưa tải được câu hỏi");
-      return libraryService.attempt(quiz.data.id, quiz.data.questions.map((question) => ({ questionId: question.id, optionId: answers[question.id] })), key.current);
+      return libraryService.attempt(quiz.data.id, quiz.data.questions.map((question) => ({ questionId: question.id, optionId: answers[question.id] })), key.current, startId);
     },
     onSuccess: () => {
       void queryClient.invalidateQueries({ queryKey: ["library-missions"] });
@@ -194,11 +203,13 @@ export function EpisodeQuiz({ slug, signedIn }: { slug: string; signedIn: boolea
     setAnswers({});
     key.current = crypto.randomUUID();
     submit.reset();
+    setStartId(crypto.randomUUID());
   };
+  const accessError = isApiError(quiz.error) && (quiz.error.is("PREMIUM_REQUIRED") || quiz.error.is("EXPERIENCE_QUOTA_REACHED")) ? quiz.error : null;
 
   return (
     <>
-      <Button size="lg" onClick={() => setOpen(true)} className="w-full sm:w-auto">
+      <Button size="lg" onClick={() => { retry(); setOpen(true); }} className="w-full sm:w-auto">
         Bắt đầu quiz <ArrowRight aria-hidden="true" />
       </Button>
       <Dialog open={open} onOpenChange={setOpen}>
@@ -208,14 +219,18 @@ export function EpisodeQuiz({ slug, signedIn }: { slug: string; signedIn: boolea
             <DialogDescription>Chọn đáp án đúng nhất cho từng câu hỏi.</DialogDescription>
           </DialogHeader>
 
-          {quiz.isPending ? (
+          {!signedIn ? (
+            <div className="px-5 py-8 sm:px-8"><Button asChild><Link to={APP_PATHS.login}>Đăng nhập để làm quiz</Link></Button></div>
+          ) : quiz.isPending ? (
             <div className="px-5 py-8 sm:px-8"><LibraryState loading /></div>
+          ) : accessError ? (
+            <div className="px-5 py-8 sm:px-8"><p className="mb-4">{accessError.message}</p><Button asChild><Link to={APP_PATHS.membership}>Xem gói Premium</Link></Button></div>
           ) : quiz.isError ? (
             <div className="px-5 py-8 sm:px-8"><LibraryState error title="Chưa tải được bộ câu hỏi" description="Kết nối có thể đang gián đoạn. Bạn hãy thử lại." retry={() => { void quiz.refetch(); }} /></div>
           ) : quiz.data.questions.length === 0 ? (
             <div className="px-5 py-8 sm:px-8"><LibraryState title="Bộ câu hỏi đang được chuẩn bị" description="Bạn có thể quay lại tập này sau." /></div>
           ) : quiz.data.questions.some(question => question.kind && question.kind !== "SINGLE") ? (
-            <div className="px-5 py-8 sm:px-8"><p className="mb-4">Bộ quiz này có nhiều dạng câu hỏi. Hãy mở trang làm quiz để trả lời đầy đủ.</p><Button asChild><Link to={`/quiz/${encodeURIComponent(slug)}`}>Mở bài quiz <ArrowRight /></Link></Button></div>
+            <div className="px-5 py-8 sm:px-8"><p className="mb-4">Bộ quiz này có nhiều dạng câu hỏi. Hãy mở trang làm quiz để trả lời đầy đủ.</p><Button asChild><Link to={`/quiz/${encodeURIComponent(slug)}?luot=${startId}`}>Mở bài quiz <ArrowRight /></Link></Button></div>
           ) : submit.data ? (
             <QuizResult quiz={quiz.data} result={submit.data} onRetry={retry} />
           ) : (

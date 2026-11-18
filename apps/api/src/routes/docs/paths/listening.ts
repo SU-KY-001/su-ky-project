@@ -101,13 +101,13 @@ export const listeningPaths: Paths = {
       tag: TAG,
       summary: "Lấy URL phát audio",
       description:
-        "Bắt buộc đăng nhập (`requireAuth`); khách chưa đăng nhập nhận `401 AUTH_REQUIRED`. Trả URL audio có thời hạn, thời lượng và `sync.intervalMs`/`sync.completionThreshold`; `progress` chỉ có khi từng lưu tiến độ, ngược lại là `null`. Tài khoản Free bị giới hạn số tập mỗi ngày (cấu hình `premium.free_daily_plays`, reset 00:00 giờ Việt Nam); nghe lại cùng một tập trong ngày không tính thêm lượt. Premium và admin/moderator không bị giới hạn; nội dung Premium vẫn yêu cầu gói còn hạn. `sync.intervalMs` là chu kỳ gọi `PUT /api/me/listening-progress/{narrationId}`; `sync.completionThreshold` là ngưỡng được tính là nghe xong. Response `Cache-Control: private, no-store`.",
+        "Trả URL audio có thời hạn và tiến độ đã lưu. Khi tính năng nghe podcast có hạn mức Free, một tập tính một lượt mỗi ngày giờ Việt Nam. Nghe lại hoặc đổi bản kể của cùng tập trong ngày dùng lượt đã ghi. Response `Cache-Control: private, no-store`.",
       access: "user",
       ...narrationParams,
       ok: { status: 200, description: "Audio và tiến độ", schema: { name: "Playback", schema: PlaybackDocSchema } },
       errors: {
         401: "`AUTH_REQUIRED`: chưa đăng nhập",
-        403: "`PREMIUM_REQUIRED`: nội dung Premium và chưa có gói; `DAILY_LISTEN_LIMIT_REACHED`: hết lượt nghe miễn phí trong ngày",
+        403: "`PREMIUM_REQUIRED`: tính năng nghe podcast dành cho Premium; `DAILY_LISTEN_LIMIT_REACHED`: hết lượt nghe miễn phí trong ngày",
         404: UNAVAILABLE,
       },
     }),

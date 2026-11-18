@@ -32,6 +32,7 @@ export class PaymentWebhookService {
         subAccount: event.subAccount,
         transactionAt: event.transactionAt,
         rawPayload: event.rawPayload,
+        direction: event.direction,
       });
     } catch (error) {
       if (!(error instanceof Prisma.PrismaClientKnownRequestError) || error.code !== "P2002") throw error;
@@ -42,10 +43,7 @@ export class PaymentWebhookService {
 
     if (transaction.status === "matched" || transaction.status === "ignored") return;
 
-    if (event.direction !== "in") {
-      await this.repo.markTransaction(transaction.id, "ignored", "OUTBOUND");
-      return;
-    }
+    if (event.direction !== "in") return;
 
     const order = event.code ? await this.repo.findOrderByTransferContent(event.code) : null;
     if (!order) {
@@ -65,21 +63,5 @@ export class PaymentWebhookService {
       { provider: event.provider, externalId: event.externalId, orderId: order.id, status: result.status, reason: result.reason },
       "Payment transaction applied",
     );
-    if (result.membershipId) {
-      await this.repo.audit({
-        actorId: null,
-        actorType: "SYSTEM",
-        action: "membership.activated",
-        resourceType: "membership",
-        resourceId: result.membershipId,
-        changes: {
-          orderId: order.id,
-          provider: event.provider,
-          externalId: event.externalId,
-          transferContent: event.code,
-        },
-        ipAddress: null,
-      });
-    }
   }
 }

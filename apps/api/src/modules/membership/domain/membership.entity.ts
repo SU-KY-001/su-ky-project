@@ -1,3 +1,5 @@
+import type { AdminMember } from "@repo/shared";
+
 export type MembershipOrderStatus = "pending" | "paid" | "needs_review" | "rejected";
 export type PaymentTransactionStatus = "unmatched" | "needs_review" | "matched" | "ignored";
 
@@ -5,6 +7,7 @@ export interface MembershipPlanEntity {
   id: string;
   code: string;
   name: string;
+  benefits: string;
   priceVnd: number;
   durationDays: number;
   isPurchasable: boolean;
@@ -97,16 +100,7 @@ export interface AdminTransactionRow extends PaymentTransactionEntity {
   } | null;
 }
 
-export interface AdminMemberRow {
-  userId: string;
-  name: string;
-  email: string;
-  planCode: string;
-  planName: string;
-  startsAt: Date;
-  expiresAt: Date;
-  revokedAt: Date | null;
-}
+export type AdminMemberRow = AdminMember;
 
 export interface ActivationResult {
   status: "activated" | "already_paid" | "stack_limit";
@@ -137,3 +131,4 @@ export interface MembershipReport {
   };
   series: ReportBucket[];
 }
+

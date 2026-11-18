@@ -4,6 +4,7 @@ import type { AuthRedirectLocation } from "../types/auth";
 export const APP_PATHS = {
   home: "/",
   login: "/login",
+  membership: "/thanh-vien",
   docs: "/docs",
   moderator: "/moderator",
   admin: "/admin",

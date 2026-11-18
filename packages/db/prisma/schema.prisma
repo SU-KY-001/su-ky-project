@@ -164,6 +164,8 @@ model User {
   listeningProgress       ListeningProgress[]
   listeningSessions       ListeningSession[]
   listeningDailyPlays     ListeningDailyPlay[]
+  experienceDailyUses     ExperienceDailyUse[]
+  premiumPushSubscriptions PremiumPushSubscription[]
   playlists               Playlist[]
   missionTemplates        MissionTemplate[]      @relation("MissionTemplateCreator")
   activatedWeeklyMissions WeeklyMission[]        @relation("WeeklyMissionActivator")
@@ -1183,6 +1185,7 @@ model MembershipPlan {
   id            String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   code          String    @unique @db.VarChar(32)
   name          String    @db.VarChar(100)
+  benefits      String    @default("") @db.VarChar(2000)
   priceVnd      Int       @map("price_vnd")
   durationDays  Int       @map("duration_days")
   isPurchasable Boolean   @default(true) @map("is_purchasable")
@@ -1194,6 +1197,29 @@ model MembershipPlan {
   memberships   Membership[]
 
   @@map("membership_plans")
+}
+
+model ExperienceAccessPolicy {
+  feature    String @id @db.VarChar(24)
+  mode       String @db.VarChar(24)
+  dailyQuota Int?   @map("daily_quota")
+
+  @@map("experience_access_policies")
+}
+
+model ExperienceDailyUse {
+  userId    String   @map("user_id") @db.VarChar(36)
+  feature   String   @db.VarChar(24)
+  attemptId String   @map("attempt_id") @db.Uuid
+  subject   String   @db.VarChar(280)
+  counted   Boolean  @default(true)
+  submittedAt DateTime? @map("submitted_at") @db.Timestamptz(3)
+  day       DateTime @db.Date
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([userId, feature, attemptId])
+  @@index([userId, feature, day])
+  @@map("experience_daily_uses")
 }
 
 model MembershipOrder {
@@ -1243,9 +1269,34 @@ model Membership {
   user         User      @relation("Memberships", fields: [userId], references: [id], onDelete: Restrict)
   plan         MembershipPlan @relation(fields: [planId], references: [id], onDelete: Restrict)
   order        MembershipOrder @relation(fields: [orderId], references: [id], onDelete: Restrict)
+  renewalReminder PremiumRenewalReminder?
 
   @@index([userId, expiresAt(sort: Desc)], map: "memberships_user_expires_idx")
   @@map("memberships")
+}
+
+model PremiumRenewalReminder {
+  membershipId  String    @id @map("membership_id") @db.Uuid
+  createdAt     DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
+  pushClaimedAt DateTime? @map("push_claimed_at") @db.Timestamptz(3)
+  pushSentAt    DateTime? @map("push_sent_at") @db.Timestamptz(3)
+  pushAttempts  Int       @default(0) @map("push_attempts")
+  membership    Membership @relation(fields: [membershipId], references: [id], onDelete: Cascade)
+
+  @@index([pushClaimedAt, createdAt])
+  @@map("premium_renewal_reminders")
+}
+
+model PremiumPushSubscription {
+  endpoint  String   @id @db.VarChar(1024)
+  userId    String   @map("user_id") @db.VarChar(36)
+  p256dh    String   @db.VarChar(128)
+  auth      String   @db.VarChar(64)
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, updatedAt])
+  @@map("premium_push_subscriptions")
 }
 
 model PaymentTransaction {

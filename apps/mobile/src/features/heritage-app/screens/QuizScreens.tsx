@@ -13,6 +13,7 @@ export interface QuizEpisodeSummary {
   title: string;
   seriesTitle: string;
   image: ImageSourcePropType;
+  startId?: string;
 }
 
 function toEpisodeSummary(item: PublicQuizCard): QuizEpisodeSummary {
@@ -115,11 +116,12 @@ interface EpisodeQuizScreenProps {
 export function EpisodeQuizScreen({ episode, signedIn, onBack, onRequireAuth }: EpisodeQuizScreenProps): React.JSX.Element {
   const queryClient = useQueryClient();
   const [currentIndex, setCurrentIndex] = useState(0);
+  const [startId, setStartId] = useState(() => episode.startId ?? createUuid());
   const [answers, setAnswers] = useState<Record<string, QuizAnswer>>({});
   const idempotencyKey = useRef(createUuid());
   const quizQuery = useQuery({
-    queryKey: ["podcast", "quiz", episode.slug],
-    queryFn: () => podcastApi.quiz(episode.slug),
+    queryKey: ["podcast", "quiz", episode.slug, startId],
+    queryFn: () => podcastApi.quiz(episode.slug, startId),
     enabled: signedIn,
   });
   const submitMutation = useMutation({
@@ -130,6 +132,7 @@ export function EpisodeQuizScreen({ episode, signedIn, onBack, onRequireAuth }: 
         quiz.id,
         buildQuizAttemptAnswers(quiz.questions, answers),
         idempotencyKey.current,
+        startId,
       );
     },
     onSuccess: () => {
@@ -142,6 +145,7 @@ export function EpisodeQuizScreen({ episode, signedIn, onBack, onRequireAuth }: 
     setAnswers({});
     idempotencyKey.current = createUuid();
     submitMutation.reset();
+    setStartId(createUuid());
   };
 
   if (!signedIn) {
