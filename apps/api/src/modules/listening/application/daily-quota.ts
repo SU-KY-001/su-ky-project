@@ -1,4 +1,4 @@
-import { experienceDay, experiencePolicy, experienceResetAt, expectFreeMode } from "../../membership/application/experience-access";
+import { experienceDay, experienceResetAt } from "../../membership/application/experience-access";
 import { PrismaListeningRepository } from "../infrastructure/prisma-listening.repository";
 
 // Module-level instance: the exported API is a function consumed cross-module and stubbed by
@@ -29,8 +29,9 @@ export async function reserveDailyPlay(
   episodeId: string,
   now = new Date(),
 ): Promise<DailyPlayReservation> {
-  const policy = await experiencePolicy("podcast");
-  expectFreeMode(policy.mode);
-  return { outcome: await repo.reserveDailyPlay(userId, episodeId, playDate(now), policy.dailyQuota) };
+  return { outcome: await repo.reserveDailyPlay(userId, episodeId, playDate(now)) };
 }
 
+export async function checkDailyPlay(userId: string, episodeId: string, now = new Date()): Promise<DailyPlayReservation> {
+  return { outcome: await repo.reserveDailyPlay(userId, episodeId, playDate(now), false) };
+}

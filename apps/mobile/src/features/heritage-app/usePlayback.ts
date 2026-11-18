@@ -99,6 +99,19 @@ export function usePlayback(
   const audioSource = playbackQuery.data?.url ?? null;
   const player = useAudioPlayer(audioSource, { updateInterval: 1_000 });
   const status = useAudioPlayerStatus(player);
+  useEffect(() => {
+    const data = playbackQuery.data;
+    if (!status.isLoaded || !status.playing || !data || !narrationId || !userId) return;
+    const generation = restoreGeneration.current;
+    void podcastApi.confirmPlaybackStart(narrationId, data.assetId).then(() => {
+      void queryClient.invalidateQueries({ queryKey: ["membership", "status"] });
+    }).catch(() => {
+      if (generation !== restoreGeneration.current) return;
+      player.pause();
+      playIntent.current = false;
+      setSessionError("Chưa xác nhận được lượt nghe hoặc đã hết lượt. Vui lòng kiểm tra quyền Premium và thử lại.");
+    });
+  }, [status.isLoaded, status.playing, narrationId, userId, playbackQuery.data, player, queryClient]);
 
   const restored = useRef(false);
   const ready = useRef(false);

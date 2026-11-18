@@ -39,7 +39,7 @@ export function createPublicExhibitionRoute(service: ExhibitionService) {
       async (c) => {
         const { slug } = c.req.valid("param");
         const exhibition = ResolvedExhibitionSchema.parse(await service.publicExhibition(slug));
-        await startExperience("exhibition", c.get("session")!.user.id, slug, c.req.valid("query").start ?? crypto.randomUUID());
+        await startExperience("exhibition", c.get("session")!.user.id, slug, c.req.valid("query").start);
         c.header("Cache-Control", "private, no-store");
         return c.json(exhibition);
       },

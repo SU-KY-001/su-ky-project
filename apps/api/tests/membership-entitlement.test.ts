@@ -8,6 +8,7 @@ mock.module("../src/modules/membership/application/entitlement", () => ({
   pendingOrderId: async () => null,
 }));
 mock.module("../src/modules/listening/application/daily-quota", () => ({
+  checkDailyPlay: async () => ({ outcome: "allowed" }),
   reserveDailyPlay: async () => ({ outcome: "allowed", limit: 4 }),
   getDailyQuotaStatus: async () => ({ enforced: true, limit: 4, usedToday: 1, remaining: 3, resetsAt: new Date() }),
 }));

@@ -1,4 +1,4 @@
-import { ListeningHistoryQuerySchema, PublicSeriesListQuerySchema, UpdateListeningProgressRequestSchema } from "@repo/shared";
+import { ConfirmPlaybackStartSchema, ListeningHistoryQuerySchema, PublicSeriesListQuerySchema, UpdateListeningProgressRequestSchema } from "@repo/shared";
 import { zValidator } from "@hono/zod-validator";
 import { Hono } from "hono";
 import { z } from "zod";
@@ -20,6 +20,11 @@ export function createPublicListeningRoute(service: ListeningService) {
     .get("/narrations/:narrationId/playback", requireAuth, zValidator("param", narrationParam, throwOnInvalid), async (c) => {
       c.header("Cache-Control", "private, no-store");
       return c.json(await service.playback(c.req.valid("param").narrationId, c.get("session")!.user.id, c.get("session")!.user.role));
+    })
+    .post("/narrations/:narrationId/playback/start", requireAuth, rateLimit("write"), zValidator("param", narrationParam, throwOnInvalid), zValidator("json", ConfirmPlaybackStartSchema, throwOnInvalid), async (c) => {
+      c.header("Cache-Control", "private, no-store");
+      const { user } = c.get("session")!;
+      return c.json(await service.confirmPlaybackStart(c.req.valid("param").narrationId, user.id, c.req.valid("json").assetId, user.role));
     });
 }
 

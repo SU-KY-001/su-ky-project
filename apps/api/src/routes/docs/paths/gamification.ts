@@ -22,7 +22,7 @@ const EpisodeIdParam = z.object({ episodeId: z.string().uuid() });
 const QuizIdParam = z.object({ quizId: z.string().uuid() });
 const SlugParam = z.object({ slug: z.string().min(1) });
 // Cùng query schema inline trong gamification.routes.ts.
-const QuizFormatQuery = z.object({ format: z.literal("2").optional(), start: z.string().uuid().optional() });
+const QuizFormatQuery = z.object({ format: z.literal("2").optional(), start: z.string().uuid() });
 export const gamificationPaths: Paths = {
   "/api/studio/script-import/extract": {
     post: {
@@ -134,7 +134,7 @@ export const gamificationPaths: Paths = {
       pathParams: SlugParam,
       pathParamDocs: { slug: "Slug tập công khai" },
       query: QuizFormatQuery,
-      queryDocs: { format: "Truyền 2 nếu client hỗ trợ câu chọn nhiều và điền đáp án.", start: "UUID của lượt làm. Dùng lại UUID khi gửi lại cùng yêu cầu." },
+      queryDocs: { format: "Truyền 2 nếu client hỗ trợ câu chọn nhiều và điền đáp án.", start: "Bắt buộc: UUID ổn định của lượt làm. Retry dùng lại cùng UUID; làm lại bài tạo UUID mới." },
       ok: {
         status: 200,
         description: "Quiz cho người nghe",

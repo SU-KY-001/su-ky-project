@@ -402,11 +402,15 @@ export class PrismaListeningRepository implements ListeningRepository {
     userId: string,
     episodeId: string,
     day: Date,
-    limit: number | null,
+    record = true,
   ): Promise<"allowed" | "already" | "limit"> {
     return this.db.$transaction(async (tx) => {
       // `$executeRaw`: pg_advisory_xact_lock returns void, which `$queryRaw` cannot deserialize.
       await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${`${userId}:${day.toISOString().slice(0, 10)}`}))`;
+      await tx.$queryRaw`SELECT feature FROM experience_access_policies WHERE feature = 'podcast' FOR SHARE`;
+      const policy = await tx.experienceAccessPolicy.findUniqueOrThrow({ where: { feature: "podcast" } });
+      if (policy.mode === "premium_only") throw new DomainError(403, "PREMIUM_REQUIRED", "Nâng cấp Premium để nghe podcast.");
+      const limit = policy.mode === "free_limited" ? policy.dailyQuota : null;
       const existing = await tx.listeningDailyPlay.findUnique({
         where: { userId_playDate_episodeId: { userId, playDate: day, episodeId } },
         select: { userId: true },
@@ -416,7 +420,7 @@ export class PrismaListeningRepository implements ListeningRepository {
         const used = await tx.listeningDailyPlay.count({ where: { userId, playDate: day } });
         if (used >= limit) return "limit";
       }
-      await tx.listeningDailyPlay.create({ data: { userId, playDate: day, episodeId } });
+      if (record) await tx.listeningDailyPlay.create({ data: { userId, playDate: day, episodeId } });
       return "allowed";
     });
   }

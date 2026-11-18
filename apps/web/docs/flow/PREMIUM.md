@@ -61,7 +61,7 @@ Giao diện tài khoản Free hiển thị số lượt đã dùng và còn lạ
 
 ## 4. Gói thành viên và thời hạn
 
-Admin quản lý gói được bán cho người dùng, gồm tên, giá, thời hạn, trạng thái hoạt động và quyền lợi hiển thị. Luồng mua mặc định có gói Premium tháng; thời hạn và giá do Admin cấu hình.
+Admin quản lý gói Premium tháng có sẵn, mặc định 20.000đ/30 ngày; Admin có thể cấu hình giá, thời hạn, quyền lợi hiển thị và trạng thái mở bán. Phiên bản này không hỗ trợ tạo gói mới. Free là trạng thái tài khoản; các gói cũ được giữ để tra cứu lịch sử.
 
 Quy tắc:
 
@@ -132,8 +132,8 @@ Nếu người dùng chưa đăng nhập, hệ thống cần yêu cầu đăng n
 Admin có thể:
 
 - Xem danh sách gói.
-- Tạo hoặc chỉnh sửa thông tin gói.
-- Cấu hình tên, giá, thời hạn, quyền lợi hiển thị và trạng thái bán.
+- Chỉnh sửa gói tháng có sẵn.
+- Cấu hình tên, giá, thời hạn, quyền lợi hiển thị và trạng thái bán của gói tháng.
 - Tắt gói không còn bán mà không xóa lịch sử giao dịch cũ.
 
 ### 8.2. Quản lý tài khoản và trạng thái thành viên

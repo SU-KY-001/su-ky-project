@@ -12,7 +12,7 @@ import { audioMimeType, type MediaStorageGateway } from "../../media";
 import type { SeriesSourceWithSource } from "../domain/listening.entity";
 import type { ListeningRepository } from "../domain/listening.repository";
 import { hasActiveMembership } from "../../membership/application/entitlement";
-import { reserveDailyPlay } from "./daily-quota";
+import { checkDailyPlay, reserveDailyPlay } from "./daily-quota";
 
 const BASE64_PATTERN =
   /^(?:[A-Za-z0-9+/]{4})*(?:[A-Za-z0-9+/]{2}==|[A-Za-z0-9+/]{3}=)?$/;
@@ -166,7 +166,7 @@ export class ListeningService {
         )
       : this.storage.deliveryUrl(narration.audioAsset);
     if (role !== "admin" && role !== "moderator" && !(await hasActiveMembership(userId))) {
-      const { outcome } = await reserveDailyPlay(userId, narration.episodeId);
+      const { outcome } = await checkDailyPlay(userId, narration.episodeId);
       if (outcome === "limit") {
         throw new DomainError(
           403,
@@ -187,6 +187,17 @@ export class ListeningService {
       progress,
       sync: { intervalMs, completionThreshold },
     };
+  }
+
+  async confirmPlaybackStart(narrationId: string, userId: string, assetId: string, role: string | null = null) {
+    const narration = await this.repo.findPublicNarration(narrationId);
+    if (!narration?.audioAsset?.durationMs) throw new DomainError(404, "CONTENT_UNAVAILABLE", "Narration audio is not available");
+    if (narration.audioAsset.id !== assetId) throw new DomainError(409, "AUDIO_CHANGED", "Audio has changed; reload playback");
+    if (role !== "admin" && role !== "moderator" && !(await hasActiveMembership(userId))) {
+      const { outcome } = await reserveDailyPlay(userId, narration.episodeId);
+      if (outcome === "limit") throw new DomainError(403, "DAILY_LISTEN_LIMIT_REACHED", "Bạn đã hết lượt nghe hôm nay. Lượt mới mở lúc 00:00 giờ Việt Nam.");
+    }
+    return { started: true as const };
   }
 
   async getProgress(narrationId: string, userId: string) {
