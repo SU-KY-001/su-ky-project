@@ -33,7 +33,7 @@ type Quota = {
 /** Free-tier allowance per feature, taken from the live policy instead of a hardcoded table. */
 function freeAllowance(quotas: Quota[], feature: string): string {
   const quota = quotas.find((item) => item.feature === feature);
-  if (!quota) return "—";
+  if (!quota) return "Theo hạn mức miễn phí";
   if (quota.mode === "premium_only") return "Chỉ Premium";
   if (quota.mode === "free_unlimited" || quota.limit === null) return "Không giới hạn";
   return `${quota.limit} lượt/ngày`;

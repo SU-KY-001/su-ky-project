@@ -1,4 +1,6 @@
+import { useRef } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { canReuseIdempotencyKey } from "@/lib/apiError";
 import { newIdempotencyKey } from "@/lib/idempotency";
 import { membershipService } from "../services/membershipService";
 
@@ -34,9 +36,17 @@ export function useOrderPolling(id: string | null) {
 
 export function useCreateOrder() {
   const cache = useQueryClient();
+  const attempt = useRef<{ planCode: string; key: string } | undefined>(undefined);
   return useMutation({
-    mutationFn: (planCode: string) => membershipService.buy(planCode, newIdempotencyKey()),
+    mutationFn(planCode: string) {
+      if (attempt.current?.planCode !== planCode) attempt.current = { planCode, key: newIdempotencyKey() };
+      return membershipService.buy(planCode, attempt.current.key);
+    },
+    onError(error) {
+      if (!canReuseIdempotencyKey(error)) attempt.current = undefined;
+    },
     onSuccess: () => {
+      attempt.current = undefined;
       void cache.invalidateQueries({ queryKey: membershipKeys.orders });
       void cache.invalidateQueries({ queryKey: membershipKeys.entitlement });
     },

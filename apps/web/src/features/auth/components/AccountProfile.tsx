@@ -2,7 +2,7 @@ import { CaretDown } from "@phosphor-icons/react/dist/icons/CaretDown";
 import { CircleNotch } from "@phosphor-icons/react/dist/icons/CircleNotch";
 import { SignOut } from "@phosphor-icons/react/dist/icons/SignOut";
 import { SquaresFour } from "@phosphor-icons/react/dist/icons/SquaresFour";
-import { IdentificationBadge } from "@phosphor-icons/react/dist/icons/IdentificationBadge";
+import { Crown } from "@phosphor-icons/react/dist/icons/Crown";
 import { UserCircle } from "@phosphor-icons/react/dist/icons/UserCircle";
 import { DropdownMenu } from "radix-ui";
 import { Link } from "react-router";
@@ -67,7 +67,7 @@ export function AccountProfile({ variant = "header" }: { variant?: "header" | "m
             </DropdownMenu.Item>
           ) : (
             <DropdownMenu.Item asChild>
-              <Link to={APP_PATHS.membership} className="grid min-h-10 grid-cols-[18px_1fr] items-center gap-2 rounded-md px-3 text-sm outline-none data-[highlighted]:bg-paper-deep"><IdentificationBadge size={18} aria-hidden="true" /><span>Gói thành viên</span></Link>
+              <Link to={APP_PATHS.membership} className="grid min-h-10 grid-cols-[18px_1fr] items-center gap-2 rounded-md px-3 text-sm outline-none data-[highlighted]:bg-paper-deep"><Crown size={18} aria-hidden="true" /><span>Gói thành viên</span></Link>
             </DropdownMenu.Item>
           )}
           <DropdownMenu.Item disabled={isPending} onSelect={(event) => { event.preventDefault(); logout(); }} className="grid min-h-10 cursor-pointer grid-cols-[18px_1fr] items-center gap-2 rounded-md px-3 text-sm text-vermilion outline-none data-[highlighted]:bg-vermilion/10 data-[disabled]:pointer-events-none data-[disabled]:opacity-50">
