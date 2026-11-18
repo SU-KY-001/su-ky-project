@@ -3,6 +3,8 @@ import { z } from "zod";
 export const AI_CHECK_MAX_BLOCKS = 200;
 export const AI_CHECK_MAX_NOTE_CHARS = 1000;
 export const AI_CHECK_MAX_EVIDENCE = 3;
+/** Sources one run may read; each becomes a prompt label (S1..Sn) and costs tool calls. */
+export const AI_CHECK_MAX_SOURCES = 5;
 
 const FNV_OFFSET_BASIS = 0x811c9dc5;
 const FNV_PRIME = 0x01000193;
@@ -36,6 +38,8 @@ export const CreateAiCheckSchema = z
     scope: z.enum(["ALL", "SELECTION"]),
     blocks: z.array(AiCheckBlockSchema).min(1).max(AI_CHECK_MAX_BLOCKS),
     note: z.string().max(AI_CHECK_MAX_NOTE_CHARS).optional(),
+    /** Catalog sources picked for this run; omitted means "use the series sources". */
+    sourceIds: z.array(uuid).max(AI_CHECK_MAX_SOURCES).optional(),
   })
   .refine((v) => new Set(v.blocks.map((b) => b.ref)).size === v.blocks.length, {
     message: "ref không được trùng",
@@ -70,6 +74,8 @@ export const AiCheckSchema = AiCheckProgressSchema.extend({
   inputTokens: z.number().int(),
   outputTokens: z.number().int(),
   errorCode: z.string().nullable(),
+  /** Sources this run read, in prompt-label order; empty when the run had no source. */
+  sources: z.array(z.object({ id: uuid, title: z.string() })).default([]),
   itemCounts: z.object({ open: z.number().int(), reviewed: z.number().int() }),
   startedAt: timestamp,
   finishedAt: timestamp.nullable(),

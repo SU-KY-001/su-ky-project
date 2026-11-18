@@ -586,6 +586,29 @@ export class PrismaSeriesRepository implements SeriesRepository {
     });
   }
 
+  async listReviewSourcesByIds(sourceIds: string[]): Promise<SeriesReviewSourceEntity[]> {
+    if (sourceIds.length === 0) return [];
+    const rows = await prisma.source.findMany({
+      where: { id: { in: sourceIds }, archivedAt: null },
+      select: { id: true, title: true, url: true, version: true, verificationStatus: true, verifiedVersion: true },
+    });
+    const byId = new Map(rows.map((row) => [row.id, row]));
+    return sourceIds.flatMap((sourceId, index) => {
+      const row = byId.get(sourceId);
+      return row
+        ? [{
+            sourceId: row.id,
+            title: row.title,
+            url: row.url,
+            version: row.version,
+            verificationStatus: row.verificationStatus,
+            verifiedVersion: row.verifiedVersion,
+            sortOrder: index,
+          }]
+        : [];
+    });
+  }
+
   async createSeriesSource(
     seriesId: string,
     input: {

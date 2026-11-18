@@ -11,6 +11,7 @@ const INTERRUPTED = "INTERRUPTED";
 const LOCK_NAMESPACE = 7301;
 
 function toCheck(row: CheckRow): AiCheck {
+  const config = (row.config ?? {}) as { sources?: AiCheck["sources"] };
   return {
     id: row.id,
     episodeId: row.episodeId,
@@ -23,6 +24,7 @@ function toCheck(row: CheckRow): AiCheck {
     inputTokens: row.inputTokens,
     outputTokens: row.outputTokens,
     errorCode: row.errorCode,
+    sources: config.sources ?? [],
     itemCounts: {
       open: row.items.filter((i) => i.status === "OPEN").length,
       reviewed: row.items.filter((i) => i.status === "REVIEWED").length,
@@ -72,7 +74,7 @@ export class PrismaAiCheckRepository implements AiCheckRepository {
           episodeId: input.episodeId,
           kind: "SCRIPT_REVIEW",
           status: "RUNNING",
-          config: { scope: input.scope, note: input.note },
+          config: { scope: input.scope, note: input.note, sources: input.sources },
           totalBlocks: input.totalBlocks,
           model: input.model,
           promptVersion: input.promptVersion,

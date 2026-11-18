@@ -15,7 +15,7 @@ const RECENT_CHECKS_LIMIT = 20;
 
 export interface AiCheckServiceDeps {
   repo: AiCheckRepository;
-  content: Pick<ContentService, "loadEpisodeForRead" | "listReviewSources">;
+  content: Pick<ContentService, "loadEpisodeForRead" | "listReviewSources" | "listReviewSourcesByIds">;
   store: SourcePageStore;
   runner: ScriptReviewRunner;
   config: AiAssistConfig;
@@ -38,23 +38,27 @@ export class AiCheckService {
 
   async create(session: Session, episodeId: string, input: CreateAiCheckInput): Promise<{ id: string }> {
     const { repo, config } = this.deps;
-    const rows = await this.deps.content.listReviewSources(session, episodeId);
+    const rows = input.sourceIds
+      ? await this.deps.content.listReviewSourcesByIds(session, episodeId, input.sourceIds)
+      : await this.deps.content.listReviewSources(session, episodeId);
     const totalChars = input.blocks.reduce((sum, b) => sum + b.text.length, 0);
     if (totalChars > (await this.deps.scriptMaxChars())) {
       throw new DomainError(422, "VALIDATION_ERROR", "Kịch bản vượt quá số ký tự tối đa");
     }
 
     const sources = await this.selectSources(rows);
-    if (sources.length === 0) {
-      throw new DomainError(422, "NO_READABLE_SOURCE", "Series chưa có nguồn đã xác minh mà AI đọc được");
+    // Sources were attached or picked but none is usable: say so instead of silently reviewing without one.
+    if (sources.length === 0 && rows.length > 0) {
+      throw new DomainError(422, "NO_READABLE_SOURCE", "Nguồn đã chọn chưa đọc được (PDF chưa nạp trang, không có URL)");
     }
-    await this.assertReady();
+    if (sources.length > 0) await this.assertReady();
 
     const created = await repo.createRunning({
       userId: session.user.id,
       episodeId,
       scope: input.scope,
       note: input.note?.trim() || null,
+      sources: sources.map((source) => ({ id: source.sourceId, title: source.title })),
       totalBlocks: input.blocks.length,
       model: this.deps.modelId(),
       promptVersion: String(PROMPT_VERSION),
@@ -64,6 +68,13 @@ export class AiCheckService {
     if (!created.ok) {
       if (created.reason === "USER_LIMIT") throw new DomainError(429, "AI_CONCURRENCY_LIMIT", "Bạn đang có quá nhiều lượt rà chạy cùng lúc");
       throw new DomainError(409, "AI_CHECK_ALREADY_RUNNING", "Tập này đang có một lượt rà chạy");
+    }
+
+    // No source: nothing can be cross-checked, so the run closes without calling a model instead of inventing findings.
+    if (sources.length === 0) {
+      await repo.addProgress(created.id, { processedBlocks: input.blocks.length, failedBlocks: 0, toolCalls: 0, inputTokens: 0, outputTokens: 0 });
+      await repo.finish(created.id, "SUCCEEDED", null, []);
+      return { id: created.id };
     }
 
     const controller = new AbortController();
@@ -124,11 +135,10 @@ export class AiCheckService {
     }
   }
 
-  /** Verified-at-current-version sources only. A source is usable as pages once its pages are loaded (uploaded PDF or imported book); a URL source always is. */
+  /** A source is usable as pages once its pages are loaded (uploaded PDF or imported book); a URL source always is. */
   private async selectSources(rows: SeriesReviewSourceEntity[]): Promise<ReviewSource[]> {
     const picked: Array<Omit<ReviewSource, "label">> = [];
     for (const row of rows) {
-      if (row.verificationStatus !== "VERIFIED" || row.verifiedVersion !== row.version) continue;
       const base = { sourceId: row.sourceId, version: row.version, title: row.title };
       if (await this.deps.store.hasPages(row.sourceId, row.version)) picked.push({ ...base, kind: "PDF", url: row.url });
       else if (row.url) picked.push({ ...base, kind: "URL", url: row.url });
