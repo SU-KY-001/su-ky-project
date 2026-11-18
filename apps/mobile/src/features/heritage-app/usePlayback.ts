@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import axios from "axios";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { setAudioModeAsync, useAudioPlayer, useAudioPlayerStatus } from "expo-audio";
@@ -7,10 +8,21 @@ import { useAuthStore } from "@/lib/authStore";
 import type { PlaybackState } from "@/shared/ui";
 import { createUuid, podcastApi, type PodcastEpisode } from "./podcastApi";
 
+const DENIED_CODES = new Set(["DAILY_LISTEN_LIMIT_REACHED", "PREMIUM_REQUIRED", "EXPERIENCE_QUOTA_REACHED"]);
+
+function parsePlaybackDenial(error: unknown): { code: string; message: string } | null {
+  if (!axios.isAxiosError(error)) return null;
+  const data = error.response?.data as { error_code?: string; message?: string } | undefined;
+  if (!data?.error_code || !DENIED_CODES.has(data.error_code)) return null;
+  return { code: data.error_code, message: data.message ?? "Đã hết lượt miễn phí. Lượt mới mở lúc 00:00 giờ Việt Nam." };
+}
+
 export interface LivePlaybackState extends PlaybackState {
   isLoading: boolean;
   error: string | null;
   requiresAuth: boolean;
+  /** Premium-only or out of daily plays: offer the membership screen instead of a pointless retry. */
+  upgradeRequired: boolean;
   retry: () => void;
   stop: () => void;
   didFinish: boolean;
@@ -77,6 +89,10 @@ export function usePlayback(
   const queryClient = useQueryClient();
   const [playRequested, setPlayRequested] = useState(false);
   const [sessionError, setSessionError] = useState<string | null>(null);
+  const [playbackDenied, setPlaybackDenied] = useState<{ code: string; message: string } | null>(null);
+
+  // A quota/premium denial belongs to the narration that was denied; opening another clears it.
+  useEffect(() => { setSessionError(null); setPlaybackDenied(null); }, [narrationId]);
   const listeningSession = useRef<ListeningSessionState | null>(null);
   const retiredSessions = useRef<ListeningSessionState[]>([]);
   const playIntent = useRef(false);
@@ -105,11 +121,13 @@ export function usePlayback(
     const generation = restoreGeneration.current;
     void podcastApi.confirmPlaybackStart(narrationId, data.assetId).then(() => {
       void queryClient.invalidateQueries({ queryKey: ["membership", "status"] });
-    }).catch(() => {
+    }).catch((error: unknown) => {
       if (generation !== restoreGeneration.current) return;
       player.pause();
       playIntent.current = false;
-      setSessionError("Chưa xác nhận được lượt nghe hoặc đã hết lượt. Vui lòng kiểm tra quyền Premium và thử lại.");
+      const denied = parsePlaybackDenial(error);
+      setPlaybackDenied(denied);
+      setSessionError(denied?.message ?? "Chưa xác nhận được lượt nghe. Kiểm tra kết nối và thử lại.");
     });
   }, [status.isLoaded, status.playing, narrationId, userId, playbackQuery.data, player, queryClient]);
 
@@ -251,6 +269,7 @@ export function usePlayback(
     playIntent.current = false;
     setSessionStarting(false);
     setSessionError(null);
+    setPlaybackDenied(null);
     if (previous) retireSession(previous);
     retiredSessions.current = retiredSessions.current.filter((item) => item.userId === userId);
     for (const key of progressStates.current.keys()) if (!userId || !key.startsWith(`${userId}:`)) progressStates.current.delete(key);
@@ -438,13 +457,15 @@ export function usePlayback(
     handledToken.current = autoplayToken;
   }, [player, retireSession, autoplayToken]);
 
+  const queryDenial = playbackQuery.isError ? parsePlaybackDenial(playbackQuery.error) : null;
+  const denial = playbackDenied ?? queryDenial;
   const error = !narrationId
     ? "Tập này chưa có bản thu sẵn sàng."
     : !userId
       ? "Đăng nhập để nghe podcast và lưu tiến trình."
-    : playbackQuery.isError
-      ? "Không thể tải âm thanh từ máy chủ."
-      : sessionError;
+      : playbackQuery.isError
+        ? denial?.message ?? "Không thể tải âm thanh từ máy chủ."
+        : sessionError;
 
   useEffect(() => {
     const session = listeningSession.current;
@@ -466,6 +487,7 @@ export function usePlayback(
     isLoading: sessionStarting || playbackQuery.isFetching || (Boolean(userId) && playRequested && !status.isLoaded),
     error,
     requiresAuth: Boolean(narrationId && !userId),
+    upgradeRequired: denial !== null,
     retry: () => {
       if (!userId) {
         onRequireAuth();

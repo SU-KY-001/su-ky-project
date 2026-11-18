@@ -407,6 +407,7 @@ export function HeritageApp(): React.JSX.Element {
           onSelectNarration={setSelectedNarrationId}
           onQuiz={() => { setQuizReturn("player"); setQuizEpisode(episode); setScreen("episodeQuiz"); }}
           onBack={() => setScreen(playerReturn)}
+          onUpgrade={() => router.push("/membership")}
           playback={playback}
         />
       ) : null}

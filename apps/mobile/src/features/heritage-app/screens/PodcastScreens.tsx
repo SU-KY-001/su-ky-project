@@ -316,6 +316,7 @@ interface AudioPlayerScreenProps {
   onSelectNarration: (id: string) => void;
   onQuiz: () => void;
   onBack: () => void;
+  onUpgrade: () => void;
   playback: LivePlaybackState;
 }
 
@@ -327,6 +328,7 @@ export function AudioPlayerScreen({
   onSelectNarration,
   onQuiz,
   onBack,
+  onUpgrade,
   playback,
 }: AudioPlayerScreenProps): React.JSX.Element {
   const { width, height } = useWindowDimensions();
@@ -414,8 +416,8 @@ export function AudioPlayerScreen({
           {playback.error ? (
             <XStack bg="$nightSoft" p="$2" rounded="$4" items="center" justify="space-between" g="$2">
               <Text f={1} color="$paperDeep" fs={11}>{playback.error}</Text>
-              <Button unstyled px="$2" py="$1" bg="$vermilion" rounded="$3" onPress={playback.retry}>
-                <Text color="$paperSoft" fs={10} fw="$7">{playback.requiresAuth ? "Đăng nhập" : "Thử lại"}</Text>
+              <Button unstyled px="$2" py="$1" bg="$vermilion" rounded="$3" onPress={playback.upgradeRequired ? onUpgrade : playback.retry}>
+                <Text color="$paperSoft" fs={10} fw="$7">{playback.upgradeRequired ? "Xem gói Premium" : playback.requiresAuth ? "Đăng nhập" : "Thử lại"}</Text>
               </Button>
             </XStack>
           ) : null}
