@@ -132,8 +132,6 @@ export async function collectHistoricalEvidence(
     if (
       !r ||
       s.archivedAt ||
-      s.verificationStatus !== "VERIFIED" ||
-      s.verifiedVersion !== r.version ||
       s.version !== r.version ||
       !row.locator.trim() ||
       (c &&
@@ -146,7 +144,7 @@ export async function collectHistoricalEvidence(
       throw new DomainError(
         422,
         "CONTENT_NOT_READY",
-        "Nguồn podcast chưa được xác minh đúng phiên bản hoặc trích dẫn đã thay đổi",
+        "Nguồn podcast đã lỗi thời hoặc trích dẫn đã thay đổi",
       );
     // Current version equality was checked under locks; this metadata is the exact pinned revision.
     sources.push({

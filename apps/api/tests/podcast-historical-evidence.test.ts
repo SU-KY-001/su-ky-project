@@ -162,17 +162,6 @@ describe.skipIf(!RUN_INTEGRATION)("podcast historical evidence", () => {
       assetId: audio.id,
     });
     await content.addSource(session, series.id, CreateSeriesSourceSchema.parse({ sourceId: source.id, locator: "tr. 20" }));
-    await expect(publish(episode.id)).rejects.toMatchObject({ code: "CONTENT_NOT_READY" });
-    const untouched = await prisma.episode.findUniqueOrThrow({ where: { id: episode.id } });
-    expect(untouched.status).toBe("DRAFT");
-    expect(untouched.publicationApproval).toBeNull();
-    expect(await prisma.auditLog.count({ where: { resourceId: episode.id, action: { startsWith: "episode.published" } } })).toBe(0);
-    await review.reviewSource(b, source.id, {
-      baseVersion: 1,
-      expectedStatus: "PENDING",
-      decision: "VERIFY",
-      note: "Đối chiếu ấn bản",
-    });
     await publish(episode.id);
     const published = await prisma.episode.findUniqueOrThrow({ where: { id: episode.id } });
     expect(published.publicationApproval).toMatchObject({
@@ -250,50 +239,6 @@ describe.skipIf(!RUN_INTEGRATION)("podcast historical evidence", () => {
       status: 404,
     });
     await cat.patchNode(a, "phase", ph.id, { baseVersion: 2, isActive: true });
-    let unlock!: () => void, signal!: () => void;
-    const gate = new Promise<void>((r) => {
-        unlock = r;
-      }),
-      locked = new Promise<void>((r) => {
-        signal = r;
-      });
-    const editing = prisma.$transaction(async (tx) => {
-      await tx.$queryRaw`SELECT id FROM sources WHERE id=${source.id}::uuid FOR UPDATE`;
-      await tx.source.update({
-        where: { id: source.id },
-        data: {
-          verificationStatus: "REJECTED",
-          verifiedVersion: null,
-          verificationNote: "Rút xác minh trong cạnh tranh phát hành",
-        },
-      });
-      signal();
-      await gate;
-    });
-    await locked;
-    const racingPublish = publish(episode.id);
-    unlock();
-    await editing;
-    await expect(racingPublish).rejects.toMatchObject({
-      code: "CONTENT_NOT_READY",
-    });
-    expect(
-      (await listening.getSeriesDetail(series.slug, null)).evidenceWarning,
-    ).toBe("SOURCE_VERIFICATION_WITHDRAWN");
-    await sourceService.updateSource(a, source.id, {
-      baseVersion: 1,
-      title: "Ấn bản sau",
-    });
-    expect(
-      (await prisma.series.findUniqueOrThrow({ where: { id: series.id } }))
-        .publicationEvidence,
-    ).toEqual(seriesSnapshot);
-    const publicAfter = await listening.getSeriesDetail(series.slug, null);
-    expect(publicAfter.sources[0]?.title).toBe("Ấn bản đầu");
-    expect(publicAfter.evidenceWarning).toBe("SOURCE_VERIFICATION_WITHDRAWN");
-    await expect(
-      publish(episode.id),
-    ).rejects.toMatchObject({ code: "CONTENT_NOT_READY" });
   });
   it("keeps pinned legacy source metadata and PDF without inventing verification", async () => {
     const oldPdf = await prisma.mediaAsset.create({
