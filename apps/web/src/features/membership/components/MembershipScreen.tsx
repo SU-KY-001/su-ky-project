@@ -1,8 +1,9 @@
 import { useState } from "react";
-import { useSearchParams } from "react-router";
+import { Link, useSearchParams } from "react-router";
 import { z } from "zod";
 import { isApiError } from "@/lib/apiError";
 import { Button } from "@/shared/components/ui/button";
+import { APP_PATHS } from "@/shared/constants/routes";
 import { useBuyMembership, useMembershipCheckout } from "../hooks/useMembershipCheckout";
 import { RenewalReminder } from "./RenewalReminder";
 
@@ -31,7 +32,10 @@ export function MembershipScreen() {
 
   return (
     <main className="mx-auto grid w-full max-w-5xl gap-6 px-4 py-10 text-ink sm:px-6">
-      <header><h1 className="text-3xl font-bold">Thành viên Sử Ký</h1></header>
+      <header className="grid gap-3">
+        <Button asChild variant="outline" size="sm" className="w-fit"><Link to={APP_PATHS.home}>Quay lại</Link></Button>
+        <h1 className="text-3xl font-bold">Thành viên Sử Ký</h1>
+      </header>
       <div className="grid gap-5 md:grid-cols-2">
         <section className={purchasePanel} aria-label="Trạng thái thành viên">
           <h2 className="text-xl font-semibold">Thành viên hiện tại</h2>

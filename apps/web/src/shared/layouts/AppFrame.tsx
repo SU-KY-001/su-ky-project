@@ -5,7 +5,6 @@ import { LoadingSpinner } from "../components/common/LoadingSpinner";
 import { APP_PATHS } from "../constants/routes";
 import { currentUserQueryKey } from "../services/currentUserService";
 import { AppToaster } from "../components/common/AppToaster";
-import { RenewalReminder } from "@/features/membership/components/RenewalReminder";
 const PodcastToolbar = lazy(() => import("@/features/landing").then(module => ({ default: module.PodcastToolbar })));
 
 export function AppFrame() {
@@ -29,7 +28,6 @@ export function AppFrame() {
     <div className="app-frame">
       <Outlet />
       <AppToaster />
-      <RenewalReminder />
       <Suspense fallback={null}><PodcastToolbar /></Suspense>
       {navigation.state !== "idle" ? (
         <div className="fixed inset-0 z-[100] grid place-items-center bg-paper/60 backdrop-blur-sm" aria-label="Đang chuyển trang">

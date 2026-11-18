@@ -7,10 +7,12 @@ import background from "../../../assets/brand/profile-header-v2.png";
 import { ListeningHistoryRow, useListeningHistory, type ListeningHistoryItem } from "@/features/listening-history";
 import { useTopQuizzes, TopQuizRow, type TopQuizItem } from "@/features/top-quizzes";
 import { RankingSection } from "@/features/personal-library";
+import { MembershipSummaryCard } from "@/features/membership";
 
 interface ProfileScreenProps {
   onLogin: () => void;
   onEditProfile: () => void;
+  onOpenMembership: () => void;
   onPlayHistoryItem: (item: ListeningHistoryItem) => void;
   onViewListeningHistory: () => void;
   openingEpisodeId: string | null;
@@ -29,7 +31,7 @@ interface ProfileScreenProps {
   libraryError: string | null;
 }
 
-export function ProfileScreen({ onLogin, onEditProfile, onPlayHistoryItem, onViewListeningHistory, openingEpisodeId, historyOpenError, onViewTopQuizzes, onOpenQuiz, onExploreQuizzes, openingQuizId, quizOpenError, period, onPeriod, onViewRanking, onPlayRanking, onViewPlaylists, onOpenPlaylist, libraryError }: ProfileScreenProps): React.JSX.Element {
+export function ProfileScreen({ onLogin, onEditProfile, onOpenMembership, onPlayHistoryItem, onViewListeningHistory, openingEpisodeId, historyOpenError, onViewTopQuizzes, onOpenQuiz, onExploreQuizzes, openingQuizId, quizOpenError, period, onPeriod, onViewRanking, onPlayRanking, onViewPlaylists, onOpenPlaylist, libraryError }: ProfileScreenProps): React.JSX.Element {
   const { user, signOut } = useAuthStore();
   const tokens = getTokens();
   const queryClient = useQueryClient();
@@ -71,6 +73,8 @@ export function ProfileScreen({ onLogin, onEditProfile, onPlayHistoryItem, onVie
           </Button>
           {!user ? <YStack mt="$4"><PrimaryButton label="Đăng nhập để lưu hành trình" onPress={onLogin} /></YStack> : null}
         </YStack>
+
+        {user ? <YStack px="$4" pt="$4"><MembershipSummaryCard onPress={onOpenMembership} /></YStack> : null}
 
         <YStack px="$4" pt="$4" g="$5">
           <YStack g="$2.5">
