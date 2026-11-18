@@ -26,6 +26,7 @@ import {
   useHistoricalSources,
 } from "../hooks/useHistoricalCatalog";
 import { DashboardPagination } from "@/shared/components/dashboard/DashboardPagination";
+import { hasAnyRole } from "@/shared/constants/routes";
 const field = formField;
 const tiers = {
   TIER_1_CHINH_SU: "Chính sử",
@@ -62,7 +63,7 @@ export function SourceVerification({ source }: { source: CatalogSourceDto }) {
     user &&
     !source.archivedAt &&
     user.id !== source.createdById &&
-    (user.role === "moderator" || user.role === "admin");
+    hasAnyRole(user.role, ["moderator", "admin"]);
   return (
     <div className="space-y-2">
       <p className="text-xs">
@@ -112,12 +113,19 @@ export function SourceVerification({ source }: { source: CatalogSourceDto }) {
           </div>
         </>
       ) : null}
+      {!canReview && user && !source.archivedAt && source.verificationStatus !== "REJECTED" ? (
+        <p className="text-sm">
+          {user.id === source.createdById
+            ? "Bạn là người tạo nguồn — cần moderator hoặc admin khác xác minh."
+            : "Chỉ moderator hoặc admin được xác minh nguồn."}
+        </p>
+      ) : null}
       {review.error ? <p role="alert">{review.error.message}</p> : null}
       <div className="flex gap-2">
         <Button size="xs" variant="ghost" onClick={() => setHistory(!history)}>
           Phiên bản nguồn
         </Button>
-        {user?.role === "admin" || user?.id === source.createdById ? (
+        {hasAnyRole(user?.role, ["admin"]) || user?.id === source.createdById ? (
           <Button
             size="xs"
             variant="ghost"
