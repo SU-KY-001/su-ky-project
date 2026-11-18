@@ -153,9 +153,6 @@ describe.skipIf(!RUN_INTEGRATION)(
             title: `${title} ${runId}`,
             url: "https://example.com/source",
             createdById: userId,
-            verificationStatus: "VERIFIED",
-            verifiedVersion: 1,
-            verifiedAt: new Date(),
           },
         })
       ).id;
@@ -551,6 +548,17 @@ describe.skipIf(!RUN_INTEGRATION)(
         expect(byPeriod).toContain(misdated.id);
         expect(byPeriod).toContain(phaseTwo.id);
         expect(byPeriod).not.toContain(otherPeriod.id);
+      });
+
+      it("sorts past → present by the start year of the chosen phase", async () => {
+        const older = await published("Era older", "hong-bang-van-lang", -700, -208);
+        const newer = await published("Era newer", "bac-thuoc-lan-2", 43, 542);
+
+        const order = ids(
+          await listening.listPublicSeries({ page: 1, limit: 50 }),
+        ).filter((id) => id === older.id || id === newer.id);
+
+        expect(order).toEqual([older.id, newer.id]);
       });
     });
 

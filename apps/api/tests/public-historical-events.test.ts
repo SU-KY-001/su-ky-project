@@ -16,7 +16,7 @@ const actor = { userId: crypto.randomUUID(), role: "moderator" };
 const repo = new PrismaHistoricalCatalogRepository(),
   catalog = new HistoricalCatalogService(repo),
   citations = new HistoricalCitationService(repo, catalog),
-  review = new CatalogReviewService(repo, catalog, citations),
+  review = new CatalogReviewService(repo, catalog),
   publicSvc = new PublicHistoricalService(
     repo,
     createHistoricalPresenter(catalog, citations, review),

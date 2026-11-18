@@ -163,6 +163,8 @@ export interface SeriesRepository {
   listSeriesSources(seriesId: string): Promise<SeriesSourceWithSourceEntity[]>;
   /** Read-only view for AI review: one row per source of the series, in sortOrder. */
   listReviewSources(seriesId: string): Promise<SeriesReviewSourceEntity[]>;
+  /** Same shape as `listReviewSources`, picked by id; keeps the given order, drops unknown and archived ids. */
+  listReviewSourcesByIds(sourceIds: string[]): Promise<SeriesReviewSourceEntity[]>;
   /** False when the (seriesId, sourceId, locator) duplicate made `skipDuplicates` drop the row. */
   createSeriesSource(
     seriesId: string,

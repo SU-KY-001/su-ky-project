@@ -33,7 +33,7 @@ export function HistoricalBranchContent({ kind, node }: { kind: HistoricalKind; 
               <p>{citation.locator}</p>
               {citation.excerpt ? <blockquote className="whitespace-pre-wrap break-words leading-6">{citation.excerpt}</blockquote> : null}
               {citation.note ? <p className="whitespace-pre-wrap break-words">Ghi chú: {citation.note}</p> : null}
-              <p className="text-xs text-mod-text-secondary">{citation.source.verificationStatus === "VERIFIED" ? "Đã xác minh" : citation.source.verificationStatus === "REJECTED" ? "Bị từ chối" : "Chưa xác minh"} · Phiên bản {citation.sourceVersion}{citation.outdated ? " · Nguồn đã có phiên bản mới" : ""}</p>
+              <p className="text-xs text-mod-text-secondary">Phiên bản {citation.sourceVersion}{citation.outdated ? " · Nguồn đã có phiên bản mới" : ""}</p>
               <div className="flex flex-wrap gap-4">
                 {citation.source.url ? <a className="break-all text-mod-primary underline" href={citation.source.url} target="_blank" rel="noopener noreferrer">Xem nguồn gốc</a> : null}
                 {citation.source.file ? <a className="text-mod-primary underline" href={citation.source.file.url} target="_blank" rel="noopener noreferrer">Xem tài liệu PDF</a> : null}

@@ -89,7 +89,6 @@ export const catalogPaths: Paths = {
       queryDocs: {
         q: "Từ khoá: tiêu đề, tác giả hoặc ISBN",
         tier: "Lọc theo bậc độ tin cậy",
-        verificationStatus: "Lọc theo trạng thái xác minh: `PENDING`, `VERIFIED` hoặc `REJECTED`",
         includeArchived: "Gồm cả nguồn đã lưu trữ",
         sortBy: "Cột sắp xếp: title hoặc createdAt",
         sortDirection: "Hướng sắp xếp: asc hoặc desc",

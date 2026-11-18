@@ -24,13 +24,19 @@ function OrderStatusTag({ status }: { status: MembershipOrder["status"] }): Reac
 
 function StatusCard({ entitlement }: { entitlement: MembershipEntitlement }): React.JSX.Element {
   const premium = entitlement.tier === "premium";
+  const podcastQuota = entitlement.experienceQuotas.find((item) => item.feature === "podcast");
+  const freeSummary = podcastQuota?.mode === "free_limited" && podcastQuota.limit !== null
+    ? `${FEATURE_LABELS.podcast} ${podcastQuota.limit} lượt/ngày. Nâng cấp để mở khoá toàn bộ audio và kịch bản.`
+    : podcastQuota?.mode === "premium_only"
+      ? "Podcast đang dành riêng cho Premium. Nâng cấp để mở khoá toàn bộ audio và kịch bản."
+      : "Nâng cấp để mở khoá toàn bộ audio và kịch bản Premium.";
   return (
-    <AppCard accent>
+    <AppCard selected>
       <YStack p="$4" g="$2.5">
         <XStack items="center" justify="space-between">
           <XStack items="center" g="$2">
             <AppIcon name="award" size={18} color="#B58A3C" />
-            <Text ff="$body" fs="$1" fw="$7" ls={1.5} color="$bronzeDark">{premium ? "SỬ KÝ PREMIUM" : "GÓI HIỆN TẠI"}</Text>
+            <Text ff="$body" fs="$1" fw="$7" ls={1.5} color="$bronzeDark">SỬ KÝ PREMIUM</Text>
           </XStack>
           {entitlement.renewSoon ? (
             <XStack px="$2" py="$0.5" rounded="$8" bc="$bronze" bw="$0.25">
@@ -41,9 +47,18 @@ function StatusCard({ entitlement }: { entitlement: MembershipEntitlement }): Re
         <Text ff="$heading" fs="$5" lh="$5" fw="$7" color="$ink">
           {premium ? "Thành viên Premium" : "Gói Miễn phí"}
         </Text>
-        <Text ff="$body" fs="$2" lh="$3" color="$inkSoft">
-          {premium ? `Còn ${entitlement.daysLeft} ngày · hết hạn ${formatDate(entitlement.expiresAt)}` : "Nâng cấp để mở khoá toàn bộ audio và kịch bản."}
-        </Text>
+        {premium ? (
+          <Text ff="$body" fs="$2" lh="$3" color="$inkSoft">
+            Hết hạn {formatDate(entitlement.expiresAt)} · còn {entitlement.daysLeft} ngày
+          </Text>
+        ) : (
+          <Text ff="$body" fs="$2" lh="$3" color="$inkSoft">{freeSummary}</Text>
+        )}
+        {entitlement.renewSoon ? (
+          <Text ff="$body" fs="$2" lh="$3" color="$bronzeDark">
+            Gia hạn trước khi hết hạn để không gián đoạn audio và kịch bản.
+          </Text>
+        ) : null}
       </YStack>
     </AppCard>
   );
@@ -85,6 +100,9 @@ function QuotaSection({ entitlement }: { entitlement: MembershipEntitlement }): 
                   </Text>
                 </XStack>
                 <ProgressBar value={limit > 0 ? (quota.usedToday / limit) * 100 : 0} />
+                <Text ff="$body" fs="$1" color="$inkSoft">
+                  {remaining === 0 ? "Đã hết lượt hôm nay · mở lại lúc 00:00 (giờ Việt Nam)" : `Còn ${remaining} lượt · đặt lại lúc 00:00 (giờ Việt Nam)`}
+                </Text>
               </YStack>
             );
           })}
@@ -97,9 +115,9 @@ function QuotaSection({ entitlement }: { entitlement: MembershipEntitlement }): 
                 </XStack>
                 <Text ff="$body" fs="$2" fw="$7" color="$bronzeDark">Chỉ Premium</Text>
               </XStack>
+              <Text ff="$body" fs="$1" color="$inkSoft">Nâng cấp Premium để sử dụng tính năng này.</Text>
             </YStack>
           ))}
-          <Text ff="$body" fs="$1" color="$inkSoft">Đặt lại lúc 00:00 · giờ Việt Nam</Text>
         </YStack>
       </AppCard>
     </YStack>
@@ -107,16 +125,17 @@ function QuotaSection({ entitlement }: { entitlement: MembershipEntitlement }): 
 }
 
 const BENEFITS = [
-  "Nghe toàn bộ audio Premium",
-  "Mở khoá kịch bản tập Premium",
-  "Không giới hạn quiz và triển lãm",
+  "Nghe toàn bộ audio Premium, không giới hạn lượt",
+  "Mở khoá toàn bộ kịch bản của tập Premium",
+  "Không giới hạn lượt quiz và lượt vào triển lãm",
+  "Hiển thị nhãn Premium trong hồ sơ",
 ];
 
 function PlanSection({ plan, premium, pending, error, onCreate }: { plan: MembershipPlan; premium: boolean; pending: boolean; error: string | null; onCreate: () => void }): React.JSX.Element {
   return (
     <YStack g="$2.5">
       <SectionHeader title="Gói thành viên" />
-      <AppCard accent>
+      <AppCard selected>
         <YStack p="$4" g="$3">
           <XStack items="flex-end" justify="space-between">
             <YStack g="$0.5">
@@ -125,6 +144,7 @@ function PlanSection({ plan, premium, pending, error, onCreate }: { plan: Member
             </YStack>
             <YStack items="flex-end" g="$0.5">
               <Text ff="$heading" fs="$5" fw="$7" color="$vermilion">{formatVnd(plan.priceVnd)}</Text>
+              <Text ff="$body" fs="$1" color="$inkSoft">mỗi tháng</Text>
             </YStack>
           </XStack>
           <YStack g="$2">
@@ -137,6 +157,9 @@ function PlanSection({ plan, premium, pending, error, onCreate }: { plan: Member
           </YStack>
           <PrimaryButton label={pending ? "Đang tạo đơn…" : premium ? `Gia hạn thêm ${plan.durationDays} ngày` : "Mua gói tháng"} onPress={onCreate} disabled={pending} />
           {error ? <Text ff="$body" fs="$1" lh="$2" color="$vermilion" text="center">{error}</Text> : null}
+          <Text ff="$body" fs="$1" lh="$2" color="$inkSoft" text="center">
+            Thanh toán chuyển khoản. Đơn được quản trị viên duyệt thủ công.
+          </Text>
         </YStack>
       </AppCard>
     </YStack>
@@ -187,7 +210,7 @@ export function MembershipScreen({ onBack, onOpenOrder }: { onBack: () => void; 
 
   return (
     <YStack f={1} bg="$paper" pt={insets.top}>
-      <AppHeader title="Gói Premium" onBack={onBack} avatar={false} />
+      <AppHeader title="Gói Premium" onBack={onBack} />
       <ScrollView f={1} bg="$paper" showsVerticalScrollIndicator={false}>
         <YStack px="$4" pt="$3" pb={insets.bottom + 24} g="$5">
           {status.isPending ? (

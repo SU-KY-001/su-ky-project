@@ -40,9 +40,7 @@ export interface SeriesEntity {
   evidenceCurrentStates?: Record<
     string,
     {
-      verificationStatus: string;
       version: number;
-      verifiedVersion: number | null;
       archived: boolean;
     }
   >;

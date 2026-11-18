@@ -40,7 +40,6 @@ export const SourceSortDirectionSchema = z.enum(["asc", "desc"]);
 export const SourceQuerySchema = PaginationQuerySchema.extend({
   q: z.string().trim().optional(),
   tier: SourceTierSchema.optional(),
-  verificationStatus: z.enum(["PENDING", "VERIFIED", "REJECTED"]).optional(),
   includeArchived: z.preprocess(
     (value) => (value === "true" ? true : value === "false" ? false : value),
     z.boolean().default(false),

@@ -62,7 +62,7 @@ export const aiAssistPaths: Paths = {
       summary: "Chạy AI rà kịch bản",
       description: [
         "Nhận các khối của kịch bản và chạy nền; trả `202` ngay, kết quả đọc bằng `GET`.",
-        "AI chỉ nghi ngờ và đề xuất, không tự sửa kịch bản. Nguồn đối chiếu là các nguồn **đã xác minh** của series (PDF đã nạp trang, hoặc URL).",
+        "AI chỉ nghi ngờ và đề xuất, không tự sửa kịch bản. Nguồn đối chiếu là các nguồn được chọn trong `sourceIds` (tối đa 5, đọc được là đủ, kể cả chưa xác minh); bỏ trống thì dùng toàn bộ nguồn của series. Không có nguồn nào thì lượt rà kết thúc ngay mà không gọi model.",
         "Cảnh báo `CONTRADICTED` luôn kèm câu trích nguyên văn mà hệ thống đã kiểm trên nội dung nguồn đã mở; không có thì hạ thành `NOT_FOUND`.",
       ].join("\n\n"),
       access: "studio",
@@ -74,7 +74,7 @@ export const aiAssistPaths: Paths = {
       errors: {
         404: NOT_FOUND,
         409: "`AI_CHECK_ALREADY_RUNNING`: tập này đang có một lượt rà chạy",
-        422: "`VALIDATION_ERROR`: kịch bản vượt số ký tự tối đa; `NO_READABLE_SOURCE`: series chưa có nguồn đã xác minh mà AI đọc được",
+        422: "`VALIDATION_ERROR`: kịch bản vượt số ký tự tối đa; `NO_READABLE_SOURCE`: nguồn đã chọn hoặc nguồn của series chưa đọc được (PDF chưa nạp trang, không có URL)",
         429: "`AI_CONCURRENCY_LIMIT`: quá nhiều lượt rà chạy cùng lúc của bạn",
         503: "`AI_DISABLED`: trợ lý AI đang tắt; `AI_UNAVAILABLE`: chưa cấu hình model",
       },

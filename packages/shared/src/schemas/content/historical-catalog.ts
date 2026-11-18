@@ -3,11 +3,6 @@ import { PaginationQuerySchema } from "../common";
 import { HistoricalTimeSchema } from "../historical-time";
 import { HistoricalEntityTypeSchema, SourceTierSchema } from "./catalog";
 
-export const SourceVerificationStatusSchema = z.enum([
-  "PENDING",
-  "VERIFIED",
-  "REJECTED",
-]);
 export const BaseVersionSchema = z.object({
   baseVersion: z.number().int().positive(),
 });
@@ -75,11 +70,6 @@ export const PatchHistoricalCitationSchema =
   HistoricalCitationInputSchema.partial().extend({
     baseVersion: z.number().int().positive(),
   });
-export const SourceReviewSchema = BaseVersionSchema.extend({
-  expectedStatus: SourceVerificationStatusSchema,
-  decision: z.enum(["VERIFY", "REJECT"]),
-  note: z.string().trim().min(1).max(2000),
-});
 export const HistoricalReadinessSchema = z.object({
   ready: z.boolean(),
   reasons: z.array(z.string()),
@@ -99,10 +89,6 @@ export const CatalogSourceSchema = z
     url: z.string().nullable(),
     fileAssetId: z.string().uuid().nullable(),
     version: z.number().int(),
-    verificationStatus: SourceVerificationStatusSchema,
-    verifiedVersion: z.number().int().nullable(),
-    verifiedAt: timestamp.nullable(),
-    verificationNote: z.string().nullable(),
     createdById: z.string().nullable(),
     createdAt: timestamp,
     archivedAt: timestamp.nullable(),
@@ -185,8 +171,6 @@ export const PublicHistoricalSourceSchema = CatalogSourceSchema.pick({
   isbn: true,
   url: true,
   file: true,
-  verificationStatus: true,
-  verifiedAt: true,
 }).strip();
 export const PublicHistoricalEventSchema = z.object({
   id: z.string().uuid(),

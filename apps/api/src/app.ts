@@ -41,7 +41,10 @@ export const app = new Hono<AppEnv>()
   .use("*", secureHeaders())
   .use("*", corsConfig())
   .use("*", compress())
-  .use("*", bypassEventStreams(etag()))
+  .use("*", bypassEventStreams(etag({
+    // 304 phải giữ header CORS, nếu không trình duyệt chặn revalidation của response cache.
+    retainedHeaders: ["cache-control", "content-location", "date", "etag", "expires", "vary", "access-control-allow-origin", "access-control-allow-credentials", "access-control-expose-headers"],
+  })))
   .use(
     "*",
     bodyLimit({

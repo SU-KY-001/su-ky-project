@@ -14,7 +14,6 @@ import {
   HistoricalCitationSchema,
   HistoricalCitationInputSchema,
   PatchHistoricalCitationSchema,
-  SourceReviewSchema,
   CatalogSourceSchema,
   CatalogSummarySchema,
   paginatedSchema,
@@ -222,26 +221,6 @@ historicalCatalogPaths["/api/studio/historical-summary"] = {
       status: 200,
       description: "Tổng toàn database",
       schema: { name: "CatalogSummary", schema: CatalogSummarySchema },
-    },
-  }),
-};
-historicalCatalogPaths["/api/studio/sources/{id}/review"] = {
-  post: operation({
-    id: "reviewHistoricalSource",
-    tag: "Studio Catalog",
-    summary: "Xác minh hoặc rút xác minh nguồn",
-    access: "studio",
-    pathParams: id,
-    rate: "write",
-    body: { name: "HistoricalSourceReview", schema: SourceReviewSchema },
-    ok: {
-      status: 200,
-      description: "Kết quả xác minh",
-      schema: { name: "CatalogSource", schema: CatalogSourceSchema },
-    },
-    errors: {
-      403: "SELF_REVIEW_FORBIDDEN",
-      409: "STALE_WRITE hoặc INVALID_REVIEW_STATE",
     },
   }),
 };

@@ -37,16 +37,10 @@ describe.skipIf(!RUN_INTEGRATION)("ai check service rules (database)", () => {
     await expectDomainError(service.create(stranger, fx.episodeId, createInput([block("b0", TEXT)])), 403, "FORBIDDEN");
   });
 
-  it("returns 422 NO_READABLE_SOURCE for no source, an unverified source, or a PDF without loaded pages", async () => {
+  it("rejects an attached source the AI cannot read", async () => {
     const { service } = buildService({ agent: NO_ITEMS });
-    for (const [tag, sources] of [
-      ["none", []],
-      ["pending", [{ kind: "url" as const, verified: false }]],
-      ["nopages", [{ kind: "pdf" as const }]],
-    ] as const) {
-      const fx = await createEpisodeWithSources(ownerId, runId, tag, [...sources]);
-      await expectDomainError(service.create(owner, fx.episodeId, createInput([block("b0", TEXT)])), 422, "NO_READABLE_SOURCE");
-    }
+    const nopages = await createEpisodeWithSources(ownerId, runId, "nopages", [{ kind: "pdf" }]);
+    await expectDomainError(service.create(owner, nopages.episodeId, createInput([block("b0", TEXT)])), 422, "NO_READABLE_SOURCE");
   });
 
   it("returns 422 when the script is over script.max_chars", async () => {

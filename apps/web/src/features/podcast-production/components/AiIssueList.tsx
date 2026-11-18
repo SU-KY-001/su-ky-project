@@ -65,6 +65,11 @@ export function AiIssueList({ check, items, activeId, onOpen, onRerun }: Props):
       </div>
       <p className="text-xs text-mod-text-secondary">{seenSummary(items)}</p>
       <p className="text-xs text-mod-text-secondary">{traceLine(check, items)}</p>
+      {check.sources.length === 0 && check.status !== "RUNNING" ? (
+        <p role="status" className="rounded-lg border border-mod-attention/25 bg-mod-attention/5 p-3 text-sm text-mod-attention">
+          Lượt rà này không có nguồn nào: AI không đối chiếu được sự kiện. Chọn nguồn rồi rà lại để kiểm chứng.
+        </p>
+      ) : null}
       {problem ? <p role="alert" className="text-sm text-mod-attention">{problem}</p> : null}
       {items.length === 0 && check.status === "SUCCEEDED" && !problem ? (
         <p className="text-sm text-mod-text-secondary">AI không nêu cảnh báo nào. Điều này không có nghĩa kịch bản đã đúng.</p>

@@ -601,6 +601,12 @@ export class ContentService {
     return this.series.listReviewSources(episode.seriesId);
   }
 
+  /** Sources picked by id for the AI review; the episode read still gates access. */
+  async listReviewSourcesByIds(session: Session, episodeId: string, sourceIds: string[]): Promise<SeriesReviewSourceEntity[]> {
+    await this.loadEpisodeForRead(session, episodeId);
+    return this.series.listReviewSourcesByIds(sourceIds);
+  }
+
   async updateEpisode(
     session: Session,
     id: string,

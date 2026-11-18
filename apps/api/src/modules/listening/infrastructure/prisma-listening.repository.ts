@@ -575,7 +575,13 @@ export class PrismaListeningRepository implements ListeningRepository {
         where,
         skip: (query.page - 1) * query.limit,
         take: query.limit,
-        orderBy: { publishedAt: "desc" as const },
+        // Sắp xếp theo thời kỳ quá khứ → hiện tại: giai đoạn đã chọn khi tạo series, rồi tới năm bắt đầu của series.
+        orderBy: [
+          { historicalPhase: { startYear: { sort: "asc" as const, nulls: "last" as const } } },
+          { historicalPhase: { period: { startYear: { sort: "asc" as const, nulls: "last" as const } } } },
+          { startYear: { sort: "asc" as const, nulls: "last" as const } },
+          { publishedAt: "desc" as const },
+        ],
         include: {
           coverImageAsset: true,
           coverLandscapeAsset: true,
@@ -600,9 +606,7 @@ export class PrismaListeningRepository implements ListeningRepository {
       where: { id: { in: parsed.data.sources.map((s) => s.id) } },
       select: {
         id: true,
-        verificationStatus: true,
         version: true,
-        verifiedVersion: true,
         archivedAt: true,
       },
     });
@@ -610,9 +614,7 @@ export class PrismaListeningRepository implements ListeningRepository {
       rows.map((r) => [
         r.id,
         {
-          verificationStatus: r.verificationStatus,
           version: r.version,
-          verifiedVersion: r.verifiedVersion,
           archived: Boolean(r.archivedAt),
         },
       ]),

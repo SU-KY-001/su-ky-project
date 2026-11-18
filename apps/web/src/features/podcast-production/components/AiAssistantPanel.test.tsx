@@ -29,6 +29,7 @@ const check: AiCheck = {
   inputTokens: 1,
   outputTokens: 1,
   errorCode: null,
+  sources: [{ id: "00000000-0000-4000-8000-0000000000aa", title: "Đại Việt sử ký" }],
   itemCounts: { open: 1, reviewed: 0 },
   startedAt: new Date(),
   finishedAt: new Date(),

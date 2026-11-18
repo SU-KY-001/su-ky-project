@@ -294,9 +294,7 @@ const PublicSeriesSourceDocSchema = z.object({
   publicationYear: z.number().nullable().optional(),
   isbn: z.string().nullable().optional(),
   excerpt: z.string().nullable().optional(),
-  verifiedAt: z.string().nullable().optional(),
   sourceVersion: z.number().optional(),
-  verificationStatus: z.enum(["PENDING", "VERIFIED", "WITHDRAWN"]),
   title: z.string(),
   author: z.string().nullable(),
   tier: SourceTierSchema,
@@ -310,7 +308,7 @@ export const PublicSeriesDetailDocSchema = z.object({
   publishedAt: timestamp.nullable(),
   evidenceAsOf: z.string().nullable(),
   evidenceWarning: z
-    .enum(["LEGACY_UNVERIFIED", "SOURCE_VERIFICATION_WITHDRAWN"])
+    .enum(["EVIDENCE_LEGACY", "SOURCE_OUTDATED"])
     .nullable(),
   historicalEvent: z.unknown().optional(),
   id: uuid,
@@ -372,7 +370,7 @@ export const PublicEpisodeDetailDocSchema = z.object({
   series: z.object({
     evidenceAsOf: z.string().nullable(),
     evidenceWarning: z
-      .enum(["LEGACY_UNVERIFIED", "SOURCE_VERIFICATION_WITHDRAWN"])
+      .enum(["EVIDENCE_LEGACY", "SOURCE_OUTDATED"])
       .nullable(),
     historicalEvent: z.unknown().optional(),
     id: uuid,

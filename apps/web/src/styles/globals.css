@@ -1,6 +1,10 @@
 @import "tailwindcss";
 @import "tw-animate-css";
 
+/* App chỉ có theme sáng: dark: phải theo class .dark, không theo prefers-color-scheme
+   (nếu không, máy bật dark OS sẽ nhận dark:bg-input/30 và làm nút trong suốt). */
+@custom-variant dark (&:where(.dark, .dark *));
+
 @theme inline {
   --animate-shimmer-slide: shimmer-slide var(--speed) ease-in-out infinite alternate;
   --animate-spin-around: spin-around calc(var(--speed) * 2) infinite linear;

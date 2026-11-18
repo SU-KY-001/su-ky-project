@@ -26,6 +26,7 @@ import {
   useHistoricalSources,
 } from "../hooks/useHistoricalCatalog";
 import { DashboardPagination } from "@/shared/components/dashboard/DashboardPagination";
+import { hasAnyRole } from "@/shared/constants/routes";
 const field = formField;
 const tiers = {
   TIER_1_CHINH_SU: "Chính sử",
@@ -33,10 +34,9 @@ const tiers = {
   TIER_3_KHOA_HOC: "Nghiên cứu khoa học",
   TIER_4_DA_SU: "Dã sử",
 };
-export function SourceVerification({ source }: { source: CatalogSourceDto }) {
+export function SourceHistory({ source }: { source: CatalogSourceDto }) {
   const user = useCurrentUser().data;
   const invalidate = useCatalogInvalidation();
-  const [note, setNote] = useState("");
   const [history, setHistory] = useState(false);
   const revisions = useQuery({
     queryKey: ["historical-catalog", "source-revisions", source.id],
@@ -48,76 +48,16 @@ export function SourceVerification({ source }: { source: CatalogSourceDto }) {
       api.archiveSource(source.id, source.version, Boolean(source.archivedAt)),
     onSuccess: invalidate,
   });
-  const review = useMutation({
-    mutationFn: (decision: "VERIFY" | "REJECT") =>
-      api.reviewSource(source.id, {
-        baseVersion: source.version,
-        expectedStatus: source.verificationStatus,
-        decision,
-        note,
-      }),
-    onSuccess: invalidate,
-  });
-  const canReview =
-    user &&
-    !source.archivedAt &&
-    user.id !== source.createdById &&
-    (user.role === "moderator" || user.role === "admin");
   return (
     <div className="space-y-2">
       <p className="text-xs">
-        {tiers[source.tier]} · phiên bản {source.version} ·{" "}
-        <strong>
-          {source.verificationStatus === "VERIFIED"
-            ? "Đã xác minh"
-            : source.verificationStatus === "REJECTED"
-              ? "Bị từ chối"
-              : "Chưa xác minh"}
-        </strong>
+        {tiers[source.tier]} · phiên bản {source.version}
       </p>
-      {source.verificationNote ? (
-        <p className="text-sm">Nhận xét: {source.verificationNote}</p>
-      ) : null}
-      {canReview && source.verificationStatus !== "REJECTED" ? (
-        <>
-          <label className="block text-sm">
-            Nhận xét nguồn
-            <Textarea
-              autoGrow
-              className={field}
-              value={note}
-              onChange={(e) => setNote(e.target.value)}
-            />
-          </label>
-          <div className="flex gap-2">
-            {source.verificationStatus === "PENDING" ? (
-              <Button
-                size="sm"
-                disabled={!note.trim() || review.isPending}
-                onClick={() => review.mutate("VERIFY")}
-              >
-                Xác minh nguồn
-              </Button>
-            ) : null}
-            <Button
-              variant="outline"
-              size="sm"
-              disabled={!note.trim() || review.isPending}
-              onClick={() => review.mutate("REJECT")}
-            >
-              {source.verificationStatus === "VERIFIED"
-                ? "Rút xác minh"
-                : "Từ chối nguồn"}
-            </Button>
-          </div>
-        </>
-      ) : null}
-      {review.error ? <p role="alert">{review.error.message}</p> : null}
       <div className="flex gap-2">
         <Button size="xs" variant="ghost" onClick={() => setHistory(!history)}>
           Phiên bản nguồn
         </Button>
-        {user?.role === "admin" || user?.id === source.createdById ? (
+        {hasAnyRole(user?.role, ["admin"]) || user?.id === source.createdById ? (
           <Button
             size="xs"
             variant="ghost"
@@ -274,7 +214,7 @@ export function SourceComposer({
               placeholder="Chọn loại tư liệu"
               disabled={busy}
             />
-            <p className="text-xs leading-5 text-mod-text-secondary">Phân loại để tra cứu; nguồn vẫn cần được xác minh riêng.</p>
+            <p className="text-xs leading-5 text-mod-text-secondary">Phân loại để tra cứu.</p>
           </div>
           <section aria-label="Đường dẫn và PDF" className="space-y-4 border-t border-mod-border pt-5">
             <div>
@@ -491,7 +431,7 @@ export function HistoricalSourceFields({
                 ) : null}
               </p>
             ) : (
-              <SourceVerification source={c.source} />
+              <SourceHistory source={c.source} />
             )}
             <div className="flex gap-2">
               {canEdit ? (
@@ -558,7 +498,7 @@ export function HistoricalSourceFields({
                 onValueChange={setSourceId}
                 options={sources.data?.items.map((source) => ({
                   value: source.id,
-                  label: `${source.title} · ${source.verificationStatus === "VERIFIED" ? "Đã xác minh" : "Chưa xác minh"}`,
+                  label: source.title,
                 })) ?? []}
                 placeholder="Chọn tài liệu…"
               />

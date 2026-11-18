@@ -8,6 +8,8 @@ export interface CreateRunningCheckInput {
   episodeId: string;
   scope: "ALL" | "SELECTION";
   note: string | null;
+  /** Sources the run will read; persisted in `config` so evidence titles survive a reload. */
+  sources: Array<{ id: string; title: string }>;
   totalBlocks: number;
   model: string | null;
   promptVersion: string;

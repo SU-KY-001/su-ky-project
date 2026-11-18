@@ -77,8 +77,6 @@ export function buildService({ agent, config, assertReady }: ServiceOptions) {
 
 export interface FixtureSource {
   kind: "url" | "pdf";
-  /** Default true. */
-  verified?: boolean;
   /** PDF only: page texts to load into source_pages (page = index + 1). */
   pages?: string[];
 }
@@ -102,8 +100,6 @@ export async function createEpisodeWithSources(ownerId: string, runId: string, t
         createdById: ownerId,
         url: spec.kind === "url" ? `${SOURCE_URL}-${tag}-${index}` : null,
         fileAssetId: file?.id ?? null,
-        verificationStatus: spec.verified === false ? "PENDING" : "VERIFIED",
-        verifiedVersion: spec.verified === false ? null : 1,
       },
     });
     await prisma.seriesSource.create({ data: { seriesId: series.id, sourceId: source.id, locator: "", sortOrder: index } });

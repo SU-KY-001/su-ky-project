@@ -31,10 +31,6 @@ export class HistoricalCitationService {
     const source = {
       ...metadata,
       tier: SourceTierSchema.parse(s.tier ?? row.source.tier),
-      verificationStatus:
-        row.sourceVersion === row.source.version
-          ? row.source.verificationStatus
-          : ("PENDING" as const),
       title: typeof s.title === "string" ? s.title : row.source.title,
       author: str("author", row.source.author),
       publisher: str("publisher", row.source.publisher),

@@ -113,11 +113,6 @@ if (existing) {
         url: SOURCE_URL,
         createdById: moderator.id,
         fileAssetId: fileAsset.id,
-        verificationStatus: "VERIFIED",
-        verifiedVersion: 1,
-        verifiedById: moderator.id,
-        verifiedAt: new Date(),
-        verificationNote: "Phase 4 browser fixture backed by the imported book pages.",
       },
     });
     const series = await tx.series.create({

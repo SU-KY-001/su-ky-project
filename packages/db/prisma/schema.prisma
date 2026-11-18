@@ -350,6 +350,8 @@ model HistoricalEntity {
 }
 
 model Source {
+  // shortcut: Postgres still holds the unused verification_* columns; drop them in a later
+  // cleanup migration so the previous API image can still roll back.
   id                  String                   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   tier                SourceTier
   title               String                   @db.VarChar(500)
@@ -370,11 +372,6 @@ model Source {
   fileAsset           MediaAsset?              @relation("SourceFile", fields: [fileAssetId], references: [id], onDelete: Restrict)
   seriesSources       SeriesSource[]
   version             Int                      @default(1)
-  verificationStatus  SourceVerificationStatus @default(PENDING) @map("verification_status")
-  verifiedVersion     Int?                     @map("verified_version")
-  verifiedById        String?                  @map("verified_by_id") @db.VarChar(36)
-  verifiedAt          DateTime?                @map("verified_at") @db.Timestamptz(3)
-  verificationNote    String?                  @map("verification_note") @db.Text
   revisions           SourceRevision[]
   historicalCitations HistoricalCitation[]
   pages               SourcePage[]

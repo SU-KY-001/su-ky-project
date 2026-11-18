@@ -96,7 +96,6 @@ export class CatalogService {
       q,
       tier,
       includeArchived,
-      verificationStatus,
       sortBy,
       sortDirection,
     } = query;
@@ -104,7 +103,6 @@ export class CatalogService {
       page,
       limit,
       includeArchived,
-      verificationStatus,
       sortBy,
       sortDirection,
       ...(tier ? { tier } : {}),

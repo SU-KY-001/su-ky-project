@@ -44,7 +44,7 @@ async function main(): Promise<void> {
       const source =
         existing ??
         (await tx.source.create({
-          data: { title, tier: "TIER_1_CHINH_SU", author: values.author ?? null, publicationYear, verificationStatus: "VERIFIED", verifiedVersion: 1, verifiedAt: new Date() },
+          data: { title, tier: "TIER_1_CHINH_SU", author: values.author ?? null, publicationYear },
           select: { id: true, version: true },
         }));
 

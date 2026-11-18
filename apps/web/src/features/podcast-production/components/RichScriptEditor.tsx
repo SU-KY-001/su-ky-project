@@ -49,7 +49,6 @@ export const EMPTY_SCRIPT_PLACEHOLDER =
 export interface RichScriptEditorHandle {
   getText: () => string;
   importText: (text: string, replace: boolean, expected?: string) => EditResult;
-  insertCitation: (sourceId: string) => void;
   getBlocks: () => ScriptBlock[];
   getSelectionBlocks: () => ScriptBlock[];
   focusBlock: (ref: string | null) => void;
@@ -181,9 +180,6 @@ export const RichScriptEditor = forwardRef<
     () => ({
       getText: () => editor?.state.doc.textBetween(0, editor.state.doc.content.size, "\n", "\n") ?? "",
       importText: (text, replace, expected) => editor ? importScriptText(editor, text, replace, expected) : { ok: false, reason: "CONFLICT" },
-      insertCitation: (sourceId: string) => {
-        editor?.chain().focus().setMark("sourceCitation", { sourceId }).run();
-      },
       getBlocks: () => (editor ? editorBlocks(editor) : []),
       getSelectionBlocks: () => (editor ? selectionBlocks(editor) : []),
       focusBlock: (ref) => {

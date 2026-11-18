@@ -16,7 +16,6 @@ import {
   Upload,
   Sparkles,
   PenLine,
-  BookOpen,
   Search,
   X,
 } from "lucide-react";
@@ -47,8 +46,6 @@ import { AiAssistantPanel, type DockState } from "./AiAssistantPanel";
 import { ScriptFileImport, type ScriptImportTarget } from "./ScriptFileImport";
 import { PodcastTypeSelect } from "./PodcastTypeSelect";
 import { ShimmerButton } from "@/shared/components/ui/shimmer-button";
-import { ScriptSourcesPanel } from "./ScriptSourcesPanel";
-import { Popover, PopoverContent, PopoverTrigger } from "@/shared/components/ui/popover";
 
 interface PendingDocument {
   id: string;
@@ -85,7 +82,6 @@ export function PodcastScriptStep({
   const [reviewRequest, setReviewRequest] = useState(0);
   const [openCount, setOpenCount] = useState<number | null>(null);
   const [clickedBlock, setClickedBlock] = useState<{ ref: string; seq: number } | null>(null);
-  const [sourcesOpen, setSourcesOpen] = useState(false);
   const [pendingDocuments, setPendingDocuments] = useState<PendingDocument[]>([]);
   const [saving, setSaving] = useState(false);
 
@@ -236,7 +232,7 @@ export function PodcastScriptStep({
       {!typeChosen ? <p className="rounded-lg border border-mod-border p-4 text-sm text-mod-text-secondary">Chọn loại podcast trước khi soạn hoặc import kịch bản.</p> : null}
       {reviewVisited ? <section hidden={mode !== "manual" || dock === "closed" || kind !== "monologue"} aria-label="Kết quả rà soát kịch bản" className="overflow-hidden rounded-xl border border-mod-border bg-mod-surface">
         <header className="flex items-center justify-between border-b border-mod-border px-4 py-3"><h3 className="flex items-center gap-2 text-sm font-semibold"><Search size={16} />Rà soát kịch bản</h3><Button type="button" size="icon-sm" variant="ghost" aria-label="Đóng kết quả rà soát" onClick={() => setDock("closed")}><X size={16} /></Button></header>
-        <div className="h-[min(60dvh,36rem)] min-h-64"><AiAssistantPanel editorRef={editorRef} episodeId={wizard.state.episodeId ?? null} ensureEpisode={wizard.ensureDraft} sources={sources} hasScript={characterCount > 0} dock={dock} onDockChange={setDock} clickedBlock={clickedBlock} onOpenSource={() => setSourcesOpen(true)} onOpenCountChange={setOpenCount} fullWorkspace interactive={mode === "manual" && dock !== "closed"} reviewRequest={reviewRequest} onShowBlock={(ref) => { editorRef.current?.focusBlock(ref); }} /></div>
+        <div className="h-[min(60dvh,36rem)] min-h-64"><AiAssistantPanel editorRef={editorRef} episodeId={wizard.state.episodeId ?? null} ensureEpisode={wizard.ensureDraft} sources={sources} hasScript={characterCount > 0} dock={dock} onDockChange={setDock} clickedBlock={clickedBlock} onOpenCountChange={setOpenCount} fullWorkspace interactive={mode === "manual" && dock !== "closed"} reviewRequest={reviewRequest} onShowBlock={(ref) => { editorRef.current?.focusBlock(ref); }} /></div>
       </section> : null}
       <div className="podcast-script-mode-body flex min-w-0 flex-col gap-4">
         <div className="podcast-script-manual min-w-0 space-y-4">
@@ -248,14 +244,6 @@ export function PodcastScriptStep({
             onBlockClick={(ref) => setClickedBlock((previous) => ({ ref, seq: (previous?.seq ?? 0) + 1 }))}
             toolbarActions={<>
                 {mode === "manual" ? <Button type="button" variant="ghost" disabled={!typeChosen || characterCount === 0} className="raised-tool-button h-10 gap-2 rounded-lg border-0 px-4 font-semibold text-mod-text shadow-[0_2px_4px_rgb(0_0_0/6%)]" onMouseDown={(event) => event.preventDefault()} onClick={() => { setReviewVisited(true); setDock("panel"); setReviewRequest((value) => value + 1); }}><Search size={16} className="text-mod-primary" />AI rà soát{openCount !== null && openCount > 0 ? <span className="rounded bg-mod-canvas-accent px-1.5 text-xs">{openCount}</span> : null}</Button> : null}
-                <Popover open={sourcesOpen} onOpenChange={setSourcesOpen}>
-                  <PopoverTrigger asChild>
-                    <Button type="button" variant="ghost" className="raised-tool-button h-10 gap-2 rounded-lg border-0 px-4 font-semibold text-mod-text shadow-[0_2px_4px_rgb(0_0_0/6%)] hover:text-mod-text hover:shadow-[0_3px_6px_rgb(0_0_0/8%)] active:shadow-none focus-visible:ring-mod-primary/20"><BookOpen className="size-4 text-mod-text-secondary" aria-hidden="true" />Nguồn ({sources.length})</Button>
-                  </PopoverTrigger>
-                  <PopoverContent align="end" className="max-h-[min(32rem,var(--radix-popover-content-available-height))] w-80 overflow-y-auto p-3.5">
-                    <ScriptSourcesPanel sources={sources} onInsert={(sourceId) => editorRef.current?.insertCitation(sourceId)} />
-                  </PopoverContent>
-                </Popover>
               <ScriptFileImport editorRef={editorRef} disabled={saving || !typeChosen} selectedType={kind} onApply={applyImport} />
             </>}
             onPasteLimitReached={(limit) => {

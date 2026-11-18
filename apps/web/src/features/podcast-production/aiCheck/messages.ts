@@ -8,7 +8,7 @@ export function describeStartError(error: unknown): string {
   if (isApiError(error) && error.is("AI_CHECK_ALREADY_RUNNING")) return "Tập này đang có một lượt rà chạy. Chờ lượt đó xong hoặc hủy nó.";
   if (isApiError(error, 422)) {
     return error.is("NO_READABLE_SOURCE")
-      ? "Series chưa có nguồn đọc được để AI đối chiếu."
+      ? "Chưa có nguồn nào AI đọc được: nguồn phải là PDF đã nạp trang hoặc có URL."
       : "Kịch bản hoặc phạm vi chọn vượt giới hạn. Thu hẹp phạm vi rồi chạy lại.";
   }
   if (isApiError(error, 429)) {

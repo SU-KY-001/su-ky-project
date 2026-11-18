@@ -40,7 +40,7 @@ function services() {
   const repo = new EventRepository();
   const catalog = new HistoricalCatalogService(repo);
   const citations = new HistoricalCitationService(repo, catalog);
-  const review = new CatalogReviewService(repo, catalog, citations);
+  const review = new CatalogReviewService(repo, catalog);
   return { repo, catalog, citations, review, present: createHistoricalPresenter(catalog, citations, review) };
 }
 it("presents the saved event and parents without sources, documents or review attributes", async () => {

@@ -134,7 +134,7 @@ export function AiAssistantPanel({ editorRef, episodeId, ensureEpisode, sources,
     return () => document.removeEventListener("keydown", onKey);
   });
 
-  const run = async (scope: ReviewScope, note: string): Promise<void> => {
+  const run = async (scope: ReviewScope, sourceIds: string[], note: string): Promise<void> => {
     const editor = editorRef.current;
     const picked = scope === "SELECTION" ? editor?.getSelectionBlocks() : editor?.getBlocks();
     setDialog(null);
@@ -145,7 +145,13 @@ export function AiAssistantPanel({ editorRef, episodeId, ensureEpisode, sources,
       return;
     }
     try {
-      await start(episodeId ?? (await ensureEpisode()), { kind: "SCRIPT_REVIEW", scope, blocks: picked, ...(note ? { note } : {}) });
+      await start(episodeId ?? (await ensureEpisode()), {
+        kind: "SCRIPT_REVIEW",
+        scope,
+        blocks: picked,
+        ...(note ? { note } : {}),
+        ...(sourceIds.length ? { sourceIds } : {}),
+      });
       notify.info({ title: "Đã bắt đầu rà kịch bản" });
     } catch (caught) {
       const message = describeStartError(caught);
@@ -223,7 +229,10 @@ export function AiAssistantPanel({ editorRef, episodeId, ensureEpisode, sources,
     }
   };
 
-  const sourceTitle = (sourceId: string): string => sources.find((entry) => entry.source.id === sourceId)?.source.title ?? "Nguồn của series";
+  const sourceTitle = (sourceId: string): string =>
+    sources.find((entry) => entry.source.id === sourceId)?.source.title ??
+    check?.sources.find((entry) => entry.id === sourceId)?.title ??
+    "Nguồn của series";
 
   const dialogEl = (
     <ScriptReviewConfigDialog
@@ -232,7 +241,7 @@ export function AiAssistantPanel({ editorRef, episodeId, ensureEpisode, sources,
       blockCount={dialog?.blockCount ?? 0}
       selectionLabel={dialog?.selectionLabel ?? null}
       initialScope={dialog?.scope}
-      onRun={(scope, note) => void run(scope, note)}
+      onRun={(scope, sourceIds, note) => void run(scope, sourceIds, note)}
     />
   );
 

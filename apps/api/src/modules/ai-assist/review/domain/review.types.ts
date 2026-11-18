@@ -11,7 +11,7 @@ export interface CheckBlock {
 
 export type SourceKind = "PDF" | "URL";
 
-/** A usable (VERIFIED, verifiedVersion = version) source of the episode's series, labelled S1..Sn by sortOrder. */
+/** A readable source of the episode's series, labelled S1..Sn by sortOrder. */
 export interface ReviewSource {
   sourceId: string;
   version: number;

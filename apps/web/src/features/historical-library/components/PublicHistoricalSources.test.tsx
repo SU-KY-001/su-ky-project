@@ -7,7 +7,7 @@ afterEach(() => {
   act(() => root?.unmount());
   document.body.innerHTML = "";
 });
-it("shows locator and verified evidence without treating source tier as verification", async () => {
+it("shows the citation locator and links the source", async () => {
   const host = document.createElement("div");
   document.body.append(host);
   root = createRoot(host);
@@ -28,8 +28,6 @@ it("shows locator and verified evidence without treating source tier as verifica
               edition: "Lần 2",
               isbn: null,
               url: "https://example.org/book",
-              verificationStatus: "PENDING",
-              verifiedAt: null,
             },
           },
         ]}
@@ -37,7 +35,5 @@ it("shows locator and verified evidence without treating source tier as verifica
     ),
   );
   expect(host.textContent).toContain("Quyển 1, trang 23");
-  expect(host.textContent).toContain("Chưa xác minh");
-  expect(host.textContent).not.toContain("Đã xác minh");
   expect(host.querySelector("a")?.href).toBe("https://example.org/book");
 });

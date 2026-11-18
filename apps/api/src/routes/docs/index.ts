@@ -86,7 +86,7 @@ const TAGS = [
   { name: "Studio Episodes", description: "Moderator biên tập tập: bản kể (kịch bản text, audio upload), thẻ thực thể" },
   { name: "Studio Catalog", description: "Kho nguồn tham khảo và thực thể lịch sử dùng chung" },
   { name: "Studio Media", description: "Upload và xác minh audio, ảnh, PDF qua Cloudinary" },
-  { name: "Studio AI", description: "Trợ lý AI cho moderator: rà kịch bản đối chiếu nguồn đã xác minh (cảnh báo mềm, không tự sửa)" },
+  { name: "Studio AI", description: "Trợ lý AI cho moderator: rà kịch bản đối chiếu nguồn tư liệu (cảnh báo mềm, không tự sửa)" },
   { name: "Exhibitions", description: "Triển lãm 3D đã công khai cho người nghe" },
   { name: "Studio Exhibitions", description: "Moderator quản lý triển lãm 3D" },
 ] as const;

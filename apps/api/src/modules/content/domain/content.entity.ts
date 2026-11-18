@@ -22,9 +22,7 @@ export interface SeriesEntity {
   evidenceCurrentStates?: Record<
     string,
     {
-      verificationStatus: string;
       version: number;
-      verifiedVersion: number | null;
       archived: boolean;
     }
   >;
@@ -108,14 +106,12 @@ export interface SeriesSourceEntity {
   createdAt: Date;
 }
 
-/** Source of a series as the AI review needs it; `verifiedVersion` is not in the studio payload. */
+/** Source of a series as the AI review needs it. */
 export interface SeriesReviewSourceEntity {
   sourceId: string;
   title: string;
   url: string | null;
   version: number;
-  verificationStatus: string;
-  verifiedVersion: number | null;
   sortOrder: number;
 }
 
@@ -181,7 +177,6 @@ export type SeriesSourceWithSourceEntity = SeriesSourceEntity & {
   } | null;
   source: {
     version?: number;
-    verificationStatus?: string;
     id: string;
     tier: SourceTier;
     title: string;
