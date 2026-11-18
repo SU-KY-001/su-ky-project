@@ -16,6 +16,16 @@ export function useMembershipPlans() {
 }
 
 /** Per-user entitlement; drives quotas, the renewal reminder and the member page header. */
+const DAY_MS = 86_400_000;
+const VIETNAM_OFFSET_MS = 7 * 3_600_000;
+
+// daysLeft changes at Vietnam midnight, so cap the wait there; the cap also keeps setTimeout inside 32-bit range.
+function nextVietnamMidnight(now: number): number {
+  const vietnam = new Date(now + VIETNAM_OFFSET_MS);
+  vietnam.setUTCHours(0, 0, 0, 0);
+  return vietnam.getTime() + DAY_MS - VIETNAM_OFFSET_MS;
+}
+
 export function useMembership(enabled = true) {
   return useQuery({
     queryKey: membershipKeys.entitlement,
@@ -27,9 +37,12 @@ export function useMembership(enabled = true) {
       const data = state.data;
       if (!data) return false;
       if (data.pendingOrderId) return 4_000;
-      const boundary = data.tier === "premium" ? data.expiresAt : data.experienceQuotas.find((quota) => quota.enforced)?.resetsAt;
+      const now = Date.now();
+      const quotaReset = data.experienceQuotas.find((quota) => quota.enforced)?.resetsAt.getTime();
+      const expiry = data.expiresAt?.getTime() ?? Number.POSITIVE_INFINITY;
+      const boundary = data.tier === "premium" ? Math.min(expiry, nextVietnamMidnight(now)) : quotaReset;
       if (!boundary) return false;
-      return Math.max(1_000, boundary.getTime() - Date.now() + 1_000);
+      return Math.min(Math.max(1_000, boundary - now + 1_000), DAY_MS);
     },
   });
 }
