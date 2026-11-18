@@ -12,7 +12,7 @@ afterEach(() => {
 
 const check = (patch: Partial<AiCheck>): AiCheck => ({
   id: "00000000-0000-4000-8000-000000000001", episodeId: "00000000-0000-4000-8000-000000000002", kind: "SCRIPT_REVIEW", status: "SUCCEEDED",
-  processedBlocks: 3, totalBlocks: 3, failedBlocks: 0, toolCalls: 0, inputTokens: 0, outputTokens: 0, errorCode: null,
+  processedBlocks: 3, totalBlocks: 3, failedBlocks: 0, toolCalls: 0, inputTokens: 0, outputTokens: 0, errorCode: null, sources: [],
   itemCounts: { open: 0, reviewed: 0 }, startedAt: new Date(), finishedAt: new Date(), ...patch,
 });
 

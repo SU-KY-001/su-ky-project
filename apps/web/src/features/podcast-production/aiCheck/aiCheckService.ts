@@ -1,12 +1,18 @@
 import { z } from "zod";
-import { AiCheckItemSchema, AiCheckSchema, type CreateAiCheckInput, type PatchAiCheckItemInput } from "@repo/shared";
+import { AiCheckItemSchema, AiCheckSchema, CatalogSourceSchema, paginatedSchema, type CreateAiCheckInput, type PatchAiCheckItemInput } from "@repo/shared";
 import { apiUrl, client } from "@/lib/client";
 import { headers, parse } from "../services/podcastProductionService";
 
 const checks = client.api.studio.episodes[":id"]["ai-checks"];
 const CheckDetailSchema = z.object({ check: AiCheckSchema, items: z.array(AiCheckItemSchema) });
+const SourcePageSchema = paginatedSchema(CatalogSourceSchema);
 
 export const aiCheckService = {
+  /** Every source in the library, archived ones excluded: the series attachment is no longer the gate. */
+  sources: async (q: string) => {
+    const page = await parse(client.api.studio.sources.$get({ query: { q, limit: "20" } }), SourcePageSchema);
+    return page.items.filter((source) => source.archivedAt === null);
+  },
   create: (id: string, json: CreateAiCheckInput, key: string) =>
     parse(checks.$post({ param: { id }, json }, headers(key)), z.object({ id: z.string().uuid() })),
   recent: (id: string) => parse(checks.$get({ param: { id } }), z.object({ items: z.array(AiCheckSchema) })),
