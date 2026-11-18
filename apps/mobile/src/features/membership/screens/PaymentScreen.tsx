@@ -204,7 +204,7 @@ export function PaymentScreen({ orderId, onBack, onDone }: {
 
   return (
     <YStack f={1} bg="$paper" pt={insets.top}>
-      <AppHeader title="Thanh toán" onBack={onBack} avatar={false} />
+      <AppHeader title="Thanh toán" onBack={onBack} />
       <ScrollView f={1} bg="$paper" showsVerticalScrollIndicator={false}>
         <YStack px="$4" pt="$3" pb={insets.bottom + 24} g="$4">
           {order.isPending ? (

@@ -10,9 +10,9 @@ export function MembershipSummaryCard({ onPress }: { onPress: () => void }): Rea
 
   return (
     <Button unstyled w="100%" onPress={onPress} accessibilityRole="button" accessibilityLabel={premium ? "Quản lý gói Premium" : "Nâng cấp gói Premium"} pressStyle={{ op: 0.85 }}>
-      <AppCard accent={premium}>
+      <AppCard selected={Boolean(premium)}>
         <XStack p="$3.5" items="center" g="$3">
-          <YStack w="$4.5" h="$4.5" rounded="$10" items="center" justify="center" bg="$paperDeep">
+          <YStack w="$4.5" h="$4.5" rounded="$10" items="center" justify="center" bg="$paperDeep" bw="$0.25" bc="$bronze">
             <AppIcon name="award" size={20} color="#B58A3C" />
           </YStack>
           <YStack f={1} g="$1" minW={0}>
@@ -24,12 +24,12 @@ export function MembershipSummaryCard({ onPress }: { onPress: () => void }): Rea
                 </XStack>
               ) : null}
             </XStack>
-            <Text ff="$body" fs="$1" lh="$2" color="$inkSoft" numberOfLines={1}>
+            <Text ff="$body" fs="$1" lh="$2" color="$inkSoft" numberOfLines={2}>
               {!entitlement
-                ? "Đang tải…"
+                ? "Đang tải thông tin gói…"
                 : premium
-                  ? `Còn ${entitlement.daysLeft} ngày · ${formatDate(entitlement.expiresAt)}`
-                  : "Nâng cấp để mở khoá toàn bộ nội dung."}
+                  ? `Còn ${entitlement.daysLeft} ngày · hết hạn ${formatDate(entitlement.expiresAt)}`
+                  : "Nâng cấp để nghe toàn bộ audio và mở khoá kịch bản."}
             </Text>
           </YStack>
           <AppIcon name="chevron-right" size={18} color="#B58A3C" />
