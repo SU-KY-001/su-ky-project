@@ -4,7 +4,8 @@ import { createRoot, type Root } from "react-dom/client";
 import type { AdminListeningReport } from "@repo/shared";
 import { ListenerReportView } from "./ListenerReport";
 import { listeningPeriod, calendarReportPeriod, monthReportPeriod, ReportPeriodPicker } from "./ReportPeriodPicker";
-import { PremiumOverview } from "./PremiumOverview";
+import { PremiumOverviewView, planRevenue } from "./PremiumOverview";
+import type { MembershipReport } from "@/features/admin-premium/services/adminReportService";
 import { PremiumWorkspace } from "./PremiumWorkspace";
 import type { PremiumSection } from "../types";
 
@@ -67,13 +68,33 @@ it("renders API totals and the top episode, with accepted listening time convert
 
 it("shows the report empty state and routes every Premium shortcut", async () => {
   const navigate = mock((_section: PremiumSection): void => undefined);
-  const host = await render(<PremiumOverview onNavigate={navigate} />);
+  const host = await render(<PremiumOverviewView onNavigate={navigate} />);
   expect(host.textContent).toContain("Chưa có dữ liệu báo cáo");
   expect(Array.from(host.querySelectorAll("dl dd")).map((node) => node.textContent)).toEqual(["—", "—", "—", "—"]);
   const buttons = host.querySelectorAll<HTMLButtonElement>(".admin-premium-link");
   expect(buttons).toHaveLength(6);
   for (const button of buttons) await act(async () => button.click());
   expect(navigate.mock.calls).toEqual([["premium-plans"], ["premium-orders"], ["premium-transactions"], ["premium-members"], ["premium-policies"], ["premium-audit"]]);
+});
+
+it("fills Premium metrics from the report and aggregates revenue by plan", async () => {
+  const report: MembershipReport = {
+    range: { from: "2026-11-01T00:00:00.000Z", to: "2026-12-01T00:00:00.000Z", groupBy: "month" },
+    summary: { revenueVnd: 150000, paidOrders: 3, compGrants: 1, activeMembers: 12, expiringIn7Days: 2, pendingOver24h: 1, needsReviewOrders: 1, unmatchedTransactions: 1, unmatchedAmountVnd: 50000 },
+    series: [{ bucket: "2026-11-01", revenueVnd: 150000, paidOrders: 3, byPlan: [
+      { planCode: "monthly", revenueVnd: 100000, paidOrders: 2 },
+      { planCode: "yearly", revenueVnd: 50000, paidOrders: 1 },
+      { planCode: "trial", revenueVnd: 0, paidOrders: 0 },
+    ] }],
+  };
+  const host = await render(<PremiumOverviewView report={report} onNavigate={mock(() => undefined)} />);
+  expect(Array.from(host.querySelectorAll("dl dd")).map((node) => node.textContent)).toEqual(["150.000 ₫", "3", "12", "2"]);
+  expect(planRevenue(report)).toEqual([{ label: "Gói tháng", value: 100000 }, { label: "Gói năm", value: 50000 }]);
+});
+
+it("warns when the Premium report request fails", async () => {
+  const host = await render(<PremiumOverviewView failed onNavigate={mock(() => undefined)} />);
+  expect(host.querySelector('[role="alert"]')?.textContent).toContain("Không tải được số liệu báo cáo Premium");
 });
 
 it("renders the active Premium section and its content", async () => {

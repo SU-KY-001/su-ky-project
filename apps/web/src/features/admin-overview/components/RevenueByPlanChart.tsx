@@ -9,7 +9,7 @@ export interface PlanRevenue {
 }
 
 export function RevenueByPlanChart({ plans }: { plans?: PlanRevenue[] }): ReactNode {
-  if (!plans) return <div className="admin-premium-chart-placeholder"><span>Chưa có dữ liệu báo cáo</span><p>Biểu đồ cột doanh thu theo gói sẽ xuất hiện khi kết nối Premium.</p></div>;
+  if (!plans?.length) return <div className="admin-premium-chart-placeholder"><span>Chưa có dữ liệu báo cáo</span><p>Chưa có doanh thu trong kỳ đã chọn.</p></div>;
   const total = plans.reduce((sum, plan) => sum + plan.value, 0);
   return <div className="admin-listening-chart">
     <p className="mb-2 text-[11px] text-mod-text-secondary">Đơn vị: triệu đồng</p>
