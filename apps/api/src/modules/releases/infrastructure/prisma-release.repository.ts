@@ -652,7 +652,7 @@ export class PrismaReleaseRepository implements ReleaseRepository {
         include: scheduleInclude,
         orderBy: filter.scope === "HISTORY"
           ? [{ updatedAt: "desc" }, { id: "desc" }]
-          : filter.scope === "REVIEW_QUEUE"
+          : filter.scope === "REVIEW_QUEUE" || filter.sort === "scheduledAt"
             ? [{ scheduledAt: "asc" }, { id: "asc" }]
             : [{ createdAt: "desc" }, { id: "desc" }],
         skip: (filter.page - 1) * filter.limit,

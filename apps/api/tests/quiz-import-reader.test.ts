@@ -5,6 +5,11 @@ import { MIXED_QUIZ, docxFixture, pdfTextFixture } from "./support/quiz-import-f
 import { strToU8, unzipSync, zipSync } from "fflate";
 const signal = (): AbortSignal => new AbortController().signal;
 describe("quiz import document adapters", () => {
+  it("preserves Word punctuation and literal entity spelling without HTML escaping or double decoding", async () => {
+    const text = "CÀ PHÊ & VỢT\nMC: <nội dung> & \"trích dẫn\"\nKhách: Giữ nguyên chuỗi &amp; trong bản gốc";
+    const result = await readQuizDocument(new File([docxFixture(text)], "punctuation.docx"), signal());
+    expect(result.blocks.map((block) => block.text).join("\n")).toBe(text);
+  });
   it.each(["txt", "md"])("reads actual %s mixed questions with BOM and line provenance", async ext => {
     const d = await readQuizDocument(new File([`\uFEFF${MIXED_QUIZ.replace(/\n/g, "\r\n")}`], `quiz.${ext}`), signal());
     const r = parseQuizDocument(d, 20);

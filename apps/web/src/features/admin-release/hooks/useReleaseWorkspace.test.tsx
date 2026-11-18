@@ -93,6 +93,13 @@ it("always opens in Kanban even when an old table preference exists", async () =
   expect(localStorage.getItem("admin-release-workspace-view")).toBeNull();
 });
 
+it("uses ten records per table page while keeping Kanban pages at twenty", async () => {
+  const result = await renderController();
+  expect(result.service.list.mock.calls.some(([filter]) => filter?.status === "SCHEDULED" && filter.limit === 20)).toBe(true);
+  await act(async () => result.workspace.setView("table"));
+  expect(result.service.list.mock.calls.some(([filter]) => !filter?.status && filter?.limit === 10)).toBe(true);
+});
+
 it("does not request duplicate moderator workload data", async () => {
   const service = fakeService();
   await renderController(service);

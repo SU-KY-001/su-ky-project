@@ -58,7 +58,7 @@ export function DraftResultStep({ params, sections, onBack, onInsert, onInserted
   const insert = (): void => {
     const result = onInsert(kept.map(({ draft, index }) => ({ heading: sections[index]!.title, paragraphs: draftParagraphs(draft) })), at);
     if (result.ok) {
-      notify.success({ title: "Đã chèn nội dung vào kịch bản", description: "Kịch bản sẽ được tự động lưu." });
+      notify.success({ title: "Đã chèn nội dung vào kịch bản", description: "Bấm Lưu kịch bản để lưu nội dung vừa chèn." });
       onInserted();
       return;
     }

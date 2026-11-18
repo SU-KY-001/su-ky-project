@@ -6,14 +6,14 @@ import { adminTicketService } from "../services/adminTicketService";
 
 export const adminTicketKeys = {
   root: ["admin-release-tickets"] as const,
-  list: (status: ReleaseReassignmentTicketStatus | "") => ["admin-release-tickets", "list", status] as const,
+  list: (status: ReleaseReassignmentTicketStatus | "", page = 1) => ["admin-release-tickets", "list", status, page] as const,
 };
 
-export function useAdminTickets(status: ReleaseReassignmentTicketStatus | "") {
+export function useAdminTickets(status: ReleaseReassignmentTicketStatus | "", page = 1) {
   const queryClient = useQueryClient();
   const tickets = useQuery({
-    queryKey: adminTicketKeys.list(status),
-    queryFn: () => adminTicketService.list(status || undefined),
+    queryKey: adminTicketKeys.list(status, page),
+    queryFn: () => adminTicketService.list(status || undefined, page),
   });
   const moderators = useQuery({
     queryKey: adminReleaseKeys.moderators,

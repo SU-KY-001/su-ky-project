@@ -3,15 +3,58 @@ import { act, useState } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import { Editor } from "@tiptap/core";
 import { SCRIPT_MAX_CHARACTERS } from "@repo/shared";
-import { emptyScriptDocument } from "../scriptEditor";
+import { emptyScriptDocument, legacyScriptToDocument } from "../scriptEditor";
 import { RichScriptEditor } from "./RichScriptEditor";
+import { readFileSync } from "node:fs";
 
 let root: Root | undefined;
+
+it("preserves select-all and dragged selections instead of applying AI rewrite range limits", async () => {
+  let editor: Editor | undefined;
+  const original = Editor.prototype.setOptions;
+  const capture = spyOn(Editor.prototype, "setOptions").mockImplementation(function (this: Editor, options) { editor = this; original.call(this, options); });
+  try {
+    const container = document.createElement("div"); document.body.append(container); root = createRoot(container);
+    const text = Array.from({ length: 10 }, (_, index) => `Đoạn ${index + 1}. Câu tiếp theo của kịch bản.`).join("\n\n");
+    await act(async () => root?.render(<RichScriptEditor initialDocument={legacyScriptToDocument(text)} onChange={() => {}} onRewriteRequest={() => {}} />));
+    if (!editor) throw new Error("Editor did not initialize");
+    const current = editor;
+    const viewport = container.querySelector('[data-script-scroll-region]')!;
+    await act(async () => current.commands.selectAll());
+    const all = { from: current.state.selection.from, to: current.state.selection.to };
+    await act(async () => { viewport.dispatchEvent(new KeyboardEvent("keyup", { key: "a", ctrlKey: true, bubbles: true })); await new Promise((resolve) => setTimeout(resolve, 5)); });
+    expect({ from: current.state.selection.from, to: current.state.selection.to }).toEqual(all);
+    expect(current.state.doc.textBetween(all.from, all.to, "\n\n")).toBe(text);
+    expect(container.textContent).not.toContain("Viết lại");
+    const coordinates = spyOn(current.view, "coordsAtPos").mockReturnValue({ left: 10, right: 20, top: 100, bottom: 120 });
+    try {
+      await act(async () => current.commands.setTextSelection({ from: 3, to: 14 }));
+      await act(async () => { viewport.dispatchEvent(new MouseEvent("mouseup", { bubbles: true })); await new Promise((resolve) => setTimeout(resolve, 5)); });
+      expect(current.state.selection.from).toBe(3);
+      expect(current.state.selection.to).toBe(14);
+      expect(container.textContent).toContain("Viết lại");
+    } finally { coordinates.mockRestore(); }
+  } finally { capture.mockRestore(); }
+});
 
 afterEach(() => {
   act(() => root?.unmount());
   root = undefined;
   document.body.innerHTML = "";
+});
+
+it("allows vertical scroll chaining when the script is short or reaches an edge", async () => {
+  const css = readFileSync(new URL("../../../styles/globals.css", import.meta.url), "utf8");
+  const viewportRule = css.match(/\.podcast-editor-viewport\s*\{([^}]+)\}/)?.[1] ?? "";
+  expect(viewportRule).toContain("overflow-y: auto");
+  expect(viewportRule).toContain("overscroll-behavior-y: auto");
+  expect(viewportRule).not.toMatch(/overscroll-behavior\s*:\s*(contain|none)/);
+  const container = document.createElement("div"); document.body.append(container); root = createRoot(container);
+  await act(async () => root?.render(<RichScriptEditor initialDocument={emptyScriptDocument()} onChange={() => undefined} />));
+  const viewport = container.querySelector('[data-script-scroll-region]');
+  const wheel = new WheelEvent("wheel", { deltaY: 100, bubbles: true, cancelable: true });
+  await act(async () => viewport?.dispatchEvent(wheel));
+  expect(wheel.defaultPrevented).toBe(false);
 });
 
 it("keeps the editor mounted and its text visible after a large formatted paste", async () => {

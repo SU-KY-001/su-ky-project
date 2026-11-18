@@ -4,7 +4,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { z } from "zod";
-import { QUIZ_IMPORT_LIMITS, QuizImportPreviewSchema, ERROR_CODES, type QuizImportPreview } from "@repo/shared";
+import { QUIZ_IMPORT_LIMITS, QuizImportPreviewSchema, ScriptImportDocumentSchema, ERROR_CODES, type QuizImportPreview, type ScriptImportDocument } from "@repo/shared";
 import { DomainError } from "../../../core/errors/domain-error";
 import { removeImportDirectory } from "./temp-directory";
 
@@ -21,9 +21,9 @@ async function killTree(child: ChildProcess): Promise<void> {
   } else { try { process.kill(-child.pid, "SIGKILL"); } catch { child.kill("SIGKILL"); } }
 }
 
-export function createQuizImportRunner(options: { deadlineMs?: number } = {}): (file: File, defaultTime: number, userId: string, signal: AbortSignal) => Promise<QuizImportPreview> {
+function createDocumentRunner(options: { deadlineMs?: number } = {}): (file: File, defaultTime: number, userId: string, signal: AbortSignal, mode: "quiz" | "text") => Promise<QuizImportPreview | ScriptImportDocument> {
   const users = new Set<string>();
-  return async (file, defaultTime, userId, signal): Promise<QuizImportPreview> => {
+  return async (file, defaultTime, userId, signal, mode): Promise<QuizImportPreview | ScriptImportDocument> => {
     signal.throwIfAborted();
     if (users.has(userId)) throw new DomainError(503, "SERVICE_UNAVAILABLE", "Tài liệu của bạn đang được xử lý. Hãy chờ hoàn tất rồi thử lại.");
     if (users.size >= 2) throw new DomainError(503, "SERVICE_UNAVAILABLE", "Hệ thống đang xử lý nhiều tài liệu. Hãy thử lại sau.");
@@ -48,15 +48,15 @@ export function createQuizImportRunner(options: { deadlineMs?: number } = {}): (
         active.on("error", () => reject(new DomainError(503, "SERVICE_UNAVAILABLE", "Bộ đọc tài liệu chưa sẵn sàng. Hãy thử lại sau.")));
         active.on("close", () => failure ? reject(failure) : resolve(text));
         active.stdin?.on("error", () => {});
-        active.stdin?.end(JSON.stringify({ fileName: file.name.slice(0, 255), data, defaultTime, directory }));
+        active.stdin?.end(JSON.stringify({ fileName: file.name.slice(0, 255), data, defaultTime, directory, mode }));
       });
       if (failure) throw failure;
       let body: unknown;
       try { body = JSON.parse(output); } catch { throw new DomainError(503, "SERVICE_UNAVAILABLE", "Bộ đọc tài liệu bị gián đoạn. Hãy thử lại."); }
-      const response = z.object({ result: QuizImportPreviewSchema.optional(), error: WorkerError.optional() }).parse(body);
+      const response = z.object({ result: z.unknown().optional(), error: WorkerError.optional() }).parse(body);
       if (response.error) throw new DomainError(response.error.status, response.error.error_code, response.error.message);
       if (!response.result) throw new DomainError(503, "SERVICE_UNAVAILABLE", "Chưa nhận được kết quả tài liệu. Hãy thử lại.");
-      return response.result;
+      return mode === "text" ? ScriptImportDocumentSchema.parse(response.result) : QuizImportPreviewSchema.parse(response.result);
     } finally {
       clearTimeout(timer); signal.removeEventListener("abort", stop);
       if (child) await killTree(child);
@@ -64,4 +64,10 @@ export function createQuizImportRunner(options: { deadlineMs?: number } = {}): (
     }
   };
 }
-export const runQuizImport = createQuizImportRunner();
+export function createQuizImportRunner(options: { deadlineMs?: number } = {}): (file: File, defaultTime: number, userId: string, signal: AbortSignal) => Promise<QuizImportPreview> {
+  const run = createDocumentRunner(options);
+  return async (file, defaultTime, userId, signal) => QuizImportPreviewSchema.parse(await run(file, defaultTime, userId, signal, "quiz"));
+}
+const runDocument = createDocumentRunner();
+export const runQuizImport = async (file: File, defaultTime: number, userId: string, signal: AbortSignal): Promise<QuizImportPreview> => QuizImportPreviewSchema.parse(await runDocument(file, defaultTime, userId, signal, "quiz"));
+export const runScriptImport = async (file: File, userId: string, signal: AbortSignal): Promise<ScriptImportDocument> => ScriptImportDocumentSchema.parse(await runDocument(file, 20, userId, signal, "text"));

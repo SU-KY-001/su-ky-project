@@ -39,4 +39,8 @@ it("keeps the moderator logout action in the workspace sidebar", async () => {
   });
 
   expect(host.querySelector('button[aria-label="Đăng xuất"]')).not.toBeNull();
+  expect(host.querySelector('.workspace-shell')?.getAttribute('data-workspace')).toBe('moderator');
+  expect(host.textContent).not.toContain('KHÔNG GIAN BIÊN TẬP');
+  expect(host.querySelector('.mod-sidebar-brand img')?.getAttribute('alt')).toBe('Sử Ký Việt Nam');
+  expect(host.querySelector('.workspace-sidebar-footer button[aria-label="Đăng xuất"]')).not.toBeNull();
 });

@@ -1,5 +1,36 @@
 import type { Icon } from "@phosphor-icons/react";
 import type { ReactNode } from "react";
+import { cn } from "@/lib/utils";
+
+export interface DashboardStripMetric {
+  id: string;
+  label: string;
+  value: ReactNode;
+  detail?: string;
+  icon?: Icon;
+  tone?: "primary" | "info" | "warning" | "success";
+}
+
+const metricIconToneClasses = {
+  primary: "border-mod-primary/25 bg-mod-primary/5 text-mod-primary",
+  info: "border-mod-kind-stage/25 bg-mod-kind-stage/5 text-mod-kind-stage",
+  warning: "border-mod-attention/25 bg-mod-attention/5 text-mod-attention",
+  success: "border-mod-success/25 bg-mod-success/5 text-mod-success",
+};
+
+export function DashboardMetricStrip({ metrics, compact = false, variant = "default" }: { metrics: DashboardStripMetric[]; compact?: boolean; variant?: "default" | "icon" }): ReactNode {
+  return <dl data-metric-variant={variant} className={cn("grid grid-cols-2 overflow-hidden border border-mod-border bg-mod-surface lg:grid-cols-4", variant === "icon" ? "rounded-lg shadow-xs" : "rounded-xl")}>
+    {metrics.map((metric, index) => <div key={metric.id} className={cn("relative min-w-0 border-mod-border px-5 max-lg:nth-[-n+2]:border-b", variant === "default" && "odd:max-lg:border-r lg:border-r lg:last:border-r-0", compact || variant === "icon" ? "py-4" : "py-5")}>
+      {variant === "icon" && index < metrics.length - 1 ? <span aria-hidden="true" className={cn("pointer-events-none absolute inset-y-4 right-0 w-px bg-mod-border/70 lg:block", index % 2 === 0 ? "block" : "hidden")} /> : null}
+      <dt className="text-xs leading-5 text-mod-text-secondary">
+        {variant === "icon" && metric.icon ? <span aria-hidden="true" className={cn("mb-2 grid size-7 place-items-center rounded-md border", metricIconToneClasses[metric.tone ?? "primary"])}><metric.icon size={16} weight="duotone" /></span> : null}
+        {metric.label}
+      </dt>
+      <dd className={cn("font-semibold tracking-tight tabular-nums text-mod-text", variant === "icon" ? "mt-1 text-2xl leading-8" : compact ? "mt-1.5 text-[26px] leading-8" : "mt-2 text-[28px] leading-9")}>{typeof metric.value === "number" ? metric.value.toLocaleString("vi-VN") : metric.value}</dd>
+      {metric.detail ? <p className="mt-1 text-[11px] leading-5 text-mod-text-secondary">{metric.detail}</p> : null}
+    </div>)}
+  </dl>;
+}
 
 export interface DashboardMetric {
   id: string;

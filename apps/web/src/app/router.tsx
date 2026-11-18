@@ -80,7 +80,7 @@ export const appRoutes: RouteObject[] = [
             },
             // Child routes only declare valid URLs (unknown ones fall through to 404); the page renders the screen itself.
             children: [
-              { id: "moderator-overview", index: true },
+              { id: "moderator-index", index: true },
               ...MODERATOR_SECTION_SEGMENTS.filter((section) => section !== "podcast" && section !== "exhibitions").map((section) => ({ id: `moderator-${section}`, path: section })),
               { id: "moderator-exhibitions", path: "exhibitions", children: [
                 { id: "moderator-exhibitions-list", index: true, element: <></> },

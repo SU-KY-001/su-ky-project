@@ -1,6 +1,6 @@
 import { useDeferredValue, useEffect, useState } from "react";
 import { CalendarBlank } from "@phosphor-icons/react/dist/icons/CalendarBlank";
-import { Bell } from "@phosphor-icons/react/dist/icons/Bell";
+import { Ticket } from "@phosphor-icons/react/dist/icons/Ticket";
 import { ChartBar } from "@phosphor-icons/react/dist/icons/ChartBar";
 import { CheckSquareOffset } from "@phosphor-icons/react/dist/icons/CheckSquareOffset";
 import { ClockCounterClockwise } from "@phosphor-icons/react/dist/icons/ClockCounterClockwise";
@@ -12,7 +12,6 @@ import { Eye } from "@phosphor-icons/react/dist/icons/Eye";
 import { AccountProfile } from "@/features/auth";
 import { WorkspaceShell, type WorkspaceNavItem } from "@/shared/components/dashboard/WorkspaceShell";
 import { DashboardHeader, DashboardPanel } from "@/shared/components/dashboard/DashboardOverview";
-import { AdminReleaseDashboard } from "@/features/admin-release/components/AdminReleaseDashboard";
 import { ReleaseWorkspace } from "@/features/admin-release/components/ReleaseWorkspace";
 import { AdminReleaseHistory } from "@/features/admin-release/components/ReleaseHistory";
 import { useAdminReleaseSchedules, useReleaseModerators } from "@/features/admin-release/hooks/useAdminReleases";
@@ -42,8 +41,10 @@ import { DashboardRowActions } from "@/shared/components/dashboard/DashboardRowA
 import { ReleaseReviewDialog } from "@/features/admin-release/components/ReleaseReviewDialog";
 import { notify } from "@/shared/lib/notifications";
 import { errorMessage } from "@/lib/apiError";
+import { AdminOverview, PremiumWorkspace, type PremiumSection } from "@/features/admin-overview";
 
 export type AdminSection =
+  | PremiumSection
   | "overview"
   | "notifications"
   | "schedules"
@@ -62,14 +63,19 @@ export function adminNavigation(active: AdminSection, select: (section: AdminSec
     onSelect: () => select(id),
   });
   return [
-    { id: "operations-heading", label: "TRUNG TÂM ĐIỀU HÀNH", active: false, groupStart: true },
+    { id: "operations-heading", label: "Điều hành", active: false, groupStart: true },
     item("overview", "Tổng quan", ChartBar),
-    item("notifications", "Thông báo", Bell),
-    { id: "release-heading", label: "PHÁT HÀNH PODCAST", active: false, groupStart: true },
+    item("notifications", "Chuyển giao", Ticket),
+    { id: "release-heading", label: "Phát hành podcast", active: false, groupStart: true },
     item("schedules", "Lịch phát hành", CalendarBlank),
     item("reviews", "Hàng chờ kiểm duyệt", CheckSquareOffset),
     item("history", "Lịch sử phát hành", ClockCounterClockwise),
-    { id: "system-heading", label: "QUẢN TRỊ HỆ THỐNG", active: false, groupStart: true },
+    { id: "premium-heading", label: "Thành viên Premium", active: false, groupStart: true },
+    item("premium-plans", "Gói thành viên", IdentificationBadge),
+    item("premium-orders", "Đơn hàng", CheckSquareOffset),
+    item("premium-transactions", "Sổ giao dịch", ClockCounterClockwise),
+    item("premium-members", "Thành viên", Users),
+    { id: "system-heading", label: "Hệ thống", active: false, groupStart: true },
     item("users", "Người dùng", Users),
     item("roles", "Vai trò và quyền", IdentificationBadge),
     item("settings", "Cấu hình hệ thống", Gear),
@@ -186,17 +192,17 @@ function SystemPlaceholder({ section }: { section: Extract<AdminSection, "roles"
 
 export function AdminDashboardPage() {
   const [section, setSection] = useState<AdminSection>("overview");
-  const [createOnOpen, setCreateOnOpen] = useState(false);
   let content: React.ReactNode;
-  if (section === "overview") content = <AdminReleaseDashboard onCreateSchedule={() => { setCreateOnOpen(true); setSection("schedules"); }} />;
+  if (section === "overview") content = <AdminOverview onNavigate={setSection} />;
   else if (section === "notifications") content = <AdminNotifications />;
-  else if (section === "schedules") content = <ReleaseWorkspace key={createOnOpen ? "create" : "browse"} initiallyCreating={createOnOpen} />;
+  else if (section === "schedules") content = <ReleaseWorkspace />;
   else if (section === "reviews") content = <ReleaseObservation />;
   else if (section === "history") content = <AdminReleaseHistory />;
   else if (section === "users") content = <AdminUsers />;
+  else if (section === "premium-plans" || section === "premium-orders" || section === "premium-transactions" || section === "premium-members") content = <PremiumWorkspace section={section} onNavigate={setSection} />;
   else content = <SystemPlaceholder section={section} />;
   return (
-    <WorkspaceShell navigationLabel="Điều hướng admin" mobileNavigationTitle="Menu điều hướng admin" brandCaption="KHÔNG GIAN QUẢN TRỊ" nav={adminNavigation(section, (next) => { setCreateOnOpen(false); setSection(next); })} profile={<AccountProfile variant="admin" />}>
+    <WorkspaceShell variant="admin" navigationLabel="Điều hướng admin" mobileNavigationTitle="Menu điều hướng admin" nav={adminNavigation(section, setSection)} profile={<AccountProfile variant="admin" />}>
       <div key={section} className="mod-content-view">{content}</div>
     </WorkspaceShell>
   );

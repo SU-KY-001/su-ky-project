@@ -68,7 +68,7 @@ export function ReleaseWorkspaceView({
         <ReleaseScheduleTable
           items={workspace.table.data?.items ?? []}
           page={workspace.tablePage}
-          limit={workspace.table.data?.limit ?? 20}
+          limit={10}
           total={workspace.table.data?.total ?? 0}
           isPending={workspace.table.isPending}
           error={workspace.table.error}

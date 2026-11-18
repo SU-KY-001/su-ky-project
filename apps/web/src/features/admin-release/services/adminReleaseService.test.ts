@@ -63,6 +63,7 @@ describe("admin release service", () => {
 
     await adminReleaseService.list({
       status: "SCHEDULED",
+      sort: "scheduledAt",
       q: "Trường Sơn",
       moderatorId: "moderator-1",
       from: "2026-10-01T00:00:00.000Z",
@@ -75,6 +76,7 @@ describe("admin release service", () => {
     const url = new URL(requestedUrls[0]!);
     expect(Object.fromEntries(url.searchParams)).toEqual({
       status: "SCHEDULED",
+      sort: "scheduledAt",
       q: "Trường Sơn",
       moderatorId: "moderator-1",
       from: "2026-10-01T00:00:00.000Z",

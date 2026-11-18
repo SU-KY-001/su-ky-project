@@ -14,6 +14,8 @@ import {
   AdminContentSeriesSchema,
   AdminCreateUserSchema,
   AdminDashboardSchema,
+  AdminListeningReportQuerySchema,
+  AdminListeningReportSchema,
   AdminHistoricalPeriodInputSchema,
   AdminHistoricalPeriodPatchSchema,
   AdminHistoricalPeriodSchema,
@@ -63,6 +65,14 @@ const weekly = z
   .passthrough();
 
 export const adminPaths: Paths = {
+  "/api/admin/reports/listening": {
+    get: operation({
+      id: "getAdminListeningReport", tag: TAG, summary: "Báo cáo người nghe theo kỳ", access: "admin",
+      description: "Khoảng ngày from/to bao gồm hai đầu, tối đa 366 ngày, múi giờ Asia/Ho_Chi_Minh. Người nghe duy nhất và thời lượng từ phiên có playedMs>0; lượt hợp lệ từ qualifiedAt đã ghi. Phiên và toàn bộ thời lượng được quy về ngày bắt đầu phiên, kể cả phiên kéo dài qua ngày. Số tập hoàn thành đếm cặp người nghe/tập khác nhau có completedAt trong kỳ từ ListeningProgress; hai giọng kể không đếm đôi. Top 5 theo lượt hợp lệ, người nghe, thời lượng, ID; giữ dữ liệu lịch sử của cả nội dung đã ẩn. Không trả định danh người nghe. Ngày không có dữ liệu trả 0. Dữ liệu phiên trước khi triển khai ListeningSession không được backfill; tiến độ hoàn thành cũ vẫn được thống kê. Không cache công khai.",
+      query: AdminListeningReportQuerySchema,
+      ok: { status: 200, description: "Tổng quan, Top 5 tập và chuỗi daily/weekly/monthly. Tuần bắt đầu thứ Hai, tháng bắt đầu ngày 1, đều theo GMT+7 và chỉ tính dữ liệu trong from/to. Mỗi nhóm đếm DISTINCT người nghe riêng, không cộng số người của từng ngày. Nhóm không có phiên nghe trả 0; field nhóm không được cung cấp nghĩa là chưa có dữ liệu để hiển thị.", schema: { name: "AdminListeningReport", schema: AdminListeningReportSchema } },
+    }),
+  },
   "/api/admin": {
     get: operation({
       id: "adminAccess",

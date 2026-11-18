@@ -34,6 +34,7 @@ import { requireAdmin } from "../auth";
 import { throwOnInvalid } from "../../core/middleware/validation";
 import { requestIpAddress } from "../../core/audit";
 import { AdminService } from "./admin.service";
+import { createListeningReportRoute } from "./listening-report/listening-report.routes";
 
 const idParam = z.object({ id: z.string() });
 const keyParam = z.object({ key: z.string().min(1) });
@@ -52,6 +53,7 @@ const context = (c: {
 
 export const adminRoute = new Hono<AppEnv>()
   .use("*", requireAdmin)
+  .route("/reports", createListeningReportRoute())
   .get("/", (c) => c.json({ message: "Admin access granted" }))
   .get("/dashboard", async (c) =>
     c.json(AdminDashboardSchema.parse(await service.dashboard())),

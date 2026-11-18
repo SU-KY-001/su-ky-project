@@ -1,6 +1,6 @@
 import { CardBadge, cardBadgeToneForStatus } from "@/shared/components/dashboard/CardBadge";
 import { useState, type ReactElement } from "react";
-import { useNavigate, useSearchParams } from "react-router";
+import { useLocation, useNavigate, useSearchParams } from "react-router";
 import type { EpisodeWorkspaceDto } from "@repo/shared";
 import { ArrowLeft, ArrowRight, Pencil, Save } from "lucide-react";
 import { moderatorPodcastPath } from "@/features/moderator/paths";
@@ -82,6 +82,8 @@ function PodcastWizardPage({
   const selected = usePodcastSeriesDetail(wizard.state.seriesId);
   const event = useHistoricalEvent(wizard.state.historicalEventId);
   const navigate = useNavigate();
+  const navigationState: unknown = useLocation().state;
+  const creating = !existingEpisode || (existingEpisode.status === "DRAFT" && !existingEpisode.lock && typeof navigationState === "object" && navigationState !== null && "podcastFlow" in navigationState && navigationState.podcastFlow === "create");
   // A draft belongs to its moderator and is still being written, so it opens for editing; published/hidden/locked stay view-only.
   const [editing, setEditing] = useState(!existingEpisode || (existingEpisode.status === "DRAFT" && !existingEpisode.lock));
   const [busy, setBusy] = useState(false);
@@ -102,7 +104,7 @@ function PodcastWizardPage({
         return next;
       },
       // The page has its own back button, so steps must not pile up in browser history.
-      { replace: true },
+      { replace: true, state: navigationState },
     );
   };
 
@@ -131,7 +133,7 @@ function PodcastWizardPage({
       if (wizard.state.scriptDirty) {
         await wizard.saveScript(wizard.state.scriptDocument);
       }
-      notify.success({ title: existingEpisode ? "Đã lưu thay đổi." : "Đã lưu bản nháp." });
+      notify.success({ title: creating ? "Đã lưu bản nháp." : "Đã lưu thay đổi." });
       if (!existingEpisode) openSavedDraft(id, activeStep);
     } catch (caught) {
       const message = caught instanceof Error ? caught.message : "Không lưu được bản nháp.";
@@ -145,7 +147,7 @@ function PodcastWizardPage({
   // A new podcast lives at /episodes/new, which cannot be restored on reload. Once the draft exists, move to its own URL.
   const openSavedDraft = (id: string, step: PodcastWizardStep): void => {
     const query = step === DEFAULT_STEP ? "" : `?${STEP_PARAM}=${step}`;
-    navigate(`${moderatorPodcastPath.episode(id)}${query}`, { replace: true });
+    navigate(`${moderatorPodcastPath.episode(id)}${query}`, { replace: true, state: { podcastFlow: "create" } });
   };
 
   // Later steps save through the episode id, so leaving "Thông tin" on a new podcast must create the draft first.
@@ -177,9 +179,9 @@ function PodcastWizardPage({
   const queryError = series.error ?? selected.error ?? event.error;
   return (
     <CreationPage
-      title={existingEpisode ? "Chi tiết podcast" : "Tạo podcast"}
+      title={creating ? "Tạo podcast" : "Chi tiết podcast"}
       onBack={onBack}
-      description={existingEpisode ? "Xem lại bốn bước sản xuất của tập podcast." : undefined}
+      description={creating ? undefined : "Xem lại bốn bước sản xuất của tập podcast."}
     >
       <div className="w-full min-w-0 max-w-full overflow-clip rounded-xl border border-mod-border bg-mod-surface shadow-sm">
         {existingEpisode ? (
@@ -187,7 +189,7 @@ function PodcastWizardPage({
             <div>
               <p className="font-semibold text-mod-text">{wizard.state.title}</p>
               <CardBadge type="status" tone={cardBadgeToneForStatus(existingEpisode.status)} className="mt-2">{existingEpisode.status === "PUBLISHED" ? "Đã phát hành" : existingEpisode.status === "HIDDEN" ? "Đã ẩn" : "Bản nháp"}</CardBadge>
-              <p className="mt-1 text-xs text-mod-text-secondary">{editing ? "Đang chỉnh sửa tập podcast" : "Chế độ xem · chọn Chỉnh sửa để thay đổi nội dung"}</p>
+              <p className="mt-1 text-xs text-mod-text-secondary">{creating ? "Đang tạo tập podcast" : editing ? "Đang chỉnh sửa tập podcast" : "Chế độ xem · chọn Chỉnh sửa để thay đổi nội dung"}</p>
             </div>
             {!editing ? (
               <Button type="button" className={primaryAction} onClick={() => setEditing(true)}>
@@ -277,7 +279,7 @@ function PodcastWizardPage({
                 }}
               >
                 <Save size={17} aria-hidden="true" />
-                {busy ? "Đang lưu…" : existingEpisode ? "Lưu thay đổi" : "Lưu bản nháp"}
+                {busy ? "Đang lưu…" : creating ? "Lưu bản nháp" : "Lưu thay đổi"}
               </Button>
             ) : null}
             {currentIndex < stepOrder.length - 1 ? (

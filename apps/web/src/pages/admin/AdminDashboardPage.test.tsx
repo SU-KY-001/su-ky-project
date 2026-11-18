@@ -25,7 +25,7 @@ const schedules = [{
 it("keeps release schedules and review queue without a separate coordination item", () => {
   const navigation = adminNavigation("overview", () => undefined);
   const labels = navigation.map(({ label }) => label);
-  expect(labels.slice(0, 3)).toEqual(["TRUNG TÂM ĐIỀU HÀNH", "Tổng quan", "Thông báo"]);
+  expect(labels.slice(0, 3)).toEqual(["Điều hành", "Tổng quan", "Chuyển giao"]);
   expect(navigation[0]?.groupStart).toBe(true);
   expect(labels).toContain("Lịch phát hành");
   expect(labels).toContain("Hàng chờ kiểm duyệt");

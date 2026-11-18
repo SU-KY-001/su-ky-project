@@ -50,6 +50,9 @@ function renderView(props: Partial<React.ComponentProps<typeof AdminNotification
   root = createRoot(host);
   const defaults: React.ComponentProps<typeof AdminNotificationsView> = {
     tickets: [],
+    page: 1,
+    total: 0,
+    onPageChange: mock(() => undefined),
     moderators,
     status: "PENDING",
     busy: false,
@@ -66,9 +69,19 @@ it("renders a real empty ticket inbox without fake notification records", () => 
   const { host } = renderView();
 
   expect(host.querySelector('[data-admin-notifications="true"]')).not.toBeNull();
-  expect(host.textContent).toContain("Thông báo & ticket");
-  expect(host.textContent).toContain("Không có ticket phù hợp");
+  expect(host.textContent).toContain("Yêu cầu chuyển giao");
+  expect(host.textContent).toContain("Không có yêu cầu phù hợp");
   expect(host.querySelectorAll("article")).toHaveLength(0);
+});
+
+it("paginates transfer requests in groups of ten using the server total", async () => {
+  const onPageChange = mock((_page: number) => undefined);
+  const { host } = renderView({ tickets: [ticket()], total: 21, page: 1, onPageChange });
+  expect(host.textContent).toContain("21 yêu cầu");
+  const next = host.querySelector<HTMLAnchorElement>('a[aria-label="Trang 2"]');
+  expect(next).not.toBeNull();
+  await act(async () => next?.click());
+  expect(onPageChange).toHaveBeenCalledWith(2);
 });
 
 it("keeps the ticket table concise and reveals full information from Xem chi tiết", async () => {
@@ -90,11 +103,11 @@ it("keeps the ticket table concise and reveals full information from Xem chi ti�
 
   await selectDashboardAction("Dấu chân Trường Sơn", "Xem chi tiết", host);
 
-  expect(document.body.textContent).toContain("Chi tiết ticket");
+  expect(document.body.textContent).toContain("Chi tiết yêu cầu");
   expect(document.body.textContent).toContain("minhanh@example.org");
   expect(document.body.textContent).toContain("Bản nháp tập 3");
   expect(document.body.textContent).toContain("Có lịch công tác đột xuất");
-  expect(document.body.textContent).toContain("Duyệt ticket");
+  expect(document.body.textContent).toContain("Duyệt yêu cầu");
   expect(document.body.textContent).toContain("Từ chối");
 });
 
@@ -103,7 +116,7 @@ it("opens approval with a replacement selector from the ticket detail", async ()
 
   await selectDashboardAction("Dấu chân Trường Sơn", "Xem chi tiết", host);
 
-  const approve = [...document.body.querySelectorAll<HTMLButtonElement>("button")].find((button) => button.textContent?.includes("Duyệt ticket"))!;
+  const approve = [...document.body.querySelectorAll<HTMLButtonElement>("button")].find((button) => button.textContent?.includes("Duyệt yêu cầu"))!;
   await act(async () => approve.click());
 
   expect(document.body.textContent).toContain("Phân công người thay thế");

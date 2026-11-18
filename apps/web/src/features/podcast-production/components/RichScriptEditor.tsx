@@ -26,6 +26,7 @@ import {
 } from "lucide-react";
 import {
   EditorDocumentSchema,
+  REWRITE_MAX_CHARS,
   SCRIPT_MAX_CHARACTERS,
   type EditorDocument,
 } from "@repo/shared";
@@ -35,16 +36,19 @@ import { SourceCitation } from "../scriptEditor";
 import type { ScriptBlock } from "../aiCheck/blockRefs";
 import {
   editorBlocks, focusBlock, insertAfterRange, insertDraft, isEditorEmpty, replaceBlockText, replaceRange, textBlockSpans,
-  selectionBlocks, selectionRange, selectRange,
+  selectionBlocks, selectionRange,
   type DraftInsertItem, type EditResult, type SelectionRange,
 } from "../aiCheck/editorBlocks";
 import { BlockHighlights, setBlockHighlights, type BlockHighlight } from "../aiCheck/blockHighlights";
 import { RewriteFloatingButton } from "../rewrite/RewriteFloatingButton";
+import { importScriptText } from "../scriptImport";
 
 export const EMPTY_SCRIPT_PLACEHOLDER =
-  "Kịch bản đang trống. Viết trực tiếp, hoặc bấm 'Soạn bản nháp' ở thanh công cụ để AI soạn dàn ý rồi từng đoạn.";
+  "Bắt đầu viết kịch bản tại đây hoặc chọn Import file để nhập nội dung từ tài liệu.";
 
 export interface RichScriptEditorHandle {
+  getText: () => string;
+  importText: (text: string, replace: boolean, expected?: string) => EditResult;
   insertCitation: (sourceId: string) => void;
   getBlocks: () => ScriptBlock[];
   getSelectionBlocks: () => ScriptBlock[];
@@ -111,7 +115,7 @@ export const RichScriptEditor = forwardRef<
     () => ({
       attributes: {
         class:
-          "podcast-rich-editor min-h-80 w-full min-w-0 max-w-full px-5 py-5 text-[15px] leading-7 text-mod-text outline-none [overflow-wrap:anywhere] [word-break:break-word]",
+          "podcast-rich-editor w-full min-w-0 px-5 py-6 text-base leading-8 text-mod-text outline-none sm:px-8 sm:py-8 [overflow-wrap:anywhere] [word-break:break-word]",
         "aria-label": "Nội dung kịch bản podcast",
       },
       handlePaste: (view, event) => {
@@ -175,6 +179,8 @@ export const RichScriptEditor = forwardRef<
   useImperativeHandle(
     ref,
     () => ({
+      getText: () => editor?.state.doc.textBetween(0, editor.state.doc.content.size, "\n", "\n") ?? "",
+      importText: (text, replace, expected) => editor ? importScriptText(editor, text, replace, expected) : { ok: false, reason: "CONFLICT" },
       insertCitation: (sourceId: string) => {
         editor?.chain().focus().setMark("sourceCitation", { sourceId }).run();
       },
@@ -199,14 +205,13 @@ export const RichScriptEditor = forwardRef<
     return <div className="min-h-80 animate-pulse bg-mod-canvas-accent" aria-label="Đang tải trình soạn thảo" />;
   }
 
-  /** After the pointer/keyboard selection settles: expand to whole sentences, show it, and anchor the button above it. */
+  /** Inspect selection for AI only; normal editor selection must never be expanded or truncated. */
   const pickRange = (): void => {
     if (!onRewriteRequest || disabled) return;
     window.setTimeout(() => {
       const range = selectionRange(editor);
       const wrapper = wrapperRef.current;
-      if (!range || !wrapper) return setAnchor(null);
-      selectRange(editor, range);
+      if (!range || !wrapper || range.truncated || range.blocks.reduce((sum, block) => sum + block.fragment.length, 0) > REWRITE_MAX_CHARS) return setAnchor(null);
       const coords = editor.view.coordsAtPos(range.from);
       const box = wrapper.getBoundingClientRect();
       setAnchor({ top: coords.top - box.top - REWRITE_BUTTON_OFFSET_PX, left: Math.max(coords.left - box.left, 0), range });
@@ -276,9 +281,7 @@ export const RichScriptEditor = forwardRef<
     },
   ];
 
-  return (
-    <div ref={wrapperRef} className="relative min-w-0 max-w-full overflow-visible rounded-xl border border-mod-border bg-mod-surface">
-      <div className="flex flex-wrap gap-1 border-b border-mod-border bg-mod-canvas-accent p-2">
+  const toolbar = <div className="flex flex-wrap items-center gap-1 rounded-t-xl border-b border-mod-border bg-mod-canvas-accent p-2">
         {tools.map((tool) => {
           const Icon = tool.icon;
           return (
@@ -302,7 +305,11 @@ export const RichScriptEditor = forwardRef<
           );
         })}
         {toolbarActions ? <div className="ml-auto flex flex-wrap items-center gap-1.5">{toolbarActions}</div> : null}
-      </div>
+      </div>;
+
+  return (
+    <div ref={wrapperRef} className="podcast-script-editor relative min-w-0 max-w-full overflow-visible rounded-xl border border-mod-border bg-mod-surface">
+      {toolbar}
       <div
         data-script-scroll-region
         className="podcast-editor-viewport"

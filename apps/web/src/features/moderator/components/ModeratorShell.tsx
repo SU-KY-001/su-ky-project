@@ -19,9 +19,9 @@ type ModeratorShellProps = {
 export function ModeratorShell({ nav, children, compact }: ModeratorShellProps) {
   return (
     <WorkspaceShell
+      variant="moderator"
       navigationLabel="Điều hướng moderator"
       mobileNavigationTitle="Menu điều hướng moderator"
-      brandCaption="KHÔNG GIAN BIÊN TẬP"
       nav={nav}
       profile={<AccountProfile variant="moderator" />}
       compact={compact}

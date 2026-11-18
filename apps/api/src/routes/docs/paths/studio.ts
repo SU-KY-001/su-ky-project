@@ -493,7 +493,7 @@ export const studioPaths: Paths = {
       rate: "write",
       errors: writeErrors("tập", {
         409: `${STALE}; \`REQUIRED_FOR_PUBLISHED\`: không được để trống kịch bản ngôi thứ ba của tập đã xuất bản`,
-        422: "`VALIDATION_ERROR`: kịch bản chứa HTML hoặc quá dài; bản ngôi thứ nhất thiếu `narratorEntityId` hoặc nhân vật dẫn không phải `FIGURE`; `dialogue` chỉ dùng cho ngôi thứ ba và không đi cùng `scriptDocument`, hoặc không hợp lệ; `scriptDocument` có nội dung không hỗ trợ hoặc trích nguồn chưa gắn vào Series",
+        422: "`VALIDATION_ERROR`: kịch bản chứa HTML hoặc quá dài; bản ngôi thứ nhất thiếu `narratorEntityId` hoặc nhân vật dẫn không phải `FIGURE`; `dialogue` chỉ dùng cho ngôi thứ ba và không đi cùng `scriptDocument`. Mỗi lượt thoại có thể lưu document định dạng tùy chọn, nhưng văn bản phải khớp text của lượt. Trích nguồn trong document hoặc từng lượt thoại phải thuộc series. Dữ liệu hội thoại cũ không có document vẫn được hỗ trợ.",
       }),
     }),
   },

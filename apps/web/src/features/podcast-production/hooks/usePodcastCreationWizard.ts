@@ -1,5 +1,5 @@
 import { useCallback, useReducer, useRef } from "react";
-import type { AudioAnalysis, EditorDocument } from "@repo/shared";
+import { analyzeStructuredScript, type AudioAnalysis, type EditorDocument } from "@repo/shared";
 import { newIdempotencyKey } from "@/lib/idempotency";
 import { dialogueIssues } from "../dialogueState";
 import { podcastProductionService as api } from "../services/podcastProductionService";
@@ -61,6 +61,7 @@ export function usePodcastCreationWizard(initialState?: () => PodcastWizardState
     async (document: EditorDocument | null) => {
       const id = await ensureDraft();
       const { dialogue } = stateRef.current;
+        if (!dialogue && analyzeStructuredScript(stateRef.current.scriptText).kind === "dialogue") throw new Error("Kịch bản có nhiều người nói. Import và xác nhận loại Hội thoại trước khi lưu.");
       const [firstIssue] = dialogue ? dialogueIssues(dialogue) : [];
       if (firstIssue) throw new Error(`Kịch bản hội thoại chưa hợp lệ: ${firstIssue}`);
       const narration = await api.script(id, dialogue ? { dialogue } : { scriptDocument: document });

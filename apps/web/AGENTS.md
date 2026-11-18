@@ -58,4 +58,3 @@ cd apps/web && bun run check-types
 ```
 
 Việc đụng giao diện: chạy `bun run dev` và mở trang đã sửa để xem thực tế, không chỉ dựa vào typecheck.
-

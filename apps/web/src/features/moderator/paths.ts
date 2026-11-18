@@ -5,7 +5,6 @@ const BASE = APP_PATHS.moderator;
 
 // `satisfies Record` makes adding a ModeratorSection without a URL a compile error.
 export const moderatorSectionPath = {
-  overview: BASE,
   timeline: `${BASE}/timeline`,
   events: `${BASE}/events`,
   sources: `${BASE}/sources`,
@@ -19,14 +18,12 @@ export const moderatorSectionPath = {
   quizzes: `${BASE}/quizzes`,
 } as const satisfies Record<ModeratorSection, string>;
 
-/** Sections other than overview; their URL segment equals the section id. */
-export const MODERATOR_SECTION_SEGMENTS = (Object.keys(moderatorSectionPath) as ModeratorSection[]).filter(
-  (section): section is Exclude<ModeratorSection, "overview"> => section !== "overview",
-);
+/** Every section has a dedicated URL; the workspace root redirects to the timeline. */
+export const MODERATOR_SECTION_SEGMENTS = Object.keys(moderatorSectionPath) as ModeratorSection[];
 
 export function moderatorSectionFromPath(pathname: string): ModeratorSection {
   const segment = pathname.split("/")[2];
-  return MODERATOR_SECTION_SEGMENTS.find((section) => section === segment) ?? "overview";
+  return MODERATOR_SECTION_SEGMENTS.find((section) => section === segment) ?? "timeline";
 }
 
 export const moderatorPodcastPath = {

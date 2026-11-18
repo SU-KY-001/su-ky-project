@@ -1,13 +1,16 @@
 import { useEffect, useRef, useState, type ReactElement } from "react";
+import { DialogueVoiceConfiguration } from "./DialogueVoiceConfiguration";
+import { notify } from "@/shared/lib/notifications";
+import { dialogueIssues } from "../dialogueState";
 import { AI_VOICES, type AiVoice } from "@repo/shared";
 import { LoaderCircle, Mic } from "lucide-react";
 import { Button } from "@/shared/components/ui/button";
 import { FormField } from "@/features/moderator/components/CreationPage";
-import { ModeratorSelect } from "@/features/moderator/components/ModeratorSelect";
+import { VoiceSelect } from "./VoiceSelect";
 import type { PodcastCreationWizard } from "../hooks/usePodcastCreationWizard";
 import { useVoiceJob } from "../voice/useVoiceJob";
 import { UploadedAudioPanel } from "./UploadedAudioPanel";
-import { VOICE_LABEL, formatVoiceOrigin } from "../voice/voiceLabels";
+import { formatVoiceOrigin } from "../voice/voiceLabels";
 import { AiRunStatus } from "../ai/AiRunStatus";
 import { useAiRunLog } from "../ai/aiRunLog";
 import { AI_RUN_TEXT } from "../ai/aiRunMessages";
@@ -20,10 +23,12 @@ const duration = (ms: number): string => `${Math.floor(ms / MS_PER_SECOND / SECO
 export function AiVoicePanel({ wizard, published }: { wizard: PodcastCreationWizard; published: boolean }): ReactElement {
   const episodeId = wizard.state.episodeId ?? null;
   const [voice, setVoice] = useState<AiVoice>(AI_VOICES[0]);
+  const [preparing, setPreparing] = useState(false);
   const { job, file, error, starting, start, cancel } = useVoiceJob(episodeId);
   const running = job?.status === "RUNNING";
   const hasScript = wizard.state.scriptText.trim().length > 0;
   const { dialogue } = wizard.state;
+  const dialogueErrors = dialogue ? dialogueIssues(dialogue) : [];
   const runLog = useAiRunLog();
   const loggedJob = useRef({ id: "", done: -1 });
   const jobId = job?.id;
@@ -43,28 +48,22 @@ export function AiVoicePanel({ wizard, published }: { wizard: PodcastCreationWiz
         <h3 id="ai-voice-title" className="font-bold text-mod-text">Tạo giọng đọc bằng AI</h3>
         <p className="mt-1 text-sm text-mod-text-secondary">
           {dialogue
-            ? "AI đọc từng vai theo kịch bản hội thoại đã lưu, giữ giọng điệu và expression của từng lượt. Sửa kịch bản sau này phải tạo lại cả tập."
+            ? "AI đọc từng vai theo kịch bản hội thoại đã lưu, giữ giọng điệu của từng lượt. Sửa kịch bản sau này phải tạo lại cả tập."
             : "AI đọc kịch bản đã lưu của tập (bỏ qua các tiêu đề phần). Mỗi lần tạo tốn lượt gọi dịch vụ giọng đọc, nên hãy chọn giọng trước."}
         </p>
       </div>
 
       {dialogue ? (
-        <ul className="max-w-lg space-y-1 text-sm text-mod-text">
-          {dialogue.speakers.map((speaker) => <li key={speaker.key}><span className="font-semibold">{speaker.name}</span>: {VOICE_LABEL[speaker.voice].name} — {VOICE_LABEL[speaker.voice].detail}</li>)}
-        </ul>
+        <DialogueVoiceConfiguration wizard={wizard} disabled={running || starting || preparing} />
       ) : (
       <div className="max-w-lg">
         <FormField label="Giọng đọc" htmlFor="ai-voice">
-          <ModeratorSelect
+          <VoiceSelect
             id="ai-voice"
             label="Giọng đọc"
             value={voice}
-            onValueChange={(value) => {
-              const selected = AI_VOICES.find((id) => id === value);
-              if (selected) setVoice(selected);
-            }}
-            options={AI_VOICES.map((id) => ({ value: id, label: `${VOICE_LABEL[id].name} — ${VOICE_LABEL[id].detail}` }))}
-            placeholder="Chọn giọng đọc"
+            onChange={setVoice}
+            voices={AI_VOICES}
             disabled={running || starting}
           />
         </FormField>
@@ -72,11 +71,12 @@ export function AiVoicePanel({ wizard, published }: { wizard: PodcastCreationWiz
       )}
 
       {!episodeId || !hasScript ? <p className="rounded-lg border border-mod-attention/30 bg-mod-attention/5 p-3 text-sm text-mod-attention">Cần có kịch bản đã lưu ở bước Kịch bản trước khi tạo giọng.</p> : null}
+      {dialogueErrors[0] ? <p role="alert" className="text-sm text-mod-danger">{dialogueErrors[0]}</p> : null}
 
       {running && job ? (
         <AiRunStatus title={AI_RUN_TEXT.voiceTitle} step={AI_RUN_TEXT.voiceStep(job.done, job.total)} done={job.done} total={job.total} log={runLog.entries} startedAt={runLog.startedAt} hint={AI_RUN_TEXT.voiceHint} onCancel={() => void cancel()} />
       ) : (
-        <Button type="button" disabled={!episodeId || !hasScript || starting} onClick={() => void start(dialogue ? undefined : voice)}>
+        <Button type="button" disabled={!episodeId || !hasScript || starting || preparing || dialogueErrors.length > 0} onClick={() => { void (async () => { setPreparing(true); try { if (wizard.state.scriptDirty || dialogue) await wizard.saveScript(wizard.state.scriptDocument); await start(dialogue ? undefined : voice); } catch (caught) { notify.error({ title: "Chưa thể tạo giọng đọc", description: caught instanceof Error ? caught.message : "Kiểm tra kịch bản và cấu hình giọng." }); } finally { setPreparing(false); } })(); }}>
           {starting ? <LoaderCircle className="animate-spin" /> : <Mic />} {job?.status === "DONE" ? "Tạo lại giọng đọc" : "Tạo giọng đọc"}
         </Button>
       )}

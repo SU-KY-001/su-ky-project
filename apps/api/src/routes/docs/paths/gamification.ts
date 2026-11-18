@@ -10,7 +10,7 @@ import {
   SubmitQuizAttemptSchema,
   UpsertQuizSchema,
   WeeklyMissionQuerySchema,
-  QuizWorkspaceSchema, QuizWorkspaceListSchema, SaveQuizDraftSchema, ActivateQuizDraftSchema, QuizImportPreviewSchema,
+  QuizWorkspaceSchema, QuizWorkspaceListSchema, SaveQuizDraftSchema, ActivateQuizDraftSchema, QuizImportPreviewSchema, ScriptImportDocumentSchema,
 } from "@repo/shared";
 import { operation, type Paths } from "../operation";
 
@@ -24,6 +24,12 @@ const SlugParam = z.object({ slug: z.string().min(1) });
 // Cùng query schema inline trong gamification.routes.ts.
 const QuizFormatQuery = z.object({ format: z.literal("2").optional() });
 export const gamificationPaths: Paths = {
+  "/api/studio/script-import/extract": {
+    post: {
+      ...operation({ id: "extractPodcastScriptDocument", tag: QUIZ_TAG, summary: "Đọc văn bản kịch bản từ tài liệu", description: "Dùng chung bộ đọc tài liệu với import Quiz, không phân tích câu hỏi. DOC/DOCX/PDF có văn bản/TXT/MD UTF-8, tối đa 5 MB, 200.000 ký tự và PDF 100 trang. Worker riêng giới hạn 60 giây, hủy khi ngắt kết nối, dọn file tạm. Không lưu file, không ghi database hay sửa kịch bản; client xem trước và xác nhận chèn. DOC cần LibreOffice.", access: "moderator", rate: "write", ok: { status: 200, description: "Văn bản và các đoạn trích từ tài liệu", schema: { name: "ScriptImportDocument", schema: ScriptImportDocumentSchema } }, errors: { 413: "`PAYLOAD_TOO_LARGE`: quá 5 MB", 422: "`VALIDATION_ERROR`: file thiếu, hỏng, sai định dạng hoặc không đọc được văn bản", 503: "`SERVICE_UNAVAILABLE`: quá tải hoặc quá thời gian", 400: "`REQUEST_ABORTED`: đã hủy" } }),
+      requestBody: { required: true, content: { "multipart/form-data": { schema: { type: "object", required: ["file"], properties: { file: { type: "string", format: "binary" } } } } } },
+    },
+  },
   "/api/me/top-quizzes": {
     get: operation({ id: "listMyTopQuizzes", tag: QUIZ_TAG, summary: "Quiz cá nhân đã làm nhiều nhất", access: "user",
       description: "Mọi role đăng nhập đều dùng được, chỉ thống kê tài khoản từ session. Đếm tất cả QuizAttempt đã lưu, đạt hoặc chưa đạt, mọi thời gian. Số lượt giảm dần, hòa thì lần nộp mới nhất, cuối cùng quiz ID tăng dần. Phân trang tại DB. Quiz/tập/series ẩn, xóa mềm, không có câu hỏi hoặc không tương thích luồng SINGLE hiện tại trả available=false; vẫn giữ thống kê lịch sử. Không trả đáp án hay thông tin người khác.",
