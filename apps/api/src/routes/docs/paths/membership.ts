@@ -2,20 +2,36 @@ import { z } from "zod";
 import {
   AdminGrantMembershipSchema,
   AdminMemberQuerySchema,
+  AdminMemberSchema,
   AdminMembershipOrderQuerySchema,
+  AdminMembershipOrderSchema,
+  AdminMembershipOrderDetailSchema,
   AdminMembershipReportQuerySchema,
+  AdminMembershipPlanSchema,
   AdminPlanPatchSchema,
   AdminResolveTransactionSchema,
+  AdminResolveTransactionResultSchema,
   AdminRevokeMembershipSchema,
   AdminTransactionQuerySchema,
+  AdminTransactionSchema,
+  AdminTransactionDetailSchema,
   AdminVerifyOrderSchema,
   AttachProofSchema,
   CreateMediaAssetSchema,
   CreateMembershipOrderSchema,
+  ExperienceFeatureSchema,
+  ExperiencePolicyInputSchema,
+  ExperiencePolicySchema,
   MembershipEntitlementSchema,
   MembershipOrderSchema,
-  MembershipOrderStatusSchema,
   MembershipPlanSchema,
+  PremiumAuditEntrySchema,
+  PremiumAuditQuerySchema,
+  PremiumPushConfigSchema,
+  PremiumPushEndpointSchema,
+  PremiumPushResultSchema,
+  PremiumPushSubscriptionSchema,
+  PremiumRenewalReminderSchema,
   paginatedSchema,
 } from "@repo/shared";
 import { operation, type Paths } from "../operation";
@@ -25,62 +41,6 @@ const idParam = z.object({ id: z.string().uuid() });
 const codeParam = z.object({ code: z.string().min(1) });
 const userIdParam = z.object({ userId: z.string().min(1) });
 const idParams = { pathParams: idParam, pathParamDocs: { id: "ID đơn mua gói" } } as const;
-
-const AdminMembershipPlanDocSchema = MembershipPlanSchema.extend({ isActive: z.boolean() });
-
-export const AdminMembershipOrderDocSchema = z.object({
-  id: z.string().uuid(),
-  planCode: z.string(),
-  planName: z.string(),
-  priceVnd: z.number().int(),
-  durationDays: z.number().int(),
-  transferContent: z.string(),
-  status: MembershipOrderStatusSchema,
-  reviewReason: z.string().nullable(),
-  rejectionReason: z.string().nullable(),
-  bankTransactionId: z.string().nullable(),
-  adminNote: z.string().nullable(),
-  createdAt: z.coerce.date(),
-  paidAt: z.coerce.date().nullable(),
-  expiresAt: z.coerce.date().nullable(),
-  user: z.object({ id: z.string(), name: z.string(), email: z.string() }),
-  proofUrl: z.string().nullable(),
-  proofUploaded: z.boolean(),
-  canApprove: z.boolean(),
-});
-
-export const AdminTransactionDocSchema = z.object({
-  id: z.string().uuid(),
-  provider: z.string(),
-  externalId: z.string(),
-  referenceCode: z.string().nullable(),
-  amount: z.number().int(),
-  accumulated: z.string().nullable(),
-  content: z.string(),
-  code: z.string().nullable(),
-  gateway: z.string().nullable(),
-  accountNumber: z.string().nullable(),
-  subAccount: z.string().nullable(),
-  transactionAt: z.coerce.date(),
-  status: z.enum(["unmatched", "needs_review", "matched", "ignored"]),
-  orderId: z.string().uuid().nullable(),
-  reason: z.string().nullable(),
-  createdAt: z.coerce.date(),
-  order: z
-    .object({ id: z.string().uuid(), transferContent: z.string(), userId: z.string(), status: MembershipOrderStatusSchema })
-    .nullable(),
-});
-
-export const AdminMemberDocSchema = z.object({
-  userId: z.string(),
-  name: z.string(),
-  email: z.string(),
-  planCode: z.string(),
-  planName: z.string(),
-  startsAt: z.coerce.date(),
-  expiresAt: z.coerce.date(),
-  revokedAt: z.coerce.date().nullable(),
-});
 
 export const MembershipReportDocSchema = z.object({
   range: z.object({ from: z.string(), to: z.string(), groupBy: z.enum(["day", "month"]) }),
@@ -105,23 +65,88 @@ export const MembershipReportDocSchema = z.object({
   ),
 });
 
-export const AdminMembershipOrderDetailDocSchema = AdminMembershipOrderDocSchema.extend({
-  transactions: z.array(AdminTransactionDocSchema),
-});
-
 const planListSchema = z.array(MembershipPlanSchema);
-const adminPlanListSchema = z.array(AdminMembershipPlanDocSchema);
+const adminPlanListSchema = z.array(AdminMembershipPlanSchema);
 const plan = (description: string) => ({ status: 200 as const, description, schema: { name: "MembershipPlan", schema: MembershipPlanSchema } });
-const adminPlan = (description: string) => ({ status: 200 as const, description, schema: { name: "AdminMembershipPlan", schema: AdminMembershipPlanDocSchema } });
+const adminPlan = (description: string) => ({ status: 200 as const, description, schema: { name: "AdminMembershipPlan", schema: AdminMembershipPlanSchema } });
 const order = (description: string) => ({ status: 200 as const, description, schema: { name: "MembershipOrder", schema: MembershipOrderSchema } });
 
 export const membershipPaths: Paths = {
+  "/api/me/membership/renewal-reminder": {
+    get: operation({
+      id: "getPremiumRenewalReminder",
+      tag: TAG,
+      summary: "Đọc thông báo nhắc gia hạn trong app",
+      access: "user",
+      ok: { status: 200, description: "Thông báo của kỳ Premium hiện tại nếu có", schema: { name: "PremiumRenewalReminder", schema: PremiumRenewalReminderSchema.nullable() } },
+    }),
+  },
+  "/api/me/membership/push-config": {
+    get: operation({
+      id: "getPremiumPushConfig",
+      tag: TAG,
+      summary: "Lấy khóa công khai đăng ký thông báo trình duyệt",
+      access: "user",
+      ok: { status: 200, description: "Khóa công khai nếu Web Push đã được cấu hình", schema: { name: "PremiumPushConfig", schema: PremiumPushConfigSchema } },
+    }),
+  },
+  "/api/me/membership/push-subscription": {
+    post: operation({
+      id: "registerPremiumPush",
+      tag: TAG,
+      summary: "Đăng ký trình duyệt nhận nhắc gia hạn",
+      access: "user",
+      rate: "write",
+      body: { name: "PremiumPushSubscription", schema: PremiumPushSubscriptionSchema },
+      ok: { status: 200, description: "Đã lưu đăng ký", schema: { name: "PremiumPushResult", schema: PremiumPushResultSchema } },
+    }),
+    delete: operation({
+      id: "removePremiumPush",
+      tag: TAG,
+      summary: "Bỏ đăng ký nhận nhắc gia hạn trên trình duyệt",
+      access: "user",
+      rate: "write",
+      body: { name: "PremiumPushEndpoint", schema: PremiumPushEndpointSchema },
+      ok: { status: 200, description: "Đã bỏ đăng ký", schema: { name: "PremiumPushResult", schema: PremiumPushResultSchema } },
+    }),
+  },
+  "/api/admin/membership/audit": {
+    get: operation({
+      id: "listPremiumAudit",
+      tag: TAG,
+      summary: "Tra cứu nhật ký Premium",
+      access: "admin",
+      query: PremiumAuditQuerySchema,
+      ok: { status: 200, description: "Sự kiện lịch sử", schema: { name: "PremiumAuditPage", schema: paginatedSchema(PremiumAuditEntrySchema) } },
+    }),
+  },
+  "/api/admin/membership/experience-policies": {
+    get: operation({
+      id: "listExperiencePolicies",
+      tag: TAG,
+      summary: "Danh sách chính sách truy cập tính năng",
+      access: "admin",
+      ok: { status: 200, description: "Chính sách hiện hành", schema: { name: "ExperiencePolicyList", schema: ExperiencePolicySchema.array() } },
+    }),
+  },
+  "/api/admin/membership/experience-policies/{feature}": {
+    patch: operation({
+      id: "updateExperiencePolicy",
+      tag: TAG,
+      summary: "Cập nhật chính sách truy cập tính năng",
+      access: "admin",
+      pathParams: z.object({ feature: ExperienceFeatureSchema }),
+      body: { name: "ExperiencePolicyInput", schema: ExperiencePolicyInputSchema },
+      rate: "write",
+      ok: { status: 200, description: "Chính sách đã lưu", schema: { name: "ExperiencePolicy", schema: ExperiencePolicySchema } },
+    }),
+  },
   "/api/membership/plans": {
     get: operation({
       id: "listMembershipPlans",
       tag: TAG,
       summary: "Danh sách gói thành viên",
-      description: "Trả mọi gói đang bật, kể cả gói miễn phí (`isPurchasable=false`) để client hiển thị bảng so sánh.",
+      description: "Trả gói tháng nếu đang mở bán và thông tin gói Free để hiển thị quyền lợi.",
       access: "public",
       ok: { status: 200, description: "Các gói đang bật", schema: { name: "MembershipPlanList", schema: planListSchema } },
     }),
@@ -141,7 +166,7 @@ export const membershipPaths: Paths = {
       id: "createMembershipOrder",
       tag: TAG,
       summary: "Tạo đơn mua gói",
-      description: "Một đơn mở cho mỗi user: gọi lại cùng gói trả lại đúng đơn cũ (cùng mã chuyển khoản). Đơn `needs_review` cũng được trả lại, không tạo QR thứ hai. Vượt trần cộng dồn trả 422 `STACK_LIMIT_REACHED`.",
+      description: "Gọi lại cùng gói và cùng thông tin mua trả lại đơn mở hiện tại. Đơn cần đối soát cũng được trả lại. Khi tên, giá hoặc thời hạn của gói đã đổi, đơn mới giữ thông tin mới và đơn cũ tiếp tục dùng thông tin đã chốt. Vượt trần cộng dồn trả 422 `STACK_LIMIT_REACHED`.",
       access: "user",
       body: { name: "CreateMembershipOrderRequest", schema: CreateMembershipOrderSchema },
       idempotent: true,
@@ -225,7 +250,7 @@ export const membershipPaths: Paths = {
       tag: TAG,
       summary: "Admin: danh sách gói",
       access: "admin",
-      ok: { status: 200, description: "Mọi gói, kể cả đã tắt", schema: { name: "AdminMembershipPlanList", schema: adminPlanListSchema } },
+      ok: { status: 200, description: "Gói tháng và trạng thái mở bán", schema: { name: "AdminMembershipPlanList", schema: adminPlanListSchema } },
     }),
   },
   "/api/admin/membership/plans/{code}": {
@@ -233,10 +258,10 @@ export const membershipPaths: Paths = {
       id: "adminUpdateMembershipPlan",
       tag: TAG,
       summary: "Admin: sửa gói",
-      description: "Đổi giá/trạng thái bán. Đơn cũ giữ giá snapshot; đơn pending giá cũ bị từ chối `PLAN_PRICE_CHANGED` khi user tạo đơn mới. Audit before/after.",
+      description: "Đổi thông tin và trạng thái bán của gói. Đơn đã tạo giữ thông tin tại thời điểm mua. Ghi audit trước và sau khi sửa.",
       access: "admin",
       pathParams: codeParam,
-      pathParamDocs: { code: "Mã gói: free, monthly, yearly" },
+      pathParamDocs: { code: "Mã định danh của gói" },
       body: { name: "AdminPlanPatchRequest", schema: AdminPlanPatchSchema },
       rate: "write",
       ok: adminPlan("Gói sau khi sửa"),
@@ -251,7 +276,8 @@ export const membershipPaths: Paths = {
       description: "Lọc `status`, tìm theo email/tên user hoặc mã chuyển khoản.",
       access: "admin",
       query: AdminMembershipOrderQuerySchema,
-      ok: { status: 200, description: "Đơn kèm user, ảnh minh chứng và cờ `canApprove`", schema: { name: "AdminMembershipOrderPage", schema: paginatedSchema(AdminMembershipOrderDocSchema) } },
+      queryDocs: { assignableAmount: "Lọc đơn đang chờ thanh toán hoặc cần đối soát có đúng số tiền nhận trước khi phân trang." },
+      ok: { status: 200, description: "Đơn kèm user, ảnh minh chứng và cờ `canApprove`", schema: { name: "AdminMembershipOrderPage", schema: paginatedSchema(AdminMembershipOrderSchema) } },
     }),
   },
   "/api/admin/membership/orders/{id}": {
@@ -262,7 +288,7 @@ export const membershipPaths: Paths = {
       description: "Kèm giao dịch ngân hàng đã gắn và URL ảnh minh chứng (chỉ admin thấy).",
       access: "admin",
       ...idParams,
-      ok: { status: 200, description: "Đơn, user, giao dịch", schema: { name: "AdminMembershipOrderDetail", schema: AdminMembershipOrderDetailDocSchema } },
+      ok: { status: 200, description: "Đơn, tài khoản, giao dịch và lịch sử xử lý", schema: { name: "AdminMembershipOrderDetail", schema: AdminMembershipOrderDetailSchema } },
       errors: { 404: "`MEMBERSHIP_ORDER_NOT_FOUND`" },
     }),
   },
@@ -276,7 +302,7 @@ export const membershipPaths: Paths = {
       ...idParams,
       body: { name: "AdminVerifyOrderRequest", schema: AdminVerifyOrderSchema },
       rate: "write",
-      ok: { status: 200, description: "Đơn sau xử lý", schema: { name: "AdminMembershipOrderDetail", schema: AdminMembershipOrderDetailDocSchema } },
+      ok: { status: 200, description: "Đơn sau xử lý", schema: { name: "AdminMembershipOrderDetail", schema: AdminMembershipOrderDetailSchema } },
       errors: { 404: "`MEMBERSHIP_ORDER_NOT_FOUND`", 409: "`ORDER_NOT_PENDING`", 422: "`STACK_LIMIT_REACHED`" },
     }),
   },
@@ -287,7 +313,18 @@ export const membershipPaths: Paths = {
       summary: "Admin: sổ giao dịch thanh toán",
       access: "admin",
       query: AdminTransactionQuerySchema,
-      ok: { status: 200, description: "Giao dịch kèm đơn khớp (nếu có)", schema: { name: "AdminPaymentTransactionPage", schema: paginatedSchema(AdminTransactionDocSchema) } },
+      ok: { status: 200, description: "Giao dịch kèm đơn khớp (nếu có)", schema: { name: "AdminPaymentTransactionPage", schema: paginatedSchema(AdminTransactionSchema) } },
+    }),
+  },
+  "/api/admin/membership/transactions/{id}": {
+    get: operation({
+      id: "adminGetMembershipTransaction",
+      tag: TAG,
+      summary: "Admin: xem giao dịch và lịch sử xử lý",
+      access: "admin",
+      pathParams: idParam,
+      ok: { status: 200, description: "Giao dịch và lịch sử", schema: { name: "AdminPaymentTransactionDetail", schema: AdminTransactionDetailSchema } },
+      errors: { 404: "`NOT_FOUND`: giao dịch không tồn tại" },
     }),
   },
   "/api/admin/membership/transactions/{id}/resolve": {
@@ -300,7 +337,7 @@ export const membershipPaths: Paths = {
       ...idParams,
       body: { name: "AdminResolveTransactionRequest", schema: AdminResolveTransactionSchema },
       rate: "write",
-      ok: { status: 200, description: "Giao dịch sau xử lý và kết quả áp dụng", schema: { name: "AdminResolveTransactionResult", schema: z.object({ transaction: AdminTransactionDocSchema.nullable(), result: z.object({ status: z.enum(["matched", "needs_review"]), reason: z.string().nullable() }) }) } },
+      ok: { status: 200, description: "Giao dịch sau xử lý", schema: { name: "AdminResolveTransactionResult", schema: AdminResolveTransactionResultSchema } },
       errors: { 404: "`NOT_FOUND` hoặc `MEMBERSHIP_ORDER_NOT_FOUND`", 409: "`ORDER_NOT_PENDING`: giao dịch đã khớp hoặc đã bỏ qua", 422: "`VALIDATION_ERROR`: thiếu đơn hoặc lệch số tiền" },
     }),
   },
@@ -312,7 +349,7 @@ export const membershipPaths: Paths = {
       description: "Mỗi user một dòng, lấy kỳ hạn xa nhất. `status=active|expired|all`.",
       access: "admin",
       query: AdminMemberQuerySchema,
-      ok: { status: 200, description: "Thành viên và hạn dùng", schema: { name: "AdminMemberPage", schema: paginatedSchema(AdminMemberDocSchema) } },
+      ok: { status: 200, description: "Mọi tài khoản và thông tin kỳ Premium gần nhất", schema: { name: "AdminMemberPage", schema: paginatedSchema(AdminMemberSchema) } },
     }),
   },
   "/api/admin/membership/members/{userId}/grant": {

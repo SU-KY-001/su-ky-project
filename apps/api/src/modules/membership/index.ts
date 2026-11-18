@@ -21,3 +21,4 @@ export const publicMembershipRoute = createPublicMembershipRoute(membershipServi
 export const meMembershipRoute = createMeMembershipRoute(membershipService);
 export const paymentWebhookRoute = createPaymentWebhookRoute(paymentWebhookService);
 export const adminMembershipRoute = createAdminMembershipRoute(adminMembershipService);
+export { startExperience } from "./application/experience-access";

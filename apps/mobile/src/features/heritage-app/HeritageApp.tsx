@@ -9,6 +9,7 @@ import { screenForTab, tabForScreen } from "./appLogic";
 import { nextPlaylistMode, nextQueueIndex, playlistOrder, type PlaylistMode } from "./playlistPlayback";
 import {
   podcastApi,
+  createUuid,
   fallbackEventImage,
   restoreCachedEpisode,
   serializeEpisode,
@@ -161,10 +162,11 @@ export function HeritageApp(): React.JSX.Element {
     const ownerId = user.id;
     quizOpeningLock.current = true; setOpeningQuizId(item.quizId); setQuizOpenError(null);
     try {
-      const quiz = await podcastApi.quiz(item.episodeSlug);
+      const startId = createUuid();
+      const quiz = await podcastApi.quiz(item.episodeSlug, startId);
       if (screenRef.current !== from || useAuthStore.getState().user?.id !== ownerId) return;
       if (quiz.id !== item.quizId || !quiz.questions.length) throw new Error("Quiz đã thay đổi");
-      setQuizEpisode({ slug: item.episodeSlug, title: item.episodeTitle, seriesTitle: item.seriesTitle, image: fallbackEventImage(item.seriesSlug) });
+      setQuizEpisode({ slug: item.episodeSlug, title: item.episodeTitle, seriesTitle: item.seriesTitle, image: fallbackEventImage(item.seriesSlug), startId });
       setQuizReturn(from); setScreen("episodeQuiz");
     } catch {
       if (screenRef.current === from && useAuthStore.getState().user?.id === ownerId) setQuizOpenError("Chưa mở được quiz. Quiz có thể đã thay đổi hoặc kết nối bị gián đoạn. Vui lòng thử lại.");

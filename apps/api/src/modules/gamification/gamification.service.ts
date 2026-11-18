@@ -189,6 +189,7 @@ export class GamificationService {
     quizId: string,
     userId: string,
     input: SubmitQuizAttemptInput,
+    admittedStart?: string | null,
   ) {
     const quizXp = await getSystemConfig("xp.quiz_pass");
     const now = new Date();
@@ -202,6 +203,20 @@ export class GamificationService {
       });
       if (!quiz)
         throw new DomainError(404, "NOT_FOUND", "Không tìm thấy quiz khả dụng");
+      if (admittedStart !== undefined) {
+        const open = { userId, feature: "quiz", subject: quizId, submittedAt: null };
+        const attemptId = admittedStart ?? (await db.experienceDailyUse.findFirst({
+          where: open,
+          orderBy: { day: "desc" },
+          select: { attemptId: true },
+        }))?.attemptId;
+        const claimed = attemptId ? await db.experienceDailyUse.updateMany({
+          where: { ...open, attemptId }, data: { submittedAt: now },
+        }) : null;
+        if (!claimed?.count) {
+          throw new DomainError(409, "CONFLICT", "Lượt làm bài chưa bắt đầu hoặc đã nộp.");
+        }
+      }
       if (input.answers.length !== quiz.questions.length)
         throw new DomainError(
           422,

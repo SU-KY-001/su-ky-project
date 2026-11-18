@@ -10,6 +10,9 @@ import type {
   PaymentTransactionEntity,
 } from "./membership.entity";
 import type { AuditInput } from "../../../core/audit";
+import type { AdminMemberQuery, AdminPlanPatch, PremiumAuditEntry, PremiumAuditQuery } from "@repo/shared";
+
+type PlanActor = Pick<AuditInput, "actorId" | "ipAddress">;
 
 export interface CreateOrderInput {
   userId: string;
@@ -21,6 +24,8 @@ export interface ActivateOrderInput {
   now: Date;
   actorId: string | null;
   bankTransactionId?: string | null;
+  note?: string;
+  ipAddress?: string | null;
   maxStackDays: number;
 }
 
@@ -30,6 +35,7 @@ export interface GrantCompMembershipInput {
   reason: string;
   now: Date;
   actorId: string | null;
+  ipAddress?: string | null;
   maxStackDays: number;
 }
 
@@ -46,19 +52,25 @@ export interface InsertTransactionInput {
   subAccount: string | null;
   transactionAt: Date;
   rawPayload: unknown;
+  direction?: "in" | "out";
 }
 
 export interface ApplyTransactionInput {
   transactionId: string;
   orderId: string;
   actorId: string | null;
+  note?: string;
+  ipAddress?: string | null;
   maxStackDays: number;
   now: Date;
 }
 
 export interface OrderQuery {
+  assignableAmount?: number;
   status?: string;
   q?: string;
+  from?: string;
+  to?: string;
   page: number;
   limit: number;
 }
@@ -68,12 +80,6 @@ export interface TransactionQuery {
   status?: string;
   from?: Date;
   to?: Date;
-  page: number;
-  limit: number;
-}
-
-export interface MemberQuery {
-  status: "active" | "expired" | "all";
   q?: string;
   page: number;
   limit: number;
@@ -88,11 +94,12 @@ export interface ReportQuery {
 export interface MembershipRepository {
   listPlans(): Promise<MembershipPlanEntity[]>;
   findPlanByCode(code: string): Promise<MembershipPlanEntity | null>;
-  updatePlan(id: string, patch: Partial<Pick<MembershipPlanEntity, "name" | "priceVnd" | "durationDays" | "isPurchasable" | "isActive" | "sortOrder">>): Promise<MembershipPlanEntity>;
+  updatePlan(code: string, patch: AdminPlanPatch, actor: PlanActor): Promise<MembershipPlanEntity>;
 
   findActiveMembership(userId: string, now: Date): Promise<MembershipWithPlan | null>;
   findMaxExpiry(userId: string): Promise<Date | null>;
   findLatestOrder(userId: string, statuses: Array<"pending" | "needs_review">): Promise<MembershipOrderEntity | null>;
+  findReusableOrder(userId: string, plan: MembershipPlanEntity): Promise<MembershipOrderEntity | null>;
 
   createOrder(input: CreateOrderInput): Promise<MembershipOrderEntity>;
   grantCompMembership(input: GrantCompMembershipInput): Promise<{ orderId: string; result: ActivationResult }>;
@@ -103,6 +110,8 @@ export interface MembershipRepository {
 
   /** Audit writes go through the repository so services never hold a Prisma client. */
   audit(entry: AuditInput): Promise<void>;
+  paymentHistory(orderId: string | null, transactionIds: string[]): Promise<PremiumAuditEntry[]>;
+  listPremiumAudit(query: PremiumAuditQuery): Promise<{ items: PremiumAuditEntry[]; total: number }>;
   /** Rejects only a still-open order; false when the webhook activated it first. */
   rejectOrderIfOpen(
     id: string,
@@ -120,7 +129,7 @@ export interface MembershipRepository {
   findOrderByTransferContent(content: string): Promise<MembershipOrderEntity | null>;
   markTransaction(id: string, status: "unmatched" | "needs_review" | "matched" | "ignored", reason: string | null, orderId?: string | null): Promise<void>;
   /** Ignores only a still-open transaction; false when the webhook already matched it. */
-  markTransactionIfOpen(id: string, reason: string): Promise<boolean>;
+  markTransactionIfOpen(id: string, reason: string, actor?: PlanActor, note?: string): Promise<boolean>;
   applyTransaction(input: ApplyTransactionInput): Promise<{ status: "matched" | "needs_review"; reason: string | null; membershipId?: string }>;
 
   listOrdersForAdmin(query: OrderQuery): Promise<{ items: AdminOrderRow[]; total: number }>;
@@ -128,8 +137,8 @@ export interface MembershipRepository {
   listTransactionsForAdmin(query: TransactionQuery): Promise<{ items: AdminTransactionRow[]; total: number }>;
   listTransactionsByOrder(orderId: string): Promise<AdminTransactionRow[]>;
   findTransactionById(id: string): Promise<PaymentTransactionEntity | null>;
-  listMembersForAdmin(query: MemberQuery): Promise<{ items: AdminMemberRow[]; total: number }>;
+  listMembersForAdmin(query: AdminMemberQuery): Promise<{ items: AdminMemberRow[]; total: number }>;
   findUser(userId: string): Promise<{ id: string; name: string; email: string } | null>;
-  revokeActiveMemberships(userId: string, reason: string, now: Date): Promise<number>;
+  revokeActiveMemberships(userId: string, reason: string, now: Date, actor?: PlanActor): Promise<number>;
   report(query: ReportQuery, now: Date): Promise<MembershipReport>;
 }

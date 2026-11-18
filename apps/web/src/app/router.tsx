@@ -9,7 +9,11 @@ import { PublicRoute } from "@/shared/components/common/PublicRoute";
 import { LandingLoadingPage } from "@/pages/landing/LandingLoadingPage";
 
 export const appRoutes: RouteObject[] = [
-  { id: "public-exhibition", path: "/trien-lam/:slug", ErrorBoundary: RouteErrorFallback, HydrateFallback: AppLoadingFallback, lazy: async () => { const { ExhibitionPage } = await import("../pages/exhibition/ExhibitionPage"); return { Component: ExhibitionPage }; } },
+  {
+    id: "exhibition-visit-auth",
+    element: <ProtectedRoute allowedRoles={["user", "moderator", "admin"]} />,
+    children: [{ id: "public-exhibition", path: "/trien-lam/:slug", ErrorBoundary: RouteErrorFallback, HydrateFallback: AppLoadingFallback, lazy: async () => { const { ExhibitionPage } = await import("../pages/exhibition/ExhibitionPage"); return { Component: ExhibitionPage }; } }],
+  },
   {
     id: "app",
     path: APP_PATHS.home,
@@ -17,6 +21,18 @@ export const appRoutes: RouteObject[] = [
     HydrateFallback: AppLoadingFallback,
     ErrorBoundary: RouteErrorFallback,
     children: [
+      {
+        id: "membership-auth",
+        element: <ProtectedRoute allowedRoles={["user"]} />,
+        children: [{
+          id: "membership",
+          path: APP_PATHS.membership.slice(1),
+          lazy: async () => {
+            const { MembershipPage } = await import("../pages/membership/MembershipPage");
+            return { Component: MembershipPage };
+          },
+        }],
+      },
       {
         id: "quiz-player-auth",
         element: <ProtectedRoute allowedRoles={["user", "moderator", "admin"]} />,

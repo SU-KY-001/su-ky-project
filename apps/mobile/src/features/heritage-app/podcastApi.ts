@@ -289,12 +289,12 @@ export const podcastApi = {
     });
     return EventsPageSchema.parse(data).items;
   },
-  async quiz(episodeSlug: string): Promise<PublicQuiz> {
-    const { data } = await apiClient.get(`/api/episodes/${encodeURIComponent(episodeSlug)}/quiz`);
+  async quiz(episodeSlug: string, start?: string): Promise<PublicQuiz> {
+    const { data } = await apiClient.get(`/api/episodes/${encodeURIComponent(episodeSlug)}/quiz`, { params: { format: "2", start } });
     return PublicQuizSchema.parse(data);
   },
-  async attempt(quizId: string, answers: QuizAttemptAnswer[], idempotencyKey: string): Promise<QuizAttemptResult> {
-    const { data } = await apiClient.post(`/api/quizzes/${quizId}/attempts`, { answers }, { headers: { "Idempotency-Key": idempotencyKey } });
+  async attempt(quizId: string, answers: QuizAttemptAnswer[], idempotencyKey: string, start?: string): Promise<QuizAttemptResult> {
+    const { data } = await apiClient.post(`/api/quizzes/${quizId}/attempts`, { answers, start }, { headers: { "Idempotency-Key": idempotencyKey } });
     return QuizAttemptResultSchema.parse(data);
   },
 };

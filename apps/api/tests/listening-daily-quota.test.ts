@@ -74,3 +74,10 @@ test("staff skip the quota", async () => {
   await new ListeningService(repo, storage).playback("narration-1", "mod-1", "moderator");
   expect(reserves).toBe(0);
 });
+
+test("a failure generating the playback URL does not consume quota", async () => {
+  reset();
+  const unavailable = { ...storage, audioDeliveryUrl: () => { throw new Error("Delivery unavailable"); } };
+  await expect(new ListeningService(repo, unavailable).playback("narration-1", "user-1")).rejects.toThrow("Delivery unavailable");
+  expect(reserves).toBe(0);
+});

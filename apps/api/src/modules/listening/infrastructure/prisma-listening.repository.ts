@@ -402,7 +402,7 @@ export class PrismaListeningRepository implements ListeningRepository {
     userId: string,
     episodeId: string,
     day: Date,
-    limit: number,
+    limit: number | null,
   ): Promise<"allowed" | "already" | "limit"> {
     return this.db.$transaction(async (tx) => {
       // `$executeRaw`: pg_advisory_xact_lock returns void, which `$queryRaw` cannot deserialize.
@@ -412,15 +412,13 @@ export class PrismaListeningRepository implements ListeningRepository {
         select: { userId: true },
       });
       if (existing) return "already";
-      const used = await tx.listeningDailyPlay.count({ where: { userId, playDate: day } });
-      if (used >= limit) return "limit";
+      if (limit !== null) {
+        const used = await tx.listeningDailyPlay.count({ where: { userId, playDate: day } });
+        if (used >= limit) return "limit";
+      }
       await tx.listeningDailyPlay.create({ data: { userId, playDate: day, episodeId } });
       return "allowed";
     });
-  }
-
-  countDailyPlays(userId: string, day: Date): Promise<number> {
-    return this.db.listeningDailyPlay.count({ where: { userId, playDate: day } });
   }
 
   async findPublicNarration(

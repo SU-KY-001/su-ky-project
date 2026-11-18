@@ -1,13 +1,15 @@
 import { expect, test } from "bun:test";
 import { prisma, Prisma } from "@repo/db";
-import { getSystemConfig } from "../src/core/config/system-config";
+import { experiencePolicy } from "../src/modules/membership/application/experience-access";
 import { playDate, reserveDailyPlay } from "../src/modules/listening/application/daily-quota";
 import { assertTestDatabase, RUN_INTEGRATION } from "./support/integration";
 
 test.skipIf(!RUN_INTEGRATION)("daily quota claims plays atomically per VN day", async () => {
   assertTestDatabase();
-  if (!(await getSystemConfig("premium.enforce_daily_quota"))) return;
-  const limit = await getSystemConfig("premium.free_daily_plays");
+  const policy = await experiencePolicy("podcast");
+  expect(policy.mode).toBe("free_limited");
+  if (policy.mode !== "free_limited") throw new Error("Expected limited podcast policy");
+  const limit = policy.dailyQuota;
   const ownerId = crypto.randomUUID();
   const userId = crypto.randomUUID();
   const otherId = crypto.randomUUID();

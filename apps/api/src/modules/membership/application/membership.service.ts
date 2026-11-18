@@ -1,6 +1,6 @@
 import { getSystemConfig } from "../../../core/config/system-config";
 import { DomainError } from "../../../core/errors/domain-error";
-import { getDailyQuotaStatus } from "../../listening/application/daily-quota";
+import { listExperienceQuotas } from "./experience-access";
 import type { MediaService } from "../../media/application/media.service";
 import type { MembershipOrderEntity, MembershipPlanEntity } from "../domain/membership.entity";
 import type { MembershipRepository } from "../domain/membership.repository";
@@ -26,7 +26,7 @@ export class MembershipService {
 
   async listPlans() {
     const plans = await this.repo.listPlans();
-    return plans.filter((plan) => plan.isActive).map(mapPlan);
+    return plans.filter((plan) => plan.isActive && (plan.code === "free" || (plan.code === "monthly" && plan.isPurchasable))).map(mapPlan);
   }
 
   async getEntitlement(userId: string) {
@@ -44,7 +44,7 @@ export class MembershipService {
       daysLeft,
       planCode: active.plan.code,
       pendingOrderId: latest?.id ?? null,
-      renewSoon: daysLeft <= RENEWAL_REMINDER_DAYS,
+      renewSoon: active.expiresAt.getTime() - now.getTime() < RENEWAL_REMINDER_DAYS * DAY_MS,
       quota: null,
     };
   }
@@ -53,14 +53,15 @@ export class MembershipService {
   async getEntitlementForUser(userId: string, role: string | null | undefined) {
     const entitlement = await this.getEntitlement(userId);
     const isStaff = role === "admin" || role === "moderator";
-    const quota = entitlement.tier === "free" && !isStaff ? await getDailyQuotaStatus(userId) : null;
-    return { ...entitlement, quota };
+    const experienceQuotas = entitlement.tier === "free" && !isStaff ? await listExperienceQuotas(userId) : [];
+    const quota = experienceQuotas.find((item) => item.feature === "podcast") ?? null;
+    return { ...entitlement, quota, experienceQuotas };
   }
 
   private async planForPurchase(planCode: string): Promise<MembershipPlanEntity> {
     const plan = await this.repo.findPlanByCode(planCode);
     if (!plan) throw new DomainError(404, "PLAN_NOT_FOUND", "Membership plan not found");
-    if (!plan.isActive || !plan.isPurchasable || plan.priceVnd <= 0)
+    if (plan.code !== "monthly" || !plan.isActive || !plan.isPurchasable || plan.priceVnd <= 0)
       throw new DomainError(422, "PLAN_NOT_PURCHASABLE", "This plan cannot be purchased");
     return plan;
   }
@@ -70,14 +71,8 @@ export class MembershipService {
     const now = new Date();
     const maxStackDays = await getSystemConfig("premium.max_stack_days");
 
-    const existing = await this.repo.findLatestOrder(userId, [...OPEN_STATUSES]);
-    if (
-      existing &&
-      (existing.status === "needs_review" ||
-        (existing.planId === plan.id &&
-          existing.priceVnd === plan.priceVnd &&
-          existing.durationDays === plan.durationDays))
-    ) {
+    const existing = await this.repo.findReusableOrder(userId, plan);
+    if (existing) {
       const maxExpiry = await this.repo.findMaxExpiry(userId);
       return mapOrder(existing, previewExpiry(maxExpiry, existing.durationDays, now));
     }
@@ -104,6 +99,8 @@ export class MembershipService {
     const now = new Date();
     return {
       ...result,
+      page,
+      limit,
       items: result.items.map((order) => mapOrder(order, previewExpiry(maxExpiry, order.durationDays, now))),
     };
   }
