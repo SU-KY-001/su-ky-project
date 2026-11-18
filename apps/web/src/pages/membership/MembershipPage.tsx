@@ -79,7 +79,8 @@ export function MembershipPage(): ReactElement {
   const premium = data.tier === "premium";
 
   return <main className="mx-auto min-h-[80vh] max-w-6xl px-5 pb-24 pt-32 text-ink sm:px-8">
-    <header>
+    <header className="grid gap-3">
+      <Button asChild variant="outline" size="sm" className="w-fit"><Link to={APP_PATHS.home}>Quay lại</Link></Button>
       <h1 className="font-serif text-3xl font-bold tracking-tight md:text-5xl">Thành viên</h1>
     </header>
 
