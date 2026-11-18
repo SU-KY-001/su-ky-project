@@ -1,8 +1,7 @@
 import { Prisma, prisma } from "@repo/db";
-import { PREMIUM_FEATURE_LIMITS, type SubmitQuizAttemptInput, type UpsertQuizInput } from "@repo/shared";
+import type { SubmitQuizAttemptInput, UpsertQuizInput } from "@repo/shared";
 import { getSystemConfig } from "../../core/config/system-config";
 import { DomainError } from "../../core/errors/domain-error";
-import { reserveFeatureUsage, getFeatureQuotas, formatQuotaResetIn } from "../membership/application/feature-quota";
 import { mediaStorage } from "../media";
 
 import {
@@ -23,12 +22,6 @@ const PUBLISHED_EPISODE = {
   deletedAt: null,
   series: { status: "PUBLISHED" as const, deletedAt: null },
 };
-
-const quizQuotaError = () => new DomainError(
-  403,
-  "DAILY_QUOTA_EXHAUSTED",
-  `Bạn đã dùng hết ${PREMIUM_FEATURE_LIMITS.quiz} lượt làm quiz hôm nay. Đặt lại sau ${formatQuotaResetIn()}. Nâng cấp Premium để làm không giới hạn.`,
-);
 
 function publicQuiz(
   quiz: Prisma.QuizGetPayload<{ include: typeof quizInclude }>,
@@ -180,21 +173,6 @@ export class GamificationService {
     });
   }
 
-  /** Gate shown before the questions; the attempt is counted when it is submitted. */
-  async assertQuizStartAllowed(quizId: string, userId: string, role: string | null | undefined) {
-    const quiz = await prisma.quiz.findFirst({ where: { id: quizId, episode: PUBLISHED_EPISODE }, select: { id: true } });
-    if (!quiz) throw new DomainError(404, "NOT_FOUND", "Không tìm thấy quiz khả dụng");
-    const quotas = await getFeatureQuotas(userId, role);
-    const quizQuota = quotas.find((quota) => quota.feature === "quiz");
-    if (quizQuota && quizQuota.remaining === 0) throw quizQuotaError();
-  }
-
-  /** Called once per submitted attempt; the transaction-scoped claim keeps parallel submits within the limit. */
-  async consumeQuizAttempt(userId: string, role: string | null | undefined) {
-    const outcome = await reserveFeatureUsage({ userId, role, feature: "quiz" });
-    if (outcome === "limit") throw quizQuotaError();
-  }
-
   async getPublishedQuiz(episodeSlug: string, supportsNewTypes = false) {
     const quiz = await prisma.quiz.findFirst({
       where: { episode: { slug: episodeSlug, ...PUBLISHED_EPISODE } },
@@ -211,6 +189,7 @@ export class GamificationService {
     quizId: string,
     userId: string,
     input: SubmitQuizAttemptInput,
+    admittedStart?: string | null,
   ) {
     const quizXp = await getSystemConfig("xp.quiz_pass");
     const now = new Date();
@@ -224,6 +203,20 @@ export class GamificationService {
       });
       if (!quiz)
         throw new DomainError(404, "NOT_FOUND", "Không tìm thấy quiz khả dụng");
+      if (admittedStart !== undefined) {
+        const open = { userId, feature: "quiz", subject: quizId, submittedAt: null };
+        const attemptId = admittedStart ?? (await db.experienceDailyUse.findFirst({
+          where: open,
+          orderBy: { day: "desc" },
+          select: { attemptId: true },
+        }))?.attemptId;
+        const claimed = attemptId ? await db.experienceDailyUse.updateMany({
+          where: { ...open, attemptId }, data: { submittedAt: now },
+        }) : null;
+        if (!claimed?.count) {
+          throw new DomainError(409, "CONFLICT", "Lượt làm bài chưa bắt đầu hoặc đã nộp.");
+        }
+      }
       if (input.answers.length !== quiz.questions.length)
         throw new DomainError(
           422,

@@ -1,7 +1,6 @@
-import { ExhibitionDocumentSchema, PREMIUM_FEATURE_LIMITS, type ExhibitionDocument, type ExhibitionPodcastQuery } from "@repo/shared";
+import { ExhibitionDocumentSchema, type ExhibitionDocument, type ExhibitionPodcastQuery } from "@repo/shared";
 import { DomainError } from "../../../core/errors/domain-error";
 import type { ExhibitionRecord, ExhibitionRepository } from "../domain/exhibition.repository";
-import { formatQuotaResetIn, reserveFeatureUsage } from "../../membership/application/feature-quota";
 
 export class ExhibitionService {
   constructor(private readonly repository: ExhibitionRepository) {}
@@ -24,17 +23,6 @@ export class ExhibitionService {
     const document = await this.repository.findPublished(slug);
     if (!document) throw new DomainError(404, "NOT_FOUND", "Không tìm thấy triển lãm");
     return this.repository.resolve(document);
-  }
-  /** Claims the Free visitor's one exhibition per day; revisits of the same exhibition stay free. */
-  async enterExhibition(slug: string, userId: string, role: string | null | undefined) {
-    if (!await this.repository.findPublished(slug)) throw new DomainError(404, "NOT_FOUND", "Không tìm thấy triển lãm");
-    const outcome = await reserveFeatureUsage({ userId, role, feature: "exhibition", refKey: slug });
-    if (outcome === "limit")
-      throw new DomainError(
-        403,
-        "DAILY_QUOTA_EXHAUSTED",
-        `Mỗi ngày tài khoản Free được vào ${PREMIUM_FEATURE_LIMITS.exhibition} triển lãm. Đặt lại sau ${formatQuotaResetIn()}. Nâng cấp Premium để tham quan không giới hạn.`,
-      );
   }
   async publish(id: string, ownerId: string, revision: number) {
     if (!await this.repository.find(id, ownerId)) throw new DomainError(404, "NOT_FOUND", "Không tìm thấy triển lãm");

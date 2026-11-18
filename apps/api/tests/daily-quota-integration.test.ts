@@ -1,40 +1,50 @@
 import { expect, test } from "bun:test";
 import { prisma, Prisma } from "@repo/db";
-import { PREMIUM_FEATURE_LIMITS } from "@repo/shared";
-import { quotaDay, reserveFeatureUsage } from "../src/modules/membership/application/feature-quota";
+import { experiencePolicy } from "../src/modules/membership/application/experience-access";
+import { playDate, reserveDailyPlay } from "../src/modules/listening/application/daily-quota";
 import { assertTestDatabase, RUN_INTEGRATION } from "./support/integration";
 
-test.skipIf(!RUN_INTEGRATION)("feature quota claims uses atomically per VN day", async () => {
+test.skipIf(!RUN_INTEGRATION)("daily quota claims plays atomically per VN day", async () => {
   assertTestDatabase();
-  const limit = PREMIUM_FEATURE_LIMITS.podcast;
+  const policy = await experiencePolicy("podcast");
+  expect(policy.mode).toBe("free_limited");
+  if (policy.mode !== "free_limited") throw new Error("Expected limited podcast policy");
+  const limit = policy.dailyQuota;
+  const ownerId = crypto.randomUUID();
   const userId = crypto.randomUUID();
   const otherId = crypto.randomUUID();
-  const keys = Array.from({ length: limit + 2 }, () => crypto.randomUUID());
+  let seriesId: string | null = null;
 
   try {
     await prisma.user.createMany({
-      data: [userId, otherId].map((id) => ({ id, name: "Quota test", email: `${id}@test.example` })),
+      data: [ownerId, userId, otherId].map((id) => ({ id, name: "Daily quota test", email: `${id}@test.example` })),
     });
+    const series = await prisma.series.create({
+      data: { ownerId, slug: `quota-${ownerId}`, title: "Quota test", status: "PUBLISHED" },
+    });
+    seriesId = series.id;
+    const episodeIds: string[] = [];
+    for (let index = 0; index < limit + 2; index += 1) {
+      const episode = await prisma.episode.create({
+        data: { seriesId: series.id, title: `Episode ${index}`, slug: `quota-${ownerId}-${index}`, sortOrder: index + 1, status: "PUBLISHED" },
+      });
+      episodeIds.push(episode.id);
+    }
 
     for (let index = 0; index < limit; index += 1) {
-      expect(await reserveFeatureUsage({ userId, role: null, feature: "podcast", refKey: keys[index]! })).toBe("allowed");
+      expect(await reserveDailyPlay(userId, episodeIds[index]!)).toEqual({ outcome: "allowed" });
     }
-    // Replaying a counted episode is free.
-    expect(await reserveFeatureUsage({ userId, role: null, feature: "podcast", refKey: keys[0]! })).toBe("already");
-    expect(await reserveFeatureUsage({ userId, role: null, feature: "podcast", refKey: keys[limit]! })).toBe("limit");
-    // Other features have their own counters.
-    expect(await reserveFeatureUsage({ userId, role: null, feature: "quiz" })).toBe("allowed");
-    expect(await reserveFeatureUsage({ userId, role: null, feature: "exhibition", refKey: "ex-1" })).toBe("allowed");
-    expect(await reserveFeatureUsage({ userId, role: null, feature: "exhibition", refKey: "ex-2" })).toBe("limit");
+    expect(await reserveDailyPlay(userId, episodeIds[0]!)).toEqual({ outcome: "already" });
+    expect(await reserveDailyPlay(userId, episodeIds[limit]!)).toEqual({ outcome: "limit" });
 
-    const row = await prisma.featureDailyUsage.findFirstOrThrow({ where: { userId, feature: "podcast" } });
-    expect(row.usageDate.toISOString()).toBe(quotaDay().toISOString());
+    const row = await prisma.listeningDailyPlay.findUniqueOrThrow({
+      where: { userId_playDate_episodeId: { userId, playDate: playDate(), episodeId: episodeIds[0]! } },
+    });
+    expect(row.playDate.toISOString()).toBe(playDate().toISOString());
 
     let duplicateRejected = false;
     try {
-      await prisma.featureDailyUsage.create({
-        data: { userId, feature: "podcast", usageDate: quotaDay(), refKey: keys[0]! },
-      });
+      await prisma.listeningDailyPlay.create({ data: { userId, playDate: playDate(), episodeId: episodeIds[0]! } });
     } catch (error) {
       duplicateRejected = error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002";
     }
@@ -42,20 +52,20 @@ test.skipIf(!RUN_INTEGRATION)("feature quota claims uses atomically per VN day",
 
     // One slot left: two parallel new episodes may claim it only once.
     for (let index = 0; index < limit - 1; index += 1) {
-      await prisma.featureDailyUsage.create({
-        data: { userId: otherId, feature: "podcast", usageDate: quotaDay(), refKey: keys[index]! },
-      });
+      await prisma.listeningDailyPlay.create({ data: { userId: otherId, playDate: playDate(), episodeId: episodeIds[index]! } });
     }
     const outcomes = await Promise.all([
-      reserveFeatureUsage({ userId: otherId, role: null, feature: "podcast", refKey: keys[limit]! }),
-      reserveFeatureUsage({ userId: otherId, role: null, feature: "podcast", refKey: keys[limit + 1]! }),
+      reserveDailyPlay(otherId, episodeIds[episodeIds.length - 2]!),
+      reserveDailyPlay(otherId, episodeIds[episodeIds.length - 1]!),
     ]);
-    expect(outcomes.sort()).toEqual(["allowed", "limit"]);
-    expect(
-      await prisma.featureDailyUsage.count({ where: { userId: otherId, feature: "podcast", usageDate: quotaDay() } }),
-    ).toBe(limit);
+    expect(outcomes.map((value) => value.outcome).sort()).toEqual(["allowed", "limit"]);
+    expect(await prisma.listeningDailyPlay.count({ where: { userId: otherId, playDate: playDate() } })).toBe(limit);
   } finally {
-    await prisma.featureDailyUsage.deleteMany({ where: { userId: { in: [userId, otherId] } } });
-    await prisma.user.deleteMany({ where: { id: { in: [userId, otherId] } } });
+    await prisma.listeningDailyPlay.deleteMany({ where: { userId: { in: [userId, otherId] } } });
+    if (seriesId) {
+      await prisma.episode.deleteMany({ where: { seriesId } });
+      await prisma.series.deleteMany({ where: { id: seriesId } });
+    }
+    await prisma.user.deleteMany({ where: { id: { in: [ownerId, userId, otherId] } } });
   }
 });

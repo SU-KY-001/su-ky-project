@@ -2,6 +2,7 @@ import { Hono } from "hono";
 import { z } from "zod";
 import { zValidator } from "@hono/zod-validator";
 import {
+  ExperienceStartQuerySchema,
   MyWeeklyMissionsSchema,
   PublicQuizSchema,
   PublicQuizCatalogQuerySchema,
@@ -18,11 +19,12 @@ import { attachSession, requireAuth, requireRole } from "../auth";
 import { GamificationService } from "./gamification.service";
 import { quizAuthoringRoute } from "./quiz-authoring.routes";
 import { createTopQuizzesRoute } from "./top-quizzes.routes";
+import { startExperience } from "../membership/application/experience-access";
 
 const episodeIdParam = z.object({ episodeId: z.string().uuid() });
 const quizIdParam = z.object({ quizId: z.string().uuid() });
 const slugParam = z.object({ slug: z.string().min(1) });
-const quizFormatQuery = z.object({ format: z.literal("2").optional() });
+const quizFormatQuery = ExperienceStartQuerySchema.extend({ format: z.literal("2").optional() });
 
 export const gamificationService = new GamificationService();
 
@@ -82,12 +84,14 @@ export const publicQuizRoute = new Hono<AppEnv>()
     requireAuth,
     zValidator("param", slugParam, throwOnInvalid),
     zValidator("query", quizFormatQuery, throwOnInvalid),
-    async (c) =>
-      c.json(
-        PublicQuizSchema.parse(
-          await gamificationService.getPublishedQuiz(c.req.valid("param").slug, c.req.valid("query").format === "2"),
-        ),
-      ),
+    async (c) => {
+      const { slug } = c.req.valid("param");
+      const { format, start } = c.req.valid("query");
+      const quiz = PublicQuizSchema.parse(await gamificationService.getPublishedQuiz(slug, format === "2"));
+      if (quiz.questions.length) await startExperience("quiz", c.get("session")!.user.id, quiz.id, start ?? crypto.randomUUID());
+      c.header("Cache-Control", "private, no-store");
+      return c.json(quiz);
+    },
   )
   .post(
     "/quizzes/:quizId/start",
@@ -120,6 +124,7 @@ export const publicQuizRoute = new Hono<AppEnv>()
             c.req.valid("param").quizId,
             user.id,
             c.req.valid("json"),
+            c.req.valid("json").start ?? null,
           ),
         ),
         201,

@@ -22,7 +22,7 @@ const EpisodeIdParam = z.object({ episodeId: z.string().uuid() });
 const QuizIdParam = z.object({ quizId: z.string().uuid() });
 const SlugParam = z.object({ slug: z.string().min(1) });
 // Cùng query schema inline trong gamification.routes.ts.
-const QuizFormatQuery = z.object({ format: z.literal("2").optional() });
+const QuizFormatQuery = z.object({ format: z.literal("2").optional(), start: z.string().uuid().optional() });
 export const gamificationPaths: Paths = {
   "/api/studio/script-import/extract": {
     post: {
@@ -129,18 +129,19 @@ export const gamificationPaths: Paths = {
       id: "getPublishedQuiz",
       tag: QUIZ_TAG,
       summary: "Lấy quiz của tập công khai",
-      description: "Không trả đáp án đúng hay giải thích trước khi nộp bài.",
+      description: "Mở một lượt làm quiz và áp dụng chính sách hiện hành. Không trả đáp án đúng hay giải thích trước khi nộp bài.",
       access: "user",
       pathParams: SlugParam,
       pathParamDocs: { slug: "Slug tập công khai" },
       query: QuizFormatQuery,
-      queryDocs: { format: "Truyền 2 nếu client hỗ trợ câu chọn nhiều và điền đáp án." },
+      queryDocs: { format: "Truyền 2 nếu client hỗ trợ câu chọn nhiều và điền đáp án.", start: "UUID của lượt làm. Dùng lại UUID khi gửi lại cùng yêu cầu." },
       ok: {
         status: 200,
         description: "Quiz cho người nghe",
         schema: { name: "PublicQuiz", schema: PublicQuizSchema },
       },
       errors: {
+        403: "`PREMIUM_REQUIRED` hoặc `EXPERIENCE_QUOTA_REACHED`",
         404: "`NOT_FOUND`: tập/Series chưa xuất bản hoặc tập chưa có quiz",
         409: "`CONFLICT`: quiz có dạng câu mới và client chưa yêu cầu format=2",
       },

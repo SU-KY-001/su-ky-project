@@ -11,12 +11,12 @@ mock.module("../src/modules/membership/application/entitlement", () => ({
   hasActiveMembership: async () => member,
   pendingOrderId: async () => null,
 }));
-mock.module("../src/modules/membership/application/feature-quota", () => ({
-  reserveFeatureUsage: async () => {
+mock.module("../src/modules/listening/application/daily-quota", () => ({
+  reserveDailyPlay: async () => {
     reserves += 1;
-    return outcome;
+    return { outcome, limit: 4 };
   },
-  getFeatureQuotas: async () => [],
+  getDailyQuotaStatus: async () => ({ enforced: true, limit: 4, usedToday: 4, remaining: 0, resetsAt: new Date() }),
 }));
 const { ListeningService } = await import("../src/modules/listening/application/listening.service");
 
@@ -72,5 +72,12 @@ test("premium members skip the quota", async () => {
 test("staff skip the quota", async () => {
   reset();
   await new ListeningService(repo, storage).playback("narration-1", "mod-1", "moderator");
+  expect(reserves).toBe(0);
+});
+
+test("a failure generating the playback URL does not consume quota", async () => {
+  reset();
+  const unavailable = { ...storage, audioDeliveryUrl: () => { throw new Error("Delivery unavailable"); } };
+  await expect(new ListeningService(repo, unavailable).playback("narration-1", "user-1")).rejects.toThrow("Delivery unavailable");
   expect(reserves).toBe(0);
 });

@@ -3,6 +3,8 @@ import {
   CreateMediaAssetSchema,
   CreateMembershipOrderSchema,
   PaginationQuerySchema,
+  PremiumPushEndpointSchema,
+  PremiumPushSubscriptionSchema,
 } from "@repo/shared";
 import { zValidator } from "@hono/zod-validator";
 import { Hono } from "hono";
@@ -11,6 +13,7 @@ import { idempotency, rateLimit, throwOnInvalid } from "../../../core/middleware
 import type { AppEnv } from "../../../types";
 import { requireAuth } from "../../auth";
 import type { MembershipService } from "../application/membership.service";
+import { latestPremiumRenewalReminder, premiumPushConfig, removePremiumPushSubscription, savePremiumPushSubscription } from "../application/renewal-reminders";
 
 const idParam = z.object({ id: z.string().uuid() });
 
@@ -27,6 +30,12 @@ export function createMeMembershipRoute(service: MembershipService) {
       const { user } = c.get("session")!;
       return c.json(await service.getEntitlementForUser(user.id, user.role));
     })
+    .get("/renewal-reminder", async (c) => c.json(await latestPremiumRenewalReminder(c.get("session")!.user.id)))
+    .get("/push-config", (c) => c.json(premiumPushConfig()))
+    .post("/push-subscription", rateLimit("write"), zValidator("json", PremiumPushSubscriptionSchema, throwOnInvalid), async (c) =>
+      c.json(await savePremiumPushSubscription(c.get("session")!.user.id, c.req.valid("json"))))
+    .delete("/push-subscription", rateLimit("write"), zValidator("json", PremiumPushEndpointSchema, throwOnInvalid), async (c) =>
+      c.json(await removePremiumPushSubscription(c.get("session")!.user.id, c.req.valid("json").endpoint)))
     .post(
       "/orders",
       idempotency(),

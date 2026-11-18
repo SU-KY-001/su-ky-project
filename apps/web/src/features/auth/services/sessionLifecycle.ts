@@ -17,6 +17,7 @@ export async function refreshAuthenticatedUser(queryClient: QueryClient): Promis
 
 export async function signOutSession(queryClient: QueryClient): Promise<void> {
   await authService.signOut();
+  void import("@/features/membership").then(({ unsubscribePremiumPushOnLogout }) => unsubscribePremiumPushOnLogout()).catch(() => undefined);
   await queryClient.cancelQueries();
   queryClient.setQueryData(currentUserQueryKey, null);
   queryClient.removeQueries({

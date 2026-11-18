@@ -7,9 +7,9 @@ mock.module("../src/modules/membership/application/entitlement", () => ({
   hasActiveMembership: async () => false,
   pendingOrderId: async () => null,
 }));
-mock.module("../src/modules/membership/application/feature-quota", () => ({
-  reserveFeatureUsage: async () => "allowed",
-  getFeatureQuotas: async () => [],
+mock.module("../src/modules/listening/application/daily-quota", () => ({
+  reserveDailyPlay: async () => ({ outcome: "allowed", limit: 4 }),
+  getDailyQuotaStatus: async () => ({ enforced: true, limit: 4, usedToday: 1, remaining: 3, resetsAt: new Date() }),
 }));
 const { ListeningService } = await import("../src/modules/listening/application/listening.service");
 
@@ -47,9 +47,9 @@ test("anonymous listeners cannot play anything", async () => {
   await expect(service.playback("narration-1", null, null)).rejects.toMatchObject({ status: 401, code: "AUTH_REQUIRED" });
 });
 
-test("free listeners without a membership cannot play premium audio", async () => {
+test("legacy episode labels do not block a free listener admitted under the feature policy", async () => {
   const service = new ListeningService(repoWith(narration()), storage);
-  await expect(service.playback("narration-1", "user-1", null)).rejects.toMatchObject({ status: 403, code: "PREMIUM_REQUIRED" });
+  expect((await service.playback("narration-1", "user-1", null)).audio.url).toBe("https://cdn.invalid/signed.mp3");
 });
 
 test("moderators review premium audio without a membership", async () => {
@@ -64,14 +64,14 @@ test("free audio is delivered through the expiring URL", async () => {
   expect(result.audio.url).toBe("https://cdn.invalid/signed.mp3");
 });
 
-test("progress sync is rejected for locked content", async () => {
+test("progress sync validates the audio version independently of legacy labels", async () => {
   const service = new ListeningService(repoWith(narration()), storage);
   await expect(
-    service.updateProgress("narration-1", "user-1", { assetId: "asset-1", positionMs: 1000, playedBitmap: "" } as never, null),
-  ).rejects.toMatchObject({ status: 403, code: "PREMIUM_REQUIRED" });
+    service.updateProgress("narration-1", "user-1", { assetId: "old-asset", positionMs: 1000, playedBitmap: "" } as never, null),
+  ).rejects.toMatchObject({ status: 409, code: "AUDIO_CHANGED" });
 });
 
-test("locked episode detail hides the script", async () => {
+test("public episode detail does not hide content using legacy labels", async () => {
   const episode = {
     id: "episode-1", slug: "tap-1", title: "Tập 1", description: null, publishedAt: null,
     isPremium: true, publicationApproval: null, entityTags: [], quiz: null,
@@ -80,6 +80,6 @@ test("locked episode detail hides the script", async () => {
   };
   const repo = { findPublicEpisodeBySlug: async () => episode } as unknown as ListeningRepository;
   const result = await new ListeningService(repo, {} as MediaStorageGateway).getEpisodeDetail("tap-1", null);
-  expect(result.locked).toBe(true);
-  expect(result.narrations[0]?.scriptContent).toBeNull();
+  expect(result.locked).toBe(false);
+  expect(result.narrations[0]?.scriptContent).toBe("Kịch bản trả tiền");
 });

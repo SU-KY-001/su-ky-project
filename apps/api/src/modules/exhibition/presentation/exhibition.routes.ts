@@ -1,10 +1,11 @@
 import { Hono } from "hono";
 import { z } from "zod";
 import { zValidator } from "@hono/zod-validator";
-import { CreateExhibitionSchema, ExhibitionListQuerySchema, ExhibitionPodcastQuerySchema, PublishExhibitionSchema, SaveExhibitionDraftSchema, UuidParamSchema, exhibitionTemplate } from "@repo/shared";
+import { CreateExhibitionSchema, ExhibitionListQuerySchema, ExhibitionPodcastQuerySchema, ExperienceStartQuerySchema, PublishExhibitionSchema, ResolvedExhibitionSchema, SaveExhibitionDraftSchema, UuidParamSchema, exhibitionTemplate } from "@repo/shared";
 import { idempotency, rateLimit, throwOnInvalid } from "../../../core/middleware";
 import type { AppEnv } from "../../../types";
 import { requireAuth, requireRole } from "../../auth";
+import { startExperience } from "../../membership/application/experience-access";
 import type { ExhibitionService } from "../application/exhibition.service";
 
 export function createStudioExhibitionRoute(service: ExhibitionService) {
@@ -28,13 +29,19 @@ export function createStudioExhibitionRoute(service: ExhibitionService) {
 }
 
 export function createPublicExhibitionRoute(service: ExhibitionService) {
-  const slugParam = z.object({ slug: z.string().min(1).max(280) });
   return new Hono<AppEnv>()
     .get("/exhibitions", async c => c.json(await service.listPublished()))
-    .get("/exhibitions/:slug", zValidator("param", slugParam, throwOnInvalid), async c => c.json(await service.publicExhibition(c.req.valid("param").slug)))
-    .post("/exhibitions/:slug/enter", requireAuth, idempotency(), rateLimit("write"), zValidator("param", slugParam, throwOnInvalid), async c => {
-      const session = c.get("session")!;
-      await service.enterExhibition(c.req.valid("param").slug, session.user.id, session.user.role);
-      return c.json({ entered: true });
-    });
+    .get(
+      "/exhibitions/:slug",
+      requireAuth,
+      zValidator("param", z.object({ slug: z.string().min(1).max(280) }), throwOnInvalid),
+      zValidator("query", ExperienceStartQuerySchema, throwOnInvalid),
+      async (c) => {
+        const { slug } = c.req.valid("param");
+        const exhibition = ResolvedExhibitionSchema.parse(await service.publicExhibition(slug));
+        await startExperience("exhibition", c.get("session")!.user.id, slug, c.req.valid("query").start ?? crypto.randomUUID());
+        c.header("Cache-Control", "private, no-store");
+        return c.json(exhibition);
+      },
+    );
 }

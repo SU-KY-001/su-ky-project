@@ -8,15 +8,16 @@ import { RevenueByPlanChart } from "./RevenueByPlanChart";
 
 export const premiumDestinations: Array<{ id: PremiumSection; label: string; description: string }> = [
   { id: "premium-plans", label: "Gói thành viên", description: "Cấu hình giá, thời hạn và trạng thái gói." },
-  { id: "premium-orders", label: "Danh sách và duyệt đơn", description: "Kiểm tra đơn thanh toán và bằng chứng chuyển khoản." },
+  { id: "premium-orders", label: "Đơn hàng", description: "Kiểm tra đơn thanh toán và bằng chứng chuyển khoản." },
   { id: "premium-transactions", label: "Sổ giao dịch", description: "Đối soát, gán giao dịch vào đơn hoặc bỏ qua." },
   { id: "premium-members", label: "Thành viên Premium", description: "Theo dõi thời hạn, cấp hoặc thu hồi quyền." },
+  { id: "premium-policies", label: "Quyền truy cập", description: "Chọn tính năng mở cho Free, giới hạn lượt mỗi ngày hoặc chỉ dành cho Premium." },
+  { id: "premium-audit", label: "Nhật ký Premium", description: "Tra cứu hoạt động quản trị và đối soát." },
 ];
 
 export function PremiumQuickLinks({ onNavigate }: { onNavigate: (section: PremiumSection) => void }): ReactNode {
   return <section className="admin-overview-panel p-5">
-    <div className="admin-overview-panel-heading"><div><h2>Premium & doanh thu</h2><p>Khu quản trị thanh toán và thành viên.</p></div><CardBadge type="status" tone="neutral">Chưa kết nối</CardBadge></div>
-    <p className="mb-3 text-xs leading-5 text-mod-text-secondary">Số liệu Premium sẽ được bổ sung sau khi hoàn thiện quy trình đối soát.</p>
+    <div className="admin-overview-panel-heading"><h2>Quản trị Premium</h2></div>
     <div className="grid gap-1">{premiumDestinations.map((item) => <button type="button" key={item.id} className="admin-premium-link" onClick={() => onNavigate(item.id)}><span>{item.label}</span><ArrowRight size={14} aria-hidden="true" /></button>)}</div>
   </section>;
 }

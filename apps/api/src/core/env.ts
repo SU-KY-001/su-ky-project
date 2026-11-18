@@ -32,6 +32,9 @@ const envSchema = z
     BANK_ACCOUNT_NUMBER: z.preprocess(emptyAsUndefined, z.string().min(1).optional()),
     BANK_ACCOUNT_NAME: z.preprocess(emptyAsUndefined, z.string().min(1).optional()),
     SEPAY_WEBHOOK_API_KEY: z.preprocess(emptyAsUndefined, z.string().min(1).optional()),
+    PREMIUM_PUSH_PUBLIC_KEY: z.preprocess(emptyAsUndefined, z.string().regex(/^[A-Za-z0-9_-]{87}$/).optional()),
+    PREMIUM_PUSH_PRIVATE_KEY: z.preprocess(emptyAsUndefined, z.string().regex(/^[A-Za-z0-9_-]{43}$/).optional()),
+    PREMIUM_PUSH_SUBJECT: z.preprocess(emptyAsUndefined, z.string().regex(/^(mailto:|https:\/\/).+/).optional()),
     SOURCE_PDF_TIMEOUT_MS: z.preprocess(
       emptyAsUndefined,
       z.coerce.number().int().positive().default(120000)
@@ -91,6 +94,10 @@ const envSchema = z
     AI_ASSIST_MAX_SOURCE_CHARS: z.preprocess(emptyAsUndefined, z.coerce.number().int().positive().default(8000)),
   })
   .superRefine((data, ctx) => {
+    const pushValues = [data.PREMIUM_PUSH_PUBLIC_KEY, data.PREMIUM_PUSH_PRIVATE_KEY, data.PREMIUM_PUSH_SUBJECT];
+    if (pushValues.some(Boolean) && !pushValues.every(Boolean)) {
+      ctx.addIssue({ code: z.ZodIssueCode.custom, path: ["PREMIUM_PUSH_PUBLIC_KEY"], message: "Configure all Premium Web Push VAPID values together" });
+    }
     if (data.NODE_ENV === "production") {
       if (!data.DATABASE_URL) {
         ctx.addIssue({

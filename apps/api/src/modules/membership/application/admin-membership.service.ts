@@ -1,4 +1,4 @@
-import type { Prisma } from "@repo/db";
+import type { AdminGrantMembership, AdminPlanPatch, PremiumAuditQuery } from "@repo/shared";
 import { getSystemConfig } from "../../../core/config/system-config";
 import { DomainError } from "../../../core/errors/domain-error";
 import { mediaStorage } from "../../media";
@@ -47,38 +47,31 @@ export class AdminMembershipService {
     };
   }
 
-  listPlans() {
-    return this.repo.listPlans();
+  async listPlans() {
+    const plan = await this.repo.findPlanByCode("monthly");
+    return plan ? [plan] : [];
   }
 
-  async updatePlan(code: string, patch: { name?: string; priceVnd?: number; durationDays?: number; isPurchasable?: boolean; isActive?: boolean; sortOrder?: number }, ctx: AdminContext) {
-    const before = await this.repo.findPlanByCode(code);
-    if (!before) throw new DomainError(404, "PLAN_NOT_FOUND", "Membership plan not found");
-    const after = { ...before, ...patch };
-    if (after.isPurchasable && (after.priceVnd <= 0 || after.durationDays <= 0))
-      throw new DomainError(422, "PLAN_NOT_PURCHASABLE", "A purchasable plan needs a positive price and duration");
-    const updated = await this.repo.updatePlan(before.id, patch);
-    await this.repo.audit({
-      actorId: ctx.actorId,
-      action: "membership.plan.update",
-      resourceType: "membership_plan",
-      resourceId: before.id,
-      changes: { before: before as unknown as Prisma.InputJsonValue, after: updated as unknown as Prisma.InputJsonValue },
-      ipAddress: ctx.ipAddress,
-    });
-    return updated;
+  updatePlan(code: string, patch: AdminPlanPatch, ctx: AdminContext) {
+    if (code !== "monthly") throw new DomainError(404, "PLAN_NOT_FOUND", "Membership plan not found");
+    return this.repo.updatePlan(code, patch, ctx);
+  }
+
+  async listAudit(query: PremiumAuditQuery) {
+    return { ...await this.repo.listPremiumAudit(query), page: query.page, limit: query.limit };
   }
 
   async listOrders(query: Parameters<MembershipRepository["listOrdersForAdmin"]>[0]) {
     const result = await this.repo.listOrdersForAdmin(query);
-    return { ...result, items: result.items.map((row) => this.mapOrder(row)) };
+    return { ...result, page: query.page, limit: query.limit, items: result.items.map((row) => this.mapOrder(row)) };
   }
 
   async getOrder(id: string) {
     const row = await this.repo.findOrderDetailForAdmin(id);
     if (!row) throw new DomainError(404, "MEMBERSHIP_ORDER_NOT_FOUND", "Membership order not found");
     const transactions = await this.repo.listTransactionsByOrder(id);
-    return { ...this.mapOrder(row), transactions: transactions.map((tx) => this.mapTransaction(tx)) };
+    const history = await this.repo.paymentHistory(id, transactions.map((tx) => tx.id));
+    return { ...this.mapOrder(row), transactions: transactions.map((tx) => this.mapTransaction(tx)), history };
   }
 
   async verifyOrder(id: string, body: { action: "approve" | "reject"; reason?: string; note?: string }, ctx: AdminContext) {
@@ -103,23 +96,33 @@ export class AdminMembershipService {
       orderId: id,
       now: new Date(),
       actorId: ctx.actorId,
+      ipAddress: ctx.ipAddress,
+      note: body.note,
       maxStackDays,
     });
     if (result.status === "stack_limit") throw new DomainError(422, "STACK_LIMIT_REACHED", "Membership would exceed the stacking limit");
-    await this.repo.audit({
-      actorId: ctx.actorId,
-      action: "membership.order.verify",
-      resourceType: "membership_order",
-      resourceId: id,
-      changes: { before: { status: order.status }, after: { status: "paid", membershipId: result.membershipId, bankTransactionId: result.bankTransactionId }, note: body.note },
-      ipAddress: ctx.ipAddress,
-    });
     return this.getOrder(id);
   }
 
   async listTransactions(query: Parameters<MembershipRepository["listTransactionsForAdmin"]>[0]) {
     const result = await this.repo.listTransactionsForAdmin(query);
-    return { ...result, items: result.items.map((row) => this.mapTransaction(row)) };
+    return { ...result, page: query.page, limit: query.limit, items: result.items.map((row) => this.mapTransaction(row)) };
+  }
+
+  async getTransaction(id: string) {
+    const transaction = await this.repo.findTransactionById(id);
+    if (!transaction) throw new DomainError(404, "NOT_FOUND", "Transaction not found");
+    const [order, history] = await Promise.all([
+      transaction.orderId ? this.repo.findOrder(transaction.orderId) : null,
+      this.repo.paymentHistory(null, [id]),
+    ]);
+    return {
+      ...this.mapTransaction({
+        ...transaction,
+        order: order ? { id: order.id, userId: order.userId, transferContent: order.transferContent, status: order.status } : null,
+      }),
+      history,
+    };
   }
 
   async resolveTransaction(id: string, body: { action: "assign" | "ignore"; orderId?: string; note?: string }, ctx: AdminContext) {
@@ -129,19 +132,11 @@ export class AdminMembershipService {
 
     if (body.action === "ignore") {
       // Conditional: the webhook may match the transaction between the read and this write.
-      if (!(await this.repo.markTransactionIfOpen(id, "MANUAL_IGNORE"))) {
+      if (!(await this.repo.markTransactionIfOpen(id, "MANUAL_IGNORE", ctx, body.note))) {
         const current = await this.repo.findTransactionById(id);
         if (current?.status === "matched") throw new DomainError(409, "ORDER_NOT_PENDING", "Transaction is already matched");
         return this.mapTransaction({ ...(current ?? transaction), order: null });
       }
-      await this.repo.audit({
-        actorId: ctx.actorId,
-        action: "membership.transaction.resolve",
-        resourceType: "payment_transaction",
-        resourceId: id,
-        changes: { before: { status: transaction.status }, after: { status: "ignored" }, note: body.note },
-        ipAddress: ctx.ipAddress,
-      });
       return this.mapTransaction({ ...transaction, status: "ignored", reason: "MANUAL_IGNORE", order: null });
     }
 
@@ -155,28 +150,23 @@ export class AdminMembershipService {
       throw new DomainError(422, "VALIDATION_ERROR", "Transaction amount does not match the order price");
 
     const maxStackDays = await getSystemConfig("premium.max_stack_days");
-    const result = await this.repo.applyTransaction({ transactionId: id, orderId, actorId: ctx.actorId, maxStackDays, now: new Date() });
-    await this.repo.audit({
-      actorId: ctx.actorId,
-      action: "membership.transaction.resolve",
-      resourceType: "payment_transaction",
-      resourceId: id,
-      changes: { before: { status: transaction.status }, after: { status: result.status, reason: result.reason, orderId }, note: body.note },
-      ipAddress: ctx.ipAddress,
-    });
+    const result = await this.repo.applyTransaction({ transactionId: id, orderId, ...ctx, note: body.note, maxStackDays, now: new Date() });
     const updated = await this.repo.findTransactionById(id);
     return { transaction: updated ? this.mapTransaction({ ...updated, order: null }) : null, result };
   }
 
   async listMembers(query: Parameters<MembershipRepository["listMembersForAdmin"]>[0]) {
-    return this.repo.listMembersForAdmin(query);
+    const result = await this.repo.listMembersForAdmin(query);
+    return { ...result, page: query.page, limit: query.limit };
   }
 
-  async grant(userId: string, body: { planCode: "monthly"; reason: string }, ctx: AdminContext) {
+  async grant(userId: string, body: AdminGrantMembership, ctx: AdminContext) {
     const user = await this.repo.findUser(userId);
     if (!user) throw new DomainError(404, "NOT_FOUND", "User not found");
     const plan = await this.repo.findPlanByCode(body.planCode);
-    if (!plan || !plan.isActive) throw new DomainError(422, "PLAN_NOT_PURCHASABLE", "Plan cannot be granted");
+    if (!plan || !plan.isActive || plan.durationDays <= 0 || plan.code !== "monthly") {
+      throw new DomainError(422, "PLAN_NOT_PURCHASABLE", "Plan cannot be granted");
+    }
 
     const maxStackDays = await getSystemConfig("premium.max_stack_days");
     const granted = await this.repo.grantCompMembership({
@@ -185,15 +175,8 @@ export class AdminMembershipService {
       reason: body.reason,
       now: new Date(),
       actorId: ctx.actorId,
-      maxStackDays,
-    });
-    await this.repo.audit({
-      actorId: ctx.actorId,
-      action: "membership.grant",
-      resourceType: "membership_order",
-      resourceId: granted.orderId,
-      changes: { userId, planCode: body.planCode, reason: body.reason, membershipId: granted.result.membershipId },
       ipAddress: ctx.ipAddress,
+      maxStackDays,
     });
     return { orderId: granted.orderId, membershipId: granted.result.membershipId, userId, expiresAt: granted.result.expiresAt };
   }
@@ -201,16 +184,8 @@ export class AdminMembershipService {
   async revoke(userId: string, body: { reason: string }, ctx: AdminContext) {
     const user = await this.repo.findUser(userId);
     if (!user) throw new DomainError(404, "NOT_FOUND", "User not found");
-    const count = await this.repo.revokeActiveMemberships(userId, body.reason, new Date());
+    const count = await this.repo.revokeActiveMemberships(userId, body.reason, new Date(), ctx);
     if (count === 0) throw new DomainError(404, "NOT_FOUND", "User has no active membership");
-    await this.repo.audit({
-      actorId: ctx.actorId,
-      action: "membership.revoke",
-      resourceType: "membership",
-      resourceId: userId,
-      changes: { revoked: count, reason: body.reason },
-      ipAddress: ctx.ipAddress,
-    });
     return { userId, revoked: count };
   }
 

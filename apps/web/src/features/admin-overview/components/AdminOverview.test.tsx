@@ -65,20 +65,19 @@ it("renders API totals and the top episode, with accepted listening time convert
   expect(host.querySelector("tbody")?.textContent).toContain("1,0 giờ");
 });
 
-it("keeps Premium unconnected and routes every business shortcut to its own screen", async () => {
+it("shows the report empty state and routes every Premium shortcut", async () => {
   const navigate = mock((_section: PremiumSection): void => undefined);
   const host = await render(<PremiumOverview onNavigate={navigate} />);
-  expect(host.textContent).toContain("Chưa kết nối");
+  expect(host.textContent).toContain("Chưa có dữ liệu báo cáo");
   expect(Array.from(host.querySelectorAll("dl dd")).map((node) => node.textContent)).toEqual(["—", "—", "—", "—"]);
   const buttons = host.querySelectorAll<HTMLButtonElement>(".admin-premium-link");
-  expect(buttons).toHaveLength(4);
+  expect(buttons).toHaveLength(6);
   for (const button of buttons) await act(async () => button.click());
-  expect(navigate.mock.calls).toEqual([["premium-plans"], ["premium-orders"], ["premium-transactions"], ["premium-members"]]);
+  expect(navigate.mock.calls).toEqual([["premium-plans"], ["premium-orders"], ["premium-transactions"], ["premium-members"], ["premium-policies"], ["premium-audit"]]);
 });
 
-it("does not enable financial mutations while Premium logic is awaiting connection", async () => {
-  const host = await render(<PremiumWorkspace section="premium-transactions" onNavigate={() => undefined} />);
-  expect(host.querySelector("input")?.disabled).toBe(true);
-  expect(Array.from(host.querySelectorAll("button")).find((button) => button.textContent === "Đối soát giao dịch")?.disabled).toBe(true);
-  expect(host.textContent).toContain("Giao dịch chưa khớp không phải doanh thu");
+it("renders the active Premium section and its content", async () => {
+  const host = await render(<PremiumWorkspace section="premium-transactions"><p>Danh sách giao dịch</p></PremiumWorkspace>);
+  expect(host.querySelector("h1")?.textContent).toBe("Sổ giao dịch");
+  expect(host.textContent).toContain("Danh sách giao dịch");
 });

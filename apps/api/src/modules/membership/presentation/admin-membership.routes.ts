@@ -8,6 +8,9 @@ import {
   AdminRevokeMembershipSchema,
   AdminTransactionQuerySchema,
   AdminVerifyOrderSchema,
+  ExperienceFeatureSchema,
+  ExperiencePolicyInputSchema,
+  PremiumAuditQuerySchema,
 } from "@repo/shared";
 import { zValidator } from "@hono/zod-validator";
 import { Hono } from "hono";
@@ -17,6 +20,7 @@ import { requestIpAddress } from "../../../core/audit";
 import type { AppEnv } from "../../../types";
 import { requireAdmin } from "../../auth";
 import type { AdminMembershipService } from "../application/admin-membership.service";
+import { listExperiencePolicies, updateExperiencePolicy } from "../application/experience-access";
 
 const DAY_MS = 86_400_000;
 const idParam = z.object({ id: z.string().uuid() });
@@ -31,6 +35,15 @@ const context = (c: {
 export function createAdminMembershipRoute(service: AdminMembershipService) {
   return new Hono<AppEnv>()
     .use("*", requireAdmin)
+    .get("/audit", zValidator("query", PremiumAuditQuerySchema, throwOnInvalid), async (c) => c.json(await service.listAudit(c.req.valid("query"))))
+    .get("/experience-policies", async (c) => c.json(await listExperiencePolicies()))
+    .patch(
+      "/experience-policies/:feature",
+      rateLimit("write"),
+      zValidator("param", z.object({ feature: ExperienceFeatureSchema }), throwOnInvalid),
+      zValidator("json", ExperiencePolicyInputSchema, throwOnInvalid),
+      async (c) => c.json(await updateExperiencePolicy(c.req.valid("param").feature, c.req.valid("json"), context(c))),
+    )
     .get("/plans", async (c) => c.json(await service.listPlans()))
     .patch(
       "/plans/:code",
@@ -63,6 +76,9 @@ export function createAdminMembershipRoute(service: AdminMembershipService) {
         }),
       );
     })
+    .get("/transactions/:id", zValidator("param", idParam, throwOnInvalid), async (c) =>
+      c.json(await service.getTransaction(c.req.valid("param").id)),
+    )
     .post(
       "/transactions/:id/resolve",
       rateLimit("write"),

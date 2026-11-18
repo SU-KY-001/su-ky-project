@@ -10,6 +10,7 @@ export function mapPlan(plan: MembershipPlanEntity) {
   return {
     code: plan.code,
     name: plan.name,
+    benefits: plan.benefits,
     priceVnd: plan.priceVnd,
     durationDays: plan.durationDays,
     isPurchasable: plan.isPurchasable,

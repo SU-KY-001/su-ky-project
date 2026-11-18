@@ -1,5 +1,6 @@
 import { randomBytes } from "node:crypto";
 import { Prisma, prisma, type PrismaClient } from "@repo/db";
+import type { AdminMemberQuery, PremiumAuditEntry, PremiumAuditQuery } from "@repo/shared";
 import { DomainError } from "../../../core/errors/domain-error";
 import { writeAudit, type AuditInput } from "../../../core/audit";
 import type {
@@ -8,7 +9,6 @@ import type {
   CreateOrderInput,
   GrantCompMembershipInput,
   InsertTransactionInput,
-  MemberQuery,
   MembershipRepository,
   OrderQuery,
   ReportQuery,
@@ -30,15 +30,27 @@ import type {
 const DAY_MS = 86_400_000;
 const TRANSFER_PREFIX = "SK";
 const COMP_PREFIX = "CMP";
+const auditSelect = { id: true, action: true, resourceType: true, resourceId: true, actorType: true, actor: { select: { id: true, name: true } }, changes: true, createdAt: true } as const;
 
 type OrderRow = Prisma.MembershipOrderGetPayload<{ include: { membership: true } }>;
 type PlanRow = Prisma.MembershipPlanGetPayload<object>;
+
+function reusableOrderWhere(userId: string, plan: MembershipPlanEntity): Prisma.MembershipOrderWhereInput {
+  return {
+    userId, planId: plan.id,
+    OR: [
+      { status: "needs_review" },
+      { status: "pending", planNameSnapshot: plan.name, priceVnd: plan.priceVnd, durationDays: plan.durationDays },
+    ],
+  };
+}
 
 function toPlan(row: PlanRow): MembershipPlanEntity {
   return {
     id: row.id,
     code: row.code,
     name: row.name,
+    benefits: row.benefits,
     priceVnd: row.priceVnd,
     durationDays: row.durationDays,
     isPurchasable: row.isPurchasable,
@@ -47,6 +59,20 @@ function toPlan(row: PlanRow): MembershipPlanEntity {
     createdAt: row.createdAt,
     updatedAt: row.updatedAt,
   };
+}
+
+function validatePurchasablePlan(plan: Pick<PlanRow, "code" | "isPurchasable" | "isActive" | "priceVnd" | "durationDays">): void {
+  if ((plan.code === "yearly" && (plan.isActive || plan.isPurchasable)) || (plan.code === "free" && plan.isPurchasable)) {
+    throw new DomainError(422, "PLAN_NOT_PURCHASABLE", "This plan cannot be enabled for sale");
+  }
+  if (plan.isPurchasable && (plan.priceVnd <= 0 || plan.durationDays <= 0)) {
+    throw new DomainError(422, "PLAN_NOT_PURCHASABLE", "A purchasable plan needs a positive price and duration");
+  }
+}
+
+function planAuditValues(plan: PlanRow) {
+  const { code, name, benefits, priceVnd, durationDays, isPurchasable, isActive, sortOrder } = plan;
+  return { code, name, benefits, priceVnd, durationDays, isPurchasable, isActive, sortOrder };
 }
 
 function toMembership(row: Prisma.MembershipGetPayload<object>): MembershipEntity {
@@ -112,6 +138,29 @@ function toTransaction(row: Prisma.PaymentTransactionGetPayload<object>): Paymen
   };
 }
 
+async function updatePaymentStatus(
+  tx: Prisma.TransactionClient,
+  before: Pick<PaymentTransactionEntity, "id" | "status" | "reason" | "orderId">,
+  after: Pick<PaymentTransactionEntity, "status" | "reason" | "orderId">,
+  actor: { actorId: string | null; ipAddress?: string | null; note?: string },
+): Promise<void> {
+  if (before.status === after.status && before.reason === after.reason && before.orderId === after.orderId) return;
+  await tx.paymentTransaction.update({ where: { id: before.id }, data: after });
+  await writeAudit(tx, {
+    actorId: actor.actorId,
+    actorType: actor.actorId ? "ADMIN" : "SYSTEM",
+    ipAddress: actor.ipAddress ?? null,
+    action: "membership.transaction.status",
+    resourceType: "payment_transaction",
+    resourceId: before.id,
+    changes: {
+      before: { status: before.status, reason: before.reason, orderId: before.orderId },
+      after,
+      ...(actor.note ? { note: actor.note } : {}),
+    },
+  });
+}
+
 function isUniqueViolation(error: unknown): boolean {
   return error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002";
 }
@@ -136,7 +185,7 @@ export class PrismaMembershipRepository implements MembershipRepository {
   constructor(private readonly db: PrismaClient = prisma) {}
 
   async listPlans(): Promise<MembershipPlanEntity[]> {
-    const rows = await this.db.membershipPlan.findMany({ orderBy: { sortOrder: "asc" } });
+    const rows = await this.db.membershipPlan.findMany({ orderBy: [{ sortOrder: "asc" }, { code: "asc" }] });
     return rows.map(toPlan);
   }
 
@@ -145,9 +194,23 @@ export class PrismaMembershipRepository implements MembershipRepository {
     return row ? toPlan(row) : null;
   }
 
-  async updatePlan(id: string, patch: Partial<Pick<MembershipPlanEntity, "name" | "priceVnd" | "durationDays" | "isPurchasable" | "isActive" | "sortOrder">>): Promise<MembershipPlanEntity> {
-    const row = await this.db.membershipPlan.update({ where: { id }, data: patch });
-    return toPlan(row);
+  async updatePlan(...[code, patch, actor]: Parameters<MembershipRepository["updatePlan"]>): Promise<MembershipPlanEntity> {
+    return this.db.$transaction(async (tx) => {
+      await tx.$queryRaw`SELECT id FROM membership_plans WHERE code = ${code} FOR UPDATE`;
+      const before = await tx.membershipPlan.findUnique({ where: { code } });
+      if (!before) throw new DomainError(404, "PLAN_NOT_FOUND", "Membership plan not found");
+      validatePurchasablePlan({ ...before, ...patch });
+      const after = await tx.membershipPlan.update({ where: { code }, data: patch });
+      await writeAudit(tx, {
+        ...actor,
+        actorType: "ADMIN",
+        action: "membership.plan.update",
+        resourceType: "membership_plan",
+        resourceId: after.id,
+        changes: { before: planAuditValues(before), after: planAuditValues(after) },
+      });
+      return toPlan(after);
+    });
   }
 
   async findActiveMembership(userId: string, now: Date): Promise<MembershipWithPlan | null> {
@@ -181,19 +244,20 @@ export class PrismaMembershipRepository implements MembershipRepository {
       try {
         return await this.db.$transaction(async (tx) => {
           await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${input.userId}))`;
+          await tx.$queryRaw`SELECT id FROM membership_plans WHERE id = ${input.plan.id}::uuid FOR SHARE`;
+          const plan = await tx.membershipPlan.findUniqueOrThrow({ where: { id: input.plan.id } });
+          if (!plan.isActive || !plan.isPurchasable) {
+            throw new DomainError(422, "PLAN_NOT_PURCHASABLE", "This plan cannot be purchased");
+          }
+          if (plan.priceVnd !== input.plan.priceVnd || plan.durationDays !== input.plan.durationDays || plan.name !== input.plan.name) {
+            throw new DomainError(409, "CONFLICT", "Membership plan was updated; reload the current plan");
+          }
           const existing = await tx.membershipOrder.findFirst({
-            where: { userId: input.userId, status: { in: ["pending", "needs_review"] } },
-            orderBy: { createdAt: "desc" },
+            where: reusableOrderWhere(input.userId, input.plan),
+            orderBy: [{ status: "desc" }, { createdAt: "desc" }, { id: "desc" }],
             include: { membership: true },
           });
-          if (existing?.status === "needs_review") return toOrder(existing);
-          if (existing && existing.priceVnd === input.plan.priceVnd && existing.durationDays === input.plan.durationDays)
-            return toOrder(existing);
-          if (existing)
-            await tx.membershipOrder.update({
-              where: { id: existing.id },
-              data: { status: "rejected", rejectionReason: "PLAN_PRICE_CHANGED" },
-            });
+          if (existing) return toOrder(existing);
           let code = transferCode(TRANSFER_PREFIX);
           while (await tx.membershipOrder.findUnique({ where: { transferContent: code }, select: { id: true } }))
             code = transferCode(TRANSFER_PREFIX);
@@ -209,6 +273,15 @@ export class PrismaMembershipRepository implements MembershipRepository {
             },
             include: { membership: true },
           });
+          await writeAudit(tx, {
+            actorId: input.userId,
+            actorType: "USER",
+            action: "membership.order.create",
+            resourceType: "membership_order",
+            resourceId: created.id,
+            ipAddress: null,
+            changes: { before: null, after: { status: "pending", planCode: created.planCodeSnapshot, priceVnd: created.priceVnd, durationDays: created.durationDays } },
+          });
           return toOrder(created);
         });
       } catch (error) {
@@ -217,6 +290,15 @@ export class PrismaMembershipRepository implements MembershipRepository {
       }
     }
     throw new DomainError(500, "INTERNAL_SERVER_ERROR", "Could not allocate a unique transfer code");
+  }
+
+  async findReusableOrder(userId: string, plan: MembershipPlanEntity): Promise<MembershipOrderEntity | null> {
+    const row = await this.db.membershipOrder.findFirst({
+      where: reusableOrderWhere(userId, plan),
+      orderBy: [{ status: "desc" }, { createdAt: "desc" }, { id: "desc" }],
+      include: { membership: true },
+    });
+    return row ? toOrder(row) : null;
   }
 
   async grantCompMembership(input: GrantCompMembershipInput): Promise<{ orderId: string; result: ActivationResult }> {
@@ -245,6 +327,23 @@ export class PrismaMembershipRepository implements MembershipRepository {
       });
       if (result.status === "stack_limit")
         throw new DomainError(422, "STACK_LIMIT_REACHED", "Membership would exceed the stacking limit");
+      if (input.actorId) {
+        const membership = await tx.membership.findUniqueOrThrow({ where: { orderId: order.id } });
+        await writeAudit(tx, {
+          actorId: input.actorId,
+          actorType: "ADMIN",
+          ipAddress: input.ipAddress ?? null,
+          action: "membership.grant",
+          resourceType: "membership",
+          resourceId: input.userId,
+          changes: {
+            before: null,
+            after: { membershipId: membership.id, planCode: input.plan.code, startsAt: membership.startsAt.toISOString(), expiresAt: membership.expiresAt.toISOString() },
+            orderId: order.id,
+            reason: input.reason,
+          },
+        });
+      }
       return { orderId: order.id, result };
     });
   }
@@ -280,11 +379,23 @@ export class PrismaMembershipRepository implements MembershipRepository {
     return row ? toOrder(row) : null;
   }
 
-  async insertTransaction(input: InsertTransactionInput): Promise<PaymentTransactionEntity> {
-    const row = await this.db.paymentTransaction.create({
-      data: { ...input, rawPayload: input.rawPayload as Prisma.InputJsonValue },
+  async insertTransaction({ direction, rawPayload, ...input }: InsertTransactionInput): Promise<PaymentTransactionEntity> {
+    return this.db.$transaction(async (tx) => {
+      const ignored = direction === "out";
+      const row = await tx.paymentTransaction.create({
+        data: { ...input, rawPayload: rawPayload as Prisma.InputJsonValue, ...(ignored ? { status: "ignored", reason: "OUTBOUND" } : {}) },
+      });
+      await writeAudit(tx, {
+        actorId: null,
+        actorType: "SYSTEM",
+        action: "membership.transaction.receive",
+        resourceType: "payment_transaction",
+        resourceId: row.id,
+        ipAddress: null,
+        changes: { before: null, after: { status: row.status, reason: row.reason, referenceCode: row.referenceCode, amount: row.amount } },
+      });
+      return toTransaction(row);
     });
-    return toTransaction(row);
   }
 
   async findTransactionByProviderRef(provider: string, externalId: string): Promise<PaymentTransactionEntity | null> {
@@ -300,18 +411,22 @@ export class PrismaMembershipRepository implements MembershipRepository {
   }
 
   async markTransaction(id: string, status: "unmatched" | "needs_review" | "matched" | "ignored", reason: string | null, orderId?: string | null): Promise<void> {
-    await this.db.paymentTransaction.update({
-      where: { id },
-      data: { status, reason, ...(orderId === undefined ? {} : { orderId }) },
+    await this.db.$transaction(async (tx) => {
+      await tx.$queryRaw`SELECT id FROM payment_transactions WHERE id = ${id}::uuid FOR UPDATE`;
+      const before = await tx.paymentTransaction.findUniqueOrThrow({ where: { id } });
+      if (before.status === "matched" || before.status === "ignored") return;
+      await updatePaymentStatus(tx, before, { status, reason, orderId: orderId === undefined ? before.orderId : orderId }, { actorId: null });
     });
   }
 
-  async markTransactionIfOpen(id: string, reason: string): Promise<boolean> {
-    const result = await this.db.paymentTransaction.updateMany({
-      where: { id, status: { in: ["unmatched", "needs_review"] } },
-      data: { status: "ignored", reason },
+  async markTransactionIfOpen(id: string, reason: string, actor?: Parameters<MembershipRepository["markTransactionIfOpen"]>[2], note?: string): Promise<boolean> {
+    return this.db.$transaction(async (tx) => {
+      await tx.$queryRaw`SELECT id FROM payment_transactions WHERE id = ${id}::uuid FOR UPDATE`;
+      const before = await tx.paymentTransaction.findUniqueOrThrow({ where: { id } });
+      if (before.status === "matched" || before.status === "ignored") return false;
+      await updatePaymentStatus(tx, before, { status: "ignored", reason, orderId: before.orderId }, { actorId: actor?.actorId ?? null, ipAddress: actor?.ipAddress, note });
+      return true;
     });
-    return result.count > 0;
   }
 
   async activateOrder(input: ActivateOrderInput): Promise<ActivationResult> {
@@ -320,6 +435,49 @@ export class PrismaMembershipRepository implements MembershipRepository {
 
   audit(entry: AuditInput): Promise<void> {
     return writeAudit(this.db, entry);
+  }
+
+  paymentHistory(orderId: string | null, transactionIds: string[]): Promise<PremiumAuditEntry[]> {
+    return this.db.auditLog.findMany({
+      where: {
+        OR: [
+          ...(orderId ? [
+            { resourceType: "membership_order", resourceId: orderId },
+            { action: "membership.activated", changes: { path: ["orderId"], equals: orderId } },
+          ] : []),
+          { resourceType: "payment_transaction", resourceId: { in: transactionIds } },
+        ],
+      },
+      select: auditSelect,
+      orderBy: [{ createdAt: "asc" }, { id: "asc" }],
+    });
+  }
+
+  async listPremiumAudit(query: PremiumAuditQuery) {
+    const where: Prisma.AuditLogWhereInput = {
+      action: { startsWith: "membership.", equals: query.action },
+      resourceType: query.resourceType,
+      createdAt: {
+        gte: query.from ? new Date(`${query.from}T00:00:00+07:00`) : undefined,
+        lt: query.to ? new Date(new Date(`${query.to}T00:00:00+07:00`).getTime() + DAY_MS) : undefined,
+      },
+      ...(query.q ? { OR: [
+        { resourceId: { contains: query.q, mode: "insensitive" } },
+        { actor: { name: { contains: query.q, mode: "insensitive" } } },
+        { actor: { email: { contains: query.q, mode: "insensitive" } } },
+      ] } : {}),
+    };
+    const [items, total] = await this.db.$transaction([
+      this.db.auditLog.findMany({
+        where,
+        select: auditSelect,
+        orderBy: [{ createdAt: "desc" }, { id: "desc" }],
+        skip: (query.page - 1) * query.limit,
+        take: query.limit,
+      }),
+      this.db.auditLog.count({ where }),
+    ], { isolationLevel: "RepeatableRead" });
+    return { items, total };
   }
 
   async rejectOrderIfOpen(
@@ -335,6 +493,7 @@ export class PrismaMembershipRepository implements MembershipRepository {
       if (result.count === 0) return false;
       await writeAudit(tx, {
         actorId: options.actorId,
+        actorType: "ADMIN",
         action: "membership.order.reject",
         resourceType: "membership_order",
         resourceId: id,
@@ -367,6 +526,17 @@ export class PrismaMembershipRepository implements MembershipRepository {
         where: { id: order.id },
         data: { status: "needs_review", reviewReason: "STACK_LIMIT_REACHED" },
       });
+      if (order.status !== "needs_review" || order.reviewReason !== "STACK_LIMIT_REACHED") {
+        await writeAudit(tx, {
+          actorId: input.actorId,
+          actorType: input.actorId ? "ADMIN" : "SYSTEM",
+          action: "membership.order.review",
+          resourceType: "membership_order",
+          resourceId: order.id,
+          changes: { before: { status: order.status }, after: { status: "needs_review", reason: "STACK_LIMIT_REACHED" } },
+          ipAddress: input.ipAddress ?? null,
+        });
+      }
       return { status: "stack_limit" };
     }
 
@@ -391,6 +561,19 @@ export class PrismaMembershipRepository implements MembershipRepository {
         expiresAt,
       },
     });
+    await writeAudit(tx, {
+      actorId: input.actorId,
+      actorType: input.actorId ? "ADMIN" : "SYSTEM",
+      action: "membership.order.paid",
+      resourceType: "membership_order",
+      resourceId: order.id,
+      ipAddress: input.ipAddress ?? null,
+      changes: {
+        before: { status: order.status },
+        after: { status: "paid", membershipId: membership.id, bankTransactionId: input.bankTransactionId ?? order.bankTransactionId },
+        ...(input.note ? { note: input.note } : {}),
+      },
+    });
     return { status: "activated", membershipId: membership.id, expiresAt, bankTransactionId: input.bankTransactionId ?? order.bankTransactionId };
   }
 
@@ -402,21 +585,24 @@ export class PrismaMembershipRepository implements MembershipRepository {
         return { status: transaction.status === "matched" ? "matched" : "needs_review", reason: transaction.reason };
 
       const fail = async (reason: string, orderId: string | null) => {
-        await tx.paymentTransaction.update({ where: { id: transaction.id }, data: { status: "needs_review", reason, orderId } });
+        await updatePaymentStatus(tx, transaction, { status: "needs_review", reason, orderId }, input);
         return { status: "needs_review" as const, reason };
       };
 
-      const order = await tx.membershipOrder.findFirst({ where: { id: input.orderId } });
-      if (!order) return fail("NO_MATCHING_ORDER", null);
+      const preview = await tx.membershipOrder.findUnique({ where: { id: input.orderId }, select: { userId: true } });
+      if (!preview) return fail("NO_MATCHING_ORDER", null);
+      await tx.$queryRaw`SELECT id FROM users WHERE id = ${preview.userId}::varchar FOR UPDATE`;
+      await tx.$queryRaw`SELECT id FROM membership_orders WHERE id = ${input.orderId}::uuid FOR UPDATE`;
+      const order = await tx.membershipOrder.findUniqueOrThrow({ where: { id: input.orderId } });
       if (transaction.amount !== order.priceVnd) return fail("AMOUNT_MISMATCH", order.id);
       if (order.status === "rejected") return fail("ORDER_REJECTED", order.id);
-      if (order.status === "needs_review") return fail("ORDER_NEEDS_REVIEW", order.id);
+      if (order.status === "needs_review" && !input.actorId) return fail("ORDER_NEEDS_REVIEW", order.id);
 
       const reference = transaction.externalId;
       if (order.status === "paid") {
         if (order.bankTransactionId && order.bankTransactionId !== reference) return fail("ORDER_ALREADY_PAID", order.id);
         await tx.membershipOrder.update({ where: { id: order.id }, data: { bankTransactionId: reference } });
-        await tx.paymentTransaction.update({ where: { id: transaction.id }, data: { status: "matched", reason: null, orderId: order.id } });
+        await updatePaymentStatus(tx, transaction, { status: "matched", reason: null, orderId: order.id }, input);
         return { status: "matched" as const, reason: null };
       }
 
@@ -424,17 +610,19 @@ export class PrismaMembershipRepository implements MembershipRepository {
         orderId: order.id,
         now: input.now,
         actorId: input.actorId,
+        ipAddress: input.ipAddress,
+        note: input.note,
         bankTransactionId: reference,
         maxStackDays: input.maxStackDays,
       });
       if (result.status === "activated") {
-        await tx.paymentTransaction.update({ where: { id: transaction.id }, data: { status: "matched", reason: null, orderId: order.id } });
+        await updatePaymentStatus(tx, transaction, { status: "matched", reason: null, orderId: order.id }, input);
         return { status: "matched" as const, reason: null, membershipId: result.membershipId };
       }
       if (result.status === "already_paid") {
         if (result.bankTransactionId && result.bankTransactionId !== reference) return fail("ORDER_ALREADY_PAID", order.id);
         await tx.membershipOrder.update({ where: { id: order.id }, data: { bankTransactionId: reference } });
-        await tx.paymentTransaction.update({ where: { id: transaction.id }, data: { status: "matched", reason: null, orderId: order.id } });
+        await updatePaymentStatus(tx, transaction, { status: "matched", reason: null, orderId: order.id }, input);
         return { status: "matched" as const, reason: null };
       }
       return fail("STACK_LIMIT_REACHED", order.id);
@@ -443,7 +631,17 @@ export class PrismaMembershipRepository implements MembershipRepository {
 
   async listOrdersForAdmin(query: OrderQuery): Promise<{ items: AdminOrderRow[]; total: number }> {
     const where: Prisma.MembershipOrderWhereInput = {
+      ...(query.assignableAmount !== undefined ? {
+        priceVnd: query.assignableAmount,
+        AND: [{ status: { in: ["pending", "needs_review"] } }],
+      } : {}),
       ...(query.status ? { status: query.status as Prisma.EnumMembershipOrderStatusFilter["equals"] } : {}),
+      ...(query.from || query.to ? {
+        createdAt: {
+          ...(query.from ? { gte: new Date(`${query.from}T00:00:00+07:00`) } : {}),
+          ...(query.to ? { lt: new Date(new Date(`${query.to}T00:00:00+07:00`).getTime() + DAY_MS) } : {}),
+        },
+      } : {}),
       ...(query.q
         ? {
             OR: [
@@ -458,7 +656,7 @@ export class PrismaMembershipRepository implements MembershipRepository {
       this.db.membershipOrder.findMany({
         where,
         include: ADMIN_ORDER_INCLUDE,
-        orderBy: { createdAt: "desc" },
+        orderBy: [{ createdAt: "desc" }, { id: "desc" }],
         skip: (query.page - 1) * query.limit,
         take: query.limit,
       }),
@@ -476,6 +674,15 @@ export class PrismaMembershipRepository implements MembershipRepository {
     const where: Prisma.PaymentTransactionWhereInput = {
       ...(query.provider ? { provider: query.provider } : {}),
       ...(query.status ? { status: query.status as Prisma.EnumPaymentTransactionStatusFilter["equals"] } : {}),
+      ...(query.q ? {
+        OR: [
+          { content: { contains: query.q, mode: "insensitive" } },
+          { referenceCode: { contains: query.q, mode: "insensitive" } },
+          { externalId: { contains: query.q, mode: "insensitive" } },
+          { order: { user: { email: { contains: query.q, mode: "insensitive" } } } },
+          { order: { user: { name: { contains: query.q, mode: "insensitive" } } } },
+        ],
+      } : {}),
       ...(query.from || query.to
         ? { transactionAt: { ...(query.from ? { gte: query.from } : {}), ...(query.to ? { lt: query.to } : {}) } }
         : {}),
@@ -502,61 +709,74 @@ export class PrismaMembershipRepository implements MembershipRepository {
     return rows.map((row) => ({ ...toTransaction(row), order: row.order }));
   }
 
-  async listMembersForAdmin(query: MemberQuery): Promise<{ items: AdminMemberRow[]; total: number }> {
+  async listMembersForAdmin(query: AdminMemberQuery): Promise<{ items: AdminMemberRow[]; total: number }> {
     const now = new Date();
-    const filters: Prisma.MembershipWhereInput[] = [];
-    if (query.status === "active") filters.push({ revokedAt: null, expiresAt: { gt: now } });
-    if (query.status === "expired") {
-      const activeUserIds = (
-        await this.db.membership.findMany({
-          where: { revokedAt: null, expiresAt: { gt: now } },
-          distinct: ["userId"],
-          select: { userId: true },
-        })
-      ).map((row) => row.userId);
-      filters.push({ userId: { notIn: activeUserIds } });
-    }
-    if (query.q) filters.push({ OR: [{ user: { email: { contains: query.q, mode: "insensitive" } } }, { user: { name: { contains: query.q, mode: "insensitive" } } }] });
-    const where: Prisma.MembershipWhereInput = filters.length ? { AND: filters } : {};
-
-    const groups = await this.db.membership.groupBy({ by: ["userId"], where, _max: { expiresAt: true }, orderBy: { _max: { expiresAt: "desc" } } });
-    const pageIds = groups.slice((query.page - 1) * query.limit, query.page * query.limit).map((group) => group.userId);
-    const rows = pageIds.length
-      ? await this.db.membership.findMany({
-          where: { ...where, userId: { in: pageIds } },
-          include: { user: { select: { id: true, name: true, email: true } }, plan: { select: { code: true, name: true } } },
-          orderBy: { expiresAt: "desc" },
-        })
-      : [];
-    const byUser = new Map<string, (typeof rows)[number]>();
-    for (const row of rows) if (!byUser.has(row.userId)) byUser.set(row.userId, row);
-    const items = pageIds.flatMap((userId): AdminMemberRow[] => {
-      const row = byUser.get(userId);
-      if (!row) return [];
-      return [{
-        userId: row.userId,
-        name: row.user.name,
-        email: row.user.email,
-        planCode: row.plan.code,
-        planName: row.plan.name,
-        startsAt: row.startsAt,
-        expiresAt: row.expiresAt,
-        revokedAt: row.revokedAt,
-      }];
-    });
-    return { items, total: groups.length };
+    const accounts = Prisma.sql`
+      SELECT u.id AS "userId", u.name, u.email,
+        CASE WHEN m.id IS NULL THEN 'free'
+          WHEN m.revoked_at IS NOT NULL THEN 'revoked'
+          WHEN m.expires_at > ${now} THEN 'active'
+          ELSE 'expired'
+        END AS status,
+        o.plan_code_snapshot AS "planCode", o.plan_name_snapshot AS "planName",
+        m.starts_at AS "startsAt", m.expires_at AS "expiresAt",
+        m.revoked_at AS "revokedAt", m.revoke_reason AS "revokeReason",
+        CASE WHEN m.id IS NULL THEN NULL WHEN o.price_vnd = 0 THEN 'admin' ELSE 'payment' END AS source
+      FROM users u
+      LEFT JOIN LATERAL (
+        SELECT * FROM memberships
+        WHERE user_id = u.id
+        ORDER BY (revoked_at IS NULL AND expires_at > ${now}) DESC, expires_at DESC, id DESC
+        LIMIT 1
+      ) m ON true
+      LEFT JOIN membership_orders o ON o.id = m.order_id
+      ${query.q ? Prisma.sql`WHERE strpos(lower(u.name), lower(${query.q})) > 0 OR strpos(lower(u.email), lower(${query.q})) > 0` : Prisma.empty}
+    `;
+    const filters = [
+      query.status === "free" ? Prisma.sql`status <> 'active'`
+        : query.status !== "all" ? Prisma.sql`status = ${query.status}` : Prisma.empty,
+      query.expiresFrom ? Prisma.sql`"expiresAt" >= ${new Date(`${query.expiresFrom}T00:00:00+07:00`)}` : Prisma.empty,
+      query.expiresTo ? Prisma.sql`"expiresAt" < ${new Date(new Date(`${query.expiresTo}T00:00:00+07:00`).getTime() + DAY_MS)}` : Prisma.empty,
+    ].filter((filter) => filter !== Prisma.empty);
+    const where = filters.length ? Prisma.sql`WHERE ${Prisma.join(filters, " AND ")}` : Prisma.empty;
+    const [items, totals] = await this.db.$transaction([
+      this.db.$queryRaw<AdminMemberRow[]>`
+        SELECT * FROM (${accounts}) accounts ${where}
+        ORDER BY "expiresAt" DESC NULLS LAST, "userId"
+        OFFSET ${(query.page - 1) * query.limit} LIMIT ${query.limit}
+      `,
+      this.db.$queryRaw<Array<{ total: number }>>`SELECT count(*)::integer AS total FROM (${accounts}) accounts ${where}`,
+    ], { isolationLevel: "RepeatableRead" });
+    return { items, total: totals[0]?.total ?? 0 };
   }
 
   async findUser(userId: string): Promise<{ id: string; name: string; email: string } | null> {
     return this.db.user.findUnique({ where: { id: userId }, select: { id: true, name: true, email: true } });
   }
 
-  async revokeActiveMemberships(userId: string, reason: string, now: Date): Promise<number> {
-    const result = await this.db.membership.updateMany({
-      where: { userId, revokedAt: null, expiresAt: { gt: now } },
-      data: { revokedAt: now, revokeReason: reason },
+  async revokeActiveMemberships(userId: string, reason: string, now: Date, actor?: Parameters<MembershipRepository["revokeActiveMemberships"]>[3]): Promise<number> {
+    return this.db.$transaction(async (tx) => {
+      await tx.$queryRaw`SELECT id FROM users WHERE id = ${userId}::varchar FOR UPDATE`;
+      const where = { userId, revokedAt: null, expiresAt: { gt: now } };
+      const affected = await tx.membership.findMany({ where, select: { id: true, orderId: true, expiresAt: true } });
+      if (!affected.length) return 0;
+      const result = await tx.membership.updateMany({ where, data: { revokedAt: now, revokeReason: reason } });
+      if (actor) {
+        await writeAudit(tx, {
+          ...actor,
+          actorType: "ADMIN",
+          action: "membership.revoke",
+          resourceType: "membership",
+          resourceId: userId,
+          changes: {
+            before: { status: "premium", periods: affected.map(({ id, orderId, expiresAt }) => ({ id, orderId, expiresAt: expiresAt.toISOString() })) },
+            after: { status: "free", revokedAt: now.toISOString() },
+            reason,
+          },
+        });
+      }
+      return result.count;
     });
-    return result.count;
   }
 
   async report(query: ReportQuery, now: Date): Promise<MembershipReport> {

@@ -1,13 +1,14 @@
 import { getSystemConfig } from "../../../core/config/system-config";
 import { DomainError } from "../../../core/errors/domain-error";
-import { RENEWAL_REMINDER_DAYS } from "@repo/shared";
+import { listExperienceQuotas } from "./experience-access";
 import type { MediaService } from "../../media/application/media.service";
 import type { MembershipOrderEntity, MembershipPlanEntity } from "../domain/membership.entity";
 import type { MembershipRepository } from "../domain/membership.repository";
-import { getFeatureQuotas } from "./feature-quota";
 import { mapOrder, mapPlan, previewExpiry } from "./membership.mappers";
 
 const DAY_MS = 86_400_000;
+/** Show the renewal reminder during the last 5 days of a paid period. */
+const RENEWAL_REMINDER_DAYS = 5;
 const OPEN_STATUSES = ["pending", "needs_review"] as const;
 
 export interface CreateProofInput {
@@ -25,7 +26,7 @@ export class MembershipService {
 
   async listPlans() {
     const plans = await this.repo.listPlans();
-    return plans.filter((plan) => plan.isActive).map(mapPlan);
+    return plans.filter((plan) => plan.isActive && (plan.code === "free" || (plan.code === "monthly" && plan.isPurchasable))).map(mapPlan);
   }
 
   async getEntitlement(userId: string) {
@@ -35,38 +36,32 @@ export class MembershipService {
       this.repo.findLatestOrder(userId, [...OPEN_STATUSES]),
     ]);
     if (!active)
-      return {
-        tier: "free" as const,
-        startsAt: null,
-        expiresAt: null,
-        daysLeft: null,
-        planCode: null,
-        pendingOrderId: latest?.id ?? null,
-        renewSoon: false,
-      };
+      return { tier: "free" as const, expiresAt: null, daysLeft: null, planCode: null, pendingOrderId: latest?.id ?? null, renewSoon: false, quota: null };
     const daysLeft = Math.max(1, Math.ceil((active.expiresAt.getTime() - now.getTime()) / DAY_MS));
     return {
       tier: "premium" as const,
-      startsAt: active.startsAt,
       expiresAt: active.expiresAt,
       daysLeft,
       planCode: active.plan.code,
       pendingOrderId: latest?.id ?? null,
-      renewSoon: daysLeft <= RENEWAL_REMINDER_DAYS,
+      renewSoon: active.expiresAt.getTime() - now.getTime() < RENEWAL_REMINDER_DAYS * DAY_MS,
+      quota: null,
     };
   }
 
-  /** HTTP entitlement: Free accounts also get today's per-feature quotas; premium and staff get none. */
+  /** HTTP entitlement: free listeners also get today's quota; staff/premium do not. */
   async getEntitlementForUser(userId: string, role: string | null | undefined) {
     const entitlement = await this.getEntitlement(userId);
-    const quotas = await getFeatureQuotas(userId, role);
-    return { ...entitlement, quotas };
+    const isStaff = role === "admin" || role === "moderator";
+    const experienceQuotas = entitlement.tier === "free" && !isStaff ? await listExperienceQuotas(userId) : [];
+    const quota = experienceQuotas.find((item) => item.feature === "podcast") ?? null;
+    return { ...entitlement, quota, experienceQuotas };
   }
 
   private async planForPurchase(planCode: string): Promise<MembershipPlanEntity> {
     const plan = await this.repo.findPlanByCode(planCode);
     if (!plan) throw new DomainError(404, "PLAN_NOT_FOUND", "Membership plan not found");
-    if (!plan.isActive || !plan.isPurchasable || plan.priceVnd <= 0)
+    if (plan.code !== "monthly" || !plan.isActive || !plan.isPurchasable || plan.priceVnd <= 0)
       throw new DomainError(422, "PLAN_NOT_PURCHASABLE", "This plan cannot be purchased");
     return plan;
   }
@@ -76,14 +71,8 @@ export class MembershipService {
     const now = new Date();
     const maxStackDays = await getSystemConfig("premium.max_stack_days");
 
-    const existing = await this.repo.findLatestOrder(userId, [...OPEN_STATUSES]);
-    if (
-      existing &&
-      (existing.status === "needs_review" ||
-        (existing.planId === plan.id &&
-          existing.priceVnd === plan.priceVnd &&
-          existing.durationDays === plan.durationDays))
-    ) {
+    const existing = await this.repo.findReusableOrder(userId, plan);
+    if (existing) {
       const maxExpiry = await this.repo.findMaxExpiry(userId);
       return mapOrder(existing, previewExpiry(maxExpiry, existing.durationDays, now));
     }
