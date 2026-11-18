@@ -44,3 +44,4 @@ docker ps --format '{{.Names}} {{.Image}} {{.Status}}'
 | 2026-11-18 00:44 | eb8bcb6+dirty | refactor/api-structure | refactor(api): barrels + composition root + queries into repos; dirty: 29 files (app.ts, middleware, content, listening, membership, releases, catalog) | 🔵 api |
 | 2026-11-18 18:10 | eb73026 | feat/premium-membership-v2 | premium quota pipeline: experience access policy, plan benefits, renewal reminders (migrations 181400/181500/181600); member UI restored | 🔵 api |
 | 2026-11-18 19:08 | 36468fe | feat/premium-membership-v2 | fix(mobile): use plan duration in renewal CTA and handle missing plans | 🔵 api |
+| 2026-11-19 02:22 | c55584a | dev | feat(admin-overview): nối báo cáo Premium vào số liệu thật — image gồm cả bỏ xác minh nguồn (không có migration mới) + chọn nguồn cho rà AI | 🔵 api |
