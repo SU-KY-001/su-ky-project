@@ -97,7 +97,6 @@ function QuotaSection({ entitlement }: { entitlement: MembershipEntitlement }): 
                 </XStack>
                 <Text ff="$body" fs="$2" fw="$7" color="$bronzeDark">Chỉ Premium</Text>
               </XStack>
-              <Text ff="$body" fs="$1" color="$inkSoft">Nâng cấp Premium để sử dụng tính năng này.</Text>
             </YStack>
           ))}
           <Text ff="$body" fs="$1" color="$inkSoft">Đặt lại lúc 00:00 · giờ Việt Nam</Text>

@@ -54,7 +54,7 @@ export function ProfileScreen({ onLogin, onEditProfile, onOpenMembership, onPlay
     <ScrollView f={1} bg="$paper" showsVerticalScrollIndicator={false}>
       <AppHeader title="Hồ sơ" avatar={false} />
       <YStack pb="$5">
-        <YStack pos="relative" px="$4" pb="$4" overflow="hidden" bg="$paperDeep">
+        <YStack pos="relative" px="$4" pt="$4" pb="$4" overflow="hidden" bg="$paperDeep">
           <YStack pos="absolute" t={0} b={0} l={0} r={0} pointerEvents="none">
             <AppImage source={background} w="100%" h="100%" rounded={0} resizeMode="stretch" op={0.7} />
           </YStack>
