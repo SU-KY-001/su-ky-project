@@ -60,7 +60,21 @@ export const app = new Hono<AppEnv>()
 
 export const routes = app
   .route("/", docsRoute)
-  .all("/api/auth/*", (c) => auth.handler(c.req.raw))
+  .all("/api/auth/*", (c) => {
+    // Native clients (React Native) replay the session cookie from their cookie
+    // jar but send no Origin/Sec-Fetch headers, which makes Better Auth force its
+    // origin check and reject with MISSING_OR_NULL_ORIGIN. They authenticate with
+    // bearer tokens, so the cookie is struck for anything that cannot be a browser.
+    const headers = c.req.raw.headers;
+    const fromBrowser =
+      headers.has("origin") || headers.has("referer") ||
+      headers.has("sec-fetch-site") || headers.has("sec-fetch-mode") || headers.has("sec-fetch-dest");
+    if (fromBrowser || !headers.has("cookie")) return auth.handler(c.req.raw);
+
+    const withoutCookies = new Headers(headers);
+    withoutCookies.delete("cookie");
+    return auth.handler(new Request(c.req.raw, { headers: withoutCookies }));
+  })
   .route("/api/me", currentUserRoute)
   .route("/api/me/playlists", playlistsRoute)
   .route("/api", publicCatalogRoute)
