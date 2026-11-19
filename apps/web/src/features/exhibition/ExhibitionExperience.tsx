@@ -42,6 +42,11 @@ export function ExhibitionExperience({ exhibition, preview = false }: { exhibiti
   const [view, setView] = useState<GalleryView>(initialView);
   const container = useRef<HTMLElement>(null);
   const audio = useRef<HTMLAudioElement>(null);
+  const [playingArtworkId, setPlayingArtworkId] = useState<string | null>(null);
+  const [audioError, setAudioError] = useState(false);
+  const artworkAudioMode = exhibition.audioMode === "artwork" || (!exhibition.audioMode && !exhibition.audio);
+  const playingArtwork = exhibition.items.find(item => item.id === playingArtworkId);
+  const audioSource = artworkAudioMode ? playingArtwork?.audio?.url : exhibition.audio?.url;
   const audioStarted = useRef(false);
   const resumeAudio = useRef(false);
   const resumeButton = useRef<HTMLButtonElement>(null);
@@ -61,7 +66,7 @@ export function ExhibitionExperience({ exhibition, preview = false }: { exhibiti
     } else if (phase === "walking" && (!audioStarted.current || resumeAudio.current)) {
       audioStarted.current = true;
       resumeAudio.current = false;
-      void element.play().catch(() => { audioStarted.current = false; });
+      void element.play().then(() => setAudioError(false)).catch(() => { audioStarted.current = false; setAudioError(true); });
     }
   }, [phase]);
 
@@ -112,6 +117,22 @@ export function ExhibitionExperience({ exhibition, preview = false }: { exhibiti
     artworkReturnPhase.current = phase === "menu" ? "menu" : "walking";
     setSelected(id); setPhase("artwork"); releasePointer();
   }, [phase, releasePointer]);
+  const interactWithArtwork = useCallback((id: string): void => {
+    const item = exhibition.items.find(value => value.id === id);
+    if (!artworkAudioMode || !item?.audio) { inspect(id); return; }
+    const element = audio.current;
+    setAudioError(false);
+    if (playingArtworkId === id && element) {
+      if (element.paused) void element.play().catch(() => setAudioError(true));
+      else element.pause();
+      return;
+    }
+    element?.pause();
+    audioStarted.current = false;
+    resumeAudio.current = false;
+    setPlayingArtworkId(id);
+  }, [artworkAudioMode, exhibition.items, inspect, playingArtworkId]);
+
   const unavailable = useCallback((): void => { setAvailable(false); menuReturnPhase.current = "intro"; setPhase("menu"); releasePointer(); }, [releasePointer]);
   const enter = (): void => {
     if (!available) { navigate(); return; }
@@ -142,10 +163,11 @@ export function ExhibitionExperience({ exhibition, preview = false }: { exhibiti
 
   return <main ref={container} className={`exhibition${preview ? " exhibition-preview" : ""}`} aria-label={`Triển lãm ảnh tư liệu: ${title}`}>
     {(phase === "intro" || phase === "loading" || !sceneRequested) && exhibition.items[0] && <img src={exhibition.items[0].image.url} alt="" decoding="async" className="exhibition-stage-cover absolute inset-0 h-full w-full object-cover" />}
-    {exhibition.audio && <audio ref={audio} src={exhibition.audio.url} controls preload="none" aria-label="Âm thanh kể chuyện triển lãm" className={phase === "intro" || phase === "loading" || phase === "paused" || (phase === "menu" && menuReturnPhase.current === "paused") ? "hidden" : "absolute bottom-4 right-4 z-20 w-64 max-w-[calc(100%-2rem)]"} />}
+    {audioSource && <audio key={artworkAudioMode ? playingArtworkId : "room"} ref={audio} src={audioSource} onError={() => setAudioError(true)} controls preload="none" aria-label={artworkAudioMode ? `Âm thanh tranh: ${playingArtwork?.title ?? ""}` : "Âm thanh kể chuyện triển lãm"} className={phase === "intro" || phase === "loading" || phase === "paused" || (phase === "menu" && menuReturnPhase.current === "paused") ? "hidden" : "absolute bottom-4 right-4 z-20 w-64 max-w-[calc(100%-2rem)]"} />}
+    {audioError && <p role="status" className="absolute bottom-20 right-4 z-30 max-w-64 rounded-lg bg-paper p-3 text-xs text-ink">Chưa phát được âm thanh. Nhấn Play để thử lại.</p>}
     <div className={`exhibition-stage absolute inset-0 touch-none [&_canvas]:block [&_canvas]:outline-none${phase === "intro" || phase === "loading" ? " exhibition-stage-cover" : ""}`} aria-hidden={phase === "intro" || phase === "loading" || phase === "menu" || phase === "artwork"}>
       {sceneRequested && phase !== "intro" && ready && available && <SceneBoundary onUnavailable={unavailable}><Suspense fallback={null}>
-        <GalleryScene active={phase === "walking"} pointerLockOnClick input={input} view={view} onPause={pause} onNavigate={navigate} onInspect={inspect} onTarget={setTarget} onChapter={setChapter} onUnavailable={unavailable} onReady={() => { setSceneReady(true); setPhase(value => value === "loading" ? "walking" : value); container.current?.querySelector("canvas")?.focus({ preventScroll: true }); }} items={artworks} chapterText={chapters} />
+        <GalleryScene active={phase === "walking"} pointerLockOnClick input={input} view={view} onPause={pause} onNavigate={navigate} onInspect={interactWithArtwork} onDetails={inspect} onTarget={setTarget} onChapter={setChapter} onUnavailable={unavailable} onReady={() => { setSceneReady(true); setPhase(value => value === "loading" ? "walking" : value); container.current?.querySelector("canvas")?.focus({ preventScroll: true }); }} items={artworks} chapterText={chapters} />
       </Suspense></SceneBoundary>}
     </div>
 
@@ -154,7 +176,7 @@ export function ExhibitionExperience({ exhibition, preview = false }: { exhibiti
     {phase === "walking" && <>
       <div className="exhibition-room-label pointer-events-none absolute left-9 top-[30px] flex items-center gap-[19px] bg-[color:var(--exhibit-paper)]/10 px-2.5 py-1 backdrop-blur-[6px]"><span>0{chapter + 1}</span><div>{chapters[chapter]?.title}<small>{chapters[chapter]?.period}</small></div></div>
       <Button variant="outline" size="icon" className="exhibition-navigation" onClick={navigate} aria-label="Mở mục lục triển lãm (M)" title="Mục lục (M)"><Compass size={24} weight="light" /><kbd>M</kbd></Button>
-      {focusedArtwork && <div className="exhibition-focused absolute bottom-[90px] left-1/2 flex max-w-[calc(100vw-160px)] -translate-x-1/2 items-center gap-6 bg-[color:var(--exhibit-paper)]/95 px-[19px] py-3 text-xs" role="status"><span>{focusedArtwork.title}</span><button type="button" onClick={() => inspect(focusedArtwork.id)}><kbd>E</kbd> Xem chi tiết</button></div>}
+      {focusedArtwork && <div className="exhibition-focused absolute bottom-[90px] left-1/2 flex max-w-[calc(100vw-160px)] -translate-x-1/2 items-center gap-6 bg-[color:var(--exhibit-paper)]/95 px-[19px] py-3 text-xs" role="status"><span>{focusedArtwork.title}</span><button type="button" onClick={() => interactWithArtwork(focusedArtwork.id)}>{artworkAudioMode && exhibition.items.find(item => item.id === focusedArtwork.id)?.audio ? playingArtworkId === focusedArtwork.id ? "Nhấn E để phát / tạm dừng âm thanh tranh" : "Nhấn E để phát âm thanh tranh" : <><kbd>E</kbd> Xem chi tiết</>}</button><button type="button" onClick={() => inspect(focusedArtwork.id)}><kbd>Q</kbd> Xem chi tiết</button></div>}
       {hintVisible && <div className="exhibition-walking-hint pointer-events-none absolute bottom-[26px] left-1/2 -translate-x-1/2 whitespace-nowrap bg-transparent px-3 py-2 text-[10px] text-[var(--exhibit-muted)] opacity-[.58]">{locked ? <><kbd>Esc</kbd> để tạm dừng</> : <><span>Kéo chuột để nhìn</span><kbd>Esc</kbd> để tạm dừng</>}</div>}
       <div className="exhibition-touch-controls hidden" aria-label="Điều khiển di chuyển cảm ứng">
         {([{ key: "KeyW", label: "Đi tới", Icon: ArrowUp }, { key: "KeyA", label: "Sang trái", Icon: ArrowLeft }, { key: "KeyS", label: "Lùi lại", Icon: ArrowDown }, { key: "KeyD", label: "Sang phải", Icon: ArrowRight }]).map(({ key, label, Icon }) => <button key={key} className={`exhibition-touch-${key}`} type="button" aria-label={label} onPointerDown={event => { event.preventDefault(); event.currentTarget.setPointerCapture(event.pointerId); input.current.keys.add(key); }} onPointerUp={() => input.current.keys.delete(key)} onPointerCancel={() => input.current.keys.delete(key)} onLostPointerCapture={() => input.current.keys.delete(key)}><Icon size={22} /></button>)}
@@ -171,7 +193,7 @@ export function ExhibitionExperience({ exhibition, preview = false }: { exhibiti
           <Button ref={resumeButton} className="h-12 gap-5 rounded-lg bg-vermilion px-5 text-paper-soft hover:bg-vermilion-dark" onClick={enter}>Tiếp tục tham quan<ArrowRight size={20} aria-hidden="true" /></Button>
           <Button variant="outline" onClick={navigate} className="h-12 gap-3 rounded-lg border-line bg-transparent px-5 text-ink hover:bg-paper-deep"><Compass size={19} aria-hidden="true" />Bản đồ triển lãm</Button>
         </div>
-        <footer className="mt-8 grid gap-x-5 gap-y-2 border-t border-line pt-5 text-xs leading-6 text-ink-soft sm:grid-cols-2"><span><kbd className="font-medium text-ink">WASD / ↑ ← ↓ →</kbd> · Di chuyển</span><span>Chuột · Nhìn xung quanh</span><span><kbd className="font-medium text-ink">E</kbd> · Xem ảnh gần</span><span><kbd className="font-medium text-ink">M</kbd> · Bản đồ &nbsp; <kbd className="font-medium text-ink">Esc</kbd> · Tạm dừng</span></footer>
+        <footer className="mt-8 grid gap-x-5 gap-y-2 border-t border-line pt-5 text-xs leading-6 text-ink-soft sm:grid-cols-2"><span><kbd className="font-medium text-ink">WASD / ↑ ← ↓ →</kbd> · Di chuyển</span><span>Chuột · Nhìn xung quanh</span><span><kbd className="font-medium text-ink">Q</kbd> · Xem chi tiết tranh</span><span><kbd className="font-medium text-ink">E</kbd> · {artworkAudioMode ? "Phát âm thanh tranh" : "Xem ảnh gần"}</span><span><kbd className="font-medium text-ink">M</kbd> · Bản đồ &nbsp; <kbd className="font-medium text-ink">Esc</kbd> · Tạm dừng</span></footer>
       </div>
     </section>}
 
@@ -183,7 +205,7 @@ export function ExhibitionExperience({ exhibition, preview = false }: { exhibiti
       if (available && menuReturnPhase.current === "walking") container.current?.querySelector("canvas")?.focus();
       else if (menuReturnPhase.current === "intro") container.current?.querySelector<HTMLButtonElement>(".exhibition-cover-enter")?.focus();
     }} />}
-    {phase === "artwork" && <ArtworkDetail artwork={selectedArtwork} narration={exhibition.audio ? null : exhibition.items.find(item => item.id === selected)?.narration} onClose={closeDetails} onReturnFocus={() => {
+    {phase === "artwork" && <ArtworkDetail artwork={selectedArtwork} audio={null} narration={exhibition.audioMode === "room" || exhibition.audio ? null : exhibition.items.find(item => item.id === selected)?.narration} onClose={closeDetails} onReturnFocus={() => {
       if (available && artworkReturnPhase.current === "walking") container.current?.querySelector("canvas")?.focus();
     }} />}
   </main>;

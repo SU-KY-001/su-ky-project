@@ -13,7 +13,7 @@ export function scrollToLandingTarget(targetId: string): void {
   if (!target) return;
 
   if (activeLenis) {
-    activeLenis.scrollTo(target, { duration: 1.35, offset: -8 });
+    activeLenis.scrollTo(target, { duration: 1.35, offset: -112 });
     return;
   }
 

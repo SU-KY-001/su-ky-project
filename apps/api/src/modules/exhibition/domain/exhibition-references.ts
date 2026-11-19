@@ -12,9 +12,14 @@ interface ImageReference {
   heightPx: number | null;
 }
 
-export function validateReferences(document: ExhibitionDocument, ownerId: string, images: ImageReference[], availableNarrations: string[], audio?: ImageReference | null): void {
+export function validateReferences(document: ExhibitionDocument, ownerId: string, images: ImageReference[], availableNarrations: string[], audio?: ImageReference | null, artworkAudio: ImageReference[] = []): void {
   if (document.audioAssetId && (!audio || audio.id !== document.audioAssetId || audio.uploadedById !== ownerId || audio.kind !== "AUDIO" || audio.status !== "READY" || !audio.verifiedAt || audio.deletedAt)) {
     throw new DomainError(400, "VALIDATION_ERROR", "Âm thanh phải thuộc người tạo và đã được xác minh");
+  }
+  for (const item of document.items) {
+    if (!item.audioAssetId) continue;
+    const asset = artworkAudio.find(value => value.id === item.audioAssetId);
+    if (!asset || asset.uploadedById !== ownerId || asset.kind !== "AUDIO" || asset.status !== "READY" || !asset.verifiedAt || asset.deletedAt) throw new DomainError(400, "VALIDATION_ERROR", "Âm thanh của tranh phải thuộc người tạo và đã được xác minh");
   }
   const imageIds = new Set(document.items.map(item => item.imageAssetId));
   if (document.metadata.coverAssetId) imageIds.add(document.metadata.coverAssetId);

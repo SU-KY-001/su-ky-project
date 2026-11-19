@@ -1,4 +1,4 @@
-import { ExhibitionPodcastOptionSchema, ExhibitionSummarySchema, ExhibitionWorkspaceSchema, ImageUploadPolicySchema, LibrarySeriesSchema, paginatedSchema, type ExhibitionDocument } from "@repo/shared";
+import { DeleteExhibitionResultSchema, ExhibitionPodcastOptionSchema, ExhibitionSummarySchema, ExhibitionWorkspaceSchema, ImageUploadPolicySchema, LibrarySeriesSchema, paginatedSchema, type ExhibitionDocument } from "@repo/shared";
 import { z } from "zod";
 import { client } from "@/lib/client";
 import { ApiError } from "@/lib/apiError";
@@ -17,6 +17,7 @@ export const exhibitionService = {
   create: (document: ExhibitionDocument, key: string) => parse(exhibitions.$post({ json: { document } }, { headers: { "Idempotency-Key": key } }), ExhibitionWorkspaceSchema),
   get: (id: string) => parse(exhibitions[":id"].$get({ param: { id } }), ExhibitionWorkspaceSchema),
   save: (id: string, baseRevision: number, document: ExhibitionDocument) => parse(exhibitions[":id"].draft.$put({ param: { id }, json: { baseRevision, document } }), ExhibitionWorkspaceSchema),
+  deleteDraft: (id: string, baseRevision: number) => parse(exhibitions[":id"].$delete({ param: { id }, json: { baseRevision } }), DeleteExhibitionResultSchema),
   publish: (id: string, baseRevision: number) => parse(exhibitions[":id"].publish.$post({ param: { id }, json: { baseRevision } }), ExhibitionWorkspaceSchema),
   podcastOptions: (q: string, page: number, seriesId?: string) => parse(client.api.studio["exhibition-podcast-options"].$get({ query: { q, seriesId, page: String(page), limit: "10" } }), paginatedSchema(ExhibitionPodcastOptionSchema)),
   series: (page: number) => parse(client.api.series.$get({ query: { page: String(page), limit: "50" } }), paginatedSchema(LibrarySeriesSchema)),

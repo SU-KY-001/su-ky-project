@@ -15,6 +15,7 @@ export interface ControlsProps {
   onPause: () => void;
   onNavigate: () => void;
   onInspect: (id: string) => void;
+  onDetails?: (id: string) => void;
   onTarget: (id: string | null) => void;
   onChapter: (chapter: number) => void;
   onViewChange?: (view: GalleryView) => void;
@@ -26,7 +27,7 @@ export interface ControlsProps {
 
 const walkingKeys = new Set(["KeyW", "KeyA", "KeyS", "KeyD", "ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"]);
 
-export function GalleryControls({ active, input, view, onPause, onNavigate, onInspect, onTarget, onChapter, onViewChange, pointerLockOnClick = false, keyboardRequiresFocus = false, items = [], roomCount = 3 }: ControlsProps): null {
+export function GalleryControls({ active, input, view, onPause, onNavigate, onInspect, onDetails, onTarget, onChapter, onViewChange, pointerLockOnClick = false, keyboardRequiresFocus = false, items = [], roomCount = 3 }: ControlsProps): null {
   const { camera, gl, scene, invalidate } = useThree();
   const velocity = useRef({ x: 0, z: 0 });
   const drag = useRef({ active: false, x: 0, y: 0, distance: 0 });
@@ -35,8 +36,8 @@ export function GalleryControls({ active, input, view, onPause, onNavigate, onIn
   const elapsed = useRef(0);
   const lastTarget = useRef<string | null>(null);
   const currentChapter = useRef(0);
-  const callbacks = useRef({ onPause, onNavigate, onInspect, onTarget, onChapter });
-  callbacks.current = { onPause, onNavigate, onInspect, onTarget, onChapter };
+  const callbacks = useRef({ onPause, onNavigate, onInspect, onDetails, onTarget, onChapter });
+  callbacks.current = { onPause, onNavigate, onInspect, onDetails, onTarget, onChapter };
 
   useEffect(() => {
     camera.position.set(...view.position);
@@ -55,7 +56,7 @@ export function GalleryControls({ active, input, view, onPause, onNavigate, onIn
       return;
     }
     const canvas = gl.domElement;
-    const inspect = (clientX?: number, clientY?: number): void => {
+    const inspect = (clientX?: number, clientY?: number, details = false): void => {
       aim.current.set(0, 0);
       if (!document.pointerLockElement && clientX !== undefined && clientY !== undefined) {
         const rect = canvas.getBoundingClientRect();
@@ -64,7 +65,7 @@ export function GalleryControls({ active, input, view, onPause, onNavigate, onIn
       ray.current.setFromCamera(aim.current, camera);
       const hit = ray.current.intersectObjects(scene.children, true)[0];
       const id: unknown = hit?.object.userData.artworkId;
-      if (hit && hit.distance < 5.5 && typeof id === "string") callbacks.current.onInspect(id);
+      if (hit && hit.distance < 5.5 && typeof id === "string") (details ? callbacks.current.onDetails ?? callbacks.current.onInspect : callbacks.current.onInspect)(id);
     };
     const keyDown = (event: KeyboardEvent): void => {
       if (keyboardRequiresFocus && document.activeElement !== canvas) return;
@@ -73,7 +74,7 @@ export function GalleryControls({ active, input, view, onPause, onNavigate, onIn
       if (event.code === "Escape") callbacks.current.onPause();
       if (event.code === "KeyM") { event.preventDefault(); callbacks.current.onNavigate(); }
       if (event.code === "KeyE" && !event.repeat) inspect();
-      if (event.code === "KeyQ") camera.rotation.y += 0.12;
+      if (event.code === "KeyQ") { if (callbacks.current.onDetails) { event.preventDefault(); if (!event.repeat) inspect(undefined, undefined, true); } else camera.rotation.y += 0.12; }
       if (event.code === "KeyR") camera.rotation.y -= 0.12;
     };
     const keyUp = (event: KeyboardEvent): void => { input.current.keys.delete(event.code); };

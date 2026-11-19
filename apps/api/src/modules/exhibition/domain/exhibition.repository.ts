@@ -12,6 +12,7 @@ export interface ExhibitionRecord {
 }
 
 export interface ExhibitionRepository {
+  deleteDraft(id: string, ownerId: string, revision: number): Promise<boolean>;
   listPublished(): Promise<PublicExhibitionList>;
   list(ownerId: string, query: { q: string; status: "all" | "published" | "unpublished"; page: number; limit: number }): Promise<{ items: ExhibitionSummary[]; page: number; limit: number; total: number }>;
   resolve(document: ExhibitionDocument): Promise<ResolvedExhibition>;

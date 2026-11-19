@@ -199,6 +199,7 @@ model Exhibition {
   publishedDocument Json?    @map("published_document")
   publishedRevision Int?     @map("published_revision")
   publishedAt       DateTime? @map("published_at") @db.Timestamptz(3)
+  deletedAt         DateTime? @map("deleted_at") @db.Timestamptz(3)
   createdAt         DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
   updatedAt         DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
   owner             User     @relation(fields: [ownerId], references: [id], onDelete: Restrict)

@@ -18,19 +18,20 @@ function toRecord(row: DbExhibition): ExhibitionRecord {
 async function checkReferences(tx: Prisma.TransactionClient, document: ExhibitionDocument, ownerId: string): Promise<void> {
   const ids = [...new Set(document.items.map(item => item.imageAssetId).concat(document.metadata.coverAssetId ? [document.metadata.coverAssetId] : []))];
   const narrationIds = [...new Set(document.items.flatMap(item => item.narrationId ? [item.narrationId] : []))];
-  const [images, narrations, audio] = await Promise.all([
+  const [images, narrations, audio, artworkAudio] = await Promise.all([
     tx.mediaAsset.findMany({ where: { id: { in: ids } } }),
     tx.episodeNarration.findMany({ where: { id: { in: narrationIds }, audioAsset: { status: "READY", kind: "AUDIO", deletedAt: null }, episode: { status: "PUBLISHED", deletedAt: null, series: { status: "PUBLISHED", deletedAt: null } } }, select: { id: true } }),
     document.audioAssetId ? tx.mediaAsset.findUnique({ where: { id: document.audioAssetId } }) : Promise.resolve(null),
+    tx.mediaAsset.findMany({ where: { id: { in: document.items.flatMap(item => item.audioAssetId ? [item.audioAssetId] : []) } } }),
   ]);
-  validateReferences(document, ownerId, images, narrations.map(value => value.id), audio);
+  validateReferences(document, ownerId, images, narrations.map(value => value.id), audio, artworkAudio);
 }
 
 export class PrismaExhibitionRepository implements ExhibitionRepository {
-  constructor(private readonly storage: Pick<MediaStorageGateway, "deliveryUrl" | "audioDeliveryUrl">) {}
+  constructor(private readonly storage: Pick<MediaStorageGateway, "deliveryUrl" | "audioDeliveryUrl">, private readonly records = prisma.exhibition) {}
 
   async listPublished() {
-    const rows = await prisma.exhibition.findMany({ where: { publishedRevision: { not: null }, publishedDocument: { not: Prisma.DbNull } }, select: { slug: true, publishedDocument: true }, orderBy: [{ publishedAt: "desc" }, { id: "desc" }] });
+    const rows = await this.records.findMany({ where: { deletedAt: null, publishedRevision: { not: null }, publishedDocument: { not: Prisma.DbNull } }, select: { slug: true, publishedDocument: true }, orderBy: [{ publishedAt: "desc" }, { id: "desc" }] });
     return { items: rows.map(row => {
       const { metadata } = ExhibitionDocumentSchema.parse(row.publishedDocument);
       return { slug: row.slug, title: metadata.title, description: metadata.description.slice(0, 240) };
@@ -38,19 +39,19 @@ export class PrismaExhibitionRepository implements ExhibitionRepository {
   }
 
   async findPublished(slug: string): Promise<ExhibitionDocument | null> {
-    const row = await prisma.exhibition.findFirst({ where: { slug, publishedRevision: { not: null } }, select: { publishedDocument: true } });
+    const row = await this.records.findFirst({ where: { slug, deletedAt: null, publishedRevision: { not: null } }, select: { publishedDocument: true } });
     return row?.publishedDocument ? ExhibitionDocumentSchema.parse(row.publishedDocument) : null;
   }
 
   async publish(id: string, ownerId: string, revision: number): Promise<ExhibitionRecord | null> {
     try {
       return await prisma.$transaction(async tx => {
-        const row = await tx.exhibition.findFirst({ where: { id, ownerId, draftRevision: revision } });
+        const row = await tx.exhibition.findFirst({ where: { id, ownerId, deletedAt: null, draftRevision: revision } });
         if (!row) return null;
         const document = ExhibitionDocumentSchema.parse(row.draftDocument);
         if (!document.items.length || document.items.some(item => !item.credit || !item.sourceUrl)) throw new DomainError(400, "VALIDATION_ERROR", "Cần ít nhất một điểm trưng bày có nguồn đầy đủ");
         await checkReferences(tx, document, ownerId);
-        const changed = await tx.exhibition.updateMany({ where: { id, ownerId, draftRevision: revision }, data: { publishedDocument: document, publishedRevision: revision, publishedAt: new Date() } });
+        const changed = await tx.exhibition.updateMany({ where: { id, ownerId, deletedAt: null, draftRevision: revision }, data: { publishedDocument: document, publishedRevision: revision, publishedAt: new Date() } });
         if (!changed.count) return null;
         return toRecord(await tx.exhibition.findUniqueOrThrow({ where: { id } }));
       }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable });
@@ -70,29 +71,32 @@ export class PrismaExhibitionRepository implements ExhibitionRepository {
   }
 
   async resolve(document: ExhibitionDocument): Promise<ResolvedExhibition> {
-    const [images, narrations, audio] = await Promise.all([
+    const [images, narrations, audio, artworkAudio] = await Promise.all([
       prisma.mediaAsset.findMany({ where: { id: { in: document.items.map(item => item.imageAssetId) }, kind: "IMAGE", status: "READY", deletedAt: null } }),
       prisma.episodeNarration.findMany({ where: { id: { in: document.items.flatMap(item => item.narrationId ? [item.narrationId] : []) } }, include: { episode: { include: { series: true } }, narratorEntity: true, audioAsset: true } }),
       document.audioAssetId ? prisma.mediaAsset.findFirst({ where: { id: document.audioAssetId, kind: "AUDIO", status: "READY", deletedAt: null } }) : Promise.resolve(null),
+      prisma.mediaAsset.findMany({ where: { id: { in: document.items.flatMap(item => item.audioAssetId ? [item.audioAssetId] : []) }, kind: "AUDIO", status: "READY", deletedAt: null } }),
     ]);
+    const audioTtl = artworkAudio.length ? await getSystemConfig("media.audio_delivery_ttl_seconds") : 0;
     const items = document.items.map(item => {
       const image = images.find(value => value.id === item.imageAssetId);
       if (!image?.widthPx || !image.heightPx) throw new DomainError(400, "VALIDATION_ERROR", `Ảnh của ${item.title} không khả dụng`);
       const narration = narrations.find(value => value.id === item.narrationId);
       const available = !!narration && narration.episode.status === "PUBLISHED" && !narration.episode.deletedAt && narration.episode.series.status === "PUBLISHED" && !narration.episode.series.deletedAt && narration.audioAsset?.status === "READY" && !narration.audioAsset.deletedAt;
-      return { ...item, image: { url: this.storage.deliveryUrl(image), width: image.widthPx, height: image.heightPx }, narration: narration ? { id: narration.id, episodeTitle: narration.episode.title, seriesTitle: narration.episode.series.title, narrationLabel: narration.narratorEntity?.name ?? "Người dẫn chuyện", available } : item.narrationId ? { id: item.narrationId, episodeTitle: "Podcast không khả dụng", seriesTitle: "", narrationLabel: "", available: false } : null };
+      const itemAudio = artworkAudio.find(asset => asset.id === item.audioAssetId);
+      return { ...item, audio: itemAudio ? { url: this.storage.audioDeliveryUrl ? this.storage.audioDeliveryUrl(itemAudio, audioTtl) : this.storage.deliveryUrl(itemAudio) } : null, image: { url: this.storage.deliveryUrl(image), width: image.widthPx, height: image.heightPx }, narration: narration ? { id: narration.id, episodeTitle: narration.episode.title, seriesTitle: narration.episode.series.title, narrationLabel: narration.narratorEntity?.name ?? "Người dẫn chuyện", available } : item.narrationId ? { id: item.narrationId, episodeTitle: "Podcast không khả dụng", seriesTitle: "", narrationLabel: "", available: false } : null };
     });
-    return { metadata: document.metadata, chapters: document.chapters, items, audio: audio ? { url: this.storage.audioDeliveryUrl ? this.storage.audioDeliveryUrl(audio, await getSystemConfig("media.audio_delivery_ttl_seconds")) : this.storage.deliveryUrl(audio) } : null };
+    return { audioMode: document.audioMode, metadata: document.metadata, chapters: document.chapters, items, audio: audio ? { url: this.storage.audioDeliveryUrl ? this.storage.audioDeliveryUrl(audio, await getSystemConfig("media.audio_delivery_ttl_seconds")) : this.storage.deliveryUrl(audio) } : null };
   }
   async list(ownerId: string, query: { q: string; status: "all" | "published" | "unpublished"; page: number; limit: number }): Promise<{ items: ExhibitionSummary[]; page: number; limit: number; total: number }> {
     const where: Prisma.ExhibitionWhereInput = {
-      ownerId,
+      ownerId, deletedAt: null,
       ...(query.q ? { title: { contains: query.q, mode: "insensitive" } } : {}),
       ...(query.status === "published" ? { publishedRevision: { not: null } } : query.status === "unpublished" ? { publishedRevision: null } : {}),
     };
     const [rows, total] = await Promise.all([
-      prisma.exhibition.findMany({ where, skip: (query.page - 1) * query.limit, take: query.limit, orderBy: [{ updatedAt: "desc" }, { id: "desc" }] }),
-      prisma.exhibition.count({ where }),
+      this.records.findMany({ where, skip: (query.page - 1) * query.limit, take: query.limit, orderBy: [{ updatedAt: "desc" }, { id: "desc" }] }),
+      this.records.count({ where }),
     ]);
     return { items: rows.map(row => {
       const document = ExhibitionDocumentSchema.parse(row.draftDocument);
@@ -109,15 +113,20 @@ export class PrismaExhibitionRepository implements ExhibitionRepository {
   }
 
   async find(id: string, ownerId: string): Promise<ExhibitionRecord | null> {
-    const row = await prisma.exhibition.findFirst({ where: { id, ownerId } });
+    const row = await this.records.findFirst({ where: { id, ownerId, deletedAt: null } });
     return row ? toRecord(row) : null;
+  }
+
+  async deleteDraft(id: string, ownerId: string, revision: number): Promise<boolean> {
+    const result = await this.records.updateMany({ where: { id, ownerId, deletedAt: null, draftRevision: revision, publishedRevision: null, publishedAt: null }, data: { deletedAt: new Date(), draftRevision: { increment: 1 } } });
+    return result.count === 1;
   }
 
   async save(id: string, ownerId: string, revision: number, document: ExhibitionDocument): Promise<ExhibitionRecord | null> {
     try {
       return await prisma.$transaction(async tx => {
       await checkReferences(tx, document, ownerId);
-      const result = await tx.exhibition.updateMany({ where: { id, ownerId, draftRevision: revision }, data: { draftDocument: document, draftRevision: { increment: 1 }, title: document.metadata.title } });
+      const result = await tx.exhibition.updateMany({ where: { id, ownerId, deletedAt: null, draftRevision: revision }, data: { draftDocument: document, draftRevision: { increment: 1 }, title: document.metadata.title } });
       if (!result.count) return null;
       return toRecord(await tx.exhibition.findUniqueOrThrow({ where: { id } }));
       }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable });

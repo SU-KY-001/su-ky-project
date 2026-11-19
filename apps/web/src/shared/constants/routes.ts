@@ -5,6 +5,7 @@ export const APP_PATHS = {
   home: "/",
   login: "/login",
   membership: "/thanh-vien",
+  account: "/tai-khoan",
   docs: "/docs",
   moderator: "/moderator",
   admin: "/admin",

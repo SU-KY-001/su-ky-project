@@ -1,13 +1,17 @@
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { afterEach, expect, it, mock, spyOn } from "bun:test";
 import { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
 import type { ResolvedExhibition } from "@repo/shared";
 
+let details: ((id: string) => void) | undefined;
+let interact: ((id: string) => void) | undefined;
+let target: ((id: string | null) => void) | undefined;
 let sceneReady: (() => void) | undefined;
 let sceneUnavailable: (() => void) | undefined;
 let scenePause: (() => void) | undefined;
 await import("@react-three/fiber");
-const sceneModule = await import("./components/GalleryScene");
+mock.module("./components/GalleryScene", () => ({ GalleryScene: ({ onReady, onUnavailable, onPause, onInspect, onDetails, onTarget }: { onReady?: () => void; onUnavailable?: () => void; onPause: () => void; onInspect: (id: string) => void; onDetails?: (id: string) => void; onTarget: (id: string | null) => void }) => { sceneReady = onReady; sceneUnavailable = onUnavailable; scenePause = onPause; interact = onInspect; details = onDetails; target = onTarget; return <canvas data-testid="gallery" />; } }));
 const { ExhibitionExperience } = await import("./ExhibitionExperience");
 let root: Root | undefined;
 const fonts = Object.getOwnPropertyDescriptor(document, "fonts");
@@ -19,10 +23,10 @@ afterEach(() => {
   else Reflect.deleteProperty(document, "fonts");
   sceneReady = undefined;
   scenePause = undefined;
+  interact = undefined; target = undefined;
 });
 
 it("does not mount a gallery on the poster, supports cancel, then enters after the first frame", async () => {
-  spyOn(sceneModule, "GalleryScene").mockImplementation(({ onReady, onUnavailable, onPause }) => { sceneReady = onReady; sceneUnavailable = onUnavailable; scenePause = onPause; return <canvas data-testid="gallery" />; });
   const play = spyOn(HTMLMediaElement.prototype, "play").mockImplementation(async function (this: HTMLMediaElement) { Object.defineProperty(this, "paused", { configurable: true, value: false }); });
   const pause = spyOn(HTMLMediaElement.prototype, "pause").mockImplementation(function (this: HTMLMediaElement) { Object.defineProperty(this, "paused", { configurable: true, value: true }); });
   Object.defineProperty(document, "fonts", { configurable: true, value: { load: async () => [] } });
@@ -73,4 +77,30 @@ it("does not mount a gallery on the poster, supports cancel, then enters after t
   await act(async () => { sceneUnavailable?.(); });
   expect(document.body.textContent).toContain("Hành trình triển lãm");
   expect(document.body.textContent).not.toContain("Tiếp tục qua những bức ảnh");
+});
+it("plays artwork audio in the room without opening details, switches tracks and pauses with the visit", async () => {
+  const play = spyOn(HTMLMediaElement.prototype, "play").mockImplementation(async function (this: HTMLMediaElement) { Object.defineProperty(this, "paused", { configurable: true, value: false }); });
+  spyOn(HTMLMediaElement.prototype, "pause").mockImplementation(function (this: HTMLMediaElement) { Object.defineProperty(this, "paused", { configurable: true, value: true }); });
+  Object.defineProperty(document, "fonts", { configurable: true, value: { load: async () => [] } });
+  const exhibition: ResolvedExhibition = { audioMode: "artwork", metadata: { title: "Ký ức", subtitle: "", description: "", coverAssetId: null }, chapters: [{ id: "chapter", roomKey: "room-1", title: "Chương một", period: "", description: "" }], items: ["one", "two"].map((id, index) => ({ id, chapterId: "chapter", imageAssetId: id, title: `Tranh ${id}`, description: "", displayDate: "", credit: "", sourceUrl: "", rights: "", narrationId: null, placement: { wallId: "room-1-west", offset: 3 + index * 3, width: 1.5 }, image: { url: "https://example.com/image.jpg", width: 800, height: 600 }, narration: null, audio: { url: `https://example.com/${id}.mp3` } })) };
+  const host = document.createElement("div"); document.body.append(host); root = createRoot(host);
+  await act(async () => root?.render(<QueryClientProvider client={new QueryClient()}><ExhibitionExperience exhibition={exhibition} preview /></QueryClientProvider>));
+  await act(async () => [...host.querySelectorAll("button")].find(button => button.textContent?.includes("Bước vào triển lãm"))?.click());
+  await act(async () => { await Bun.sleep(20); sceneReady?.(); });
+  expect(play).not.toHaveBeenCalled();
+  await act(async () => target?.("one"));
+  expect(host.textContent).toContain("Nhấn E để phát âm thanh tranh");
+  await act(async () => interact?.("one"));
+  expect(host.querySelector("audio")?.src).toBe("https://example.com/one.mp3");
+  expect(host.querySelector("canvas")).not.toBeNull();
+  expect(document.querySelector('[role="dialog"]')).toBeNull();
+  await act(async () => interact?.("two"));
+  expect(host.querySelectorAll("audio")).toHaveLength(1);
+  expect(host.querySelector("audio")?.src).toBe("https://example.com/two.mp3");
+  await act(async () => scenePause?.());
+  expect(host.querySelector("audio")?.paused).toBe(true);
+  await act(async () => [...host.querySelectorAll("button")].find(button => button.textContent?.includes("Tiếp tục tham quan"))?.click());
+  expect(host.textContent).toContain("Xem chi tiết");
+  await act(async () => details?.("two"));
+  expect(document.querySelector('[role="dialog"]')?.textContent).toContain("Tranh two");
 });

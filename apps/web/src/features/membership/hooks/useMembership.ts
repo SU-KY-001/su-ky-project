@@ -1,5 +1,5 @@
 import { useRef } from "react";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { canReuseIdempotencyKey } from "@/lib/apiError";
 import { newIdempotencyKey } from "@/lib/idempotency";
 import { membershipService } from "../services/membershipService";
@@ -30,6 +30,7 @@ export function useMembership(enabled = true) {
   return useQuery({
     queryKey: membershipKeys.entitlement,
     queryFn: ({ signal }) => membershipService.status(signal),
+    meta: { requiresAuth: true },
     enabled,
     staleTime: 60_000,
     // Refresh exactly when a pending order, the quota day or the paid period ends, so daysLeft/usage never go stale.
@@ -48,7 +49,12 @@ export function useMembership(enabled = true) {
 }
 
 export function useMembershipOrders(page = 1, enabled = true) {
-  return useQuery({ queryKey: [...membershipKeys.orders, page], queryFn: ({ signal }) => membershipService.orders(page, signal), enabled });
+  return useQuery({
+    queryKey: [...membershipKeys.orders, page], queryFn: ({ signal }) => membershipService.orders(page, signal), enabled,
+    placeholderData: keepPreviousData,
+    meta: { requiresAuth: true },
+    refetchInterval: query => query.state.data?.items.some(order => order.status === "pending" || order.status === "needs_review") ? 4_000 : false,
+  });
 }
 
 /** Polls one open order until an admin approves or rejects it. */

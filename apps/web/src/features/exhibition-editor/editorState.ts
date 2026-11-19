@@ -1,4 +1,7 @@
 export interface EditorState<T> { document: T; history: T[] }
+export function mergeArtworkBuffers<T extends { id: string }>(saved: readonly T[], pending: readonly T[], current: T | null): T[] {
+  return [...new Map([...saved, ...pending, ...(current ? [current] : [])].map(item => [item.id, item])).values()];
+}
 export function editDocument<T>(state: EditorState<T>, document: T): EditorState<T> {
   return { document, history: [...state.history, state.document].slice(-50) };
 }

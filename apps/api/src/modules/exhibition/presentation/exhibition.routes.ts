@@ -1,7 +1,7 @@
 import { Hono } from "hono";
 import { z } from "zod";
 import { zValidator } from "@hono/zod-validator";
-import { CreateExhibitionSchema, ExhibitionListQuerySchema, ExhibitionPodcastQuerySchema, ExperienceStartQuerySchema, PublishExhibitionSchema, ResolvedExhibitionSchema, SaveExhibitionDraftSchema, UuidParamSchema, exhibitionTemplate } from "@repo/shared";
+import { CreateExhibitionSchema, DeleteExhibitionDraftSchema, ExhibitionListQuerySchema, ExhibitionPodcastQuerySchema, ExperienceStartQuerySchema, PublishExhibitionSchema, ResolvedExhibitionSchema, SaveExhibitionDraftSchema, UuidParamSchema, exhibitionTemplate } from "@repo/shared";
 import { idempotency, rateLimit, throwOnInvalid } from "../../../core/middleware";
 import type { AppEnv } from "../../../types";
 import { requireAuth, requireRole } from "../../auth";
@@ -21,6 +21,7 @@ export function createStudioExhibitionRoute(service: ExhibitionService) {
       return c.json(workspace, 201);
     })
     .get("/exhibitions/:id", zValidator("param", UuidParamSchema, throwOnInvalid), async c => c.json(await service.get(c.req.valid("param").id, c.get("session")!.user.id)))
+    .delete("/exhibitions/:id", rateLimit("write"), zValidator("param", UuidParamSchema, throwOnInvalid), zValidator("json", DeleteExhibitionDraftSchema, throwOnInvalid), async c => c.json(await service.deleteDraft(c.req.valid("param").id, c.get("session")!.user.id, c.req.valid("json").baseRevision)))
     .post("/exhibitions/:id/publish", rateLimit("write"), zValidator("param", UuidParamSchema, throwOnInvalid), zValidator("json", PublishExhibitionSchema, throwOnInvalid), async c => c.json(await service.publish(c.req.valid("param").id, c.get("session")!.user.id, c.req.valid("json").baseRevision)))
     .put("/exhibitions/:id/draft", rateLimit("write"), zValidator("param", UuidParamSchema, throwOnInvalid), zValidator("json", SaveExhibitionDraftSchema, throwOnInvalid), async c => {
       const body = c.req.valid("json");

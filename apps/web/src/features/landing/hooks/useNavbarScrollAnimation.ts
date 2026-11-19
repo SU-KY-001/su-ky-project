@@ -43,15 +43,11 @@ export function useNavbarScrollAnimation(reducedMotion: boolean, surface = false
     const navbar = navbarRef.current;
     const page = navbar?.closest<HTMLElement>("#landing-page");
     if (!navbar || !page) return;
-    const primaryTone = navbar.querySelectorAll<HTMLElement>("[data-navbar-tone='primary']");
-    const secondaryTone = navbar.querySelectorAll<HTMLElement>("[data-navbar-tone='secondary']");
     let frame = 0;
     let timeline: gsap.core.Timeline;
     const context = gsap.context(() => {
       timeline = gsap.timeline({ paused: true });
       timeline.fromTo(navbar, expandedNavbar, { ...pillNavbar, duration: 1, ease: "none" }, 0);
-      if (primaryTone.length) timeline.fromTo(primaryTone, { color: "#faf6ed" }, { color: "#1c1714", duration: 1, ease: "none" }, 0);
-      if (secondaryTone.length) timeline.fromTo(secondaryTone, { color: "#e9dcc2" }, { color: "#5b4e44", duration: 1, ease: "none" }, 0);
     }, navbar);
     const update = (): void => {
       const scrollY = window.scrollY;
