@@ -11,7 +11,7 @@ import { ErrorState } from "@/shared/components/common/ErrorState";
 import { useConfirmationDialog } from "@/shared/hooks/useConfirmationDialog";
 import { exhibitionService } from "../services/exhibitionService";
 
-const previewState = z.object({ workspace: ExhibitionWorkspaceSchema, dirty: z.boolean(), savedDocument: ExhibitionDocumentSchema.optional() });
+const previewState = z.object({ creating: z.boolean().optional(), workspace: ExhibitionWorkspaceSchema, dirty: z.boolean(), savedDocument: ExhibitionDocumentSchema.optional() });
 export function ExhibitionPreview({ id }: { id: string }) {
   const location = useLocation(); const navigate = useNavigate();
   const state = previewState.safeParse(location.state);
@@ -33,6 +33,6 @@ export function ExhibitionPreview({ id }: { id: string }) {
   if (query.isPending) return <p role="status">Đang tải bản xem thử…</p>;
   if (query.isError) return <ErrorState title="Không thể tải bản xem thử" description={query.error.message} onRetry={() => { void query.refetch(); }} className="min-h-[60vh] bg-mod-canvas font-moderator" />;
   const active = state.success && state.data.workspace.id === id ? state.data : { workspace: query.data, dirty: false };
-  const returnToEditor = (): void => { allowReturn.current = true; void navigate(moderatorExhibitionPath.edit(id), { state: active }); };
+  const returnToEditor = (): void => { allowReturn.current = true; void navigate(`${moderatorExhibitionPath.edit(id)}?step=layout`, { state: active }); };
   return <><ExhibitionExperience exhibition={active.workspace.resolved} preview /><header className="fixed inset-x-0 top-0 z-[60] flex h-11 items-center justify-between bg-mod-surface px-2 font-moderator text-mod-text sm:px-5"><Button variant="ghost" onClick={returnToEditor}>← Quay lại biên tập</Button><span className="hidden text-sm font-semibold sm:block">Xem thử bằng tài khoản hiện tại{active.dirty ? " · Có thay đổi chưa lưu" : ""}</span><Button variant="ghost" className="text-mod-primary" onClick={returnToEditor}>Kết thúc xem thử</Button></header><ConfirmationDialog {...confirmation} /></>;
 }

@@ -1,5 +1,4 @@
 import { List } from "@phosphor-icons/react/dist/icons/List";
-import { MagnifyingGlass } from "@phosphor-icons/react/dist/icons/MagnifyingGlass";
 import { X } from "@phosphor-icons/react/dist/icons/X";
 import { useState } from "react";
 import { Link, useNavigate } from "react-router";
@@ -56,9 +55,6 @@ export function LandingHeader({ surface = false }: { surface?: boolean }) {
         </nav>
 
         <div className="hidden items-center gap-2 lg:flex">
-          <Button data-navbar-tone="primary" variant="ghost" size="icon" className="landing-nav-hover rounded-xl text-paper-soft transition-[background-color,color] duration-200" aria-label="Mở tìm kiếm">
-            <MagnifyingGlass size={19} weight="regular" />
-          </Button>
           {accountControl}
         </div>
 

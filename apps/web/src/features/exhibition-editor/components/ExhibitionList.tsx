@@ -29,7 +29,24 @@ export function ExhibitionList(): ReactElement {
   const [selected, setSelected] = useState<ExhibitionSummary | null>(null);
   const query = useQuery({ queryKey: ["exhibitions", search, status, page], queryFn: () => exhibitionService.list(search, status, page) });
   const publish = useMutation({ mutationFn: (row: ExhibitionSummary) => exhibitionService.publish(row.id, row.revision), onSuccess: () => { setSelected(null); void queryClient.invalidateQueries({ queryKey: ["exhibitions"] }); notify.success({ title: "Đã công khai triển lãm" }); }, onError: error => notify.error({ title: "Không thể công khai", description: error.message }) });
-  const confirmPublish = async (): Promise<void> => { if (!selected) return; if (await requestConfirmation({ title: "Công khai triển lãm?", description: `Bản đã lưu của “${selected.title}” sẽ được khách truy cập qua liên kết công khai.`, confirmLabel: "Công khai" })) publish.mutate(selected); };
+  const remove = useMutation({
+    mutationFn: (row: ExhibitionSummary) => exhibitionService.deleteDraft(row.id, row.revision), retry: false,
+    onSuccess: async (_result, row) => {
+      await queryClient.cancelQueries({ queryKey: ["exhibition", row.id] });
+      queryClient.removeQueries({ queryKey: ["exhibition", row.id] });
+      setSelected(null);
+      if (query.data?.items.length === 1 && page > 1) setPage(page - 1);
+      void queryClient.invalidateQueries({ queryKey: ["exhibitions"] });
+      notify.success({ title: "Đã xóa triển lãm nháp" });
+    },
+    onError: error => { void queryClient.invalidateQueries({ queryKey: ["exhibitions"] }); notify.error({ title: "Không thể xóa bản nháp", description: error.message.includes("Route") && error.message.includes("not found") ? "API đang chạy chưa hỗ trợ thao tác này. Cần cập nhật và khởi động lại API." : error.message }); },
+  });
+  const confirmDelete = async (): Promise<void> => {
+    const row = selected;
+    if (!row || row.publicationStatus !== "UNPUBLISHED" || remove.isPending || publish.isPending) return;
+    if (await requestConfirmation({ title: "Xóa triển lãm nháp?", description: `Bản nháp “${row.title}” sẽ được đưa khỏi danh sách triển lãm. Nội dung, bố trí tranh và các tệp media vẫn được giữ trong hệ thống.`, confirmLabel: "Xóa bản nháp", destructive: true })) remove.mutate(row);
+  };
+  const confirmPublish = async (): Promise<void> => { if (!selected || remove.isPending || publish.isPending) return; if (await requestConfirmation({ title: "Công khai triển lãm?", description: `Bản đã lưu của “${selected.title}” sẽ được khách truy cập qua liên kết công khai.`, confirmLabel: "Công khai" })) publish.mutate(selected); };
   const create = (): void => { void navigate(moderatorExhibitionPath.create); };
   return <div className="flex min-w-0 flex-col gap-6 font-moderator">
     <DashboardHeader title="Triển lãm 3D" description="Tạo và quản lý những không gian kể chuyện lịch sử." />
@@ -39,6 +56,6 @@ export function ExhibitionList(): ReactElement {
         {!query.data?.items.length && <DashboardEmptyTableRow columns={6}>{query.isPending ? "Đang tải triển lãm…" : "Chưa có triển lãm phù hợp."}</DashboardEmptyTableRow>}
       </DashboardDataTable>
     </DashboardTableCard>}
-    <Dialog open={!!selected} onOpenChange={open => { if (!open) setSelected(null); }}><DialogContent className="border-mod-border bg-mod-surface font-moderator text-mod-text sm:max-w-xl"><DialogHeader><DialogTitle>{selected?.title}</DialogTitle><DialogDescription>Chi tiết triển lãm · {selected?.chapterCount} phòng · {selected?.itemCount} tranh</DialogDescription></DialogHeader>{selected?.publicationStatus === "PUBLISHED" && <a className="text-sm text-mod-primary underline" href={`/trien-lam/${encodeURIComponent(selected.slug)}`} target="_blank" rel="noreferrer">Mở triển lãm công khai</a>}<DialogFooter className="gap-2 border-t border-mod-border pt-4"><Button variant="outline" onClick={() => selected && navigate(moderatorExhibitionPath.preview(selected.id))}>Xem thử</Button><Button variant="outline" disabled={publish.isPending} onClick={() => void confirmPublish()}>Công khai</Button><Button onClick={() => selected && navigate(moderatorExhibitionPath.edit(selected.id))}>Chỉnh sửa</Button></DialogFooter></DialogContent></Dialog><ConfirmationDialog {...confirmation} />
+    <Dialog open={!!selected} onOpenChange={open => { if (!open && !remove.isPending && !publish.isPending) setSelected(null); }}><DialogContent className="border-mod-border bg-mod-surface font-moderator text-mod-text sm:max-w-xl"><DialogHeader><DialogTitle>{selected?.title}</DialogTitle><DialogDescription>Chi tiết triển lãm · {selected?.chapterCount} phòng · {selected?.itemCount} tranh</DialogDescription></DialogHeader>{selected?.publicationStatus === "PUBLISHED" && <a className="text-sm text-mod-primary underline" href={`/trien-lam/${encodeURIComponent(selected.slug)}`} target="_blank" rel="noreferrer">Mở triển lãm công khai</a>}<DialogFooter className="gap-2 border-t border-mod-border pt-4">{selected?.publicationStatus === "UNPUBLISHED" && <Button variant="outline" className="mr-auto border-mod-danger/30 text-mod-danger hover:bg-mod-danger/10 hover:text-mod-danger" disabled={remove.isPending || publish.isPending} onClick={() => void confirmDelete()}>{remove.isPending ? "Đang xóa…" : "Xóa bản nháp"}</Button>}<Button variant="outline" disabled={remove.isPending || publish.isPending} onClick={() => selected && navigate(moderatorExhibitionPath.preview(selected.id))}>Xem thử</Button><Button variant="outline" disabled={publish.isPending || remove.isPending} onClick={() => void confirmPublish()}>Công khai</Button><Button disabled={remove.isPending || publish.isPending} onClick={() => selected && navigate(moderatorExhibitionPath.edit(selected.id))}>Chỉnh sửa</Button></DialogFooter></DialogContent></Dialog><ConfirmationDialog {...confirmation} />
   </div>;
 }

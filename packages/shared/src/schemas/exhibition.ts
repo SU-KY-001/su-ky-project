@@ -9,7 +9,7 @@ const item = z.object({
   id: uuid, chapterId: uuid, imageAssetId: uuid, title: text.min(1).max(255),
   description: text.max(2000), displayDate: text.max(255), credit: text.max(500),
   sourceUrl: text.max(2048).refine(value => value === "" || /^https?:\/\//i.test(value) && z.string().url().safeParse(value).success),
-  rights: text.max(2000), narrationId: uuid.nullable(),
+  rights: text.max(2000), audioAssetId: uuid.nullable().optional(), narrationId: uuid.nullable(),
   placement: z.object({ wallId: text.min(1), offset: z.number().finite().nonnegative(), width: z.number().finite().positive().max(20), widthMode: z.literal("actual").optional() }),
 });
 
@@ -17,8 +17,10 @@ export const ExhibitionDocumentSchema = z.object({
   schemaVersion: z.literal(1), templateId: z.literal("gallery-1975-v1"), templateVersion: z.literal(1),
   metadata,
   audioAssetId: uuid.nullable().optional(),
+  audioMode: z.enum(["room", "artwork"]).optional().describe("room: âm thanh toàn phòng; artwork: file âm thanh theo từng tranh. Bản cũ không có trường này được suy ra từ audioAssetId."),
   chapters: z.array(chapter).min(1).max(3), items: z.array(item).max(100),
 }).superRefine((document, ctx) => {
+  if (document.audioMode === "artwork" && document.audioAssetId) ctx.addIssue({ code: "custom", message: "Chế độ podcast theo ảnh không dùng âm thanh toàn phòng", path: ["audioAssetId"] });
   if (new Set(document.chapters.map(value => value.id)).size !== document.chapters.length || new Set(document.chapters.map(value => value.roomKey)).size !== document.chapters.length)
     ctx.addIssue({ code: "custom", message: "Chương và phòng phải duy nhất", path: ["chapters"] });
   if (new Set(document.items.map(value => value.id)).size !== document.items.length)
@@ -33,14 +35,16 @@ export const ExhibitionDocumentSchema = z.object({
 export const CreateExhibitionSchema = z.object({ document: ExhibitionDocumentSchema });
 export const SaveExhibitionDraftSchema = z.object({ baseRevision: z.number().int().positive(), document: ExhibitionDocumentSchema });
 export const PublishExhibitionSchema = z.object({ baseRevision: z.number().int().positive() });
+export const DeleteExhibitionDraftSchema = z.object({ baseRevision: z.number().int().positive() });
+export const DeleteExhibitionResultSchema = z.object({ deleted: z.literal(true) });
 export const ExhibitionListQuerySchema = z.object({ q: text.max(255).default(""), status: z.enum(["all", "published", "unpublished"]).default("all"), page: z.coerce.number().int().min(1).default(1), limit: z.coerce.number().int().min(1).max(50).default(10) });
 export const ExhibitionPodcastQuerySchema = z.object({ q: text.max(255).default(""), seriesId: uuid.optional(), page: z.coerce.number().int().min(1).default(1), limit: z.coerce.number().int().min(1).max(50).default(10) });
 export const ExhibitionPodcastOptionSchema = z.object({ id: uuid, episodeId: uuid, episodeTitle: z.string(), seriesId: uuid, seriesTitle: z.string(), narrationLabel: z.string() });
 export type ExhibitionPodcastOption = z.infer<typeof ExhibitionPodcastOptionSchema>;
 export type ExhibitionPodcastQuery = z.infer<typeof ExhibitionPodcastQuerySchema>;
 export const ExhibitionSummarySchema = z.object({ id: uuid, title: z.string(), slug: z.string(), chapterCount: z.number().int().nonnegative(), itemCount: z.number().int().nonnegative(), podcastCount: z.number().int().nonnegative(), publicationStatus: z.enum(["UNPUBLISHED", "PUBLISHED"]), revision: z.number().int().positive(), updatedAt: z.string().datetime() });
-const resolvedItem = item.extend({ image: z.object({ url: z.string().url(), width: z.number().positive(), height: z.number().positive() }), narration: z.object({ id: uuid, episodeTitle: z.string(), seriesTitle: z.string(), narrationLabel: z.string(), available: z.boolean() }).nullable() });
-export const ResolvedExhibitionSchema = z.object({ metadata, chapters: z.array(chapter).min(1).max(3), items: z.array(resolvedItem), audio: z.object({ url: z.string().url() }).nullable().optional() });
+const resolvedItem = item.extend({ audio: z.object({ url: z.string().url() }).nullable().optional(), image: z.object({ url: z.string().url(), width: z.number().positive(), height: z.number().positive() }), narration: z.object({ id: uuid, episodeTitle: z.string(), seriesTitle: z.string(), narrationLabel: z.string(), available: z.boolean() }).nullable() });
+export const ResolvedExhibitionSchema = z.object({ metadata, chapters: z.array(chapter).min(1).max(3), items: z.array(resolvedItem), audio: z.object({ url: z.string().url() }).nullable().optional(), audioMode: z.enum(["room", "artwork"]).optional() });
 export const ExhibitionWorkspaceSchema = z.object({ id: uuid, slug: z.string(), revision: z.number().int().positive(), updatedAt: z.string().datetime(), publicationStatus: z.enum(["UNPUBLISHED", "PUBLISHED"]), publishedRevision: z.number().int().positive().nullable(), document: ExhibitionDocumentSchema, resolved: ResolvedExhibitionSchema, allowedActions: z.array(z.enum(["edit", "publish"])) });
 export type ExhibitionDocument = z.infer<typeof ExhibitionDocumentSchema>;
 export type ExhibitionWorkspace = z.infer<typeof ExhibitionWorkspaceSchema>;

@@ -8,6 +8,7 @@ export const exhibitionTemplate = {
     { roomKey: "room-3", position: [0, 1.65, -26], yaw: 0 },
   ],
   walls: [
+    { id: "room-1-south", roomKey: "room-1", a: [6, 12], b: [-6, 12], normal: [0, -1], range: [1, 11] },
     { id: "room-1-west", roomKey: "room-1", a: [-6, -8], b: [-6, 12], normal: [1, 0], range: [1, 19] },
     { id: "room-1-north", roomKey: "room-1", a: [-6, -8], b: [6, -8], normal: [0, 1], range: [1, 8] },
     { id: "room-1-east", roomKey: "room-1", a: [6, -1], b: [6, 12], normal: [-1, 0], range: [1, 12] },

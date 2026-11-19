@@ -28,7 +28,7 @@ let maintenanceBoss: PgBoss | null = null;
 const exhibitionMediaSchema = z.object({
   metadata: z.object({ coverAssetId: z.string().nullable().optional() }),
   audioAssetId: z.string().nullable().optional(),
-  items: z.array(z.object({ imageAssetId: z.string() })),
+  items: z.array(z.object({ imageAssetId: z.string(), audioAssetId: z.string().nullable().optional() })),
 });
 
 export function exhibitionMediaIds(exhibitions: { draftDocument: unknown; publishedDocument: unknown }[]): string[] {
@@ -39,7 +39,7 @@ export function exhibitionMediaIds(exhibitions: { draftDocument: unknown; publis
       const document = exhibitionMediaSchema.parse(value);
       if (document.metadata.coverAssetId) ids.add(document.metadata.coverAssetId);
       if (document.audioAssetId) ids.add(document.audioAssetId);
-      for (const item of document.items) ids.add(item.imageAssetId);
+      for (const item of document.items) { ids.add(item.imageAssetId); if (item.audioAssetId) ids.add(item.audioAssetId); }
     }
   }
   return [...ids];

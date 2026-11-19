@@ -22,6 +22,14 @@ export const appRoutes: RouteObject[] = [
     ErrorBoundary: RouteErrorFallback,
     children: [
       {
+        id: "account-auth",
+        element: <ProtectedRoute allowedRoles={["user", "moderator", "admin"]} />,
+        children: [{ id: "account", path: APP_PATHS.account.slice(1), lazy: async () => {
+          const { AccountPage } = await import("../pages/account/AccountPage");
+          return { Component: AccountPage };
+        } }],
+      },
+      {
         id: "membership-auth",
         path: APP_PATHS.membership.slice(1),
         element: <ProtectedRoute allowedRoles={["user", "moderator", "admin"]} />,

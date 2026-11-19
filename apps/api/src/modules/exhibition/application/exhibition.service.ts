@@ -35,6 +35,18 @@ export class ExhibitionService {
     return this.workspace(await this.repository.create(ownerId, ExhibitionDocumentSchema.parse(input)));
   }
 
+  async deleteDraft(id: string, ownerId: string, revision: number): Promise<{ deleted: true }> {
+    const current = await this.repository.find(id, ownerId);
+    if (!current) throw new DomainError(404, "NOT_FOUND", "Không tìm thấy triển lãm");
+    if (current.publishedRevision !== null || current.publishedDocument !== null) {
+      throw new DomainError(409, "CONFLICT", "Chỉ có thể xóa triển lãm chưa công khai");
+    }
+    if (!await this.repository.deleteDraft(id, ownerId, revision)) {
+      throw new DomainError(409, "EXHIBITION_REVISION_CONFLICT", "Triển lãm đã thay đổi hoặc đã được công khai. Tải lại danh sách trước khi xóa.");
+    }
+    return { deleted: true };
+  }
+
   async saveDraft(id: string, ownerId: string, revision: number, input: ExhibitionDocument) {
     const current = await this.repository.find(id, ownerId);
     if (!current) throw new DomainError(404, "NOT_FOUND", "Không tìm thấy triển lãm");

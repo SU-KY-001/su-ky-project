@@ -45,7 +45,7 @@ export function ModeratorWorkspacePage(): ReactElement {
   const section = moderatorSectionFromPath(pathname);
   if (pathname.replace(/\/$/, "") === "/moderator") return <Navigate to={`${moderatorSectionPath.timeline}${search}`} replace />;
   return (
-    <ModeratorLayout section={section} compact={Boolean(editingExhibition)}>
+    <ModeratorLayout section={section} compact={Boolean(editingExhibition) && searchParams.get("step") === "layout"}>
       <ModeratorContentBoundary section={section}>
         <div key={section} className="mod-content-view">
           <WorkspaceContent

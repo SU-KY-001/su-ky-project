@@ -3,4 +3,5 @@ export const landingLinks = [
   { label: "Triển lãm 3D", target: "library-exhibitions" },
   { label: "Podcast", target: "library-podcasts" },
   { label: "Quiz", target: "library-quiz" },
+  { label: "Các gói Premium", target: "premium" },
 ];

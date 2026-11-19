@@ -33,7 +33,7 @@ export function GalleryScene(props: ControlsProps & { onUnavailable: () => void;
     dpr={[1, 1.5]} frameloop={props.active ? "always" : "demand"}
     gl={{ antialias: true, powerPreference: "high-performance", alpha: false, toneMapping: NoToneMapping }}
     fallback={<div className="exhibition-canvas-fallback">Không gian 3D cần WebGL. Bạn vẫn có thể đọc toàn bộ ảnh trong mục lục triển lãm.</div>}
-    onCreated={({ gl }) => { gl.domElement.tabIndex = 0; gl.domElement.setAttribute("aria-label", props.keyboardRequiresFocus ? "Không gian triển lãm 3D. WASD hoặc mũi tên để đi, kéo để nhìn, Q và R để xoay, Tab để rời khung." : "Không gian triển lãm 3D. WASD để đi, chuột để nhìn, E xem ảnh, M mở mục lục, Esc tạm dừng."); }}
+    onCreated={({ gl }) => { gl.domElement.tabIndex = 0; gl.domElement.setAttribute("aria-label", props.keyboardRequiresFocus ? "Không gian triển lãm 3D. WASD hoặc mũi tên để đi, kéo để nhìn, Q và R để xoay, Tab để rời khung." : "Không gian triển lãm 3D. WASD để đi, chuột để nhìn, E tương tác tranh, Q xem chi tiết, M mở mục lục, Esc tạm dừng."); }}
   >
     <color attach="background" args={[galleryPalette.wall]} />
     <ambientLight intensity={0.55} color={galleryPalette.light} />

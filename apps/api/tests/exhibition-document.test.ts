@@ -10,6 +10,23 @@ const document = {
   metadata: { title: "Triển lãm", subtitle: "", description: "", coverAssetId: null }, chapters, items: [],
 };
 
+test("audio mode is backward compatible and prevents overlapping room audio in artwork mode", () => {
+  expect(ExhibitionDocumentSchema.safeParse(document).success).toBe(true);
+  expect(ExhibitionDocumentSchema.parse({ ...document, audioMode: "artwork", audioAssetId: null }).audioMode).toBe("artwork");
+  expect(ExhibitionDocumentSchema.safeParse({ ...document, audioMode: "artwork", audioAssetId: chapters[0]!.id }).success).toBe(false);
+  expect(ExhibitionDocumentSchema.safeParse({ ...document, audioMode: "room", audioAssetId: chapters[0]!.id }).success).toBe(true);
+});
+
+test("artwork can use arbitrary horizontal offsets while preserving wall bounds and collision checks", () => {
+  const id = "00000000-0000-4000-8000-000000000020";
+  const item = { id, chapterId: chapters[0]!.id, imageAssetId: id, title: "Ảnh", description: "", displayDate: "", credit: "", sourceUrl: "", rights: "", narrationId: null, placement: { wallId: "room-1-west", offset: 10.37, width: 1.5, widthMode: "actual" } };
+  const sizes = { [id]: { width: 800, height: 600 } };
+  expect(validateExhibitionPlacements(ExhibitionDocumentSchema.parse({ ...document, items: [item] }), sizes)).toEqual([]);
+  expect(validateExhibitionPlacements(ExhibitionDocumentSchema.parse({ ...document, items: [{ ...item, placement: { ...item.placement, offset: 0.5 } }] }), sizes).length).toBeGreaterThan(0);
+  const second = { ...item, id: chapters[1]!.id, placement: { ...item.placement, offset: 10.4 } };
+  expect(validateExhibitionPlacements(ExhibitionDocumentSchema.parse({ ...document, items: [item, second] }), sizes).length).toBeGreaterThan(0);
+});
+
 test("a gallery supports one to three ordered rooms and an optional shared audio asset", () => {
   for (const count of [1, 2, 3]) expect(ExhibitionDocumentSchema.safeParse({ ...document, chapters: chapters.slice(0, count), audioAssetId: chapters[0]!.id }).success).toBe(true);
   expect(ExhibitionDocumentSchema.safeParse({ ...document, chapters: [] }).success).toBe(false);
@@ -96,6 +113,14 @@ test("saved offsets remain valid after the gallery rooms are aligned", () => {
     expect(wall.range[0]).toBeGreaterThanOrEqual(0);
   }
   expect(exhibitionTemplate.spawns.map(spawn => spawn.position[2])).toEqual([8.5, -10, -26]);
+});
+
+test("the first room rear wall supports artwork facing into the room", () => {
+  const wall = exhibitionTemplate.walls.find(value => value.id === "room-1-south");
+  expect(wall?.normal).toEqual([0, -1]);
+  const id = "00000000-0000-4000-8000-000000000030";
+  const item = { id, chapterId: chapters[0]!.id, imageAssetId: id, title: "Tranh tường sau", description: "", displayDate: "", credit: "", sourceUrl: "", rights: "", narrationId: null, placement: { wallId: "room-1-south", offset: 6, width: 1.5, widthMode: "actual" } };
+  expect(validateExhibitionPlacements(ExhibitionDocumentSchema.parse({ ...document, items: [item] }), { [id]: { width: 800, height: 600 } })).toEqual([]);
 });
 
 test("suggested slots leave room for artwork beside wall columns", () => {

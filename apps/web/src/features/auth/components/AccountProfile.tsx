@@ -1,17 +1,15 @@
-import { CaretDown } from "@phosphor-icons/react/dist/icons/CaretDown";
 import { CircleNotch } from "@phosphor-icons/react/dist/icons/CircleNotch";
 import { SignOut } from "@phosphor-icons/react/dist/icons/SignOut";
 import { SquaresFour } from "@phosphor-icons/react/dist/icons/SquaresFour";
 import { Crown } from "@phosphor-icons/react/dist/icons/Crown";
 import { UserCircle } from "@phosphor-icons/react/dist/icons/UserCircle";
-import { DropdownMenu } from "radix-ui";
+import { Avatar, DropdownMenu } from "radix-ui";
 import { Link } from "react-router";
 import type { ReactElement } from "react";
 import { Button } from "@/shared/components/ui/button";
 import { APP_PATHS, getRoleHomePath } from "@/shared/constants/routes";
 import { useCurrentUser } from "@/shared/hooks/useCurrentUser";
 import { useLogout } from "../hooks/useLogout";
-import { ModeratorText } from "@/features/moderator/components/ModeratorText";
 
 export function AccountProfile({ variant = "header" }: { variant?: "header" | "moderator" | "admin" }): ReactElement | null {
   const { data: user } = useCurrentUser();
@@ -35,8 +33,8 @@ export function AccountProfile({ variant = "header" }: { variant?: "header" | "m
             <UserCircle size={22} aria-hidden="true" />
           </span>
           <div data-account-profile-details className="min-w-0 flex-1">
-            <ModeratorText as="p" className="truncate text-[13px] font-semibold text-mod-text">{user.name}</ModeratorText>
-            <ModeratorText as="p" className="mt-0.5 text-[11px] text-mod-text-secondary">{roleLabel}</ModeratorText>
+            <p className="truncate font-sans text-[13px] font-semibold text-mod-text">{user.name}</p>
+            <p className="mt-0.5 font-sans text-[11px] text-mod-text-secondary">{roleLabel}</p>
           </div>
           {logoutButton}
         </div>
@@ -48,10 +46,16 @@ export function AccountProfile({ variant = "header" }: { variant?: "header" | "m
   return (
     <DropdownMenu.Root modal={false}>
       <DropdownMenu.Trigger asChild>
-        <Button variant="outline" aria-label={`Hồ sơ của ${user.name}`} className="max-w-56 gap-2 rounded-lg border-line bg-paper-soft px-3 text-ink hover:bg-paper-deep hover:text-ink">
-          <UserCircle size={21} aria-hidden="true" />
-          <span className="truncate">{user.name}</span>
-          <CaretDown size={14} aria-hidden="true" />
+        <Button variant="ghost" size="icon" aria-label={`Hồ sơ của ${user.name}`} title={`Hồ sơ của ${user.name}`} className="group relative size-14 shrink-0 rounded-full p-0 transition-transform duration-500 ease-out hover:-translate-y-0.5 hover:bg-transparent focus-visible:ring-bronze border-0 shadow-none motion-reduce:transform-none">
+          <span aria-hidden="true" className="absolute inset-0 rounded-full bg-night shadow-none transition-transform duration-700 ease-out [background:repeating-radial-gradient(circle_at_center,var(--color-night)_0px,var(--color-night)_2px,var(--color-night-soft)_3px,var(--color-night)_4px)] group-hover:rotate-45 motion-reduce:transform-none">
+            <span className="absolute inset-0 rounded-full [background:conic-gradient(from_35deg,transparent_0deg,color-mix(in_srgb,var(--color-paper-soft)_12%,transparent)_45deg,transparent_90deg,transparent_180deg,color-mix(in_srgb,var(--color-paper-soft)_8%,transparent)_225deg,transparent_270deg)]" />
+          </span>
+          <Avatar.Root className="relative flex size-8 shrink-0 overflow-hidden rounded-full bg-paper-deep">
+            <Avatar.Image src={user.image ?? undefined} alt="" className="size-full object-cover" referrerPolicy="no-referrer" />
+            <Avatar.Fallback className="flex size-full items-center justify-center bg-paper-deep text-xs font-semibold text-ink" delayMs={0}>
+              {user.name.trim().split(/\s+/).slice(-2).map(part => part[0]).join("").toLocaleUpperCase("vi-VN") || <UserCircle size={22} aria-hidden="true" />}
+            </Avatar.Fallback>
+          </Avatar.Root>
         </Button>
       </DropdownMenu.Trigger>
       <DropdownMenu.Portal>
@@ -61,6 +65,9 @@ export function AccountProfile({ variant = "header" }: { variant?: "header" | "m
             <p className="truncate text-xs text-ink-soft">{user.email}</p>
           </DropdownMenu.Label>
           <DropdownMenu.Separator className="my-1 h-px bg-line" />
+          <DropdownMenu.Item asChild>
+            <Link to={APP_PATHS.account} className="grid min-h-10 grid-cols-[18px_1fr] items-center gap-2 rounded-md px-3 text-sm outline-none data-[highlighted]:bg-paper-deep"><UserCircle size={18} aria-hidden="true" /><span>Tài khoản</span></Link>
+          </DropdownMenu.Item>
           {homePath !== APP_PATHS.home ? (
             <DropdownMenu.Item asChild>
               <Link to={homePath} className="grid min-h-10 grid-cols-[18px_1fr] items-center gap-2 rounded-md px-3 text-sm outline-none data-[highlighted]:bg-paper-deep"><SquaresFour size={18} aria-hidden="true" /><span>Mở bảng điều khiển</span></Link>
