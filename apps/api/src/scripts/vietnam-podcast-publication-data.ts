@@ -1,0 +1,67 @@
+// Bản biên soạn ngắn cho dữ liệu demo landing; giữ MP3 mẫu, không khẳng định đó là bản đọc các kịch bản này.
+export const VIETNAM_PUBLICATION_DATA = [
+  {
+    event: "Văn hóa Đông Sơn", start: -500, end: -111, approximate: true,
+    period: "Thời tiền sử", phase: "Văn hóa Đông Sơn", phaseStart: -700, phaseEnd: -110,
+    url: "https://baotanglichsuquocgia.vn/vi/Articles/3101/16033/van-hoa-djong-son-tu-da-su-djen-su-thuc-khao-co-hoc.html",
+    source: "Văn hoá Đông Sơn - Từ dã sử đến sự thực khảo cổ học",
+    summary: "Khám phá đời sống cư dân Việt cổ qua đồ đồng và hoa văn, với các di tích tập trung ở lưu vực sông Hồng, sông Mã và sông Cả.",
+    script: "Hãy bắt đầu từ một hiện vật bằng đồng. Trên bề mặt, những đường nét trang trí gợi mở cuộc sống của một cộng đồng cách chúng ta nhiều thế kỷ. Văn hóa Đông Sơn được biết đến qua các di tích và hiện vật khảo cổ, tập trung tại lưu vực sông Hồng, sông Mã và sông Cả.\n\nĐồ đồng không chỉ cho thấy kỹ năng chế tác. Hoa văn còn giúp người xem đặt câu hỏi về sinh hoạt và thế giới tinh thần của cư dân thời ấy. Những dấu tích vật chất cần được đọc cùng bối cảnh khai quật, thay vì xem mọi chi tiết như một câu chuyện đã có đáp án chắc chắn.\n\nKhi tìm hiểu thời cổ đại, hãy phân biệt chứng cứ khảo cổ với truyền thuyết. Mỗi loại tư liệu có cách tiếp cận riêng. Từ một hiện vật, chúng ta có thể mở ra nhiều câu hỏi về cộng đồng đã tạo nên nó.",
+  },
+  {
+    event: "Chiến thắng Bạch Đằng năm 938", start: 938, end: 938,
+    period: "Thời kỳ Bắc thuộc", phase: "Bước ngoặt giành độc lập", phaseStart: 938, phaseEnd: 939,
+    url: "https://baotanglichsu.vn/vi/Articles/3098/13934/ngo-quyen-va-chien-thang-bach-djang-nam-938.html", source: "Ngô Quyền và chiến thắng Bạch Đằng năm 938",
+    summary: "Theo dấu kế sách của Ngô Quyền: phối hợp bãi cọc, thủy triều và thế trận trên sông để đánh bại quân Nam Hán năm 938.",
+    script: "Dưới mặt sông Bạch Đằng, những chiếc cọc gỗ là một phần của kế hoạch lớn hơn. Năm 938, Ngô Quyền tổ chức trận đánh chống quân Nam Hán. Ông khai thác địa hình sông nước và nhịp thủy triều để tạo thế chủ động.\n\nKhi nước lên, lực lượng thuyền nhẹ nhử đối phương vào khu vực bố trí trận địa. Khi nước rút, bãi cọc trở thành chướng ngại. Sự phối hợp giữa thời điểm phản công và địa hình khiến đội thuyền xâm lược lâm vào thế bất lợi.\n\nĐiều đáng chú ý không chỉ là một loại vũ khí. Đó còn là hiểu biết về môi trường và khả năng tổ chức lực lượng. Chiến thắng Bạch Đằng năm 938 trở thành dấu mốc lớn trong hành trình xác lập nền độc lập của đất nước.",
+  },
+  {
+    event: "Ba cuộc kháng chiến chống Mông - Nguyên", start: 1258, end: 1288,
+    period: "Thời kỳ phong kiến", phase: "Đại Việt thời Trần", phaseStart: 1226, phaseEnd: 1400,
+    url: "https://baotanglichsuquocgia.vn/vi/Articles/3091/13962/hoi-thao-khoa-hoc-725-nam-chien-thang-bach-djang.html", source: "Hội thảo khoa học 725 năm chiến thắng Bạch Đằng",
+    summary: "Nhìn lại các cuộc kháng chiến năm 1258, 1285 và 1288, từ những chiến thắng trên bộ đến trận quyết chiến Bạch Đằng.",
+    script: "Trong thế kỷ mười ba, Đại Việt đối diện ba cuộc tiến công của quân Mông - Nguyên. Các mốc 1258, 1285 và 1288 nối thành một hành trình kháng chiến kéo dài nhiều thập kỷ.\n\nNhững địa danh như Đông Bộ Đầu, Hàm Tử, Chương Dương, Tây Kết và Vạn Kiếp gắn với các thắng lợi khác nhau. Không nên gộp mọi trận đánh thành một sự kiện duy nhất. Mỗi cuộc kháng chiến có bối cảnh và diễn biến riêng.\n\nNăm 1288, Bạch Đằng trở thành một điểm kết thúc quan trọng của cuộc xâm lược lần thứ ba. Khi lần theo từng mốc thời gian, người học có thể thấy rõ hơn mối liên hệ giữa các chiến trường và quá trình bảo vệ nền độc lập của Đại Việt.",
+  },
+  {
+    event: "Khởi nghĩa Lam Sơn", start: 1418, end: 1427,
+    period: "Thời kỳ phong kiến", phase: "Kháng Minh và khởi nghĩa Lam Sơn", phaseStart: 1407, phaseEnd: 1428,
+    url: "https://baotanglichsu.vn/vi/Articles/3098/16460/nghe-thuat-quan-su-djoc-djao-cuanguyen-trai-trong-khang-chien-chong-quan-minh.html", source: "Nghệ thuật quân sự độc đáo của Nguyễn Trãi trong kháng chiến chống quân Minh",
+    summary: "Từ cuộc khởi nghĩa năm 1418 đến thắng lợi năm 1427, tìm hiểu vai trò của Lê Lợi, Nguyễn Trãi và sự kết hợp quân sự với ngoại giao.",
+    script: "Năm 1418, cuộc khởi nghĩa Lam Sơn mở đầu một chặng đường đấu tranh chống sự thống trị của nhà Minh. Dưới sự lãnh đạo của Lê Lợi, cùng những đóng góp của Nguyễn Trãi, lực lượng khởi nghĩa từng bước phát triển.\n\nCuộc chiến không chỉ diễn ra bằng những trận giao tranh. Hoạt động chính trị và ngoại giao cũng góp phần tạo nên sức mạnh. Đến năm 1427, chiến thắng Chi Lăng - Xương Giang làm thay đổi cục diện, đưa cuộc đấu tranh tới thắng lợi.\n\nTheo dõi hành trình Lam Sơn là tìm hiểu cách một lực lượng vượt qua khó khăn, bảo toàn sức mạnh và lựa chọn thời cơ. Câu chuyện ấy giúp người nghe nhìn lịch sử qua cả quyết định trên chiến trường lẫn nỗ lực kết thúc chiến tranh.",
+  },
+  {
+    event: "Trịnh - Nguyễn phân tranh", start: 1627, end: 1672,
+    period: "Thời kỳ phong kiến", phase: "Đàng Ngoài và Đàng Trong", phaseStart: 1627, phaseEnd: 1771,
+    url: "https://baotanglichsu.vn/vi/Articles/3096/6442/thang-long-ha-noi-thoi-tay-son.html", source: "Thăng Long - Hà Nội thời Tây Sơn",
+    summary: "Tìm hiểu cuộc xung đột Trịnh - Nguyễn trong thế kỷ XVII và tình trạng chia cắt Đàng Ngoài, Đàng Trong với giới tuyến sông Gianh.",
+    script: "Một dòng sông có thể trở thành giới tuyến trong lịch sử. Cuộc xung đột Trịnh - Nguyễn từ năm 1627 đến năm 1672 không đem lại thắng lợi quyết định cho bên nào. Đất nước tiếp tục bị chia cắt thành Đàng Ngoài và Đàng Trong.\n\nSông Gianh gắn với ranh giới giữa hai vùng quyền lực. Sau khi các trận đánh lớn dừng lại, tình trạng chia cắt vẫn còn tồn tại. Vì vậy, kết thúc một giai đoạn giao tranh không đồng nghĩa với việc đất nước đã thống nhất.\n\nKhi bước sang câu chuyện Tây Sơn, bối cảnh ấy giúp người học hiểu vì sao sự thay đổi các tập đoàn quyền lực lại có ý nghĩa lớn. Lịch sử phân tranh cần được nhìn qua cả chiến sự và hệ quả lâu dài đối với xã hội.",
+  },
+  {
+    event: "Quang Trung đại phá quân Thanh", start: 1789, end: 1789,
+    period: "Thời kỳ phong kiến", phase: "Phong trào Tây Sơn", phaseStart: 1771, phaseEnd: 1803,
+    url: "https://baotanglichsuquocgia.vn/vi/Articles/3097/15721/ky-niem-225-nam-1789-2014-hoang-dje-quang-trung-nguyen-hue-djai-pha-quan-xam-luoc-man-thanh.html", source: "Kỷ niệm 225 năm Hoàng đế Quang Trung - Nguyễn Huệ đại phá quân xâm lược Mãn Thanh",
+    summary: "Theo bước cuộc tiến quân của Quang Trung và chiến thắng mùa xuân Kỷ Dậu 1789, giải phóng Thăng Long khỏi quân Thanh.",
+    script: "Cuối năm 1788, trước cuộc tiến quân của nhà Thanh, Nguyễn Huệ lên ngôi Hoàng đế, lấy niên hiệu Quang Trung và tổ chức hành quân ra Bắc. Mùa xuân Kỷ Dậu 1789 trở thành thời điểm của một cuộc phản công quyết định.\n\nCác đợt tiến công liên tiếp làm thay đổi nhanh chóng tình thế. Quân Tây Sơn giành thắng lợi và tiến vào Thăng Long. Chiến thắng gắn với khả năng tổ chức, tốc độ hành quân và sự chủ động lựa chọn thời điểm đánh.\n\nKhi tìm hiểu sự kiện, hãy lần theo trình tự từ tình thế cuối năm 1788 đến các trận đánh mùa xuân 1789. Cách nhìn theo diễn biến giúp chúng ta hiểu thành quả ấy như kết quả của nhiều quyết định nối tiếp nhau.",
+  },
+  {
+    event: "Liên quân Pháp - Tây Ban Nha tấn công Đà Nẵng", start: 1858, end: 1858,
+    period: "Thời kỳ Pháp thuộc", phase: "Giai đoạn Pháp bắt đầu xâm lược", phaseStart: 1858, phaseEnd: 1944,
+    url: "https://baotanglichsu.vn/vi/Articles/2002/67936/ngay-1-9-1858-lien-quan-phap-tay-ban-nha-no-sung-vao-thanh-dja-nang.html", source: "Ngày 1/9/1858, liên quân Pháp – Tây Ban Nha nổ súng vào thành Đà Nẵng",
+    summary: "Ngày 1 tháng 9 năm 1858, liên quân Pháp - Tây Ban Nha tấn công Đà Nẵng, mở đầu cuộc chiến tranh xâm lược Việt Nam.",
+    script: "Ngày mùng một tháng chín năm 1858, tiếng súng của liên quân Pháp - Tây Ban Nha vang lên tại Đà Nẵng. Sự kiện này mở đầu cuộc chiến tranh xâm lược Việt Nam của thực dân Pháp.\n\nĐà Nẵng trở thành nơi chứng kiến bước chuyển lớn trong quan hệ giữa Việt Nam và các thế lực phương Tây. Từ một cuộc tấn công tại cửa biển, đất nước bước vào giai đoạn đối diện nguy cơ mất chủ quyền.\n\nKhi nhìn lại mốc năm 1858, cần đặt sự kiện trong tiến trình lâu dài của cuộc xâm lược và sự kháng cự. Đây là một điểm bắt đầu để tiếp tục tìm hiểu những thay đổi về chính trị, xã hội và cuộc đấu tranh của người Việt trong các thập kỷ sau.",
+  },
+  {
+    event: "Cách mạng tháng Tám năm 1945", start: 1945, end: 1945,
+    period: "Thời kỳ hiện đại", phase: "Cách mạng tháng Tám và giành độc lập", phaseStart: 1945, phaseEnd: 1946,
+    url: "https://baotanglichsu.vn/VI/Articles/3097/18473/tong-khoi-nghia-cach-mang-thang-tam-nam-1945.html", source: "Tổng khởi nghĩa Cách mạng tháng Tám năm 1945",
+    summary: "Khám phá cuộc tổng khởi nghĩa tháng Tám năm 1945 qua dấu mốc giành chính quyền ở Hà Nội và không khí đấu tranh giành độc lập.",
+    script: "Tháng Tám năm 1945, tình thế lịch sử mở ra thời cơ giành chính quyền. Tại Hà Nội, ngày mười chín tháng tám trở thành một dấu mốc quan trọng của cuộc tổng khởi nghĩa.\n\nTừ nhiều khu vực, quần chúng tập trung về trung tâm thành phố. Không gian quanh Nhà hát lớn gắn với lời kêu gọi đứng lên giành chính quyền. Khi theo dõi sự kiện, người học cần nhìn cả thời cơ lẫn sự tham gia của đông đảo nhân dân.\n\nCách mạng tháng Tám là một bước ngoặt trong lịch sử Việt Nam. Qua những địa điểm và thời khắc cụ thể, câu chuyện về độc lập trở nên gần gũi hơn, gắn với con người và hành động trong một bối cảnh đặc biệt.",
+  },
+  {
+    event: "Đại hội VI khởi xướng công cuộc Đổi mới", start: 1986, end: 1986,
+    period: "Thời kỳ hiện đại", phase: "Khởi đầu công cuộc Đổi mới", phaseStart: 1986, phaseEnd: 1992,
+    url: "https://tulieuvankien.dangcongsan.vn/ban-chap-hanh-trung-uong-dang/dai-hoi-dang/lan-thu-vi/dai-hoi-dai-bieu-toan-quoc-lan-thu-vi-cua-dang-19", source: "Đại hội đại biểu toàn quốc lần thứ VI của Đảng",
+    summary: "Đại hội VI diễn ra tại Hà Nội từ ngày 15 đến 18 tháng 12 năm 1986, mở đầu đường lối Đổi mới trong bối cảnh đất nước cần những thay đổi sâu rộng.",
+    script: "Từ ngày mười lăm đến ngày mười tám tháng mười hai năm 1986, Đại hội đại biểu toàn quốc lần thứ sáu của Đảng họp tại Hà Nội. Đại hội đánh dấu sự khởi đầu của đường lối Đổi mới.\n\nĐổi mới đặt ra yêu cầu xem xét thực trạng và thay đổi cách lãnh đạo, tổ chức cùng phương thức quản lý. Những quyết định của Đại hội gắn với việc tìm hướng giải quyết khó khăn của đất nước, trước hết trong lĩnh vực kinh tế.\n\nĐây là một dấu mốc để tìm hiểu quá trình chuyển biến diễn ra trong nhiều năm sau đó. Khi học về Đổi mới, cần phân biệt quyết định khởi đầu với những bước triển khai và kết quả ở các giai đoạn tiếp theo.",
+  },
+] as const;

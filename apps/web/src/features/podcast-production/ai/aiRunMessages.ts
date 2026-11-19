@@ -1,0 +1,27 @@
+/** Every string the shared "AI is running" view and its log can show. Keep UI copy here, not in JSX. */
+export const AI_RUN_TEXT = {
+  logLabel: "Nhật ký AI",
+  cancel: "Hủy",
+  keepTyping: "Bạn vẫn có thể gõ tiếp kịch bản trong lúc chờ.",
+  checkTitle: "AI đang rà kịch bản",
+  checkStart: (total: number): string => `Bắt đầu rà ${total} đoạn`,
+  checkProgress: (processed: number, total: number): string => `Đã xét ${processed}/${total} đoạn`,
+  checkFound: (blockNumber: number, message: string): string => `Cảnh báo ở đoạn ${blockNumber}: ${message}`,
+  checkFailedBlocks: (count: number): string => `${count} đoạn không rà được`,
+  checkDone: (toolCalls: number, tokens: number): string => `Hoàn tất: tra nguồn ${toolCalls} lần, ${tokens.toLocaleString("vi-VN")} token`,
+  checkFailed: "Lượt rà dừng giữa chừng",
+  stepSummary: (processed: number, total: number, found: number, failed: number): string =>
+    `Đã xét ${processed}/${total} đoạn · ${found} cảnh báo${failed > 0 ? ` · ${failed} đoạn không rà được` : ""}`,
+  outlineTitle: "AI đang tạo dàn ý",
+  outlineStart: "Gửi chủ đề và góc kể cho AI",
+  outlineDone: (sections: number): string => `Nhận dàn ý ${sections} phần`,
+  draftTitle: "AI đang viết từng phần",
+  draftStep: (title: string): string => `Đang viết: ${title}`,
+  draftHint: "Mỗi phần là một lần gọi riêng. Chưa có gì vào kịch bản cho tới khi bạn bấm Chèn.",
+  rewriteTitle: "AI đang viết lại câu",
+  rewriteStart: (paragraphs: number): string => `Gửi ${paragraphs} đoạn kèm ngữ cảnh trước và sau`,
+  rewriteDone: (variants: number): string => `Nhận ${variants} bản viết lại`,
+  voiceTitle: "AI đang tạo giọng đọc",
+  voiceStep: (done: number, total: number): string => `Đã đọc xong ${done}/${total} phần`,
+  voiceHint: "Có thể mất vài phút. Bạn có thể rời trang rồi quay lại, tiến độ vẫn được giữ trong lúc máy chủ còn chạy.",
+} as const;

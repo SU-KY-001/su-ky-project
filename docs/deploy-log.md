@@ -1,0 +1,48 @@
+# Deploy Log
+
+Mỗi lần chạy `docker build && docker push` (theo `docs/docker-build-push-guide.md`), ghi lại 1 dòng vào bảng dưới.
+Dùng để biết image `lgdlong/suky-api:latest` trên Docker Hub đang ở commit nào.
+
+## Format
+
+| Thời gian          | Commit   | Branch        | Message        | Image  |
+| ------------------ | -------- | ------------- | -------------- | ------ |
+| `YYYY-MM-DD HH:MM` | `abcdef` | `branch-name` | commit message | 🔵 api |
+
+---
+
+## Lệnh ghi log nhanh (chạy sau `docker push`)
+
+```bash
+echo "| $(date '+%Y-%m-%d %H:%M') | $(git rev-parse --short HEAD) | $(git branch --show-current) | $(git log --oneline -1 --format='%s') | 🔵 api |" >> docs/deploy-log.md
+```
+
+Build từ working tree chưa commit: thêm `+dirty` sau hash và liệt kê file thay đổi trong cột Message.
+Dấu `|` trong message làm vỡ bảng — thay bằng `/`.
+
+Xác minh image đang chạy trên VPS:
+
+```bash
+docker inspect lgdlong/suky-api:latest --format '{{.Id}}'
+docker ps --format '{{.Names}} {{.Image}} {{.Status}}'
+```
+
+---
+
+## Lịch sử deploy
+
+> Bảng luôn nằm ở đáy file — thêm dòng mới bằng lệnh ở mục trên.
+
+| Thời gian | Commit | Branch | Message | Image |
+| --------- | ------ | ------ | ------- | ----- |
+| 2026-10-28 16:13 | d1d7699+dirty | staging | deploy prep: Dockerfile, compose.prod, Makefile.prod, docs, cookie SameSite=None | 🔵 api |
+| 2026-10-28 17:09 | ee12409+dirty | staging | staging + dev merge (quiz authoring, 3 migrations); Makefile.prod uncommitted | 🔵 api |
+| 2026-10-29 00:29 | 9fcdd34 | staging | docs(api): voice job dialogue mode in OpenAPI | 🔵 api |
+| 2026-10-29 11:21 | f2c2fba | staging | Merge remote-tracking branch 'origin/dev' into staging | 🔵 api |
+| 2026-11-09 17:46 | f5c28e5 | staging | Merge pull request #44 from SU-KY-001/fix/mobile | 🔵 api |
+| 2026-11-17 22:36 | 4b6a7b9 | dev | test(api): assert expected expiry on open membership orders | 🔵 api |
+| 2026-11-18 00:44 | eb8bcb6+dirty | refactor/api-structure | refactor(api): barrels + composition root + queries into repos; dirty: 29 files (app.ts, middleware, content, listening, membership, releases, catalog) | 🔵 api |
+| 2026-11-18 18:10 | eb73026 | feat/premium-membership-v2 | premium quota pipeline: experience access policy, plan benefits, renewal reminders (migrations 181400/181500/181600); member UI restored | 🔵 api |
+| 2026-11-18 19:08 | 36468fe | feat/premium-membership-v2 | fix(mobile): use plan duration in renewal CTA and handle missing plans | 🔵 api |
+| 2026-11-19 02:22 | c55584a | dev | feat(admin-overview): nối báo cáo Premium vào số liệu thật — image gồm cả bỏ xác minh nguồn (không có migration mới) + chọn nguồn cho rà AI | 🔵 api |
+| 2026-11-19 02:27 | 36468fe | feat/premium-membership-v2 | tag rollback: build lại từ commit 36468fe (giữ verification_*, chỉ dùng khi cần quay lui) | 🔵 api |

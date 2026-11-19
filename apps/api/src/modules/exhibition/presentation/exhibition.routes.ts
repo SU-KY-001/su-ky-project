@@ -1,0 +1,48 @@
+import { Hono } from "hono";
+import { z } from "zod";
+import { zValidator } from "@hono/zod-validator";
+import { CreateExhibitionSchema, DeleteExhibitionDraftSchema, ExhibitionListQuerySchema, ExhibitionPodcastQuerySchema, ExperienceStartQuerySchema, PublishExhibitionSchema, ResolvedExhibitionSchema, SaveExhibitionDraftSchema, UuidParamSchema, exhibitionTemplate } from "@repo/shared";
+import { idempotency, rateLimit, throwOnInvalid } from "../../../core/middleware";
+import type { AppEnv } from "../../../types";
+import { requireAuth, requireRole } from "../../auth";
+import { startExperience } from "../../membership/application/experience-access";
+import type { ExhibitionService } from "../application/exhibition.service";
+
+export function createStudioExhibitionRoute(service: ExhibitionService) {
+  return new Hono<AppEnv>()
+    .use("*", requireAuth, requireRole("moderator"))
+    .use("*", async (c, next) => { c.header("Cache-Control", "private, no-store"); await next(); })
+    .get("/exhibition-templates", c => c.json({ items: [exhibitionTemplate] }))
+    .get("/exhibition-podcast-options", zValidator("query", ExhibitionPodcastQuerySchema, throwOnInvalid), async c => c.json(await service.podcastOptions(c.req.valid("query"))))
+    .get("/exhibitions", zValidator("query", ExhibitionListQuerySchema, throwOnInvalid), async c => c.json(await service.list(c.get("session")!.user.id, c.req.valid("query"))))
+    .post("/exhibitions", idempotency(), rateLimit("write"), zValidator("json", CreateExhibitionSchema, throwOnInvalid), async c => {
+      const workspace = await service.create(c.get("session")!.user.id, c.req.valid("json").document);
+      c.header("Location", `/api/studio/exhibitions/${workspace.id}`);
+      return c.json(workspace, 201);
+    })
+    .get("/exhibitions/:id", zValidator("param", UuidParamSchema, throwOnInvalid), async c => c.json(await service.get(c.req.valid("param").id, c.get("session")!.user.id)))
+    .delete("/exhibitions/:id", rateLimit("write"), zValidator("param", UuidParamSchema, throwOnInvalid), zValidator("json", DeleteExhibitionDraftSchema, throwOnInvalid), async c => c.json(await service.deleteDraft(c.req.valid("param").id, c.get("session")!.user.id, c.req.valid("json").baseRevision)))
+    .post("/exhibitions/:id/publish", rateLimit("write"), zValidator("param", UuidParamSchema, throwOnInvalid), zValidator("json", PublishExhibitionSchema, throwOnInvalid), async c => c.json(await service.publish(c.req.valid("param").id, c.get("session")!.user.id, c.req.valid("json").baseRevision)))
+    .put("/exhibitions/:id/draft", rateLimit("write"), zValidator("param", UuidParamSchema, throwOnInvalid), zValidator("json", SaveExhibitionDraftSchema, throwOnInvalid), async c => {
+      const body = c.req.valid("json");
+      return c.json(await service.saveDraft(c.req.valid("param").id, c.get("session")!.user.id, body.baseRevision, body.document));
+    });
+}
+
+export function createPublicExhibitionRoute(service: ExhibitionService) {
+  return new Hono<AppEnv>()
+    .get("/exhibitions", async c => c.json(await service.listPublished()))
+    .get(
+      "/exhibitions/:slug",
+      requireAuth,
+      zValidator("param", z.object({ slug: z.string().min(1).max(280) }), throwOnInvalid),
+      zValidator("query", ExperienceStartQuerySchema, throwOnInvalid),
+      async (c) => {
+        const { slug } = c.req.valid("param");
+        const exhibition = ResolvedExhibitionSchema.parse(await service.publicExhibition(slug));
+        await startExperience("exhibition", c.get("session")!.user.id, slug, c.req.valid("query").start);
+        c.header("Cache-Control", "private, no-store");
+        return c.json(exhibition);
+      },
+    );
+}
